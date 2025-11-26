@@ -8,7 +8,14 @@ echo "===> Updating replace directives..."
 
 MOD_DIRS=$(find "${STAGING_DIR}" -name go.mod -exec dirname {} \;)
 
-# 兼容 Linux/macOS 获取相对路径函数
+# 1. 先删除所有现有的 staging 模块 replace 指令
+for mod in ${MOD_DIRS}; do
+  module=$(grep '^module ' "${mod}/go.mod" | awk '{print $2}')
+  # 删除现有的 replace 指令（如果存在）
+  go mod edit -dropreplace="${module}" "${ROOT}/go.mod" 2>/dev/null || true
+done
+
+# 2. 兼容 Linux/macOS 获取相对路径函数
 get_relpath() {
   local target="$1"
   local base="$2"
@@ -20,23 +27,17 @@ get_relpath() {
     grealpath --relative-to="$base" "$target"
   else
     # fallback：去掉 base 路径前缀，简单字符串截取
-    # 注意：base 必须是 target 的前缀路径
     echo "${target#$base/}"
   fi
 }
 
-# 生成 replace 语句临时文件
-REPLACE_TMP="$(mktemp)"
+# 3. 添加新的 replace 指令
 for mod in ${MOD_DIRS}; do
   module=$(grep '^module ' "${mod}/go.mod" | awk '{print $2}')
   relpath=$(get_relpath "$mod" "$ROOT")
-  echo "replace ${module} => ./${relpath}" >> "${REPLACE_TMP}"
+  # 使用 go mod edit 添加 replace，避免重复
+  go mod edit -replace="${module}=./${relpath}" "${ROOT}/go.mod"
 done
-
-# 追加 replace 到 go.mod（你也可以选择覆盖或其他方式）
-echo >> "${ROOT}/go.mod"
-cat "${REPLACE_TMP}" >> "${ROOT}/go.mod"
-rm "${REPLACE_TMP}"
 
 echo "===> Running go mod tidy..."
 (cd "${ROOT}" && go mod tidy)

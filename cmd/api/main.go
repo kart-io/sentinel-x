@@ -1,29 +1,32 @@
 package main
 
 import (
-	"time"
+	"context"
+	"fmt"
+	"log"
 
-	"github.com/kart-io/k8s-agent/pkg/agent/builder"
-	"github.com/kart-io/k8s-agent/pkg/llm"
+	"github.com/kart-io/goagent/llm"
+	"github.com/kart-io/goagent/llm/providers"
 )
 
 func main() {
-	// Entry point for the API server
-	// Create LLM client
-	llmClient := llm.NewOpenAIClient("your-api-key")
-
-	// Build agent with fluent API
-	agent, err := builder.NewAgentBuilder(llmClient).
-		WithSystemPrompt("You are a helpful assistant").
-		WithMaxIterations(10).
-		WithTimeout(30 * time.Second).
-		Build()
+	provider, err := providers.NewKimiWithOptions(
+		llm.WithModel("moonshot-v1-8k"))
 	if err != nil {
-		panic(err)
+		log.Fatalf("Failed to create Kimi provider: %v", err)
 	}
 
-	// Start the agent
-	if err := agent.Start(); err != nil {
-		panic(err)
+	ctx := context.Background()
+	resp, err := provider.Complete(ctx, &llm.CompletionRequest{
+		Messages: []llm.Message{
+			{Role: "user", Content: "What is deep learning?"},
+			{Role: "assistant", Content: "Deep learning is a subset of machine learning that is concerned with algorithms and models that learn from data that is unstructured or unlabeled. It is a type of machine learning that is used to find patterns in data."},
+			{Role: "user", Content: "What is the capital of France?"},
+		},
+	})
+	if err != nil {
+		log.Fatalf("Failed to complete: %v", err)
 	}
+	fmt.Println(resp.Content)
+
 }
