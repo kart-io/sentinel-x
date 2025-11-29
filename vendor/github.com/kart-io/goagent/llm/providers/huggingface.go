@@ -16,12 +16,14 @@ import (
 	agentErrors "github.com/kart-io/goagent/errors"
 	"github.com/kart-io/goagent/interfaces"
 	agentllm "github.com/kart-io/goagent/llm"
+	"github.com/kart-io/goagent/llm/common"
 	"github.com/kart-io/goagent/utils/httpclient"
 )
 
 // HuggingFaceProvider implements LLM interface for Hugging Face
 type HuggingFaceProvider struct {
-	*BaseProvider
+	*common.BaseProvider
+	*common.ProviderCapabilities
 	client  *httpclient.Client
 	apiKey  string
 	baseURL string
@@ -87,8 +89,8 @@ type HuggingFaceErrorResponse struct {
 
 // NewHuggingFaceWithOptions creates a new Hugging Face provider using options pattern
 func NewHuggingFaceWithOptions(opts ...agentllm.ClientOption) (*HuggingFaceProvider, error) {
-	// 创建 BaseProvider，统一处理 Options
-	base := NewBaseProvider(opts...)
+	// 创建 common.BaseProvider，统一处理 Options
+	base := common.NewBaseProvider(opts...)
 
 	// 应用 Provider 特定的默认值
 	base.ApplyProviderDefaults(
@@ -110,8 +112,8 @@ func NewHuggingFaceWithOptions(opts ...agentllm.ClientOption) (*HuggingFaceProvi
 		timeout = constants.HuggingFaceTimeout
 	}
 
-	// 使用 BaseProvider 的 NewHTTPClient 方法创建 HTTP 客户端
-	client := base.NewHTTPClient(HTTPClientConfig{
+	// 使用 common.BaseProvider 的 NewHTTPClient 方法创建 HTTP 客户端
+	client := base.NewHTTPClient(common.HTTPClientConfig{
 		Timeout: timeout,
 		Headers: map[string]string{
 			constants.HeaderContentType:   constants.ContentTypeJSON,
@@ -122,9 +124,14 @@ func NewHuggingFaceWithOptions(opts ...agentllm.ClientOption) (*HuggingFaceProvi
 
 	provider := &HuggingFaceProvider{
 		BaseProvider: base,
-		client:       client,
-		apiKey:       base.Config.APIKey,
-		baseURL:      base.Config.BaseURL,
+		ProviderCapabilities: common.NewProviderCapabilities(
+			agentllm.CapabilityCompletion,
+			agentllm.CapabilityChat,
+			agentllm.CapabilityStreaming,
+		),
+		client:  client,
+		apiKey:  base.Config.APIKey,
+		baseURL: base.Config.BaseURL,
 	}
 
 	return provider, nil
@@ -148,10 +155,10 @@ func (p *HuggingFaceProvider) Complete(ctx context.Context, req *agentllm.Comple
 // buildRequest converts agentllm.CompletionRequest to HuggingFaceRequest
 func (p *HuggingFaceProvider) buildRequest(req *agentllm.CompletionRequest) *HuggingFaceRequest {
 	// Combine all messages into a single input string using shared utility
-	inputs := MessagesToPrompt(req.Messages, DefaultPromptFormatter)
+	inputs := common.MessagesToPrompt(req.Messages, common.DefaultPromptFormatter)
 	inputs += "Assistant: " // Prompt for response
 
-	// 使用 BaseProvider 的统一参数处理方法
+	// 使用 common.BaseProvider 的统一参数处理方法
 	maxTokens := p.GetMaxTokens(req.MaxTokens)
 	temperature := p.GetTemperature(req.Temperature)
 
@@ -221,7 +228,7 @@ func (p *HuggingFaceProvider) handleHTTPError(resp *resty.Response, model string
 		case 404:
 			return agentErrors.NewLLMResponseError(string(constants.ProviderHuggingFace), model, errResp.Error)
 		case 429:
-			retryAfter := parseRetryAfter(resp.Header().Get("Retry-After"))
+			retryAfter := common.ParseRetryAfter(resp.Header().Get("Retry-After"))
 			return agentErrors.NewLLMRateLimitError(string(constants.ProviderHuggingFace), model, retryAfter)
 		case 503:
 			// Model is loading - this is retryable
@@ -247,7 +254,7 @@ func (p *HuggingFaceProvider) handleHTTPError(resp *resty.Response, model string
 	case 404:
 		return agentErrors.NewLLMResponseError(string(constants.ProviderHuggingFace), model, constants.StatusModelNotFound)
 	case 429:
-		retryAfter := parseRetryAfter(resp.Header().Get("Retry-After"))
+		retryAfter := common.ParseRetryAfter(resp.Header().Get("Retry-After"))
 		return agentErrors.NewLLMRateLimitError(string(constants.ProviderHuggingFace), model, retryAfter)
 	case 503:
 		return agentErrors.NewLLMRequestError(string(constants.ProviderHuggingFace), model, fmt.Errorf("model loading"))
@@ -261,12 +268,12 @@ func (p *HuggingFaceProvider) handleHTTPError(resp *resty.Response, model string
 // executeWithRetry executes request with extended retry for model loading using shared retry logic
 func (p *HuggingFaceProvider) executeWithRetry(ctx context.Context, req *HuggingFaceRequest) (*HuggingFaceResponse, error) {
 	// HuggingFace uses longer delays for model loading
-	cfg := RetryConfig{
+	cfg := common.RetryConfig{
 		MaxAttempts: constants.HuggingFaceMaxAttempts,
 		BaseDelay:   constants.HuggingFaceBaseDelay,
 		MaxDelay:    constants.HuggingFaceMaxDelay,
 	}
-	return ExecuteWithRetry(ctx, cfg, p.ProviderName(), func(ctx context.Context) (*HuggingFaceResponse, error) {
+	return common.ExecuteWithRetry(ctx, cfg, p.ProviderName(), func(ctx context.Context) (*HuggingFaceResponse, error) {
 		return p.execute(ctx, req)
 	})
 }
@@ -310,6 +317,11 @@ func (p *HuggingFaceProvider) Chat(ctx context.Context, messages []agentllm.Mess
 // Provider returns the provider type
 func (p *HuggingFaceProvider) Provider() constants.Provider {
 	return constants.ProviderHuggingFace
+}
+
+// ProviderName returns the provider name as a string
+func (p *HuggingFaceProvider) ProviderName() string {
+	return string(constants.ProviderHuggingFace)
 }
 
 // IsAvailable checks if the provider is available

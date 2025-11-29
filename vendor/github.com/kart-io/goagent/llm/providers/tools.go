@@ -1,42 +1,30 @@
 package providers
 
-import "github.com/kart-io/goagent/interfaces"
-
-// Default Values
-const (
-	// DefaultTemperature is the default temperature value
-	DefaultTemperature = 0.7
-	// DefaultMaxTokens is the default max tokens value
-	DefaultMaxTokens = 2048
-	// DefaultTopP is the default top_p value
-	DefaultTopP = 1.0
-	// DefaultFrequencyPenalty is the default frequency penalty
-	DefaultFrequencyPenalty = 0.0
-	// DefaultPresencePenalty is the default presence penalty
-	DefaultPresencePenalty = 0.0
-)
-
-// ToolCall represents a function/tool call by the LLM
-type ToolCall struct {
-	ID        string                 `json:"id"`
-	Type      string                 `json:"type,omitempty"` // "function"
-	Name      string                 `json:"name,omitempty"`
-	Arguments map[string]interface{} `json:"arguments,omitempty"`
-	Function  *struct {
-		Name      string `json:"name"`
-		Arguments string `json:"arguments"` // JSON string
-	} `json:"function,omitempty"`
-}
-
-// ToolCallResponse represents the response from tool-enabled completion
-type ToolCallResponse struct {
-	Content   string                 `json:"content"`
-	ToolCalls []ToolCall             `json:"tool_calls,omitempty"`
-	Usage     *interfaces.TokenUsage `json:"usage,omitempty"`
-}
-
-// ToolChunk represents a streaming chunk from tool-enabled completion
-type ToolChunk struct {
-	Type  string      `json:"type"`  // "content", "tool_call", "tool_name", "tool_args", "error"
-	Value interface{} `json:"value"` // Content string, ToolCall, or error
-}
+// 本文件中的所有常量和类型别名已被删除（Phase 3 清理）。
+// 所有功能已迁移到 llm/common 包，请直接使用：
+//
+// 常量:
+//   - common.DefaultTemperature (原 providers.DefaultTemperature)
+//   - common.DefaultMaxTokens (原 providers.DefaultMaxTokens)
+//   - common.DefaultTopP (原 providers.DefaultTopP)
+//   - common.DefaultFrequencyPenalty (原 providers.DefaultFrequencyPenalty)
+//   - common.DefaultPresencePenalty (原 providers.DefaultPresencePenalty)
+//
+// 类型:
+//   - common.ToolCall (原 providers.ToolCall)
+//   - common.ToolCallResponse (原 providers.ToolCallResponse)
+//   - common.ToolChunk (原 providers.ToolChunk)
+//
+// 迁移示例:
+//
+//   // 旧代码
+//   import "github.com/kart-io/goagent/llm/providers"
+//   temp := providers.DefaultTemperature
+//
+//   // 新代码
+//   import "github.com/kart-io/goagent/llm/common"
+//   temp := common.DefaultTemperature
+//
+// 参考文档:
+//   - docs/guides/PROVIDER_BEST_PRACTICES.md
+//   - .claude/phase3-deprecation-analysis.md

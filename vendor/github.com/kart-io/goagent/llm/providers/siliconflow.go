@@ -12,13 +12,14 @@ import (
 	agentErrors "github.com/kart-io/goagent/errors"
 	"github.com/kart-io/goagent/interfaces"
 	agentllm "github.com/kart-io/goagent/llm"
+	"github.com/kart-io/goagent/llm/common"
 	"github.com/kart-io/goagent/utils/httpclient"
 )
 
 // SiliconFlowClient SiliconFlow LLM 客户端
 // SiliconFlow 是一个提供多种开源模型的服务平台
 type SiliconFlowClient struct {
-	*BaseProvider
+	*common.BaseProvider
 	apiKey  string
 	baseURL string
 	client  *httpclient.Client
@@ -26,8 +27,8 @@ type SiliconFlowClient struct {
 
 // NewSiliconFlowWithOptions 使用选项模式创建 SiliconFlow provider
 func NewSiliconFlowWithOptions(opts ...agentllm.ClientOption) (*SiliconFlowClient, error) {
-	// 创建 BaseProvider，统一处理 Options
-	base := NewBaseProvider(opts...)
+	// 创建 common.BaseProvider，统一处理 Options
+	base := common.NewBaseProvider(opts...)
 
 	// 应用 Provider 特定的默认值
 	base.ApplyProviderDefaults(
@@ -43,8 +44,8 @@ func NewSiliconFlowWithOptions(opts ...agentllm.ClientOption) (*SiliconFlowClien
 		return nil, err
 	}
 
-	// 使用 BaseProvider 的 NewHTTPClient 方法创建 HTTP 客户端
-	client := base.NewHTTPClient(HTTPClientConfig{
+	// 使用 common.BaseProvider 的 NewHTTPClient 方法创建 HTTP 客户端
+	client := base.NewHTTPClient(common.HTTPClientConfig{
 		Timeout: base.GetTimeout(),
 		Headers: map[string]string{
 			constants.HeaderContentType:   constants.ContentTypeJSON,
@@ -205,67 +206,4 @@ func (c *SiliconFlowClient) IsAvailable() bool {
 
 	_, err := c.Complete(ctx, testReq)
 	return err == nil
-}
-
-// ListModels 列出可用的模型
-func (c *SiliconFlowClient) ListModels() []string {
-	// SiliconFlow 支持的模型列表
-	return []string{
-		// Qwen 系列
-		"Qwen/Qwen2-7B-Instruct",
-		"Qwen/Qwen2-1.5B-Instruct",
-		"Qwen/Qwen2.5-7B-Instruct",
-		"Qwen/Qwen2.5-14B-Instruct",
-		"Qwen/Qwen2.5-32B-Instruct",
-		"Qwen/Qwen2.5-72B-Instruct",
-		"Qwen/Qwen2.5-Coder-7B-Instruct",
-
-		// DeepSeek 系列
-		"deepseek-ai/DeepSeek-V2-Chat",
-		"deepseek-ai/DeepSeek-V2.5",
-		"deepseek-ai/DeepSeek-Coder-V2-Instruct",
-
-		// GLM 系列
-		"THUDM/glm-4-9b-chat",
-		"THUDM/chatglm3-6b",
-
-		// Yi 系列
-		"01-ai/Yi-1.5-34B-Chat-16K",
-		"01-ai/Yi-1.5-9B-Chat-16K",
-		"01-ai/Yi-1.5-6B-Chat",
-
-		// Mistral 系列
-		"mistralai/Mistral-7B-Instruct-v0.2",
-		"mistralai/Mixtral-8x7B-Instruct-v0.1",
-
-		// Meta Llama 系列
-		"meta-llama/Meta-Llama-3.1-8B-Instruct",
-		"meta-llama/Meta-Llama-3.1-70B-Instruct",
-		"meta-llama/Meta-Llama-3-8B-Instruct",
-		"meta-llama/Meta-Llama-3-70B-Instruct",
-
-		// 其他模型
-		"internlm/internlm2_5-7b-chat",
-		"google/gemma-2-9b-it",
-	}
-}
-
-// 辅助方法
-
-// WithModel 设置模型
-func (c *SiliconFlowClient) WithModel(model string) *SiliconFlowClient {
-	c.Config.Model = model
-	return c
-}
-
-// WithTemperature 设置温度
-func (c *SiliconFlowClient) WithTemperature(temperature float64) *SiliconFlowClient {
-	c.Config.Temperature = temperature
-	return c
-}
-
-// WithMaxTokens 设置最大 token 数
-func (c *SiliconFlowClient) WithMaxTokens(maxTokens int) *SiliconFlowClient {
-	c.Config.MaxTokens = maxTokens
-	return c
 }

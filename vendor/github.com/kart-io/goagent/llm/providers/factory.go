@@ -2,6 +2,7 @@ package providers
 
 import (
 	"fmt"
+	"github.com/kart-io/goagent/llm/common"
 	"time"
 
 	agentllm "github.com/kart-io/goagent/llm"
@@ -9,15 +10,22 @@ import (
 )
 
 // ClientFactory 统一的客户端工厂
+// Deprecated: 直接使用各 Provider 的 NewXXXWithOptions() 构造函数。
+// 迁移示例:
+//
+//	import "github.com/kart-io/goagent/llm/providers"
+//	client, err := providers.NewOpenAIWithOptions(opts...)
 type ClientFactory struct{}
 
 // NewClientFactory 创建新的客户端工厂
+// Deprecated: 直接使用各 Provider 的 NewXXXWithOptions() 构造函数。
 func NewClientFactory() *ClientFactory {
 	return &ClientFactory{}
 }
 
 // CreateClient 根据配置创建相应的 LLM 客户端
 // 内部使用 Options 模式，确保统一的配置处理
+// Deprecated: 直接使用各 Provider 的 NewXXXWithOptions() 构造函数。
 func (f *ClientFactory) CreateClient(config *agentllm.LLMOptions) (agentllm.Client, error) {
 	// 准备配置（验证、设置默认值、从环境变量读取）
 	if err := agentllm.PrepareConfig(config); err != nil {
@@ -25,9 +33,9 @@ func (f *ClientFactory) CreateClient(config *agentllm.LLMOptions) (agentllm.Clie
 	}
 
 	// 将配置转换为 Options，使用统一的 WithOptions 版本
-	opts := ConfigToOptions(config)
+	opts := common.ConfigToOptions(config)
 
-	// 根据提供商创建客户端，优先使用 WithOptions 版本
+	// 根据 Provider 类型创建客户端
 	switch config.Provider {
 	case constants.ProviderOpenAI:
 		return NewOpenAIWithOptions(opts...)
@@ -62,6 +70,7 @@ func (f *ClientFactory) CreateClient(config *agentllm.LLMOptions) (agentllm.Clie
 }
 
 // CreateClientWithOptions 使用选项模式创建客户端
+// Deprecated: 直接使用各 Provider 的 NewXXXWithOptions() 构造函数。
 func (f *ClientFactory) CreateClientWithOptions(opts ...agentllm.ClientOption) (agentllm.Client, error) {
 	// 创建配置
 	config := agentllm.NewLLMOptionsWithOptions(opts...)

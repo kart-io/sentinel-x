@@ -16,12 +16,14 @@ import (
 	agentErrors "github.com/kart-io/goagent/errors"
 	"github.com/kart-io/goagent/interfaces"
 	agentllm "github.com/kart-io/goagent/llm"
+	"github.com/kart-io/goagent/llm/common"
 	"github.com/kart-io/goagent/utils/httpclient"
 )
 
 // AnthropicProvider implements LLM interface for Anthropic Claude
 type AnthropicProvider struct {
-	*BaseProvider
+	*common.BaseProvider
+	*common.ProviderCapabilities
 	client  *httpclient.Client
 	apiKey  string
 	baseURL string
@@ -100,8 +102,8 @@ type AnthropicErrorDetails struct {
 
 // NewAnthropicWithOptions creates a new Anthropic provider using options pattern.
 func NewAnthropicWithOptions(opts ...agentllm.ClientOption) (*AnthropicProvider, error) {
-	// Create BaseProvider with unified options handling
-	base := NewBaseProvider(opts...)
+	// Create common.BaseProvider with unified options handling
+	base := common.NewBaseProvider(opts...)
 
 	// Apply provider-specific default values
 	base.ApplyProviderDefaults(
@@ -117,8 +119,8 @@ func NewAnthropicWithOptions(opts ...agentllm.ClientOption) (*AnthropicProvider,
 		return nil, err
 	}
 
-	// Create HTTP client using BaseProvider helper
-	client := base.NewHTTPClient(HTTPClientConfig{
+	// Create HTTP client using common.BaseProvider helper
+	client := base.NewHTTPClient(common.HTTPClientConfig{
 		Headers: map[string]string{
 			constants.HeaderContentType:      constants.ContentTypeJSON,
 			constants.HeaderXAPIKey:          base.Config.APIKey,
@@ -128,9 +130,14 @@ func NewAnthropicWithOptions(opts ...agentllm.ClientOption) (*AnthropicProvider,
 
 	provider := &AnthropicProvider{
 		BaseProvider: base,
-		client:       client,
-		apiKey:       base.Config.APIKey,
-		baseURL:      base.Config.BaseURL,
+		ProviderCapabilities: common.NewProviderCapabilities(
+			agentllm.CapabilityCompletion,
+			agentllm.CapabilityChat,
+			agentllm.CapabilityStreaming,
+		),
+		client:  client,
+		apiKey:  base.Config.APIKey,
+		baseURL: base.Config.BaseURL,
 	}
 
 	return provider, nil
@@ -142,13 +149,13 @@ func (p *AnthropicProvider) Complete(ctx context.Context, req *agentllm.Completi
 	anthropicReq := p.buildRequest(req)
 
 	// Execute with retry using shared retry logic
-	retryCfg := RetryConfig{
+	retryCfg := common.RetryConfig{
 		MaxAttempts: constants.AnthropicMaxAttempts,
 		BaseDelay:   constants.AnthropicBaseDelay,
 		MaxDelay:    constants.AnthropicMaxDelay,
 	}
 
-	resp, err := ExecuteWithRetry(ctx, retryCfg, p.ProviderName(), func(ctx context.Context) (*AnthropicResponse, error) {
+	resp, err := common.ExecuteWithRetry(ctx, retryCfg, p.ProviderName(), func(ctx context.Context) (*AnthropicResponse, error) {
 		return p.execute(ctx, anthropicReq)
 	})
 	if err != nil {
@@ -176,7 +183,7 @@ func (p *AnthropicProvider) buildRequest(req *agentllm.CompletionRequest) *Anthr
 		}
 	}
 
-	// Use BaseProvider's unified parameter handling
+	// Use common.BaseProvider's unified parameter handling
 	model := p.GetModel(req.Model)
 	maxTokens := p.GetMaxTokens(req.MaxTokens)
 	temperature := p.GetTemperature(req.Temperature)
@@ -217,10 +224,10 @@ func (p *AnthropicProvider) execute(ctx context.Context, req *AnthropicRequest) 
 	return &anthropicResp, nil
 }
 
-// handleHTTPError maps HTTP errors to AgentError using the shared MapHTTPError function.
+// handleHTTPError maps HTTP errors to AgentError using the shared common.MapHTTPError function.
 func (p *AnthropicProvider) handleHTTPError(resp *resty.Response, model string) error {
-	httpErr := RestyResponseToHTTPError(resp)
-	return MapHTTPError(httpErr, p.ProviderName(), model, p.parseErrorMessage)
+	httpErr := common.RestyResponseToHTTPError(resp)
+	return common.MapHTTPError(httpErr, p.ProviderName(), model, p.parseErrorMessage)
 }
 
 // parseErrorMessage extracts error message from Anthropic error response body.
@@ -264,6 +271,11 @@ func (p *AnthropicProvider) Chat(ctx context.Context, messages []agentllm.Messag
 // Provider returns the provider type.
 func (p *AnthropicProvider) Provider() constants.Provider {
 	return constants.ProviderAnthropic
+}
+
+// ProviderName returns the provider name as a string
+func (p *AnthropicProvider) ProviderName() string {
+	return string(constants.ProviderAnthropic)
 }
 
 // IsAvailable checks if the provider is available.
@@ -355,10 +367,4 @@ func (p *AnthropicProvider) Stream(ctx context.Context, prompt string) (<-chan s
 	}()
 
 	return tokens, nil
-}
-
-// MaxTokens returns the max tokens setting.
-// Note: This method is provided for backward compatibility; prefer using MaxTokensValue() inherited from BaseProvider.
-func (p *AnthropicProvider) MaxTokens() int {
-	return p.MaxTokensValue()
 }

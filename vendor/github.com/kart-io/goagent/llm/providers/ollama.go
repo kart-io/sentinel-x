@@ -3,11 +3,11 @@ package providers
 import (
 	"context"
 	"fmt"
-	"io"
 	"strings"
 	"time"
 
 	agentllm "github.com/kart-io/goagent/llm"
+	"github.com/kart-io/goagent/llm/common"
 	"github.com/kart-io/goagent/llm/constants"
 	"github.com/kart-io/goagent/utils/json"
 
@@ -18,15 +18,15 @@ import (
 
 // OllamaClient Ollama LLM 客户端
 type OllamaClient struct {
-	*BaseProvider
+	*common.BaseProvider
 	baseURL string
 	client  *httpclient.Client
 }
 
 // NewOllamaWithOptions 使用选项模式创建 Ollama 客户端
 func NewOllamaWithOptions(opts ...agentllm.ClientOption) (*OllamaClient, error) {
-	// 创建 BaseProvider，统一处理 Options
-	base := NewBaseProvider(opts...)
+	// 创建 common.BaseProvider，统一处理 Options
+	base := common.NewBaseProvider(opts...)
 
 	// 应用 Provider 特定的默认值（Ollama 不需要 API Key）
 	base.ApplyProviderDefaults(
@@ -43,8 +43,8 @@ func NewOllamaWithOptions(opts ...agentllm.ClientOption) (*OllamaClient, error) 
 		timeout = 120 * time.Second
 	}
 
-	// 使用 BaseProvider 的 NewHTTPClient 方法创建 HTTP 客户端
-	client := base.NewHTTPClient(HTTPClientConfig{
+	// 使用 common.BaseProvider 的 NewHTTPClient 方法创建 HTTP 客户端
+	client := base.NewHTTPClient(common.HTTPClientConfig{
 		Timeout: timeout,
 		Headers: map[string]string{
 			"Content-Type": "application/json",
@@ -206,7 +206,7 @@ func (c *OllamaClient) Chat(ctx context.Context, messages []agentllm.Message) (*
 		}
 	}
 
-	// 使用 BaseProvider 的统一参数处理方法
+	// 使用 common.BaseProvider 的统一参数处理方法
 	model := c.GetModel("")
 	maxTokens := c.GetMaxTokens(0)
 	temperature := c.GetTemperature(0)
@@ -317,74 +317,10 @@ func (c *OllamaClient) ListModels() ([]string, error) {
 	return models, nil
 }
 
-// PullModel 拉取模型
-func (c *OllamaClient) PullModel(modelName string) error {
-	pullReq := map[string]interface{}{
-		"name": modelName,
-	}
-
-	// 使用更长的超时时间用于模型下载
-	pullClient := httpclient.NewClient(&httpclient.Config{
-		Timeout: 30 * time.Minute,
-		Headers: map[string]string{
-			"Content-Type": "application/json",
-		},
-	})
-
-	resp, err := pullClient.Resty().R().
-		SetBody(pullReq).
-		Post(c.baseURL + "/api/pull")
-
-	if err != nil {
-		return agentErrors.NewLLMRequestError(c.ProviderName(), modelName, err).
-			WithContext("operation", "pull_model")
-	}
-
-	if !resp.IsSuccess() {
-		return agentErrors.NewLLMResponseError(c.ProviderName(), modelName,
-			fmt.Sprintf("pull model error (status %d): %s", resp.StatusCode(), resp.String()))
-	}
-
-	// 读取流式响应
-	decoder := json.NewDecoder(strings.NewReader(resp.String()))
-	for {
-		var status map[string]interface{}
-		if err := decoder.Decode(&status); err != nil {
-			if err == io.EOF {
-				break
-			}
-			return agentErrors.NewParserInvalidJSONError("pull model response stream", err).
-				WithContext("provider", c.ProviderName())
-		}
-		// 可以在这里添加进度显示逻辑
-	}
-
-	return nil
-}
-
-// 辅助方法
-
+// getFinishReason converts Ollama's done flag to finish reason
 func (c *OllamaClient) getFinishReason(done bool) string {
 	if done {
-		return "complete"
+		return "stop"
 	}
-	return "length"
-}
-
-// WithModel 设置模型
-func (c *OllamaClient) WithModel(model string) *OllamaClient {
-	c.Config.Model = model
-	return c
-}
-
-// WithTemperature 设置温度
-func (c *OllamaClient) WithTemperature(temperature float64) *OllamaClient {
-	c.Config.Temperature = temperature
-	return c
-}
-
-// WithMaxTokens 设置最大 token 数
-func (c *OllamaClient) WithMaxTokens(maxTokens int) *OllamaClient {
-	c.Config.MaxTokens = maxTokens
-	return c
+	return ""
 }
