@@ -1,0 +1,22 @@
+2025-09-07T14:47:11.179+0800	INFO	rotation/main.go:336	多输出示例开始	{"engine": "zap-rotation"}
+2025-09-07T14:47:11.180+0800	INFO	rotation/main.go:339	多输出测试	{"engine": "zap-rotation", "output_targets": ["console", "file"], "iteration": 0, "timestamp": "2025-09-07T14:47:11+08:00"}
+2025-09-07T14:47:11.281+0800	INFO	rotation/main.go:339	多输出测试	{"engine": "zap-rotation", "output_targets": ["console", "file"], "iteration": 1, "timestamp": "2025-09-07T14:47:11+08:00"}
+2025-09-07T14:47:11.382+0800	INFO	rotation/main.go:339	多输出测试	{"engine": "zap-rotation", "output_targets": ["console", "file"], "iteration": 2, "timestamp": "2025-09-07T14:47:11+08:00"}
+2025-09-07T14:47:11.492+0800	INFO	rotation/main.go:339	多输出测试	{"engine": "zap-rotation", "output_targets": ["console", "file"], "iteration": 3, "timestamp": "2025-09-07T14:47:11+08:00"}
+2025-09-07T14:47:11.594+0800	INFO	rotation/main.go:339	多输出测试	{"engine": "zap-rotation", "output_targets": ["console", "file"], "iteration": 4, "timestamp": "2025-09-07T14:47:11+08:00"}
+2025-09-07T14:47:11.695+0800	INFO	rotation/main.go:339	多输出测试	{"engine": "zap-rotation", "output_targets": ["console", "file"], "iteration": 5, "timestamp": "2025-09-07T14:47:11+08:00"}
+2025-09-07T14:47:11.796+0800	INFO	rotation/main.go:339	多输出测试	{"engine": "zap-rotation", "output_targets": ["console", "file"], "iteration": 6, "timestamp": "2025-09-07T14:47:11+08:00"}
+2025-09-07T14:47:11.897+0800	INFO	rotation/main.go:339	多输出测试	{"engine": "zap-rotation", "output_targets": ["console", "file"], "iteration": 7, "timestamp": "2025-09-07T14:47:11+08:00"}
+2025-09-07T14:47:11.998+0800	INFO	rotation/main.go:339	多输出测试	{"engine": "zap-rotation", "output_targets": ["console", "file"], "iteration": 8, "timestamp": "2025-09-07T14:47:11+08:00"}
+2025-09-07T14:47:12.100+0800	INFO	rotation/main.go:339	多输出测试	{"engine": "zap-rotation", "output_targets": ["console", "file"], "iteration": 9, "timestamp": "2025-09-07T14:47:12+08:00"}
+2025-09-07T14:47:12.201+0800	INFO	rotation/main.go:339	多输出测试	{"engine": "zap-rotation", "output_targets": ["console", "file"], "iteration": 10, "timestamp": "2025-09-07T14:47:12+08:00"}
+2025-09-07T14:47:12.302+0800	INFO	rotation/main.go:339	多输出测试	{"engine": "zap-rotation", "output_targets": ["console", "file"], "iteration": 11, "timestamp": "2025-09-07T14:47:12+08:00"}
+2025-09-07T14:47:12.403+0800	INFO	rotation/main.go:339	多输出测试	{"engine": "zap-rotation", "output_targets": ["console", "file"], "iteration": 12, "timestamp": "2025-09-07T14:47:12+08:00"}
+2025-09-07T14:47:12.505+0800	INFO	rotation/main.go:339	多输出测试	{"engine": "zap-rotation", "output_targets": ["console", "file"], "iteration": 13, "timestamp": "2025-09-07T14:47:12+08:00"}
+2025-09-07T14:47:12.606+0800	INFO	rotation/main.go:339	多输出测试	{"engine": "zap-rotation", "output_targets": ["console", "file"], "iteration": 14, "timestamp": "2025-09-07T14:47:12+08:00"}
+2025-09-07T14:47:12.706+0800	INFO	rotation/main.go:339	多输出测试	{"engine": "zap-rotation", "output_targets": ["console", "file"], "iteration": 15, "timestamp": "2025-09-07T14:47:12+08:00"}
+2025-09-07T14:47:12.807+0800	INFO	rotation/main.go:339	多输出测试	{"engine": "zap-rotation", "output_targets": ["console", "file"], "iteration": 16, "timestamp": "2025-09-07T14:47:12+08:00"}
+2025-09-07T14:47:12.908+0800	INFO	rotation/main.go:339	多输出测试	{"engine": "zap-rotation", "output_targets": ["console", "file"], "iteration": 17, "timestamp": "2025-09-07T14:47:12+08:00"}
+2025-09-07T14:47:13.009+0800	INFO	rotation/main.go:339	多输出测试	{"engine": "zap-rotation", "output_targets": ["console", "file"], "iteration": 18, "timestamp": "2025-09-07T14:47:13+08:00"}
+2025-09-07T14:47:13.110+0800	INFO	rotation/main.go:339	多输出测试	{"engine": "zap-rotation", "output_targets": ["console", "file"], "iteration": 19, "timestamp": "2025-09-07T14:47:13+08:00"}
+2025-09-07T14:47:13.211+0800	INFO	rotation/main.go:347	多输出示例结束	{"engine": "zap-rotation"}

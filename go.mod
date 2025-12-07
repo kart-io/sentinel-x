@@ -2,7 +2,10 @@ module github.com/kart-io/sentinel-x
 
 go 1.25.3
 
-require github.com/kart-io/goagent v0.1.9
+require (
+	github.com/kart-io/goagent v0.1.9
+	github.com/kart-io/logger v0.2.2
+)
 
 require (
 	cloud.google.com/go v0.121.2 // indirect
@@ -24,8 +27,10 @@ require (
 	github.com/google/s2a-go v0.1.9 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.7 // indirect
 	github.com/googleapis/gax-go/v2 v2.15.0 // indirect
+	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.2 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.9 // indirect
 	github.com/sashabaranov/go-openai v1.41.2 // indirect
+	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.61.0 // indirect
@@ -33,6 +38,9 @@ require (
 	go.opentelemetry.io/otel v1.38.0 // indirect
 	go.opentelemetry.io/otel/metric v1.38.0 // indirect
 	go.opentelemetry.io/otel/trace v1.38.0 // indirect
+	go.opentelemetry.io/proto/otlp v1.7.1 // indirect
+	go.uber.org/multierr v1.10.0 // indirect
+	go.uber.org/zap v1.27.0 // indirect
 	golang.org/x/arch v0.3.0 // indirect
 	golang.org/x/crypto v0.44.0 // indirect
 	golang.org/x/net v0.47.0 // indirect
@@ -48,5 +56,37 @@ require (
 	google.golang.org/grpc v1.76.0 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
 )
+
+replace github.com/kart-io/logger => ./staging/src/github.com/kart-io/logger
+
+replace github.com/kart-io/logger/example/configuration => ./staging/src/github.com/kart-io/logger/example/configuration
+
+replace github.com/kart-io/logger/example/echo => ./staging/src/github.com/kart-io/logger/example/echo
+
+replace github.com/kart-io/logger/example/comprehensive => ./staging/src/github.com/kart-io/logger/example/comprehensive
+
+replace github.com/kart-io/logger/example/zap => ./staging/src/github.com/kart-io/logger/example/zap
+
+replace github.com/kart-io/logger/example/otlp => ./staging/src/github.com/kart-io/logger/example/otlp
+
+replace github.com/kart-io/logger/example/reload => ./staging/src/github.com/kart-io/logger/example/reload
+
+replace github.com/kart-io/logger/example/integrations => ./staging/src/github.com/kart-io/logger/example/integrations
+
+replace github.com/kart-io/logger/example/integrations/gin => ./staging/src/github.com/kart-io/logger/example/integrations/gin
+
+replace gin-reload-example => ./staging/src/github.com/kart-io/logger/example/gin-reload
+
+replace github.com/kart-io/logger/example/slog => ./staging/src/github.com/kart-io/logger/example/slog
+
+replace github.com/kart-io/logger/example/performance => ./staging/src/github.com/kart-io/logger/example/performance
+
+replace rotation-example => ./staging/src/github.com/kart-io/logger/example/rotation
+
+replace github.com/kart-io/logger/example/web-frameworks => ./staging/src/github.com/kart-io/logger/example/web-frameworks
+
+replace github.com/kart-io/logger/example/gin => ./staging/src/github.com/kart-io/logger/example/gin
+
+replace github.com/kart-io/logger/e2e => ./staging/src/github.com/kart-io/logger/e2e
 
 replace github.com/kart-io/goagent => ./staging/src/github.com/kart-io/goagent

@@ -1,0 +1,25 @@
+log:
+  engine: slog
+  level: debug
+  format: json
+  output_paths:
+    - stdout
+    - ./logs/debug.log
+  development: true
+
+  # 日志轮转配置
+  rotation:
+    max_size: 50
+    max_age: 3
+    max_backups: 10
+    compress: false
+    rotate_interval: "12h"
+
+  # OTLP 配置 (enabled)
+  otlp_endpoint: "http://localhost:4317"
+  otlp:
+    protocol: "grpc"
+    timeout: 10s
+    headers:
+      service.name: "test-service"
+      service.version: "1.0.0"

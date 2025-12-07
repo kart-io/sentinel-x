@@ -1,0 +1,20 @@
+# 生产环境配置示例
+engine: "zap"                    # 高性能引擎
+level: "INFO"                    # 生产级别
+format: "json"                   # 结构化输出
+output_paths: 
+  - "stdout"
+  - "/var/log/app.log"          # 文件输出
+development: false               # 生产模式
+disable_caller: false
+disable_stacktrace: false
+
+# OTLP 配置
+otlp_endpoint: "https://otlp.company.com:4317"
+otlp:
+  enabled: true
+  protocol: "grpc"
+  timeout: "30s"
+  headers:
+    Authorization: "Bearer production-token"
+    X-Environment: "production"

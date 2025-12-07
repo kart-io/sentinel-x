@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  # VictoriaLogs - 日志存储和查询
+  victorialogs:
+    image: victoriametrics/victoria-logs:latest
+    container_name: victorialogs
+    ports:
+      - "9428:9428"  # HTTP API
+    volumes:
+      - victorialogs-data:/victoria-logs-data
+    command:
+      - "-storageDataPath=/victoria-logs-data"
+      - "-httpListenAddr=:9428"
+      - "-loggerLevel=INFO"
+    networks:
+      - otel-network
+
+  # OTEL Collector - 主收集器 (4317)
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: otel-collector
+    ports:
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+      - "13134:13133" # Health check
+      - "1778:1777"   # pprof
+      - "8889:8888"   # Collector metrics
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otelcol-contrib/otel-collector-config.yaml
+    command:
+      - "--config=/etc/otelcol-contrib/otel-collector-config.yaml"
+    depends_on:
+      - victorialogs
+    networks:
+      - otel-network
+
+  # OTEL Agent - 本地代理 (4327)
+  otel-agent:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: otel-agent
+    ports:
+      - "4327:4317"   # OTLP gRPC for application (external:internal)
+      - "4328:4318"   # OTLP HTTP for application (external:internal)
+      - "13133:13133" # Health check
+      - "1777:1777"   # pprof
+      - "8888:8888"   # Agent metrics
+    volumes:
+      - ./otel-agent-config.yaml:/etc/otelcol-contrib/otel-agent-config.yaml
+    command:
+      - "--config=/etc/otelcol-contrib/otel-agent-config.yaml"
+    depends_on:
+      - otel-collector
+    networks:
+      - otel-network
+
+volumes:
+  victorialogs-data:
+
+networks:
+  otel-network:
+    driver: bridge

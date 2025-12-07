@@ -1,0 +1,15 @@
+# Kart Logger 配置文件 - 支持动态重载
+# 修改此文件后会自动重载配置
+
+engine: "slog"              # 日志引擎: "slog" | "zap"
+level: "INFO"               # 日志级别: "DEBUG" | "INFO" | "WARN" | "ERROR"
+format: "json"              # 输出格式: "json" | "console"
+output_paths: ["stdout"]    # 输出路径
+development: false          # 开发模式
+
+# OTLP 配置 (可选)
+# otlp_endpoint: "http://localhost:4317"
+# otlp:
+#   enabled: true
+#   protocol: "grpc"
+#   timeout: "10s"

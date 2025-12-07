@@ -1,0 +1,16 @@
+log:
+  engine: slog
+  level: info
+  format: json
+  output_paths:
+    - ./logs/invalid.log
+
+  # 无效的轮转配置
+  rotation:
+    max_size: -10    # 无效：负数
+    max_age: -5      # 无效：负数  
+    max_backups: -3  # 无效：负数
+    compress: true
+    rotate_interval: "invalid_format" # 无效：格式错误
+
+  otlp_endpoint: ""

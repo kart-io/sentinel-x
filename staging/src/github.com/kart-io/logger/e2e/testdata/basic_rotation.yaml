@@ -1,0 +1,21 @@
+log:
+  engine: zap
+  level: info
+  format: json
+  output_paths:
+    - stdout
+    - ./logs/app.log
+  development: false
+  disable_caller: false
+  disable_stacktrace: false
+
+  # 日志轮转配置
+  rotation:
+    max_size: 10 # 10MB
+    max_age: 7 # 7 days
+    max_backups: 5 # 5 backup files
+    compress: true
+    rotate_interval: "24h"
+
+  # OTLP 配置 (disabled)
+  otlp_endpoint: ""

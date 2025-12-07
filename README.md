@@ -27,7 +27,7 @@ go build ./cmd/...
 
 ## 开发模式
 
-本项目采用类似于 Kubernetes 的 **Monorepo** 结构。核心代理库 (`goagent`) 源码直接包含在 `staging/src/github.com/kart-io/goagent` 目录下。
+本项目采用类似于 Kubernetes 的 **Monorepo** 结构。核心库 (`goagent`, `logger`) 源码直接包含在 `staging/src/github.com/kart-io/goagent` 和 `staging/src/github.com/kart-io/logger` 目录下。
 
 详细开发流程请参阅 [开发指南](docs/development/guide.md)。
 

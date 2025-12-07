@@ -1,0 +1,11 @@
+# 开发环境配置示例
+engine: "slog"                   # 标准库引擎
+level: "DEBUG"                   # 调试级别
+format: "console"                # 人类可读格式
+output_paths: ["stdout"]         # 控制台输出
+development: true                # 开发模式
+disable_caller: false
+disable_stacktrace: false
+
+# 开发环境通常不需要 OTLP
+# otlp_endpoint: "http://localhost:4317"

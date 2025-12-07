@@ -1,0 +1,66 @@
+# Systemd 服务配置示例
+# 文件路径：/etc/systemd/system/myapp.service
+
+[Unit]
+Description=My Application with Log Rotation Support
+After=network.target
+
+[Service]
+Type=simple
+
+# 服务运行的用户和组
+User=myapp
+Group=myapp
+
+# 工作目录
+WorkingDirectory=/opt/myapp
+
+# 可执行文件
+ExecStart=/opt/myapp/bin/myapp
+
+# 重启策略
+Restart=always
+RestartSec=5
+
+# 环境变量
+Environment=LOG_LEVEL=INFO
+Environment=LOG_FORMAT=json
+Environment=LOG_OUTPUT_PATHS=/var/log/myapp/app.log
+
+# PID 文件位置（用于 logrotate）
+PIDFile=/var/run/myapp.pid
+
+# 日志轮转支持：重载配置文件的信号处理
+ExecReload=/bin/kill -USR1 $MAINPID
+
+# 安全设置
+NoNewPrivileges=yes
+PrivateTmp=yes
+
+# 限制资源使用
+MemoryLimit=512M
+TasksMax=100
+
+# 标准输出/错误处理（可选）
+# 如果使用 systemd 的日志记录，可以启用以下配置
+# StandardOutput=journal
+# StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+
+# 使用说明：
+# 1. 将此文件复制到 /etc/systemd/system/myapp.service
+# 2. 创建用户和组：
+#    sudo useradd -r -s /bin/false myapp
+#    sudo mkdir -p /var/log/myapp
+#    sudo chown myapp:myapp /var/log/myapp
+# 3. 重载 systemd 配置：
+#    sudo systemctl daemon-reload
+# 4. 启用并启动服务：
+#    sudo systemctl enable myapp
+#    sudo systemctl start myapp
+# 5. 检查服务状态：
+#    sudo systemctl status myapp
+# 6. 查看日志：
+#    sudo journalctl -u myapp -f

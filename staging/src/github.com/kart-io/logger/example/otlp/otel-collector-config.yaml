@@ -1,0 +1,143 @@
+# OTEL Collector Configuration  
+# Role: 接收Agent数据，进行复杂处理、路由和导出到各个后端
+# Flow: Agent → Collector → VictoriaLogs/Jaeger/etc
+
+receivers:
+  # OTLP receivers - 接收Agent转发的数据
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317               # Collector gRPC端口
+      http:
+        endpoint: 0.0.0.0:4318               # Collector HTTP端口
+
+  # 文件日志接收器（可选）
+  filelog:
+    include: ["/var/log/*.log"]
+    exclude: ["/var/log/otel/*.log"]
+    start_at: end
+
+processors:
+  # 内存限制器
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 512                          # Collector内存限制512MB
+
+  # 批处理器 - 优化导出性能
+  batch:
+    timeout: 10s                            # 较长的批处理时间
+    send_batch_size: 2048
+    send_batch_max_size: 4096
+
+  # 资源处理器 - 添加环境标识
+  resource:
+    attributes:
+      - key: otel.component
+        value: "collector"
+        action: upsert
+      - key: collector.version
+        value: "0.132.0"
+        action: upsert
+      - key: deployment.environment
+        value: "production"
+        action: upsert
+      - key: deployment.type
+        value: "docker"
+        action: upsert
+
+  # 属性处理器 - 日志字段标准化
+  attributes/logs:
+    actions:
+      - key: service.name
+        action: upsert
+        value: "kart-io-service"
+      - key: service.version
+        action: upsert
+        value: "1.0.0"
+
+  # 过滤器 - 过滤调试日志（生产环境）
+  filter/production:
+    logs:
+      log_record:
+        - 'severity_text == "DEBUG"'
+
+exporters:
+  # VictoriaLogs导出器 - 修复URL路径问题
+  otlphttp/victorialogs:
+    endpoint: "http://victorialogs:9428"    # 注意：这里不包含路径
+    logs_endpoint: "http://victorialogs:9428/insert/opentelemetry/v1/logs"  # 完整的logs端点
+    tls:
+      insecure: true
+    compression: gzip
+    timeout: 30s
+    headers:
+      "Content-Type": "application/x-protobuf"
+    retry_on_failure:
+      enabled: true
+      initial_interval: 2s
+      max_interval: 30s
+      max_elapsed_time: 10m
+    # sending_queue:
+    #   enabled: true
+    #   num_consumers: 4
+    #   queue_size: 2000
+
+  # Jaeger导出器（用于分布式追踪）
+  otlp/jaeger:
+    endpoint: "jaeger:14250"                # Jaeger OTLP gRPC端点
+    tls:
+      insecure: true
+    compression: gzip
+    timeout: 30s
+
+  # Prometheus指标导出器
+  prometheusremotewrite:
+    endpoint: "http://prometheus:9090/api/v1/write"
+    tls:
+      insecure: true
+
+  # 调试导出器
+  debug:
+    verbosity: detailed
+    sampling_initial: 5
+    sampling_thereafter: 200
+
+extensions:
+  # 健康检查
+  health_check:
+    endpoint: 0.0.0.0:13133
+    
+  # 性能分析
+  pprof:
+    endpoint: 0.0.0.0:1777
+
+service:
+  extensions: [health_check, pprof]
+  
+  pipelines:
+    # 日志管道 - 处理并导出到VictoriaLogs
+    logs:
+      receivers: [otlp, filelog]
+      processors: [memory_limiter, resource, attributes/logs, batch]
+      exporters: [otlphttp/victorialogs, debug]
+      
+    # 指标管道 - 导出到Prometheus
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, batch]
+      exporters: [prometheusremotewrite, debug]
+      
+    # 追踪管道 - 导出到Jaeger
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, batch]
+      exporters: [otlp/jaeger, debug]
+
+  # Collector遥测配置
+  telemetry:
+    logs:
+      level: info
+      development: false
+      encoding: json
+    metrics:
+      level: detailed
