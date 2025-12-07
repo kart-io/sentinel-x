@@ -115,14 +115,14 @@ flowchart LR
 
 ```text
 cmd/scheduler/
-├── main.go                     # 程序入口
+├── main.go                     # 程序入口 (cobra command)
 ├── app/
-│   ├── server.go               # 服务器启动逻辑
-│   ├── options/
-│   │   ├── options.go          # 命令行参数定义
-│   │   └── validation.go       # 参数校验
-│   └── config/
-│       └── config.go           # 配置加载
+│   ├── server.go               # 服务器启动逻辑 (Run 函数)
+│   └── options/
+│       ├── options.go          # 命令行参数定义 (Options 结构体)
+│       ├── options_test.go     # 参数测试
+│       ├── validation.go       # 参数校验
+│       └── config.go           # Config 结构体和 Options.Config() 方法
 
 internal/scheduler/
 ├── scheduler.go                # 调度器主逻辑 (类似 k8s scheduler.go)
@@ -188,9 +188,794 @@ pkg/scheduler/
         └── factory.go          # Informer 工厂
 ```
 
-## 4. 核心接口设计
+## 4. Options 与 Config 设计
 
-### 4.1 Plugin 接口
+参考 [Kubernetes kube-scheduler](https://github.com/kubernetes/kubernetes/tree/master/cmd/kube-scheduler) 的设计模式，采用 Options → Config → Server 的分层架构。
+
+### 4.1 设计流程
+
+```mermaid
+flowchart LR
+    subgraph CommandLine[命令行层]
+        Main[main.go] --> Cobra[cobra.Command]
+        Cobra --> Flags[pflag.FlagSet]
+    end
+
+    subgraph OptionsLayer[Options 层]
+        Flags --> Options[Options 结构体]
+        Options --> Validate[Validate]
+    end
+
+    subgraph ConfigLayer[Config 层]
+        Validate --> Config[Config 结构体]
+        Config --> Complete[Complete]
+    end
+
+    subgraph ServerLayer[Server 层]
+        Complete --> Server[Scheduler Server]
+        Server --> Run[Run]
+    end
+```
+
+### 4.2 Options 定义
+
+```go
+// cmd/scheduler/app/options/options.go
+package options
+
+import (
+    "time"
+
+    "github.com/spf13/pflag"
+    metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+    "k8s.io/component-base/config"
+    "k8s.io/component-base/logs"
+)
+
+// Options 包含所有调度器的命令行参数
+type Options struct {
+    // SecureServing 安全服务配置
+    SecureServing *SecureServingOptions
+
+    // Authentication 认证配置
+    Authentication *AuthenticationOptions
+
+    // Authorization 授权配置
+    Authorization *AuthorizationOptions
+
+    // Metrics 指标配置
+    Metrics *MetricsOptions
+
+    // Logs 日志配置
+    Logs *logs.Options
+
+    // LeaderElection 领导选举配置
+    LeaderElection *config.LeaderElectionConfiguration
+
+    // ClientConnection 客户端连接配置
+    ClientConnection *ClientConnectionConfiguration
+
+    // 调度器特定配置
+    // ConfigFile 调度器配置文件路径
+    ConfigFile string
+
+    // WriteConfigTo 写入默认配置到文件
+    WriteConfigTo string
+
+    // Master API Server 地址
+    Master string
+}
+
+// SecureServingOptions HTTPS 服务配置
+type SecureServingOptions struct {
+    // BindAddress 绑定地址
+    BindAddress string
+    // BindPort 绑定端口
+    BindPort int
+    // CertFile 证书文件
+    CertFile string
+    // KeyFile 密钥文件
+    KeyFile string
+}
+
+// MetricsOptions 指标配置
+type MetricsOptions struct {
+    // EnableProfiling 启用 pprof
+    EnableProfiling bool
+    // EnableContentionProfiling 启用争用分析
+    EnableContentionProfiling bool
+    // MetricsBindAddress 指标绑定地址
+    MetricsBindAddress string
+}
+
+// ClientConnectionConfiguration 客户端连接配置
+type ClientConnectionConfiguration struct {
+    // Kubeconfig kubeconfig 文件路径
+    Kubeconfig string
+    // QPS 每秒查询数限制
+    QPS float32
+    // Burst 突发请求数
+    Burst int32
+    // ContentType 内容类型
+    ContentType string
+}
+
+// NewOptions 创建默认 Options
+func NewOptions() *Options {
+    o := &Options{
+        SecureServing: &SecureServingOptions{
+            BindAddress: "0.0.0.0",
+            BindPort:    10259,
+        },
+        Metrics: &MetricsOptions{
+            EnableProfiling:    true,
+            MetricsBindAddress: "0.0.0.0:10251",
+        },
+        LeaderElection: &config.LeaderElectionConfiguration{
+            LeaderElect:       true,
+            LeaseDuration:     metav1.Duration{Duration: 15 * time.Second},
+            RenewDeadline:     metav1.Duration{Duration: 10 * time.Second},
+            RetryPeriod:       metav1.Duration{Duration: 2 * time.Second},
+            ResourceLock:      "leases",
+            ResourceNamespace: "sentinel-system",
+            ResourceName:      "sentinel-scheduler",
+        },
+        ClientConnection: &ClientConnectionConfiguration{
+            QPS:         50,
+            Burst:       100,
+            ContentType: "application/vnd.kubernetes.protobuf",
+        },
+        Logs: logs.NewOptions(),
+    }
+    return o
+}
+
+// Flags 返回命令行标志集
+func (o *Options) Flags() *pflag.FlagSet {
+    fs := pflag.NewFlagSet("scheduler", pflag.ContinueOnError)
+
+    // 配置文件
+    fs.StringVar(&o.ConfigFile, "config", o.ConfigFile,
+        "The path to the configuration file.")
+    fs.StringVar(&o.WriteConfigTo, "write-config-to", o.WriteConfigTo,
+        "If set, write the default configuration to this file and exit.")
+    fs.StringVar(&o.Master, "master", o.Master,
+        "The address of the API server (overrides kubeconfig).")
+
+    // 安全服务
+    fs.StringVar(&o.SecureServing.BindAddress, "bind-address", o.SecureServing.BindAddress,
+        "The IP address on which to listen for the --secure-port.")
+    fs.IntVar(&o.SecureServing.BindPort, "secure-port", o.SecureServing.BindPort,
+        "The port on which to serve HTTPS.")
+    fs.StringVar(&o.SecureServing.CertFile, "tls-cert-file", o.SecureServing.CertFile,
+        "File containing the x509 Certificate for HTTPS.")
+    fs.StringVar(&o.SecureServing.KeyFile, "tls-private-key-file", o.SecureServing.KeyFile,
+        "File containing the x509 private key.")
+
+    // 指标
+    fs.BoolVar(&o.Metrics.EnableProfiling, "profiling", o.Metrics.EnableProfiling,
+        "Enable profiling via web interface host:port/debug/pprof/.")
+    fs.StringVar(&o.Metrics.MetricsBindAddress, "metrics-bind-address", o.Metrics.MetricsBindAddress,
+        "The address to bind the metrics endpoint.")
+
+    // 领导选举
+    fs.BoolVar(&o.LeaderElection.LeaderElect, "leader-elect", o.LeaderElection.LeaderElect,
+        "Start a leader election client and gain leadership before executing.")
+    fs.DurationVar(&o.LeaderElection.LeaseDuration.Duration, "leader-elect-lease-duration",
+        o.LeaderElection.LeaseDuration.Duration,
+        "The duration that non-leader candidates will wait after observing a leadership renewal.")
+    fs.DurationVar(&o.LeaderElection.RenewDeadline.Duration, "leader-elect-renew-deadline",
+        o.LeaderElection.RenewDeadline.Duration,
+        "The interval between attempts by the acting master to renew a leadership slot.")
+    fs.DurationVar(&o.LeaderElection.RetryPeriod.Duration, "leader-elect-retry-period",
+        o.LeaderElection.RetryPeriod.Duration,
+        "The duration the clients should wait between attempting acquisition and renewal.")
+    fs.StringVar(&o.LeaderElection.ResourceNamespace, "leader-elect-resource-namespace",
+        o.LeaderElection.ResourceNamespace,
+        "The namespace of resource object that is used for locking.")
+    fs.StringVar(&o.LeaderElection.ResourceName, "leader-elect-resource-name",
+        o.LeaderElection.ResourceName,
+        "The name of resource object that is used for locking.")
+
+    // 客户端连接
+    fs.StringVar(&o.ClientConnection.Kubeconfig, "kubeconfig", o.ClientConnection.Kubeconfig,
+        "Path to kubeconfig file.")
+    fs.Float32Var(&o.ClientConnection.QPS, "kube-api-qps", o.ClientConnection.QPS,
+        "QPS to use while talking with API server.")
+    fs.Int32Var(&o.ClientConnection.Burst, "kube-api-burst", o.ClientConnection.Burst,
+        "Burst to use while talking with API server.")
+
+    // 日志
+    o.Logs.AddFlags(fs)
+
+    return fs
+}
+```
+
+### 4.3 Options 校验
+
+```go
+// cmd/scheduler/app/options/validation.go
+package options
+
+import (
+    "fmt"
+    "net"
+    "os"
+
+    "k8s.io/apimachinery/pkg/util/validation/field"
+)
+
+// Validate 校验 Options
+func (o *Options) Validate() []error {
+    var errs []error
+
+    errs = append(errs, o.validateSecureServing()...)
+    errs = append(errs, o.validateLeaderElection()...)
+    errs = append(errs, o.validateClientConnection()...)
+    errs = append(errs, o.validateConfigFile()...)
+
+    return errs
+}
+
+func (o *Options) validateSecureServing() []error {
+    var errs []error
+    fldPath := field.NewPath("secureServing")
+
+    if o.SecureServing.BindPort < 0 || o.SecureServing.BindPort > 65535 {
+        errs = append(errs, field.Invalid(fldPath.Child("bindPort"),
+            o.SecureServing.BindPort, "must be between 0 and 65535"))
+    }
+
+    if o.SecureServing.BindAddress != "" {
+        if ip := net.ParseIP(o.SecureServing.BindAddress); ip == nil {
+            errs = append(errs, field.Invalid(fldPath.Child("bindAddress"),
+                o.SecureServing.BindAddress, "must be a valid IP address"))
+        }
+    }
+
+    return errs
+}
+
+func (o *Options) validateLeaderElection() []error {
+    var errs []error
+    fldPath := field.NewPath("leaderElection")
+
+    if o.LeaderElection.LeaderElect {
+        if o.LeaderElection.LeaseDuration.Duration <= 0 {
+            errs = append(errs, field.Invalid(fldPath.Child("leaseDuration"),
+                o.LeaderElection.LeaseDuration.Duration, "must be positive"))
+        }
+        if o.LeaderElection.RenewDeadline.Duration <= 0 {
+            errs = append(errs, field.Invalid(fldPath.Child("renewDeadline"),
+                o.LeaderElection.RenewDeadline.Duration, "must be positive"))
+        }
+        if o.LeaderElection.RetryPeriod.Duration <= 0 {
+            errs = append(errs, field.Invalid(fldPath.Child("retryPeriod"),
+                o.LeaderElection.RetryPeriod.Duration, "must be positive"))
+        }
+        if o.LeaderElection.LeaseDuration.Duration <= o.LeaderElection.RenewDeadline.Duration {
+            errs = append(errs, field.Invalid(fldPath.Child("leaseDuration"),
+                o.LeaderElection.LeaseDuration.Duration,
+                "must be greater than renewDeadline"))
+        }
+        if o.LeaderElection.RenewDeadline.Duration <= o.LeaderElection.RetryPeriod.Duration {
+            errs = append(errs, field.Invalid(fldPath.Child("renewDeadline"),
+                o.LeaderElection.RenewDeadline.Duration,
+                "must be greater than retryPeriod"))
+        }
+    }
+
+    return errs
+}
+
+func (o *Options) validateClientConnection() []error {
+    var errs []error
+    fldPath := field.NewPath("clientConnection")
+
+    if o.ClientConnection.QPS < 0 {
+        errs = append(errs, field.Invalid(fldPath.Child("qps"),
+            o.ClientConnection.QPS, "must be non-negative"))
+    }
+    if o.ClientConnection.Burst < 0 {
+        errs = append(errs, field.Invalid(fldPath.Child("burst"),
+            o.ClientConnection.Burst, "must be non-negative"))
+    }
+
+    return errs
+}
+
+func (o *Options) validateConfigFile() []error {
+    var errs []error
+
+    if o.ConfigFile != "" {
+        if _, err := os.Stat(o.ConfigFile); os.IsNotExist(err) {
+            errs = append(errs, fmt.Errorf("config file %q does not exist", o.ConfigFile))
+        }
+    }
+
+    return errs
+}
+```
+
+### 4.4 Config 构建
+
+```go
+// cmd/scheduler/app/options/config.go
+package options
+
+import (
+    "fmt"
+    "os"
+
+    "github.com/kart-io/logger"
+    configv1 "github.com/kart/sentinel-x/pkg/scheduler/apis/config/v1"
+    "gopkg.in/yaml.v3"
+    componentconfig "k8s.io/component-base/config"
+)
+
+// Config 包含运行调度器所需的所有配置
+type Config struct {
+    // SchedulerConfig 调度器配置
+    SchedulerConfig *configv1.SchedulerConfiguration
+
+    // LeaderElection 领导选举配置
+    LeaderElection *componentconfig.LeaderElectionConfiguration
+
+    // SecureServing 安全服务配置
+    SecureServing *SecureServingConfig
+
+    // Metrics 指标配置
+    Metrics *MetricsConfig
+
+    // Logger 日志器
+    Logger logger.Logger
+
+    // InformerFactory Informer 工厂
+    InformerFactory InformerFactory
+
+    // Client 客户端
+    Client Client
+}
+
+// SecureServingConfig 安全服务配置
+type SecureServingConfig struct {
+    BindAddress string
+    BindPort    int
+    CertFile    string
+    KeyFile     string
+}
+
+// MetricsConfig 指标配置
+type MetricsConfig struct {
+    EnableProfiling           bool
+    EnableContentionProfiling bool
+    MetricsBindAddress        string
+}
+
+// CompletedConfig 已完成的配置（不可变）
+type CompletedConfig struct {
+    *Config
+}
+
+// Complete 完成配置，填充默认值
+func (c *Config) Complete() CompletedConfig {
+    // 应用默认值
+    if c.SchedulerConfig == nil {
+        c.SchedulerConfig = getDefaultSchedulerConfig()
+    }
+
+    return CompletedConfig{c}
+}
+
+// Config 从 Options 创建 Config (Options 的方法)
+func (o *Options) Config() (*Config, error) {
+    // 1. 校验 Options
+    if errs := o.Validate(); len(errs) > 0 {
+        return nil, fmt.Errorf("invalid options: %v", errs)
+    }
+
+    // 2. 加载调度器配置文件
+    var schedulerConfig *configv1.SchedulerConfiguration
+    if o.ConfigFile != "" {
+        cfg, err := loadConfigFromFile(o.ConfigFile)
+        if err != nil {
+            return nil, fmt.Errorf("failed to load config file: %w", err)
+        }
+        schedulerConfig = cfg
+    }
+
+    // 3. 创建日志器
+    log := logger.New(
+        logger.WithLevel("info"),
+        logger.WithFormat("json"),
+    )
+
+    // 4. 创建客户端
+    client, err := o.createClient()
+    if err != nil {
+        return nil, fmt.Errorf("failed to create client: %w", err)
+    }
+
+    // 5. 创建 Informer 工厂
+    informerFactory, err := createInformerFactory(client)
+    if err != nil {
+        return nil, fmt.Errorf("failed to create informer factory: %w", err)
+    }
+
+    // 6. 构建 Config
+    cfg := &Config{
+        SchedulerConfig: schedulerConfig,
+        LeaderElection:  o.LeaderElection,
+        SecureServing: &SecureServingConfig{
+            BindAddress: o.SecureServing.BindAddress,
+            BindPort:    o.SecureServing.BindPort,
+            CertFile:    o.SecureServing.CertFile,
+            KeyFile:     o.SecureServing.KeyFile,
+        },
+        Metrics: &MetricsConfig{
+            EnableProfiling:           o.Metrics.EnableProfiling,
+            EnableContentionProfiling: o.Metrics.EnableContentionProfiling,
+            MetricsBindAddress:        o.Metrics.MetricsBindAddress,
+        },
+        Logger:          log,
+        Client:          client,
+        InformerFactory: informerFactory,
+    }
+
+    return cfg, nil
+}
+
+// createClient 创建客户端
+func (o *Options) createClient() (Client, error) {
+    // 根据 kubeconfig 或 master 地址创建客户端
+    config, err := clientcmd.BuildConfigFromFlags(o.Master, o.ClientConnection.Kubeconfig)
+    if err != nil {
+        return nil, err
+    }
+
+    config.QPS = o.ClientConnection.QPS
+    config.Burst = int(o.ClientConnection.Burst)
+    config.ContentType = o.ClientConnection.ContentType
+
+    return kubernetes.NewForConfig(config)
+}
+
+// loadConfigFromFile 从文件加载调度器配置
+func loadConfigFromFile(path string) (*configv1.SchedulerConfiguration, error) {
+    data, err := os.ReadFile(path)
+    if err != nil {
+        return nil, err
+    }
+
+    cfg := &configv1.SchedulerConfiguration{}
+    if err := yaml.Unmarshal(data, cfg); err != nil {
+        return nil, err
+    }
+
+    // 设置默认值
+    setDefaults(cfg)
+
+    // 校验配置
+    if errs := validateSchedulerConfig(cfg); len(errs) > 0 {
+        return nil, fmt.Errorf("invalid scheduler config: %v", errs)
+    }
+
+    return cfg, nil
+}
+
+// getDefaultSchedulerConfig 获取默认调度器配置
+func getDefaultSchedulerConfig() *configv1.SchedulerConfiguration {
+    return &configv1.SchedulerConfiguration{
+        Profiles: []configv1.SchedulerProfile{
+            {
+                SchedulerName: "default-scheduler",
+                Plugins:       getDefaultPlugins(),
+            },
+        },
+    }
+}
+
+// getDefaultPlugins 获取默认插件配置
+func getDefaultPlugins() *configv1.Plugins {
+    return &configv1.Plugins{
+        QueueSort: configv1.PluginSet{
+            Enabled: []configv1.Plugin{{Name: "PrioritySort"}},
+        },
+        PreFilter: configv1.PluginSet{
+            Enabled: []configv1.Plugin{{Name: "TaskValidation"}},
+        },
+        Filter: configv1.PluginSet{
+            Enabled: []configv1.Plugin{
+                {Name: "ResourceFit"},
+                {Name: "WorkerAffinity"},
+                {Name: "TaintToleration"},
+            },
+        },
+        Score: configv1.PluginSet{
+            Enabled: []configv1.Plugin{
+                {Name: "ResourceBalanced", Weight: 1},
+                {Name: "WorkerAffinity", Weight: 2},
+            },
+        },
+        Execute: configv1.PluginSet{
+            Enabled: []configv1.Plugin{
+                {Name: "CommandExecutor"},
+                {Name: "K8sOpsExecutor"},
+                {Name: "AgentExecutor"},
+            },
+        },
+    }
+}
+```
+
+### 4.5 Server 启动
+
+```go
+// cmd/scheduler/app/server.go
+package app
+
+import (
+    "context"
+    "fmt"
+    "net/http"
+    "os/signal"
+    "syscall"
+
+    "github.com/spf13/cobra"
+    "github.com/spf13/pflag"
+    "github.com/kart/sentinel-x/cmd/scheduler/app/options"
+    "github.com/kart/sentinel-x/internal/scheduler"
+    "k8s.io/component-base/cli"
+    cliflag "k8s.io/component-base/cli/flag"
+)
+
+// NewSchedulerCommand 创建调度器命令
+func NewSchedulerCommand() *cobra.Command {
+    opts := options.NewOptions()
+
+    cmd := &cobra.Command{
+        Use:   "sentinel-scheduler",
+        Short: "Sentinel-X Task Scheduler",
+        Long: `The Sentinel-X scheduler is a control plane component that assigns
+tasks to workers. It watches for newly created tasks and selects a worker
+to run them based on resource requirements, affinity rules, and other
+scheduling policies.`,
+        RunE: func(cmd *cobra.Command, args []string) error {
+            return runCommand(cmd, opts)
+        },
+    }
+
+    // 添加命令行标志
+    fs := cmd.Flags()
+    opts.Flags().VisitAll(func(f *pflag.Flag) {
+        fs.AddFlag(f)
+    })
+
+    // 添加版本标志
+    cliflag.PrintFlags(fs)
+
+    return cmd
+}
+
+// runCommand 运行调度器
+func runCommand(cmd *cobra.Command, opts *options.Options) error {
+    // 1. 处理 --write-config-to 标志
+    if opts.WriteConfigTo != "" {
+        return writeDefaultConfig(opts.WriteConfigTo)
+    }
+
+    // 2. 创建 Config (通过 Options.Config() 方法)
+    cfg, err := opts.Config()
+    if err != nil {
+        return fmt.Errorf("failed to create config: %w", err)
+    }
+
+    // 3. 完成配置
+    cc := cfg.Complete()
+
+    // 4. 运行调度器
+    return Run(cmd.Context(), cc)
+}
+
+// Run 运行调度器服务
+func Run(ctx context.Context, cc options.CompletedConfig) error {
+    log := cc.Logger
+
+    log.Info("Starting Sentinel-X Scheduler",
+        logger.String("version", version.Get().String()))
+
+    // 1. 设置信号处理
+    ctx, cancel := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
+    defer cancel()
+
+    // 2. 启动领导选举（如果启用）
+    if cc.LeaderElection.LeaderElect {
+        return runWithLeaderElection(ctx, cc)
+    }
+
+    // 3. 直接运行
+    return runScheduler(ctx, cc)
+}
+
+// runWithLeaderElection 使用领导选举运行
+func runWithLeaderElection(ctx context.Context, cc options.CompletedConfig) error {
+    log := cc.Logger
+
+    // 创建领导选举器
+    le, err := leaderelection.NewLeaderElector(leaderelection.LeaderElectionConfig{
+        Lock: &resourcelock.LeaseLock{
+            LeaseMeta: metav1.ObjectMeta{
+                Name:      cc.LeaderElection.ResourceName,
+                Namespace: cc.LeaderElection.ResourceNamespace,
+            },
+            Client: cc.Client.CoordinationV1(),
+            LockConfig: resourcelock.ResourceLockConfig{
+                Identity: hostname,
+            },
+        },
+        LeaseDuration: cc.LeaderElection.LeaseDuration.Duration,
+        RenewDeadline: cc.LeaderElection.RenewDeadline.Duration,
+        RetryPeriod:   cc.LeaderElection.RetryPeriod.Duration,
+        Callbacks: leaderelection.LeaderCallbacks{
+            OnStartedLeading: func(ctx context.Context) {
+                log.Info("Acquired leadership, starting scheduler")
+                if err := runScheduler(ctx, cc); err != nil {
+                    log.Error("Scheduler error", logger.Error(err))
+                }
+            },
+            OnStoppedLeading: func() {
+                log.Info("Lost leadership, stopping scheduler")
+            },
+            OnNewLeader: func(identity string) {
+                log.Info("New leader elected", logger.String("leader", identity))
+            },
+        },
+        ReleaseOnCancel: true,
+    })
+
+    if err != nil {
+        return fmt.Errorf("failed to create leader elector: %w", err)
+    }
+
+    // 启动领导选举
+    le.Run(ctx)
+    return nil
+}
+
+// runScheduler 运行调度器
+func runScheduler(ctx context.Context, cc options.CompletedConfig) error {
+    log := cc.Logger
+
+    // 1. 创建调度器
+    sched, err := scheduler.New(
+        cc.Client,
+        cc.InformerFactory,
+        scheduler.WithProfiles(cc.SchedulerConfig.Profiles...),
+        scheduler.WithLogger(log),
+    )
+    if err != nil {
+        return fmt.Errorf("failed to create scheduler: %w", err)
+    }
+
+    // 2. 启动 Informer
+    cc.InformerFactory.Start(ctx.Done())
+
+    // 3. 等待缓存同步
+    cc.InformerFactory.WaitForCacheSync(ctx.Done())
+
+    // 4. 启动 HTTP 服务（指标、健康检查）
+    go func() {
+        if err := startHTTPServer(cc); err != nil {
+            log.Error("HTTP server error", logger.Error(err))
+        }
+    }()
+
+    // 5. 运行调度器
+    log.Info("Starting scheduler")
+    sched.Run(ctx)
+
+    log.Info("Scheduler stopped")
+    return nil
+}
+
+// startHTTPServer 启动 HTTP 服务
+func startHTTPServer(cc options.CompletedConfig) error {
+    mux := http.NewServeMux()
+
+    // 健康检查
+    mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+        w.WriteHeader(http.StatusOK)
+        w.Write([]byte("ok"))
+    })
+
+    // 就绪检查
+    mux.HandleFunc("/readyz", func(w http.ResponseWriter, r *http.Request) {
+        w.WriteHeader(http.StatusOK)
+        w.Write([]byte("ok"))
+    })
+
+    // 指标端点
+    mux.Handle("/metrics", promhttp.Handler())
+
+    // pprof（如果启用）
+    if cc.Metrics.EnableProfiling {
+        mux.HandleFunc("/debug/pprof/", pprof.Index)
+        mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+        mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+        mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+        mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
+    }
+
+    server := &http.Server{
+        Addr:    cc.Metrics.MetricsBindAddress,
+        Handler: mux,
+    }
+
+    return server.ListenAndServe()
+}
+```
+
+### 4.6 Main 入口
+
+```go
+// cmd/scheduler/main.go
+package main
+
+import (
+    "os"
+
+    "github.com/kart/sentinel-x/cmd/scheduler/app"
+    "k8s.io/component-base/cli"
+)
+
+func main() {
+    command := app.NewSchedulerCommand()
+    code := cli.Run(command)
+    os.Exit(code)
+}
+```
+
+### 4.7 配置加载流程
+
+```mermaid
+sequenceDiagram
+    participant Main as main.go
+    participant Cmd as cobra.Command
+    participant Opts as Options
+    participant Cfg as Config
+    participant Sched as Scheduler
+
+    Main->>Cmd: NewSchedulerCommand()
+    Cmd->>Opts: NewOptions()
+    Opts-->>Cmd: 默认 Options
+
+    Note over Cmd: 解析命令行参数
+
+    Cmd->>Opts: Flags().Parse(args)
+    Cmd->>Opts: Validate()
+    Opts-->>Cmd: []error
+
+    alt 校验失败
+        Cmd-->>Main: 返回错误
+    end
+
+    Cmd->>Opts: opts.Config()
+    Note over Opts: 加载配置文件<br/>创建客户端<br/>创建 Informer
+
+    Opts->>Cfg: 返回 *Config
+    Cfg->>Cfg: Complete()
+    Cfg-->>Cmd: CompletedConfig
+
+    Cmd->>Sched: Run(ctx, cc)
+    Note over Sched: 领导选举<br/>启动调度器<br/>启动 HTTP 服务
+
+    Sched-->>Main: 退出
+```
+
+## 5. 核心接口设计
+
+### 5.1 Plugin 接口
 
 ```go
 // pkg/scheduler/apis/config/types.go
@@ -242,7 +1027,7 @@ type PluginConfig struct {
 }
 ```
 
-### 4.2 Framework 接口
+### 5.2 Framework 接口
 
 ```go
 // internal/scheduler/framework/interface.go
@@ -344,7 +1129,7 @@ type PostExecutePlugin interface {
 }
 ```
 
-### 4.3 Framework Runtime
+### 5.3 Framework Runtime
 
 ```go
 // internal/scheduler/framework/runtime/framework.go
@@ -418,9 +1203,9 @@ func NewFramework(r Registry, profile *configv1.SchedulerProfile,
 }
 ```
 
-## 5. 数据模型
+## 6. 数据模型
 
-### 5.1 Task 模型
+### 6.1 Task 模型
 
 ```go
 // pkg/scheduler/apis/task/v1/types.go
@@ -682,7 +1467,7 @@ type TaskList struct {
 }
 ```
 
-### 5.2 Worker 模型
+### 6.2 Worker 模型
 
 ```go
 // pkg/scheduler/apis/task/v1/worker_types.go
@@ -761,9 +1546,9 @@ type WorkerList struct {
 }
 ```
 
-## 6. 调度流程
+## 7. 调度流程
 
-### 6.1 主调度循环
+### 7.1 主调度循环
 
 ```go
 // internal/scheduler/scheduler.go
@@ -803,7 +1588,7 @@ func (sched *Scheduler) Run(ctx context.Context) {
 }
 ```
 
-### 6.2 单任务调度
+### 7.2 单任务调度
 
 ```go
 // internal/scheduler/schedule_one.go
@@ -946,7 +1731,7 @@ func (sched *Scheduler) executionCycle(
 }
 ```
 
-### 6.3 调度流程图
+### 7.3 调度流程图
 
 ```mermaid
 flowchart TD
@@ -983,9 +1768,9 @@ flowchart TD
     end
 ```
 
-## 7. 内置插件
+## 8. 内置插件
 
-### 7.1 QueueSort 插件
+### 8.1 QueueSort 插件
 
 ```go
 // internal/scheduler/framework/plugins/queuesort/priority.go
@@ -1015,7 +1800,7 @@ func (ps *PrioritySort) Less(t1, t2 *framework.QueuedTaskInfo) bool {
 }
 ```
 
-### 7.2 Filter 插件
+### 8.2 Filter 插件
 
 ```go
 // internal/scheduler/framework/plugins/filter/resource.go
@@ -1052,7 +1837,7 @@ func (rf *ResourceFit) Filter(
 }
 ```
 
-### 7.3 Execute 插件 (GoAgent)
+### 8.3 Execute 插件 (GoAgent)
 
 ```go
 // internal/scheduler/framework/plugins/executor/agent.go
@@ -1123,9 +1908,9 @@ func (ae *AgentExecutor) Execute(
 }
 ```
 
-## 8. 配置示例
+## 9. 配置示例
 
-### 8.1 调度器配置
+### 9.1 调度器配置
 
 ```yaml
 # config/scheduler-config.yaml
@@ -1173,7 +1958,7 @@ profiles:
           maxIterations: 10
 ```
 
-### 8.2 环境变量
+### 9.2 环境变量
 
 ```bash
 # LLM 配置
@@ -1189,7 +1974,7 @@ LOG_LEVEL=info
 LOG_FORMAT=json
 ```
 
-## 9. 监控指标
+## 10. 监控指标
 
 参考 [Kubernetes Scheduler Metrics](https://kubernetes.io/docs/reference/scheduling/config/#metrics)：
 
@@ -1203,7 +1988,7 @@ LOG_FORMAT=json
 | `scheduler_framework_extension_point_duration_seconds` | Histogram | 各扩展点执行耗时 |
 | `scheduler_plugin_execution_duration_seconds` | Histogram | 插件执行耗时 |
 
-## 10. 实现路线图
+## 11. 实现路线图
 
 ### 阶段一: 核心框架
 
