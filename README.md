@@ -1,27 +1,36 @@
-# sentinel-x
+# Sentinel-X
 
-Sentinel-X is a distributed intelligent operations system.
+Sentinel-X 是一个分布式智能运维系统。
 
-## Getting Started
+## 文档导航
 
-### Prerequisites
+本项目文档位于 `docs/` 目录下：
 
-*   Go 1.25.3 or higher
+*   **[系统设计 (System Design)](docs/design/architecture.md)**: 了解系统架构与设计理念。
+*   **[开发指南 (Development Guide)](docs/development/guide.md)**: 如何参与贡献、代码结构说明及测试方法。
+*   **[使用指南 (Usage Guide)](docs/usage/README.md)**: 构建、部署与使用说明。
+*   **[API 文档 (API Reference)](docs/api/README.md)**: 接口定义与说明。
 
-### Build
+## 快速开始
 
-To build the project components:
+### 环境要求
+
+*   Go 1.25.3 或更高版本
+
+### 构建
+
+编译项目组件：
 
 ```bash
 go build ./cmd/...
 ```
 
-### Development
+## 开发模式
 
-This project uses a **Monorepo** structure similar to Kubernetes. The core agent library (`goagent`) is included directly in `staging/src/github.com/kart-io/goagent`.
+本项目采用类似于 Kubernetes 的 **Monorepo** 结构。核心代理库 (`goagent`) 源码直接包含在 `staging/src/github.com/kart-io/goagent` 目录下。
 
-For detailed instructions on how to contribute, modify code, and sync dependencies, please refer to the **[Development Guide](DEVELOPMENT.md)**.
+详细开发流程请参阅 [开发指南](docs/development/guide.md)。
 
-## License
+## 许可证
 
-See [LICENSE](LICENSE) file.
+查看 [LICENSE](LICENSE) 文件。
