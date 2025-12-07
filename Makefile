@@ -1,7 +1,3 @@
-.PHONY: update-staging
-update-staging:
-	bash hack/update-staging.sh
-
 .PHONY: update
-update: update-staging
+update:
 	bash hack/update-vendor.sh
