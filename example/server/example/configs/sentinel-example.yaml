@@ -1,0 +1,49 @@
+# Sentinel-X Example Server Configuration
+# This file can be placed in:
+#   - ./sentinel-example.yaml
+#   - ./configs/sentinel-example.yaml
+#   - ~/.sentinel-example/sentinel-example.yaml
+#   - /etc/sentinel-example/sentinel-example.yaml
+
+# Server configuration
+server:
+  # Server mode: http, grpc, or both
+  mode: both
+  # Graceful shutdown timeout
+  shutdown-timeout: 30s
+
+# HTTP server configuration
+http:
+  # Listen address
+  addr: ":8081"
+  # Read timeout
+  read-timeout: 30s
+  # Write timeout
+  write-timeout: 30s
+  # Idle timeout
+  idle-timeout: 60s
+  # HTTP framework adapter: gin or echo
+  adapter: gin
+
+# gRPC server configuration
+grpc:
+  # Listen address
+  addr: ":9091"
+  # Request timeout
+  timeout: 30s
+  # Max receive message size (16MB)
+  max-recv-msg-size: 16777216
+  # Max send message size (16MB)
+  max-send-msg-size: 16777216
+  # Enable reflection for grpcurl
+  enable-reflection: true
+
+# Feature flags
+# Enable CORS middleware
+cors: false
+# Enable metrics endpoint
+metrics: true
+# Enable pprof endpoints
+pprof: false
+# Enable stack trace in error responses
+stack-trace: false

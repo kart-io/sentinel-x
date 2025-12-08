@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package api.hello.v1;
+
+option go_package = "github.com/kart-io/sentinel-x/pkg/server/example/api/hello/v1;v1";
+
+// HelloService provides greeting functionality.
+service HelloService {
+  // SayHello returns a greeting message.
+  rpc SayHello(HelloRequest) returns (HelloResponse);
+
+  // SayHelloStream returns a stream of greeting messages.
+  rpc SayHelloStream(HelloRequest) returns (stream HelloResponse);
+}
+
+// HelloRequest is the request message for SayHello.
+message HelloRequest {
+  // name is the name to greet.
+  string name = 1;
+}
+
+// HelloResponse is the response message for SayHello.
+message HelloResponse {
+  // message is the greeting message.
+  string message = 1;
+}

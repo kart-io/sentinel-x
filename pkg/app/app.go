@@ -1,0 +1,262 @@
+// Package app provides application bootstrapping with Cobra, Viper, and Pflag.
+//
+// This package provides a unified way to:
+//   - Define CLI commands with Cobra
+//   - Load configuration from files, environment variables, and flags using Viper
+//   - Use the functional options pattern for configuration
+//
+// Usage:
+//
+//	app := app.NewApp(
+//	    app.WithName("myapp"),
+//	    app.WithDescription("My application"),
+//	    app.WithOptions(opts),
+//	    app.WithRunFunc(run),
+//	)
+//	app.Run()
+package app
+
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+
+	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
+)
+
+// App is the main application structure.
+type App struct {
+	name        string
+	shortDesc   string
+	description string
+	options     CliOptions
+	runFunc     RunFunc
+	cmd         *cobra.Command
+	args        cobra.PositionalArgs
+	silence     bool
+	noVersion   bool
+	noConfig    bool
+}
+
+// RunFunc is the application's run function.
+type RunFunc func() error
+
+// Option configures an App.
+type Option func(*App)
+
+// WithName sets the application name.
+func WithName(name string) Option {
+	return func(a *App) {
+		a.name = name
+	}
+}
+
+// WithShortDescription sets the short description.
+func WithShortDescription(desc string) Option {
+	return func(a *App) {
+		a.shortDesc = desc
+	}
+}
+
+// WithDescription sets the long description.
+func WithDescription(desc string) Option {
+	return func(a *App) {
+		a.description = desc
+	}
+}
+
+// WithOptions sets the CLI options.
+func WithOptions(opts CliOptions) Option {
+	return func(a *App) {
+		a.options = opts
+	}
+}
+
+// WithRunFunc sets the run function.
+func WithRunFunc(run RunFunc) Option {
+	return func(a *App) {
+		a.runFunc = run
+	}
+}
+
+// WithArgs sets the positional args validation.
+func WithArgs(args cobra.PositionalArgs) Option {
+	return func(a *App) {
+		a.args = args
+	}
+}
+
+// WithSilence disables usage and error printing.
+func WithSilence() Option {
+	return func(a *App) {
+		a.silence = true
+	}
+}
+
+// WithNoVersion disables version flag.
+func WithNoVersion() Option {
+	return func(a *App) {
+		a.noVersion = true
+	}
+}
+
+// WithNoConfig disables config file loading.
+func WithNoConfig() Option {
+	return func(a *App) {
+		a.noConfig = true
+	}
+}
+
+// NewApp creates a new application instance.
+func NewApp(opts ...Option) *App {
+	a := &App{
+		name: filepath.Base(os.Args[0]),
+	}
+
+	for _, opt := range opts {
+		opt(a)
+	}
+
+	a.buildCommand()
+	return a
+}
+
+// buildCommand creates the cobra command.
+func (a *App) buildCommand() {
+	cmd := &cobra.Command{
+		Use:   a.name,
+		Short: a.shortDesc,
+		Long:  a.description,
+		RunE:  a.runCommand,
+		Args:  a.args,
+	}
+
+	if a.silence {
+		cmd.SilenceUsage = true
+		cmd.SilenceErrors = true
+	}
+
+	// Add flags
+	cmd.SetOut(os.Stdout)
+	cmd.SetErr(os.Stderr)
+	cmd.Flags().SortFlags = true
+
+	// Add global flags
+	a.addGlobalFlags(cmd)
+
+	// Add options flags
+	if a.options != nil {
+		a.options.AddFlags(cmd.Flags())
+	}
+
+	a.cmd = cmd
+}
+
+// addGlobalFlags adds global flags to the command.
+func (a *App) addGlobalFlags(cmd *cobra.Command) {
+	if !a.noConfig {
+		cmd.PersistentFlags().StringP("config", "c", "", "Path to config file")
+	}
+
+	if !a.noVersion {
+		cmd.PersistentFlags().BoolP("version", "v", false, "Print version information")
+	}
+
+	// Add help flag
+	cmd.PersistentFlags().BoolP("help", "h", false, "Help for "+a.name)
+}
+
+// runCommand is the main run function for the command.
+func (a *App) runCommand(cmd *cobra.Command, args []string) error {
+	// Handle version flag
+	if !a.noVersion {
+		if v, _ := cmd.Flags().GetBool("version"); v {
+			fmt.Printf("%s version: %s\n", a.name, GetVersion())
+			return nil
+		}
+	}
+
+	// Load configuration
+	if !a.noConfig {
+		if err := a.loadConfig(cmd); err != nil {
+			return err
+		}
+	}
+
+	// Complete and validate options
+	if a.options != nil {
+		if err := a.options.Complete(); err != nil {
+			return err
+		}
+		if err := a.options.Validate(); err != nil {
+			return err
+		}
+	}
+
+	// Run the application
+	if a.runFunc != nil {
+		return a.runFunc()
+	}
+
+	return nil
+}
+
+// loadConfig loads configuration from file, environment, and flags.
+func (a *App) loadConfig(cmd *cobra.Command) error {
+	// Get config file path
+	configFile, _ := cmd.Flags().GetString("config")
+
+	// Set config file
+	if configFile != "" {
+		viper.SetConfigFile(configFile)
+	} else {
+		// Search for config file
+		viper.SetConfigName(a.name)
+		viper.SetConfigType("yaml")
+		viper.AddConfigPath(".")
+		viper.AddConfigPath("./configs")
+		viper.AddConfigPath(filepath.Join(os.Getenv("HOME"), "."+a.name))
+		viper.AddConfigPath("/etc/" + a.name)
+	}
+
+	// Read config file
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+			return fmt.Errorf("failed to read config file: %w", err)
+		}
+		// Config file not found, continue without it
+	}
+
+	// Bind environment variables
+	viper.SetEnvPrefix(strings.ToUpper(strings.ReplaceAll(a.name, "-", "_")))
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
+	viper.AutomaticEnv()
+
+	// Bind flags to viper
+	cmd.Flags().VisitAll(func(f *pflag.Flag) {
+		// Bind flag to viper
+		configName := strings.ReplaceAll(f.Name, "-", ".")
+		if !f.Changed && viper.IsSet(configName) {
+			val := viper.Get(configName)
+			_ = cmd.Flags().Set(f.Name, fmt.Sprintf("%v", val))
+		}
+	})
+
+	return nil
+}
+
+// Run executes the application.
+func (a *App) Run() {
+	if err := a.cmd.Execute(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+}
+
+// Command returns the cobra command.
+func (a *App) Command() *cobra.Command {
+	return a.cmd
+}
