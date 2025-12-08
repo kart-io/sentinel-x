@@ -184,8 +184,9 @@ func (s *Server) applyMiddleware(router transport.Router, opts *middleware.Optio
 	// Logger middleware (enabled by default)
 	if !opts.DisableLogger {
 		router.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
-			SkipPaths: opts.Logger.SkipPaths,
-			Output:    opts.Logger.Output,
+			SkipPaths:           opts.Logger.SkipPaths,
+			Output:              opts.Logger.Output,
+			UseStructuredLogger: opts.Logger.UseStructuredLogger,
 		}))
 	}
 

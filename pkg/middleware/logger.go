@@ -4,6 +4,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/kart-io/logger"
 	"github.com/kart-io/sentinel-x/pkg/server/transport"
 )
 
@@ -13,14 +14,20 @@ type LoggerConfig struct {
 	SkipPaths []string
 
 	// Output is the logger output function.
-	// Default: log.Printf
+	// Default: log.Printf (used only if UseStructuredLogger is false)
 	Output func(format string, args ...interface{})
+
+	// UseStructuredLogger enables structured logging using kart-io/logger.
+	// When true, Output is ignored and the global structured logger is used.
+	// Default: true
+	UseStructuredLogger bool
 }
 
 // DefaultLoggerConfig is the default Logger middleware config.
 var DefaultLoggerConfig = LoggerConfig{
-	SkipPaths: []string{"/health", "/ready", "/metrics"},
-	Output:    log.Printf,
+	SkipPaths:           []string{"/health", "/ready", "/metrics"},
+	Output:              log.Printf,
+	UseStructuredLogger: true,
 }
 
 // Logger returns a middleware that logs HTTP requests.
@@ -65,21 +72,37 @@ func LoggerWithConfig(config LoggerConfig) transport.MiddlewareFunc {
 			latency := time.Since(start)
 
 			// Log the request
-			if requestID != "" {
-				config.Output("[%s] %s %s %s %v",
-					requestID,
-					req.Method,
-					path,
-					req.RemoteAddr,
-					latency,
-				)
+			if config.UseStructuredLogger {
+				// Use structured logger
+				fields := []interface{}{
+					"method", req.Method,
+					"path", path,
+					"remote_addr", req.RemoteAddr,
+					"latency", latency.String(),
+					"latency_ms", latency.Milliseconds(),
+				}
+				if requestID != "" {
+					fields = append(fields, "request_id", requestID)
+				}
+				logger.Infow("HTTP Request", fields...)
 			} else {
-				config.Output("%s %s %s %v",
-					req.Method,
-					path,
-					req.RemoteAddr,
-					latency,
-				)
+				// Use legacy printf-style logging
+				if requestID != "" {
+					config.Output("[%s] %s %s %s %v",
+						requestID,
+						req.Method,
+						path,
+						req.RemoteAddr,
+						latency,
+					)
+				} else {
+					config.Output("%s %s %s %v",
+						req.Method,
+						path,
+						req.RemoteAddr,
+						latency,
+					)
+				}
 			}
 		}
 	}

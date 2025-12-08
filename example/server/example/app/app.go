@@ -4,10 +4,12 @@ package app
 import (
 	"fmt"
 
+	"github.com/kart-io/logger"
 	"github.com/spf13/pflag"
 
 	"github.com/kart-io/sentinel-x/pkg/app"
 	"github.com/kart-io/sentinel-x/pkg/middleware"
+	logopts "github.com/kart-io/sentinel-x/pkg/options/logger"
 	serveropts "github.com/kart-io/sentinel-x/pkg/options/server"
 	"github.com/kart-io/sentinel-x/pkg/server"
 	v1 "github.com/kart-io/sentinel-x/example/server/example/api/hello/v1"
@@ -65,8 +67,21 @@ func NewApp() *app.App {
 
 // Run runs the server with the given options.
 func Run(opts *Options) error {
+	// Initialize logger first
+	if err := opts.Log.Init(); err != nil {
+		return fmt.Errorf("failed to initialize logger: %w", err)
+	}
+	defer logger.Flush()
+
 	// Print startup banner
 	printBanner(opts)
+
+	// Log server startup
+	logger.Infow("Starting server",
+		"app", appName,
+		"version", app.GetVersion(),
+		"mode", opts.Server.Mode.String(),
+	)
 
 	// Configure health manager
 	configureHealth(opts)
@@ -186,22 +201,28 @@ func printBanner(opts *Options) {
 // Options contains all server options.
 type Options struct {
 	Server *serveropts.Options `json:"server" mapstructure:"server"`
+	Log    *logopts.Options    `json:"log" mapstructure:"log"`
 }
 
 // NewOptions creates new Options with defaults.
 func NewOptions() *Options {
 	return &Options{
 		Server: serveropts.NewOptions(),
+		Log:    logopts.NewOptions(),
 	}
 }
 
 // AddFlags adds flags to the flagset.
 func (o *Options) AddFlags(fs *pflag.FlagSet) {
 	o.Server.AddFlags(fs)
+	o.Log.AddFlags(fs)
 }
 
 // Validate validates the options.
 func (o *Options) Validate() error {
+	if err := o.Log.Validate(); err != nil {
+		return err
+	}
 	return o.Server.Validate()
 }
 

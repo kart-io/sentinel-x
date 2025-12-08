@@ -64,7 +64,12 @@ type RequestIDOptions struct {
 type LoggerOptions struct {
 	// SkipPaths is a list of paths to skip logging.
 	SkipPaths []string `json:"skip-paths" mapstructure:"skip-paths"`
+	// UseStructuredLogger enables structured logging using kart-io/logger.
+	// When true, logs are output in JSON format via the global structured logger.
+	// Default: true
+	UseStructuredLogger bool `json:"use-structured-logger" mapstructure:"use-structured-logger"`
 	// Output is the logger output function (not configurable via config file).
+	// Only used when UseStructuredLogger is false.
 	Output func(format string, args ...interface{}) `json:"-" mapstructure:"-"`
 }
 
@@ -145,8 +150,9 @@ func NewOptions() *Options {
 			Header: HeaderXRequestID,
 		},
 		Logger: LoggerOptions{
-			SkipPaths: []string{"/health", "/ready", "/live", "/metrics"},
-			Output:    log.Printf,
+			SkipPaths:           []string{"/health", "/ready", "/live", "/metrics"},
+			UseStructuredLogger: true,
+			Output:              log.Printf,
 		},
 		CORS: CORSOptions{
 			AllowOrigins: []string{"*"},
