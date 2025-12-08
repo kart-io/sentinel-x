@@ -22,6 +22,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/kart-io/version"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -162,7 +163,8 @@ func (a *App) addGlobalFlags(cmd *cobra.Command) {
 	}
 
 	if !a.noVersion {
-		cmd.PersistentFlags().BoolP("version", "v", false, "Print version information")
+		// Use kart-io/version package for version flags
+		version.AddFlags(cmd.PersistentFlags())
 	}
 
 	// Add help flag
@@ -171,12 +173,9 @@ func (a *App) addGlobalFlags(cmd *cobra.Command) {
 
 // runCommand is the main run function for the command.
 func (a *App) runCommand(cmd *cobra.Command, args []string) error {
-	// Handle version flag
+	// Handle version flag - this will print and exit if --version is set
 	if !a.noVersion {
-		if v, _ := cmd.Flags().GetBool("version"); v {
-			fmt.Printf("%s version: %s\n", a.name, GetVersion())
-			return nil
-		}
+		version.PrintAndExitIfRequested()
 	}
 
 	// Load configuration
