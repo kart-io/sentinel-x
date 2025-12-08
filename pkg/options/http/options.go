@@ -58,6 +58,11 @@ func (o *Options) AddFlags(fs *pflag.FlagSet) {
 	fs.DurationVar(&o.WriteTimeout, "http.write-timeout", o.WriteTimeout, "HTTP server write timeout")
 	fs.DurationVar(&o.IdleTimeout, "http.idle-timeout", o.IdleTimeout, "HTTP server idle timeout")
 	fs.StringVar((*string)(&o.Adapter), "http.adapter", string(o.Adapter), "HTTP framework adapter (gin, echo)")
+
+	// Add middleware flags
+	if o.Middleware != nil {
+		o.Middleware.AddFlags(fs)
+	}
 }
 
 // Validate validates the HTTP options.
@@ -74,6 +79,14 @@ func (o *Options) Validate() error {
 	if o.Adapter != AdapterGin && o.Adapter != AdapterEcho {
 		return fmt.Errorf("http.adapter must be 'gin' or 'echo'")
 	}
+
+	// Validate middleware options
+	if o.Middleware != nil {
+		if err := o.Middleware.Validate(); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -82,7 +95,7 @@ func (o *Options) Complete() error {
 	if o.Middleware == nil {
 		o.Middleware = middleware.NewOptions()
 	}
-	return nil
+	return o.Middleware.Complete()
 }
 
 // WithAddr sets the listen address.

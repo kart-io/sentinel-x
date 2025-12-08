@@ -8,6 +8,7 @@ import (
 	"sync"
 	"syscall"
 
+	"github.com/kart-io/sentinel-x/pkg/middleware"
 	httpopts "github.com/kart-io/sentinel-x/pkg/options/http"
 	serveropts "github.com/kart-io/sentinel-x/pkg/options/server"
 	"github.com/kart-io/sentinel-x/pkg/server/service"
@@ -74,6 +75,9 @@ func NewManager(opts ...serveropts.Option) *Manager {
 			http.WithWriteTimeout(options.HTTP.WriteTimeout),
 			http.WithIdleTimeout(options.HTTP.IdleTimeout),
 			http.WithAdapter(httpopts.AdapterType(options.HTTP.Adapter)),
+			http.WithMiddleware(func(opts *middleware.Options) {
+				*opts = *options.HTTP.Middleware
+			}),
 		)
 	}
 

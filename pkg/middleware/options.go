@@ -4,133 +4,132 @@ import (
 	"log"
 	"time"
 
+	"github.com/spf13/pflag"
+
 	"github.com/kart-io/sentinel-x/pkg/server/transport"
 )
 
 // Options contains all middleware configuration.
 type Options struct {
 	// Recovery options
-	Recovery        RecoveryOptions
-	DisableRecovery bool
+	Recovery        RecoveryOptions `json:"recovery" mapstructure:"recovery"`
+	DisableRecovery bool            `json:"disable-recovery" mapstructure:"disable-recovery"`
 
 	// RequestID options
-	RequestID        RequestIDOptions
-	DisableRequestID bool
+	RequestID        RequestIDOptions `json:"request-id" mapstructure:"request-id"`
+	DisableRequestID bool             `json:"disable-request-id" mapstructure:"disable-request-id"`
 
 	// Logger options
-	Logger        LoggerOptions
-	DisableLogger bool
+	Logger        LoggerOptions `json:"logger" mapstructure:"logger"`
+	DisableLogger bool          `json:"disable-logger" mapstructure:"disable-logger"`
 
 	// CORS options
-	CORS        CORSOptions
-	DisableCORS bool
+	CORS        CORSOptions `json:"cors" mapstructure:"cors"`
+	DisableCORS bool        `json:"disable-cors" mapstructure:"disable-cors"`
 
 	// Timeout options
-	Timeout        TimeoutOptions
-	DisableTimeout bool
+	Timeout        TimeoutOptions `json:"timeout" mapstructure:"timeout"`
+	DisableTimeout bool           `json:"disable-timeout" mapstructure:"disable-timeout"`
 
 	// Health options
-	Health        HealthOptions
-	DisableHealth bool
+	Health        HealthOptions `json:"health" mapstructure:"health"`
+	DisableHealth bool          `json:"disable-health" mapstructure:"disable-health"`
 
 	// Metrics options
-	Metrics        MetricsOptions
-	DisableMetrics bool
+	Metrics        MetricsOptions `json:"metrics" mapstructure:"metrics"`
+	DisableMetrics bool           `json:"disable-metrics" mapstructure:"disable-metrics"`
 
 	// Pprof options
-	Pprof        PprofOptions
-	DisablePprof bool
+	Pprof        PprofOptions `json:"pprof" mapstructure:"pprof"`
+	DisablePprof bool         `json:"disable-pprof" mapstructure:"disable-pprof"`
 }
 
 // RecoveryOptions defines recovery middleware options.
 type RecoveryOptions struct {
 	// EnableStackTrace includes stack trace in error response.
-	EnableStackTrace bool
-	// OnPanic is called when a panic occurs.
-	OnPanic func(ctx transport.Context, err interface{}, stack []byte)
+	EnableStackTrace bool `json:"enable-stack-trace" mapstructure:"enable-stack-trace"`
+	// OnPanic is called when a panic occurs (not configurable via config file).
+	OnPanic func(ctx transport.Context, err interface{}, stack []byte) `json:"-" mapstructure:"-"`
 }
 
 // RequestIDOptions defines request ID middleware options.
 type RequestIDOptions struct {
 	// Header is the header name for request ID.
-	Header string
-	// Generator is the function to generate request IDs.
-	Generator func() string
+	Header string `json:"header" mapstructure:"header"`
+	// Generator is the function to generate request IDs (not configurable via config file).
+	Generator func() string `json:"-" mapstructure:"-"`
 }
 
 // LoggerOptions defines logger middleware options.
 type LoggerOptions struct {
 	// SkipPaths is a list of paths to skip logging.
-	SkipPaths []string
-	// Output is the logger output function.
-	Output func(format string, args ...interface{})
+	SkipPaths []string `json:"skip-paths" mapstructure:"skip-paths"`
+	// Output is the logger output function (not configurable via config file).
+	Output func(format string, args ...interface{}) `json:"-" mapstructure:"-"`
 }
 
 // CORSOptions defines CORS middleware options.
 type CORSOptions struct {
 	// AllowOrigins is a list of origins that may access the resource.
-	AllowOrigins []string
+	AllowOrigins []string `json:"allow-origins" mapstructure:"allow-origins"`
 	// AllowMethods is a list of methods allowed.
-	AllowMethods []string
+	AllowMethods []string `json:"allow-methods" mapstructure:"allow-methods"`
 	// AllowHeaders is a list of headers that can be used.
-	AllowHeaders []string
+	AllowHeaders []string `json:"allow-headers" mapstructure:"allow-headers"`
 	// ExposeHeaders is a list of headers browsers are allowed to access.
-	ExposeHeaders []string
+	ExposeHeaders []string `json:"expose-headers" mapstructure:"expose-headers"`
 	// AllowCredentials indicates whether credentials are allowed.
-	AllowCredentials bool
+	AllowCredentials bool `json:"allow-credentials" mapstructure:"allow-credentials"`
 	// MaxAge indicates how long preflight results can be cached.
-	MaxAge int
+	MaxAge int `json:"max-age" mapstructure:"max-age"`
 }
 
 // TimeoutOptions defines timeout middleware options.
 type TimeoutOptions struct {
 	// Timeout is the request timeout duration.
-	Timeout time.Duration
+	Timeout time.Duration `json:"timeout" mapstructure:"timeout"`
 	// SkipPaths is a list of paths to skip timeout.
-	SkipPaths []string
+	SkipPaths []string `json:"skip-paths" mapstructure:"skip-paths"`
 }
 
 // HealthOptions defines health check options.
 type HealthOptions struct {
 	// Path is the health check endpoint path.
-	Path string
+	Path string `json:"path" mapstructure:"path"`
 	// LivenessPath is the liveness probe path.
-	LivenessPath string
+	LivenessPath string `json:"liveness-path" mapstructure:"liveness-path"`
 	// ReadinessPath is the readiness probe path.
-	ReadinessPath string
-	// Checker is a custom health check function.
-	Checker func() error
+	ReadinessPath string `json:"readiness-path" mapstructure:"readiness-path"`
+	// Checker is a custom health check function (not configurable via config file).
+	Checker func() error `json:"-" mapstructure:"-"`
 }
 
 // MetricsOptions defines metrics options.
 type MetricsOptions struct {
 	// Path is the metrics endpoint path.
-	Path string
+	Path string `json:"path" mapstructure:"path"`
 	// Namespace is the metrics namespace.
-	Namespace string
+	Namespace string `json:"namespace" mapstructure:"namespace"`
 	// Subsystem is the metrics subsystem.
-	Subsystem string
+	Subsystem string `json:"subsystem" mapstructure:"subsystem"`
 }
 
 // PprofOptions defines pprof options.
 type PprofOptions struct {
 	// Prefix is the URL prefix for pprof endpoints.
-	// Default: "/debug/pprof"
-	Prefix string
+	Prefix string `json:"prefix" mapstructure:"prefix"`
 	// EnableCmdline enables /debug/pprof/cmdline endpoint.
-	EnableCmdline bool
+	EnableCmdline bool `json:"enable-cmdline" mapstructure:"enable-cmdline"`
 	// EnableProfile enables /debug/pprof/profile endpoint.
-	EnableProfile bool
+	EnableProfile bool `json:"enable-profile" mapstructure:"enable-profile"`
 	// EnableSymbol enables /debug/pprof/symbol endpoint.
-	EnableSymbol bool
+	EnableSymbol bool `json:"enable-symbol" mapstructure:"enable-symbol"`
 	// EnableTrace enables /debug/pprof/trace endpoint.
-	EnableTrace bool
+	EnableTrace bool `json:"enable-trace" mapstructure:"enable-trace"`
 	// BlockProfileRate sets the rate for block profiling.
-	// Set to 1 for full profiling, 0 to disable.
-	BlockProfileRate int
+	BlockProfileRate int `json:"block-profile-rate" mapstructure:"block-profile-rate"`
 	// MutexProfileFraction sets the fraction of mutex contention events reported.
-	// Set to 1 for full profiling, 0 to disable.
-	MutexProfileFraction int
+	MutexProfileFraction int `json:"mutex-profile-fraction" mapstructure:"mutex-profile-fraction"`
 }
 
 // Option is a function that configures Options.
@@ -182,6 +181,62 @@ func NewOptions() *Options {
 		DisableTimeout: true, // Timeout disabled by default
 		DisablePprof:   true, // Pprof disabled by default (security)
 	}
+}
+
+// AddFlags adds flags for middleware options to the specified FlagSet.
+func (o *Options) AddFlags(fs *pflag.FlagSet) {
+	// Recovery flags
+	fs.BoolVar(&o.DisableRecovery, "middleware.disable-recovery", o.DisableRecovery, "Disable recovery middleware")
+	fs.BoolVar(&o.Recovery.EnableStackTrace, "middleware.recovery.enable-stack-trace", o.Recovery.EnableStackTrace, "Enable stack trace in error responses")
+
+	// RequestID flags
+	fs.BoolVar(&o.DisableRequestID, "middleware.disable-request-id", o.DisableRequestID, "Disable request ID middleware")
+	fs.StringVar(&o.RequestID.Header, "middleware.request-id.header", o.RequestID.Header, "Request ID header name")
+
+	// Logger flags
+	fs.BoolVar(&o.DisableLogger, "middleware.disable-logger", o.DisableLogger, "Disable logger middleware")
+
+	// CORS flags
+	fs.BoolVar(&o.DisableCORS, "middleware.disable-cors", o.DisableCORS, "Disable CORS middleware")
+	fs.StringSliceVar(&o.CORS.AllowOrigins, "middleware.cors.allow-origins", o.CORS.AllowOrigins, "CORS allowed origins")
+	fs.BoolVar(&o.CORS.AllowCredentials, "middleware.cors.allow-credentials", o.CORS.AllowCredentials, "CORS allow credentials")
+	fs.IntVar(&o.CORS.MaxAge, "middleware.cors.max-age", o.CORS.MaxAge, "CORS preflight max age")
+
+	// Timeout flags
+	fs.BoolVar(&o.DisableTimeout, "middleware.disable-timeout", o.DisableTimeout, "Disable timeout middleware")
+	fs.DurationVar(&o.Timeout.Timeout, "middleware.timeout.timeout", o.Timeout.Timeout, "Request timeout duration")
+
+	// Health flags
+	fs.BoolVar(&o.DisableHealth, "middleware.disable-health", o.DisableHealth, "Disable health check endpoints")
+	fs.StringVar(&o.Health.Path, "middleware.health.path", o.Health.Path, "Health check endpoint path")
+	fs.StringVar(&o.Health.LivenessPath, "middleware.health.liveness-path", o.Health.LivenessPath, "Liveness probe path")
+	fs.StringVar(&o.Health.ReadinessPath, "middleware.health.readiness-path", o.Health.ReadinessPath, "Readiness probe path")
+
+	// Metrics flags
+	fs.BoolVar(&o.DisableMetrics, "middleware.disable-metrics", o.DisableMetrics, "Disable metrics endpoint")
+	fs.StringVar(&o.Metrics.Path, "middleware.metrics.path", o.Metrics.Path, "Metrics endpoint path")
+	fs.StringVar(&o.Metrics.Namespace, "middleware.metrics.namespace", o.Metrics.Namespace, "Metrics namespace")
+	fs.StringVar(&o.Metrics.Subsystem, "middleware.metrics.subsystem", o.Metrics.Subsystem, "Metrics subsystem")
+
+	// Pprof flags
+	fs.BoolVar(&o.DisablePprof, "middleware.disable-pprof", o.DisablePprof, "Disable pprof endpoints")
+	fs.StringVar(&o.Pprof.Prefix, "middleware.pprof.prefix", o.Pprof.Prefix, "Pprof URL prefix")
+	fs.IntVar(&o.Pprof.BlockProfileRate, "middleware.pprof.block-profile-rate", o.Pprof.BlockProfileRate, "Block profile rate")
+	fs.IntVar(&o.Pprof.MutexProfileFraction, "middleware.pprof.mutex-profile-fraction", o.Pprof.MutexProfileFraction, "Mutex profile fraction")
+}
+
+// Validate validates the middleware options.
+func (o *Options) Validate() error {
+	return nil
+}
+
+// Complete completes the middleware options with defaults.
+func (o *Options) Complete() error {
+	// Set default logger output if not set
+	if o.Logger.Output == nil {
+		o.Logger.Output = log.Printf
+	}
+	return nil
 }
 
 // WithRecovery configures recovery middleware.

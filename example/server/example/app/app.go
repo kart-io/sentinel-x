@@ -40,7 +40,10 @@ Examples:
   sentinel-example --http.addr=:8081 --grpc.addr=:9091
 
   # Enable pprof for debugging
-  sentinel-example --pprof
+  sentinel-example --middleware.disable-pprof=false
+
+  # Enable CORS
+  sentinel-example --middleware.disable-cors=false
 
   # Use config file
   sentinel-example -c config.yaml`
@@ -65,8 +68,8 @@ func Run(opts *Options) error {
 	// Print startup banner
 	printBanner(opts)
 
-	// Configure middleware
-	configureMiddleware(opts)
+	// Configure health manager
+	configureHealth(opts)
 
 	// Create server manager
 	mgr := server.NewManager(
@@ -95,28 +98,8 @@ func Run(opts *Options) error {
 	return mgr.Run()
 }
 
-// configureMiddleware configures middleware based on options.
-func configureMiddleware(opts *Options) {
-	mw := opts.Server.HTTP.Middleware
-
-	// Configure recovery
-	mw.Recovery.EnableStackTrace = opts.EnableStackTrace
-
-	// Configure CORS
-	mw.DisableCORS = !opts.EnableCORS
-
-	// Configure metrics
-	mw.DisableMetrics = !opts.EnableMetrics
-	if opts.EnableMetrics {
-		mw.Metrics.Namespace = "sentinel"
-		mw.Metrics.Subsystem = "example"
-	}
-
-	// Configure pprof
-	mw.DisablePprof = !opts.EnablePprof
-
-	// Configure health
-	mw.DisableHealth = false
+// configureHealth configures the health manager.
+func configureHealth(opts *Options) {
 	middleware.GetHealthManager().SetVersion(app.GetVersion())
 	middleware.GetHealthManager().RegisterChecker("service", func() error {
 		return nil
@@ -125,6 +108,8 @@ func configureMiddleware(opts *Options) {
 
 // printBanner prints the startup banner.
 func printBanner(opts *Options) {
+	mw := opts.Server.HTTP.Middleware
+
 	fmt.Println("===========================================")
 	fmt.Println("  Sentinel-X Example Server")
 	fmt.Println("===========================================")
@@ -140,17 +125,28 @@ func printBanner(opts *Options) {
 
 	fmt.Println("-------------------------------------------")
 	fmt.Println("Middleware:")
-	fmt.Println("  - Recovery (enabled)")
-	fmt.Println("  - RequestID (enabled)")
-	fmt.Println("  - Logger (enabled)")
-
-	if opts.EnableCORS {
+	if !mw.DisableRecovery {
+		fmt.Println("  - Recovery (enabled)")
+	}
+	if !mw.DisableRequestID {
+		fmt.Println("  - RequestID (enabled)")
+	}
+	if !mw.DisableLogger {
+		fmt.Println("  - Logger (enabled)")
+	}
+	if !mw.DisableCORS {
 		fmt.Println("  - CORS (enabled)")
 	}
-	if opts.EnableMetrics {
+	if !mw.DisableTimeout {
+		fmt.Println("  - Timeout (enabled)")
+	}
+	if !mw.DisableHealth {
+		fmt.Println("  - Health (enabled)")
+	}
+	if !mw.DisableMetrics {
 		fmt.Println("  - Metrics (enabled)")
 	}
-	if opts.EnablePprof {
+	if !mw.DisablePprof {
 		fmt.Println("  - Pprof (enabled)")
 	}
 
@@ -161,16 +157,19 @@ func printBanner(opts *Options) {
 		fmt.Println("  API:")
 		fmt.Printf("    GET  http://localhost%s/api/v1/hello?name=World\n", opts.Server.HTTP.Addr)
 		fmt.Printf("    POST http://localhost%s/api/v1/hello\n", opts.Server.HTTP.Addr)
-		fmt.Println("  Health:")
-		fmt.Printf("    GET  http://localhost%s/health\n", opts.Server.HTTP.Addr)
-		fmt.Printf("    GET  http://localhost%s/live\n", opts.Server.HTTP.Addr)
-		fmt.Printf("    GET  http://localhost%s/ready\n", opts.Server.HTTP.Addr)
 
-		if opts.EnableMetrics {
-			fmt.Printf("  Metrics: http://localhost%s/metrics\n", opts.Server.HTTP.Addr)
+		if !mw.DisableHealth {
+			fmt.Println("  Health:")
+			fmt.Printf("    GET  http://localhost%s%s\n", opts.Server.HTTP.Addr, mw.Health.Path)
+			fmt.Printf("    GET  http://localhost%s%s\n", opts.Server.HTTP.Addr, mw.Health.LivenessPath)
+			fmt.Printf("    GET  http://localhost%s%s\n", opts.Server.HTTP.Addr, mw.Health.ReadinessPath)
 		}
-		if opts.EnablePprof {
-			fmt.Printf("  Pprof: http://localhost%s/debug/pprof/\n", opts.Server.HTTP.Addr)
+
+		if !mw.DisableMetrics {
+			fmt.Printf("  Metrics: http://localhost%s%s\n", opts.Server.HTTP.Addr, mw.Metrics.Path)
+		}
+		if !mw.DisablePprof {
+			fmt.Printf("  Pprof: http://localhost%s%s/\n", opts.Server.HTTP.Addr, mw.Pprof.Prefix)
 		}
 	}
 
@@ -187,33 +186,18 @@ func printBanner(opts *Options) {
 // Options contains all server options.
 type Options struct {
 	Server *serveropts.Options `json:"server" mapstructure:"server"`
-
-	// Feature flags
-	EnableCORS       bool `json:"enable-cors" mapstructure:"enable-cors"`
-	EnableMetrics    bool `json:"enable-metrics" mapstructure:"enable-metrics"`
-	EnablePprof      bool `json:"enable-pprof" mapstructure:"enable-pprof"`
-	EnableStackTrace bool `json:"enable-stack-trace" mapstructure:"enable-stack-trace"`
 }
 
 // NewOptions creates new Options with defaults.
 func NewOptions() *Options {
 	return &Options{
-		Server:           serveropts.NewOptions(),
-		EnableCORS:       false,
-		EnableMetrics:    true,
-		EnablePprof:      false,
-		EnableStackTrace: false,
+		Server: serveropts.NewOptions(),
 	}
 }
 
 // AddFlags adds flags to the flagset.
 func (o *Options) AddFlags(fs *pflag.FlagSet) {
 	o.Server.AddFlags(fs)
-
-	fs.BoolVar(&o.EnableCORS, "cors", o.EnableCORS, "Enable CORS middleware")
-	fs.BoolVar(&o.EnableMetrics, "metrics", o.EnableMetrics, "Enable metrics endpoint")
-	fs.BoolVar(&o.EnablePprof, "pprof", o.EnablePprof, "Enable pprof endpoints")
-	fs.BoolVar(&o.EnableStackTrace, "stack-trace", o.EnableStackTrace, "Enable stack trace in error responses")
 }
 
 // Validate validates the options.

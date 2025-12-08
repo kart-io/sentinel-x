@@ -25,6 +25,84 @@ http:
   # HTTP framework adapter: gin or echo
   adapter: gin
 
+  # Middleware configuration
+  middleware:
+    # Recovery middleware
+    disable-recovery: false
+    recovery:
+      enable-stack-trace: false
+
+    # Request ID middleware
+    disable-request-id: false
+    request-id:
+      header: "X-Request-ID"
+
+    # Logger middleware
+    disable-logger: false
+    logger:
+      skip-paths:
+        - "/health"
+        - "/ready"
+        - "/live"
+        - "/metrics"
+
+    # CORS middleware (disabled by default)
+    disable-cors: true
+    cors:
+      allow-origins:
+        - "*"
+      allow-methods:
+        - "GET"
+        - "POST"
+        - "PUT"
+        - "PATCH"
+        - "DELETE"
+        - "HEAD"
+        - "OPTIONS"
+      allow-headers:
+        - "Origin"
+        - "Content-Type"
+        - "Accept"
+        - "Authorization"
+        - "X-Request-ID"
+      allow-credentials: false
+      max-age: 86400
+
+    # Timeout middleware (disabled by default)
+    disable-timeout: true
+    timeout:
+      timeout: 30s
+      skip-paths:
+        - "/health"
+        - "/ready"
+        - "/live"
+        - "/metrics"
+
+    # Health check endpoints
+    disable-health: false
+    health:
+      path: "/health"
+      liveness-path: "/live"
+      readiness-path: "/ready"
+
+    # Metrics endpoint
+    disable-metrics: false
+    metrics:
+      path: "/metrics"
+      namespace: "sentinel"
+      subsystem: "example"
+
+    # Pprof endpoints (disabled by default for security)
+    disable-pprof: true
+    pprof:
+      prefix: "/debug/pprof"
+      enable-cmdline: true
+      enable-profile: true
+      enable-symbol: true
+      enable-trace: true
+      block-profile-rate: 0
+      mutex-profile-fraction: 0
+
 # gRPC server configuration
 grpc:
   # Listen address
@@ -37,13 +115,3 @@ grpc:
   max-send-msg-size: 16777216
   # Enable reflection for grpcurl
   enable-reflection: true
-
-# Feature flags
-# Enable CORS middleware
-cors: false
-# Enable metrics endpoint
-metrics: true
-# Enable pprof endpoints
-pprof: false
-# Enable stack trace in error responses
-stack-trace: false
