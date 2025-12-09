@@ -1,5 +1,8 @@
 .PHONY: run run-http run-grpc build proto client fmt lint
 
+# JWT key for development (min 32 chars for HS256)
+JWT_KEY ?= sentinel-x-dev-secret-key-32chars
+
 # Format the code
 fmt:
 	go fmt ./...
@@ -10,15 +13,15 @@ lint:
 
 # Run the server in both HTTP and gRPC modes
 run:
-	go run main.go --server.mode=both --http.addr=:8102 --grpc.addr=:9098
+	go run main.go --server.mode=both --http.addr=:8102 --grpc.addr=:9098 --jwt.key=$(JWT_KEY)
 
 # Run the server in HTTP mode only
 run-http:
-	go run main.go --server.mode=http --http.addr=:8102
+	go run main.go --server.mode=http --http.addr=:8102 --jwt.key=$(JWT_KEY)
 
 # Run the server in gRPC mode only
 run-grpc:
-	go run main.go --server.mode=grpc --grpc.addr=:9098
+	go run main.go --server.mode=grpc --grpc.addr=:9098 --jwt.key=$(JWT_KEY)
 
 # Build the server binary
 build:

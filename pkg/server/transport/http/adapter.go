@@ -93,7 +93,10 @@ func (r *bridgeRouter) Use(middleware ...transport.MiddlewareFunc) {
 		r.group.AddMiddleware(func(next BridgeHandler) BridgeHandler {
 			return func(ctx *RequestContext) {
 				mw(func(c transport.Context) {
-					next(ctx)
+					// Only call next if response not yet written
+					if !ctx.Written() {
+						next(ctx)
+					}
 				})(ctx)
 			}
 		})

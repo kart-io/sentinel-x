@@ -79,18 +79,37 @@ func (b *Bridge) SetErrorHandler(handler httpserver.BridgeErrorHandler) {
 // wrapHandler converts a BridgeHandler to gin.HandlerFunc.
 func (b *Bridge) wrapHandler(handler httpserver.BridgeHandler) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		ctx := b.createContext(c)
+		// Skip if response already written by middleware
+		if _, written := c.Get(responseWrittenKey); written {
+			return
+		}
+		ctx := b.getOrCreateContext(c)
 		handler(ctx)
 	}
 }
 
+// requestContextKey is the key for storing RequestContext in gin.Context.
+const requestContextKey = "sentinel_request_context"
+
+// responseWrittenKey is the key for tracking if response was written.
+const responseWrittenKey = "sentinel_response_written"
+
 // wrapMiddleware converts a BridgeMiddleware to gin.HandlerFunc.
 func (b *Bridge) wrapMiddleware(middleware httpserver.BridgeMiddleware) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		ctx := b.createContext(c)
+		// Skip if response already written by previous middleware
+		if _, written := c.Get(responseWrittenKey); written {
+			return
+		}
+		ctx := b.getOrCreateContext(c)
 		middleware(func(ctx *httpserver.RequestContext) {
 			c.Next()
 		})(ctx)
+		// Mark response as written and abort Gin chain
+		if ctx.Written() {
+			c.Set(responseWrittenKey, true)
+			c.Abort()
+		}
 	}
 }
 
@@ -106,6 +125,22 @@ func (b *Bridge) createContext(c *gin.Context) *httpserver.RequestContext {
 	// Store raw gin context for advanced use
 	ctx.SetRawContext(c)
 
+	return ctx
+}
+
+// getOrCreateContext gets an existing RequestContext from gin.Context or creates a new one.
+// This ensures all middleware in the same request share the same RequestContext.
+func (b *Bridge) getOrCreateContext(c *gin.Context) *httpserver.RequestContext {
+	// Check if context already exists
+	if val, exists := c.Get(requestContextKey); exists {
+		if ctx, ok := val.(*httpserver.RequestContext); ok {
+			return ctx
+		}
+	}
+
+	// Create new context and store it
+	ctx := b.createContext(c)
+	c.Set(requestContextKey, ctx)
 	return ctx
 }
 
