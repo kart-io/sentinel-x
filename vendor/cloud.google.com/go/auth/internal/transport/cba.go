@@ -30,8 +30,9 @@ import (
 
 	"cloud.google.com/go/auth/internal"
 	"cloud.google.com/go/auth/internal/transport/cert"
-	"github.com/google/s2a-go"
 	"google.golang.org/grpc/credentials"
+
+	"github.com/google/s2a-go"
 )
 
 const (

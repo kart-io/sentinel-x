@@ -24,7 +24,7 @@ func (s *Service) ServiceName() string {
 
 func (s *Service) Login(ctx context.Context, username, password string) (string, *model.User, error) {
 	user, ok := model.Users[username]
-	if !ok || user.Password != password {
+	if !ok || !user.CheckPassword(password) {
 		return "", nil, errors.New("invalid credentials")
 	}
 

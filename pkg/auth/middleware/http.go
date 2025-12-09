@@ -4,17 +4,17 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/kart-io/sentinel-x/pkg/auth"
+	"github.com/kart-io/sentinel-x/pkg/authz/casbin"
 	"github.com/labstack/echo/v4"
 )
 
 // Authorizer provides middleware for authorization
 type Authorizer struct {
-	service auth.PermissionService
+	service casbin.PermissionService
 }
 
 // NewAuthorizer creates a new Authorizer
-func NewAuthorizer(service auth.PermissionService) *Authorizer {
+func NewAuthorizer(service casbin.PermissionService) *Authorizer {
 	return &Authorizer{service: service}
 }
 

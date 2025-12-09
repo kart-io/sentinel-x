@@ -10,10 +10,11 @@ import (
 	"log/slog"
 
 	"cloud.google.com/go/auth"
-	"github.com/googleapis/gax-go/v2/internallog"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/internal"
 	"google.golang.org/api/option"
+
+	"github.com/googleapis/gax-go/v2/internallog"
 )
 
 type defaultEndpointOption string

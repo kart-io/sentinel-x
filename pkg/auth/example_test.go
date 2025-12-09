@@ -9,33 +9,33 @@ import (
 	drivermysql "gorm.io/driver/mysql"
 	"gorm.io/gorm"
 
-	"github.com/kart-io/sentinel-x/pkg/auth"
-	"github.com/kart-io/sentinel-x/pkg/auth/infrastructure/mysql"
-	"github.com/kart-io/sentinel-x/pkg/auth/infrastructure/redis"
+	"github.com/kart-io/sentinel-x/pkg/authz/casbin"
+	"github.com/kart-io/sentinel-x/pkg/authz/casbin/infrastructure/mysql"
+	"github.com/kart-io/sentinel-x/pkg/authz/casbin/infrastructure/redis"
 	redisgo "github.com/redis/go-redis/v9"
 )
 
 // MockRepository is a simple in-memory repository for testing
 type MockRepository struct {
-	policies []*auth.Policy
+	policies []*casbin.Policy
 }
 
-func (m *MockRepository) LoadPolicies(ctx context.Context) ([]*auth.Policy, error) {
+func (m *MockRepository) LoadPolicies(ctx context.Context) ([]*casbin.Policy, error) {
 	return m.policies, nil
 }
 
-func (m *MockRepository) SavePolicies(ctx context.Context, policies []*auth.Policy) error {
+func (m *MockRepository) SavePolicies(ctx context.Context, policies []*casbin.Policy) error {
 	m.policies = policies
 	return nil
 }
 
-func (m *MockRepository) AddPolicy(ctx context.Context, p *auth.Policy) error {
+func (m *MockRepository) AddPolicy(ctx context.Context, p *casbin.Policy) error {
 	m.policies = append(m.policies, p)
 	return nil
 }
 
-func (m *MockRepository) RemovePolicy(ctx context.Context, p *auth.Policy) error {
-	var newPolicies []*auth.Policy
+func (m *MockRepository) RemovePolicy(ctx context.Context, p *casbin.Policy) error {
+	var newPolicies []*casbin.Policy
 	for _, policy := range m.policies {
 		if policy.PType == p.PType && policy.V0 == p.V0 && policy.V1 == p.V1 && policy.V2 == p.V2 {
 			continue
@@ -48,7 +48,7 @@ func (m *MockRepository) RemovePolicy(ctx context.Context, p *auth.Policy) error
 
 func (m *MockRepository) RemoveFilteredPolicy(ctx context.Context, ptype string, fieldIndex int, fieldValues ...string) error {
 	// Simplified implementation for test
-	m.policies = []*auth.Policy{}
+	m.policies = []*casbin.Policy{}
 	return nil
 }
 
@@ -83,7 +83,7 @@ m = g(r.sub, p.sub) && r.obj == p.obj && r.act == p.act
 	}
 	_ = f.Close()
 
-	svc, err := auth.NewPermissionService(f.Name(), repo)
+	svc, err := casbin.NewPermissionService(f.Name(), repo)
 	if err != nil {
 		t.Fatalf("failed to create service: %v", err)
 	}
@@ -142,7 +142,7 @@ func Example_mysql() {
 	db, _ := gorm.Open(drivermysql.Open(dsn), &gorm.Config{})
 
 	repo, _ := mysql.NewRepository(db)
-	svc, _ := auth.NewPermissionService("model.conf", repo)
+	svc, _ := casbin.NewPermissionService("model.conf", repo)
 
 	_, _ = svc.AddPolicy("alice", "data1", "read")
 	allowed, _ := svc.Enforce("alice", "data1", "read")
@@ -162,7 +162,7 @@ func Example_redis() {
 	})
 
 	repo := redis.NewRepository(rdb)
-	svc, _ := auth.NewPermissionService("model.conf", repo)
+	svc, _ := casbin.NewPermissionService("model.conf", repo)
 
 	// Setup Watcher
 	w := redis.NewWatcher(rdb)

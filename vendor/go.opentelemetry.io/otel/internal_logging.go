@@ -4,9 +4,9 @@
 package otel // import "go.opentelemetry.io/otel"
 
 import (
-	"github.com/go-logr/logr"
-
 	"go.opentelemetry.io/otel/internal/global"
+
+	"github.com/go-logr/logr"
 )
 
 // SetLogger configures the logger used internally to opentelemetry.

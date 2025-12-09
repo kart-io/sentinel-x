@@ -76,6 +76,9 @@ type RequestContext struct {
 
 	// statusCode holds the response status code.
 	statusCode int
+
+	// lang holds the language preference for i18n.
+	lang string
 }
 
 // NewRequestContext creates a new RequestContext.

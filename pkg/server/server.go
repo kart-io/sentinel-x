@@ -8,6 +8,7 @@ import (
 	"sync"
 	"syscall"
 
+	"github.com/kart-io/logger"
 	"github.com/kart-io/sentinel-x/pkg/middleware"
 	httpopts "github.com/kart-io/sentinel-x/pkg/options/http"
 	serveropts "github.com/kart-io/sentinel-x/pkg/options/server"
@@ -169,7 +170,7 @@ func (m *Manager) Start(ctx context.Context) error {
 		if err := m.httpServer.Start(ctx); err != nil {
 			return fmt.Errorf("failed to start HTTP server: %w", err)
 		}
-		fmt.Printf("[Server] HTTP server started on %s\n", m.opts.HTTP.Addr)
+		logger.Infow("HTTP server started", "addr", m.opts.HTTP.Addr)
 	}
 
 	// Start gRPC server
@@ -177,7 +178,7 @@ func (m *Manager) Start(ctx context.Context) error {
 		if err := m.grpcServer.Start(ctx); err != nil {
 			return fmt.Errorf("failed to start gRPC server: %w", err)
 		}
-		fmt.Printf("[Server] gRPC server started on %s\n", m.opts.GRPC.Addr)
+		logger.Infow("gRPC server started", "addr", m.opts.GRPC.Addr)
 	}
 
 	// Start custom servers
@@ -185,7 +186,7 @@ func (m *Manager) Start(ctx context.Context) error {
 		if err := server.Start(ctx); err != nil {
 			return fmt.Errorf("failed to start server %s: %w", server.Name(), err)
 		}
-		fmt.Printf("[Server] %s server started\n", server.Name())
+		logger.Infow("Custom server started", "name", server.Name())
 	}
 
 	return nil
@@ -214,7 +215,7 @@ func (m *Manager) Stop(ctx context.Context) error {
 		if err := m.httpServer.Stop(ctx); err != nil {
 			errs = append(errs, fmt.Errorf("failed to stop HTTP server: %w", err))
 		}
-		fmt.Println("[Server] HTTP server stopped")
+		logger.Info("HTTP server stopped")
 	}
 
 	// Stop gRPC server
@@ -222,7 +223,7 @@ func (m *Manager) Stop(ctx context.Context) error {
 		if err := m.grpcServer.Stop(ctx); err != nil {
 			errs = append(errs, fmt.Errorf("failed to stop gRPC server: %w", err))
 		}
-		fmt.Println("[Server] gRPC server stopped")
+		logger.Info("gRPC server stopped")
 	}
 
 	// Close services
@@ -255,7 +256,7 @@ func (m *Manager) Run() error {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	fmt.Println("[Server] Shutting down...")
+	logger.Info("Server shutting down...")
 
 	// Graceful shutdown with timeout
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), m.opts.ShutdownTimeout)

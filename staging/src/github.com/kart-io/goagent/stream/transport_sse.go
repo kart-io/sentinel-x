@@ -8,6 +8,7 @@ import (
 
 	"github.com/kart-io/goagent/core"
 	agentErrors "github.com/kart-io/goagent/errors"
+	"github.com/kart-io/goagent/utils"
 	"github.com/kart-io/goagent/utils/json"
 )
 
@@ -243,7 +244,7 @@ func StreamToChunkedTransfer(ctx context.Context, w http.ResponseWriter, source 
 	if err != nil {
 		return err
 	}
-	defer func() { _ = streamer.Close() }()
+	defer utils.CloseQuietly(streamer)
 
 	for {
 		select {

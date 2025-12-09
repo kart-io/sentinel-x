@@ -22,9 +22,10 @@ import (
 	"context"
 	"errors"
 
-	commonpb "github.com/google/s2a-go/internal/proto/common_go_proto"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/peer"
+
+	commonpb "github.com/google/s2a-go/internal/proto/common_go_proto"
 )
 
 // AuthInfo exposes security information from the S2A to the application.

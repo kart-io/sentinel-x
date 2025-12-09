@@ -13,9 +13,9 @@ import (
 	"github.com/kart-io/sentinel-x/example/server/user-center/handler"
 	"github.com/kart-io/sentinel-x/example/server/user-center/service/userservice"
 	"github.com/kart-io/sentinel-x/pkg/app"
-	"github.com/kart-io/sentinel-x/pkg/auth"
-	"github.com/kart-io/sentinel-x/pkg/auth/infrastructure/mysql"
 	"github.com/kart-io/sentinel-x/pkg/auth/jwt"
+	"github.com/kart-io/sentinel-x/pkg/authz/casbin"
+	"github.com/kart-io/sentinel-x/pkg/authz/casbin/infrastructure/mysql"
 	// Import bridge to register gin adapter
 	_ "github.com/kart-io/sentinel-x/pkg/bridge/gin"
 	serveropts "github.com/kart-io/sentinel-x/pkg/options/server"
@@ -56,7 +56,7 @@ func Run(opts *Options) error {
 	}
 
 	// 2. Initialize Casbin
-	var repo auth.Repository
+	var repo casbin.Repository
 	if os.Getenv("USE_MYSQL") == "true" {
 		dsn := "user:pass@tcp(127.0.0.1:3306)/dbname?charset=utf8mb4&parseTime=True&loc=Local"
 		db, err := gorm.Open(drivermysql.Open(dsn), &gorm.Config{})
@@ -78,7 +78,7 @@ func Run(opts *Options) error {
 		_ = os.Remove("model.conf")
 	}()
 
-	permSvc, err := auth.NewPermissionService("model.conf", repo)
+	permSvc, err := casbin.NewPermissionService("model.conf", repo)
 	if err != nil {
 		return fmt.Errorf("failed to init permission service: %w", err)
 	}
@@ -124,19 +124,32 @@ type Router struct {
 	authHandler *handler.AuthHandler
 	userHandler *handler.UserHandler
 	jwtAuth     *jwt.JWT
-	permSvc     auth.PermissionService
+	permSvc     casbin.PermissionService
 }
 
 func (r *Router) RegisterRoutes(router transport.Router) {
-	// Public routes
-	router.Handle("POST", "/login", r.authHandler.Login)
+	// Public routes (no auth required)
+	auth := router.Group("/api/v1/auth")
+	auth.Handle("POST", "/login", r.authHandler.Login)
+	auth.Handle("POST", "/register", r.authHandler.Register)
 
 	// Protected routes
-	api := router.Group("/api")
+	api := router.Group("/api/v1")
 	api.Use(authMiddleware(r.jwtAuth))
 	api.Use(casbinMiddleware(r.permSvc, r.jwtAuth))
 
+	// Auth routes (require authentication)
+	api.Handle("POST", "/auth/change-password", r.authHandler.ChangePassword)
+
+	// User routes
+	api.Handle("GET", "/users", r.userHandler.ListUsers)
+	api.Handle("POST", "/users", r.userHandler.CreateUser)
 	api.Handle("GET", "/users/:id", r.userHandler.GetProfile)
+	api.Handle("PUT", "/users/:id", r.userHandler.UpdateUser)
+	api.Handle("DELETE", "/users/:id", r.userHandler.DeleteUser)
+	api.Handle("POST", "/users/batch-delete", r.userHandler.BatchDelete)
+
+	// Admin routes
 	api.Handle("POST", "/admin/action", r.userHandler.AdminAction)
 }
 
@@ -160,7 +173,7 @@ func authMiddleware(jwtAuth *jwt.JWT) transport.MiddlewareFunc {
 	}
 }
 
-func casbinMiddleware(permSvc auth.PermissionService, jwtAuth *jwt.JWT) transport.MiddlewareFunc {
+func casbinMiddleware(permSvc casbin.PermissionService, jwtAuth *jwt.JWT) transport.MiddlewareFunc {
 	return func(next transport.HandlerFunc) transport.HandlerFunc {
 		return func(c transport.Context) {
 			path := c.HTTPRequest().URL.Path
@@ -215,37 +228,64 @@ m = g(r.sub, p.sub) && keyMatch2(r.obj, p.obj) && r.act == p.act
 	return os.WriteFile("model.conf", []byte(conf), 0o644)
 }
 
-func setupPolicies(svc auth.PermissionService) {
-	if _, err := svc.AddPolicy("admin", "/api/admin/action", "POST"); err != nil {
+func setupPolicies(svc casbin.PermissionService) {
+	// Admin has full access to all user operations
+	if _, err := svc.AddPolicy("admin", "/api/v1/users", "GET"); err != nil {
 		panic(err)
 	}
-	if _, err := svc.AddPolicy("admin", "/api/users/:id", "GET"); err != nil {
+	if _, err := svc.AddPolicy("admin", "/api/v1/users", "POST"); err != nil {
 		panic(err)
 	}
-	if _, err := svc.AddPolicy("user", "/api/users/:id", "GET"); err != nil {
+	if _, err := svc.AddPolicy("admin", "/api/v1/users/:id", "GET"); err != nil {
+		panic(err)
+	}
+	if _, err := svc.AddPolicy("admin", "/api/v1/users/:id", "PUT"); err != nil {
+		panic(err)
+	}
+	if _, err := svc.AddPolicy("admin", "/api/v1/users/:id", "DELETE"); err != nil {
+		panic(err)
+	}
+	if _, err := svc.AddPolicy("admin", "/api/v1/users/batch-delete", "POST"); err != nil {
+		panic(err)
+	}
+	if _, err := svc.AddPolicy("admin", "/api/v1/admin/action", "POST"); err != nil {
+		panic(err)
+	}
+	if _, err := svc.AddPolicy("admin", "/api/v1/auth/change-password", "POST"); err != nil {
+		panic(err)
+	}
+
+	// Regular users can only read user list and their own profile
+	if _, err := svc.AddPolicy("user", "/api/v1/users", "GET"); err != nil {
+		panic(err)
+	}
+	if _, err := svc.AddPolicy("user", "/api/v1/users/:id", "GET"); err != nil {
+		panic(err)
+	}
+	if _, err := svc.AddPolicy("user", "/api/v1/auth/change-password", "POST"); err != nil {
 		panic(err)
 	}
 }
 
 type MockRepository struct {
-	policies []*auth.Policy
+	policies []*casbin.Policy
 }
 
-func (m *MockRepository) LoadPolicies(ctx context.Context) ([]*auth.Policy, error) {
+func (m *MockRepository) LoadPolicies(ctx context.Context) ([]*casbin.Policy, error) {
 	return m.policies, nil
 }
 
-func (m *MockRepository) SavePolicies(ctx context.Context, policies []*auth.Policy) error {
+func (m *MockRepository) SavePolicies(ctx context.Context, policies []*casbin.Policy) error {
 	m.policies = policies
 	return nil
 }
 
-func (m *MockRepository) AddPolicy(ctx context.Context, p *auth.Policy) error {
+func (m *MockRepository) AddPolicy(ctx context.Context, p *casbin.Policy) error {
 	m.policies = append(m.policies, p)
 	return nil
 }
 
-func (m *MockRepository) RemovePolicy(ctx context.Context, p *auth.Policy) error {
+func (m *MockRepository) RemovePolicy(ctx context.Context, p *casbin.Policy) error {
 	return nil
 }
 

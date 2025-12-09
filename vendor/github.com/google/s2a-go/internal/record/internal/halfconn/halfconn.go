@@ -24,9 +24,10 @@ import (
 	"fmt"
 	"sync"
 
+	"golang.org/x/crypto/cryptobyte"
+
 	s2apb "github.com/google/s2a-go/internal/proto/common_go_proto"
 	"github.com/google/s2a-go/internal/record/internal/aeadcrypter"
-	"golang.org/x/crypto/cryptobyte"
 )
 
 // The constants below were taken from Section 7.2 and 7.3 in

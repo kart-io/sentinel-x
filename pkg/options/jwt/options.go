@@ -66,7 +66,7 @@ var SupportedSigningMethods = map[string]bool{
 type Options struct {
 	// DisableAuth disables JWT authentication.
 	// When true, no JWT token is required for protected endpoints.
-	// Default: true (authentication disabled by default for development)
+	// Default: false (authentication enabled by default for security)
 	DisableAuth bool `json:"disable-auth" mapstructure:"disable-auth"`
 
 	// Key is the secret key used to sign tokens.
@@ -109,7 +109,7 @@ type Options struct {
 // NewOptions creates a new Options with default values.
 func NewOptions() *Options {
 	return &Options{
-		DisableAuth:   true, // Disabled by default for development
+		DisableAuth:   false, // Enabled by default for security
 		SigningMethod: DefaultSigningMethod,
 		Expired:       DefaultExpired,
 		MaxRefresh:    DefaultMaxRefresh,

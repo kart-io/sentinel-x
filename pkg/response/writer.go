@@ -1,10 +1,12 @@
 package response
 
 import (
+	"net/http"
 	"time"
 
 	"github.com/kart-io/sentinel-x/pkg/errors"
 	"github.com/kart-io/sentinel-x/pkg/server/transport"
+	"github.com/kart-io/sentinel-x/pkg/validator"
 )
 
 // Writer provides convenient methods to write responses to transport.Context.
@@ -92,6 +94,29 @@ func (w *Writer) FailWithError(err error) {
 	w.Fail(e)
 }
 
+// FailWithValidation sends a validation error response.
+// It includes detailed validation error information in the response data.
+func (w *Writer) FailWithValidation(verr *validator.ValidationErrors) {
+	resp := w.prepare(&Response{
+		Code:     errors.ErrValidationFailed.Code,
+		HTTPCode: http.StatusBadRequest,
+		Message:  verr.First(),
+		Data:     verr.ToMap(),
+	})
+	w.ctx.JSON(http.StatusBadRequest, resp)
+}
+
+// FailWithBindOrValidation handles binding or validation errors appropriately.
+// If err is a ValidationErrors, sends detailed validation error response.
+// Otherwise, sends a generic invalid parameter error.
+func (w *Writer) FailWithBindOrValidation(err error) {
+	if verr, ok := err.(*validator.ValidationErrors); ok {
+		w.FailWithValidation(verr)
+		return
+	}
+	w.Fail(errors.ErrInvalidParam.WithMessage("invalid request body: " + err.Error()))
+}
+
 // PageOK sends a paginated response.
 func (w *Writer) PageOK(list interface{}, total int64, page, pageSize int) {
 	resp := w.prepare(Page(list, total, page, pageSize))
@@ -141,4 +166,16 @@ func FailWithError(ctx transport.Context, err error) {
 // PageOK sends a paginated response.
 func PageOK(ctx transport.Context, list interface{}, total int64, page, pageSize int) {
 	NewWriter(ctx).PageOK(list, total, page, pageSize)
+}
+
+// FailWithValidation sends a validation error response.
+func FailWithValidation(ctx transport.Context, verr *validator.ValidationErrors) {
+	NewWriter(ctx).FailWithValidation(verr)
+}
+
+// FailWithBindOrValidation handles binding or validation errors.
+// If err is a ValidationErrors, sends detailed validation error response.
+// Otherwise, sends a generic invalid parameter error.
+func FailWithBindOrValidation(ctx transport.Context, err error) {
+	NewWriter(ctx).FailWithBindOrValidation(err)
 }

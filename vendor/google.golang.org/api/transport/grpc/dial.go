@@ -28,13 +28,12 @@ import (
 	"google.golang.org/api/internal"
 	"google.golang.org/api/option"
 	"google.golang.org/grpc"
+	// Install grpclb, which is required for direct path.
+	_ "google.golang.org/grpc/balancer/grpclb"
 	grpcgoogle "google.golang.org/grpc/credentials/google"
 	grpcinsecure "google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/credentials/oauth"
 	"google.golang.org/grpc/stats"
-
-	// Install grpclb, which is required for direct path.
-	_ "google.golang.org/grpc/balancer/grpclb"
 )
 
 // Check env to disable DirectPath traffic.

@@ -79,6 +79,15 @@ type Context interface {
 
 	// Bind binds the request body to the given struct.
 	Bind(v interface{}) error
+	// Validate validates the given struct using the global validator.
+	// Returns nil if validation passes, or *validator.ValidationErrors if validation fails.
+	Validate(v interface{}) error
+	// ShouldBindAndValidate binds and validates the request body.
+	// Returns nil if both binding and validation pass.
+	ShouldBindAndValidate(v interface{}) error
+	// MustBindAndValidate binds and validates, returning first error message if failed.
+	MustBindAndValidate(v interface{}) (string, bool)
+
 	// JSON sends a JSON response.
 	JSON(code int, v interface{})
 	// String sends a string response.
@@ -89,6 +98,11 @@ type Context interface {
 	// GetRawContext returns the underlying framework context (gin.Context, echo.Context).
 	// This should only be used when framework-specific features are needed.
 	GetRawContext() interface{}
+
+	// Lang returns the language preference from Accept-Language header or query param.
+	Lang() string
+	// SetLang sets the language for this request context.
+	SetLang(lang string)
 }
 
 // GRPCServiceDesc describes a gRPC service for registration.

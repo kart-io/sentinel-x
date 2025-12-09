@@ -108,16 +108,41 @@ func (s *MemoryStore) cleanup() {
 	}
 }
 
-// doCleanup removes expired entries.
+// doCleanup removes expired entries in batches to minimize lock contention.
 func (s *MemoryStore) doCleanup() {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
+	// First pass: collect expired tokens under read lock
+	s.mu.RLock()
+	var expired []string
 	now := time.Now()
 	for token, exp := range s.tokens {
 		if now.After(exp) {
-			delete(s.tokens, token)
+			expired = append(expired, token)
 		}
+	}
+	s.mu.RUnlock()
+
+	// No expired tokens
+	if len(expired) == 0 {
+		return
+	}
+
+	// Second pass: delete in batches under write lock
+	const batchSize = 100
+	for i := 0; i < len(expired); i += batchSize {
+		end := i + batchSize
+		if end > len(expired) {
+			end = len(expired)
+		}
+		batch := expired[i:end]
+
+		s.mu.Lock()
+		for _, token := range batch {
+			// Re-check expiration in case token was renewed
+			if exp, exists := s.tokens[token]; exists && now.After(exp) {
+				delete(s.tokens, token)
+			}
+		}
+		s.mu.Unlock()
 	}
 }
 

@@ -9,6 +9,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/kart-io/goagent/core"
 	agentErrors "github.com/kart-io/goagent/errors"
+	"github.com/kart-io/goagent/utils"
 	"github.com/kart-io/goagent/utils/json"
 )
 
@@ -134,7 +135,7 @@ func (w *WebSocketStreamer) IsClosed() bool {
 // StreamToWebSocket 将 StreamOutput 转换为 WebSocket 流
 func StreamToWebSocket(ctx context.Context, conn *websocket.Conn, source core.StreamOutput) error {
 	streamer := NewWebSocketStreamer(conn)
-	defer func() { _ = streamer.Close() }()
+	defer utils.CloseQuietly(streamer)
 
 	// 发送开始消息
 	startChunk := &core.LegacyStreamChunk{

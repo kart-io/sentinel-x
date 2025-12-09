@@ -513,3 +513,29 @@ func (c *httpContext) Error(code int, err error) {
 func (c *httpContext) GetRawContext() interface{} {
 	return c
 }
+
+func (c *httpContext) Validate(v interface{}) error {
+	return nil // Simplified: no validation in this demo
+}
+
+func (c *httpContext) ShouldBindAndValidate(v interface{}) error {
+	if err := c.Bind(v); err != nil {
+		return err
+	}
+	return c.Validate(v)
+}
+
+func (c *httpContext) MustBindAndValidate(v interface{}) (string, bool) {
+	if err := c.Bind(v); err != nil {
+		return "invalid request body: " + err.Error(), false
+	}
+	return "", true
+}
+
+func (c *httpContext) Lang() string {
+	return "en" // Default to English
+}
+
+func (c *httpContext) SetLang(lang string) {
+	// No-op for this demo
+}

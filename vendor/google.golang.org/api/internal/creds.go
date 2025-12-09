@@ -19,10 +19,9 @@ import (
 	"cloud.google.com/go/auth/credentials"
 	"cloud.google.com/go/auth/oauth2adapt"
 	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
 	"google.golang.org/api/internal/cert"
 	"google.golang.org/api/internal/impersonate"
-
-	"golang.org/x/oauth2/google"
 )
 
 const quotaProjectEnvVar = "GOOGLE_CLOUD_QUOTA_PROJECT"
