@@ -28,7 +28,6 @@ import (
 	"cloud.google.com/go/auth"
 	"cloud.google.com/go/auth/internal"
 	"cloud.google.com/go/auth/internal/transport/headers"
-
 	"github.com/googleapis/gax-go/v2/internallog"
 )
 

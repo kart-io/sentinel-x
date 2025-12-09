@@ -33,7 +33,6 @@ import (
 	"time"
 
 	"cloud.google.com/go/auth/internal"
-
 	"github.com/googleapis/gax-go/v2/internallog"
 )
 

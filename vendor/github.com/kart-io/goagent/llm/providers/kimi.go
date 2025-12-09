@@ -219,7 +219,6 @@ func (c *KimiClient) IsAvailable() bool {
 	resp, err := c.client.R().
 		SetContext(ctx).
 		Get(c.baseURL + "/models")
-
 	if err != nil {
 		return false
 	}

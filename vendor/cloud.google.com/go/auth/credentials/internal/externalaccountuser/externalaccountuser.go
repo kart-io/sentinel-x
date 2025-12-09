@@ -24,7 +24,6 @@ import (
 	"cloud.google.com/go/auth"
 	"cloud.google.com/go/auth/credentials/internal/stsexchange"
 	"cloud.google.com/go/auth/internal"
-
 	"github.com/googleapis/gax-go/v2/internallog"
 )
 

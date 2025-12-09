@@ -24,13 +24,12 @@ import (
 	"sync"
 	"time"
 
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/grpclog"
-
 	"github.com/google/s2a-go/internal/handshaker/service"
 	commonpb "github.com/google/s2a-go/internal/proto/common_go_proto"
 	s2apb "github.com/google/s2a-go/internal/proto/s2a_go_proto"
 	"github.com/google/s2a-go/internal/tokenmanager"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/grpclog"
 )
 
 // sessionTimeout is the timeout for creating a session with the S2A handshaker

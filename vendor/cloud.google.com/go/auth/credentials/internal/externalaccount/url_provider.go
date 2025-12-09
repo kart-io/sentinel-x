@@ -24,7 +24,6 @@ import (
 
 	"cloud.google.com/go/auth/internal"
 	"cloud.google.com/go/auth/internal/credsfile"
-
 	"github.com/googleapis/gax-go/v2/internallog"
 )
 

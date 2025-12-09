@@ -187,7 +187,6 @@ func (p *HuggingFaceProvider) execute(ctx context.Context, req *HuggingFaceReque
 		SetContext(ctx).
 		SetBody(req).
 		Post(endpoint)
-
 	if err != nil {
 		return nil, agentErrors.NewLLMRequestError(string(constants.ProviderHuggingFace), model, err)
 	}

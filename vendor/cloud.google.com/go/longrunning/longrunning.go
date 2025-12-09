@@ -29,13 +29,12 @@ import (
 
 	autogen "cloud.google.com/go/longrunning/autogen"
 	pb "cloud.google.com/go/longrunning/autogen/longrunningpb"
+	gax "github.com/googleapis/gax-go/v2"
+	"github.com/googleapis/gax-go/v2/apierror"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/protoadapt"
 	"google.golang.org/protobuf/types/known/anypb"
-
-	gax "github.com/googleapis/gax-go/v2"
-	"github.com/googleapis/gax-go/v2/apierror"
 )
 
 // ErrNoMetadata is the error returned by Metadata if the operation contains no metadata.

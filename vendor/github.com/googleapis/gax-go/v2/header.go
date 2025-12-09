@@ -38,9 +38,8 @@ import (
 	"strings"
 	"unicode"
 
-	"google.golang.org/grpc/metadata"
-
 	"github.com/googleapis/gax-go/v2/callctx"
+	"google.golang.org/grpc/metadata"
 )
 
 var (

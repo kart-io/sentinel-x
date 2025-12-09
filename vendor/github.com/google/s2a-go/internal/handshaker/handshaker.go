@@ -27,16 +27,15 @@ import (
 	"net"
 	"sync"
 
-	grpc "google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/grpclog"
-
 	"github.com/google/s2a-go/internal/authinfo"
 	commonpb "github.com/google/s2a-go/internal/proto/common_go_proto"
 	s2apb "github.com/google/s2a-go/internal/proto/s2a_go_proto"
 	"github.com/google/s2a-go/internal/record"
 	"github.com/google/s2a-go/internal/tokenmanager"
+	grpc "google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/grpclog"
 )
 
 var (

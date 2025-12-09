@@ -26,15 +26,15 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/google/s2a-go/internal/tokenmanager"
+	"github.com/google/s2a-go/internal/v2/certverifier"
+	"github.com/google/s2a-go/internal/v2/remotesigner"
+	"github.com/google/s2a-go/stream"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/grpclog"
 
 	commonpb "github.com/google/s2a-go/internal/proto/v2/common_go_proto"
 	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
-	"github.com/google/s2a-go/internal/tokenmanager"
-	"github.com/google/s2a-go/internal/v2/certverifier"
-	"github.com/google/s2a-go/internal/v2/remotesigner"
-	"github.com/google/s2a-go/stream"
 )
 
 const (

@@ -136,7 +136,6 @@ func (c *SiliconFlowClient) Complete(ctx context.Context, req *agentllm.Completi
 		SetContext(ctx).
 		SetBody(sfReq).
 		Post(c.baseURL + "/chat/completions")
-
 	if err != nil {
 		return nil, agentErrors.NewLLMRequestError(c.ProviderName(), model, err)
 	}

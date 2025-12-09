@@ -203,7 +203,6 @@ func (p *AnthropicProvider) execute(ctx context.Context, req *AnthropicRequest) 
 		SetContext(ctx).
 		SetBody(req).
 		Post(p.baseURL + constants.AnthropicMessagesPath)
-
 	if err != nil {
 		return nil, agentErrors.NewLLMRequestError(p.ProviderName(), req.Model, err)
 	}

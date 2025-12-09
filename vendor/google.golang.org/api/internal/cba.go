@@ -41,10 +41,9 @@ import (
 	"os"
 	"strings"
 
+	"github.com/google/s2a-go"
 	"google.golang.org/api/internal/cert"
 	"google.golang.org/grpc/credentials"
-
-	"github.com/google/s2a-go"
 )
 
 const (

@@ -29,7 +29,6 @@ import (
 	"cloud.google.com/go/auth/credentials/internal/impersonate"
 	"cloud.google.com/go/auth/credentials/internal/stsexchange"
 	"cloud.google.com/go/auth/internal/credsfile"
-
 	"github.com/googleapis/gax-go/v2/internallog"
 )
 

@@ -15,12 +15,13 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"go.opentelemetry.io/auto/sdk/internal/telemetry"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	semconv "go.opentelemetry.io/otel/semconv/v1.37.0"
 	"go.opentelemetry.io/otel/trace"
 	"go.opentelemetry.io/otel/trace/noop"
+
+	"go.opentelemetry.io/auto/sdk/internal/telemetry"
 )
 
 type span struct {
