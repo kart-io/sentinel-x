@@ -8,12 +8,17 @@ import (
 	"github.com/spf13/pflag"
 
 	"github.com/kart-io/sentinel-x/pkg/app"
+	"github.com/kart-io/sentinel-x/pkg/auth/jwt"
+	"github.com/kart-io/sentinel-x/pkg/authz"
+	"github.com/kart-io/sentinel-x/pkg/authz/rbac"
 	"github.com/kart-io/sentinel-x/pkg/middleware"
+	jwtopts "github.com/kart-io/sentinel-x/pkg/options/jwt"
 	logopts "github.com/kart-io/sentinel-x/pkg/options/logger"
 	serveropts "github.com/kart-io/sentinel-x/pkg/options/server"
 	"github.com/kart-io/sentinel-x/pkg/server"
 	v1 "github.com/kart-io/sentinel-x/example/server/example/api/hello/v1"
 	"github.com/kart-io/sentinel-x/example/server/example/handler"
+	"github.com/kart-io/sentinel-x/example/server/example/service/authservice"
 	"github.com/kart-io/sentinel-x/example/server/example/service/helloservice"
 	"github.com/kart-io/sentinel-x/pkg/server/transport"
 
@@ -86,6 +91,47 @@ func Run(opts *Options) error {
 	// Configure health manager
 	configureHealth(opts)
 
+	// Initialize JWT authenticator if enabled
+	var jwtAuth *jwt.JWT
+	var rbacAuthz *rbac.RBAC
+	var tokenStore *jwt.MemoryStore
+
+	if !opts.JWT.DisableAuth {
+		// Create token store
+		tokenStore = jwt.NewMemoryStore()
+
+		// Create JWT authenticator
+		var err error
+		jwtAuth, err = jwt.New(
+			jwt.WithOptions(opts.JWT),
+			jwt.WithStore(tokenStore),
+		)
+		if err != nil {
+			return fmt.Errorf("failed to create JWT authenticator: %w", err)
+		}
+
+		// Create RBAC authorizer
+		rbacAuthz = rbac.New()
+
+		// Define roles with permissions
+		rbacAuthz.AddRole("admin",
+			authz.NewPermission("*", "*"),
+		)
+		rbacAuthz.AddRole("editor",
+			authz.NewPermission("hello", "read"),
+			authz.NewPermission("hello", "create"),
+			authz.NewPermission("hello", "update"),
+		)
+		rbacAuthz.AddRole("viewer",
+			authz.NewPermission("hello", "read"),
+		)
+
+		logger.Infow("Auth initialized",
+			"jwt_issuer", opts.JWT.Issuer,
+			"jwt_expired", opts.JWT.Expired,
+		)
+	}
+
 	// Create server manager
 	mgr := server.NewManager(
 		serveropts.WithMode(opts.Server.Mode),
@@ -108,6 +154,45 @@ func Run(opts *Options) error {
 			ServiceImpl: grpcHandler,
 		},
 	)
+
+	// Register auth routes if enabled
+	if jwtAuth != nil {
+		authSvc := authservice.NewService()
+		authHandler := handler.NewAuthHTTPHandler(jwtAuth)
+		mgr.RegisterHTTP(authSvc, authHandler)
+
+		// Assign roles to demo users
+		for _, user := range authHandler.GetUsers() {
+			for _, role := range user.Roles {
+				rbacAuthz.AssignRole(user.ID, role)
+			}
+		}
+
+		// Configure auth middleware
+		opts.Server.HTTP.Middleware.Auth = middleware.AuthOptions{
+			Authenticator: jwtAuth,
+			TokenLookup:   "header:Authorization",
+			AuthScheme:    "Bearer",
+			SkipPaths: []string{
+				"/api/v1/auth/login",
+				"/health", "/live", "/ready", "/metrics",
+			},
+		}
+		opts.Server.HTTP.Middleware.DisableAuth = false
+
+		// Configure authz middleware
+		opts.Server.HTTP.Middleware.Authz = middleware.AuthzOptions{
+			Authorizer: rbacAuthz,
+			SkipPaths: []string{
+				"/api/v1/auth/login",
+				"/api/v1/auth/refresh",
+				"/api/v1/auth/logout",
+				"/api/v1/auth/me",
+				"/health", "/live", "/ready", "/metrics",
+			},
+		}
+		opts.Server.HTTP.Middleware.DisableAuthz = false
+	}
 
 	// Run server
 	return mgr.Run()
@@ -164,6 +249,10 @@ func printBanner(opts *Options) {
 	if !mw.DisablePprof {
 		fmt.Println("  - Pprof (enabled)")
 	}
+	if !opts.JWT.DisableAuth {
+		fmt.Println("  - Auth (enabled)")
+		fmt.Println("  - Authz (enabled)")
+	}
 
 	fmt.Println("-------------------------------------------")
 	fmt.Println("Endpoints:")
@@ -172,6 +261,18 @@ func printBanner(opts *Options) {
 		fmt.Println("  API:")
 		fmt.Printf("    GET  http://localhost%s/api/v1/hello?name=World\n", opts.Server.HTTP.Addr)
 		fmt.Printf("    POST http://localhost%s/api/v1/hello\n", opts.Server.HTTP.Addr)
+
+		if !opts.JWT.DisableAuth {
+			fmt.Println("  Auth:")
+			fmt.Printf("    POST http://localhost%s/api/v1/auth/login\n", opts.Server.HTTP.Addr)
+			fmt.Printf("    POST http://localhost%s/api/v1/auth/refresh\n", opts.Server.HTTP.Addr)
+			fmt.Printf("    POST http://localhost%s/api/v1/auth/logout\n", opts.Server.HTTP.Addr)
+			fmt.Printf("    GET  http://localhost%s/api/v1/auth/me\n", opts.Server.HTTP.Addr)
+			fmt.Println("  Demo Users:")
+			fmt.Println("    admin/admin123   (role: admin - full access)")
+			fmt.Println("    editor/editor123 (role: editor - read/create/update)")
+			fmt.Println("    viewer/viewer123 (role: viewer - read only)")
+		}
 
 		if !mw.DisableHealth {
 			fmt.Println("  Health:")
@@ -202,6 +303,7 @@ func printBanner(opts *Options) {
 type Options struct {
 	Server *serveropts.Options `json:"server" mapstructure:"server"`
 	Log    *logopts.Options    `json:"log" mapstructure:"log"`
+	JWT    *jwtopts.Options    `json:"jwt" mapstructure:"jwt"`
 }
 
 // NewOptions creates new Options with defaults.
@@ -209,6 +311,7 @@ func NewOptions() *Options {
 	return &Options{
 		Server: serveropts.NewOptions(),
 		Log:    logopts.NewOptions(),
+		JWT:    jwtopts.NewOptions(),
 	}
 }
 
@@ -216,11 +319,15 @@ func NewOptions() *Options {
 func (o *Options) AddFlags(fs *pflag.FlagSet) {
 	o.Server.AddFlags(fs)
 	o.Log.AddFlags(fs)
+	o.JWT.AddFlags(fs)
 }
 
 // Validate validates the options.
 func (o *Options) Validate() error {
 	if err := o.Log.Validate(); err != nil {
+		return err
+	}
+	if err := o.JWT.Validate(); err != nil {
 		return err
 	}
 	return o.Server.Validate()

@@ -79,15 +79,114 @@
 
 我们将所有依赖项都纳入版本控制。
 
+*   **更新依赖并同步 vendor**:
+    ```bash
+    make tidy
+    ```
+    该命令执行 `go mod tidy && go mod vendor`，整理依赖并更新 vendor 目录。
+
 *   **添加新依赖**:
     ```bash
     go get github.com/some/lib
-    go mod vendor
+    make tidy
     ```
 *   **更新依赖**:
     ```bash
     go get -u github.com/some/lib
-    go mod vendor
+    make tidy
     ```
 
 请务必提交 `go.mod`、`go.sum` 以及 `vendor/` 目录的变更。
+
+## 运行示例服务器
+
+项目提供了一个完整的示例服务器，展示了 Sentinel-X 框架的核心功能。
+
+### 启动示例服务器
+
+```bash
+make run-example
+```
+
+或者直接运行：
+
+```bash
+go run example/server/example/main.go -c example/server/example/configs/sentinel-example.yaml
+```
+
+### 服务器配置
+
+示例服务器启动后将监听以下端口：
+
+| 服务 | 端口 | 说明 |
+|------|------|------|
+| HTTP | 8081 | 使用 Gin 适配器 |
+| gRPC | 9091 | 支持 Reflection |
+
+### 已启用的中间件
+
+- **Recovery**: 异常恢复
+- **RequestID**: 请求 ID 生成
+- **Logger**: 结构化日志
+- **Health**: 健康检查
+- **Metrics**: Prometheus 指标
+
+### 可用端点
+
+#### API 端点
+
+```bash
+# GET 请求
+curl http://localhost:8081/api/v1/hello?name=World
+
+# POST 请求
+curl -X POST http://localhost:8081/api/v1/hello
+```
+
+#### 健康检查端点
+
+```bash
+# 健康检查
+curl http://localhost:8081/health
+
+# 存活探针
+curl http://localhost:8081/live
+
+# 就绪探针
+curl http://localhost:8081/ready
+```
+
+#### 监控端点
+
+```bash
+# Prometheus 指标
+curl http://localhost:8081/metrics
+```
+
+#### gRPC 端点
+
+```bash
+# 使用 grpcurl 调用
+grpcurl -plaintext localhost:9091 api.hello.v1.HelloService/SayHello
+```
+
+### 命令行参数
+
+示例服务器支持丰富的命令行参数，可通过 `-h` 查看：
+
+```bash
+go run example/server/example/main.go -h
+```
+
+常用参数：
+
+| 参数 | 默认值 | 说明 |
+|------|--------|------|
+| `-c, --config` | - | 配置文件路径 |
+| `--http.addr` | :8080 | HTTP 监听地址 |
+| `--http.adapter` | gin | HTTP 框架 (gin/echo) |
+| `--grpc.addr` | :9090 | gRPC 监听地址 |
+| `--server.mode` | both | 服务模式 (http/grpc/both) |
+| `--log.level` | INFO | 日志级别 |
+| `--log.engine` | slog | 日志引擎 (zap/slog) |
+| `--log.format` | json | 日志格式 (json/console) |

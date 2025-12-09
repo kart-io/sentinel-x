@@ -42,7 +42,7 @@ type Option func(*Options)
 // NewOptions creates a new Options with default values.
 func NewOptions() *Options {
 	return &Options{
-		Addr:         ":8080",
+		Addr:         ":8100",
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 30 * time.Second,
 		IdleTimeout:  60 * time.Second,

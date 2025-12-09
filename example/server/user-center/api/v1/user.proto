@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package api.user.v1;
+
+option go_package = "github.com/kart-io/sentinel-x/example/server/user-center/api/v1;v1";
+
+service UserService {
+  rpc GetUser (UserRequest) returns (UserResponse);
+}
+
+message UserRequest {
+  string id = 1;
+}
+
+message UserResponse {
+  string id = 1;
+  string username = 2;
+  string role = 3;
+}

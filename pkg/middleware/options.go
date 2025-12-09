@@ -42,6 +42,14 @@ type Options struct {
 	// Pprof options
 	Pprof        PprofOptions `json:"pprof" mapstructure:"pprof"`
 	DisablePprof bool         `json:"disable-pprof" mapstructure:"disable-pprof"`
+
+	// Auth options (JWT authentication)
+	Auth        AuthOptions `json:"auth" mapstructure:"auth"`
+	DisableAuth bool        `json:"disable-auth" mapstructure:"disable-auth"`
+
+	// Authz options (RBAC authorization)
+	Authz        AuthzOptions `json:"authz" mapstructure:"authz"`
+	DisableAuthz bool         `json:"disable-authz" mapstructure:"disable-authz"`
 }
 
 // RecoveryOptions defines recovery middleware options.
@@ -183,9 +191,11 @@ func NewOptions() *Options {
 			BlockProfileRate:     0,
 			MutexProfileFraction: 0,
 		},
-		DisableCORS:    true, // CORS disabled by default
-		DisableTimeout: true, // Timeout disabled by default
-		DisablePprof:   true, // Pprof disabled by default (security)
+		DisableCORS:    true,  // CORS disabled by default
+		DisableTimeout: true,  // Timeout disabled by default
+		DisablePprof:   true,  // Pprof disabled by default (security)
+		DisableAuth:    true,  // Auth disabled by default
+		DisableAuthz:   true,  // Authz disabled by default
 	}
 }
 
@@ -229,6 +239,12 @@ func (o *Options) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.Pprof.Prefix, "middleware.pprof.prefix", o.Pprof.Prefix, "Pprof URL prefix")
 	fs.IntVar(&o.Pprof.BlockProfileRate, "middleware.pprof.block-profile-rate", o.Pprof.BlockProfileRate, "Block profile rate")
 	fs.IntVar(&o.Pprof.MutexProfileFraction, "middleware.pprof.mutex-profile-fraction", o.Pprof.MutexProfileFraction, "Mutex profile fraction")
+
+	// Auth flags
+	fs.BoolVar(&o.DisableAuth, "middleware.disable-auth", o.DisableAuth, "Disable authentication middleware")
+
+	// Authz flags
+	fs.BoolVar(&o.DisableAuthz, "middleware.disable-authz", o.DisableAuthz, "Disable authorization middleware")
 }
 
 // Validate validates the middleware options.

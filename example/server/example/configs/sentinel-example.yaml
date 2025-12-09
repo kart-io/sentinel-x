@@ -115,3 +115,21 @@ grpc:
   max-send-msg-size: 16777216
   # Enable reflection for grpcurl
   enable-reflection: true
+
+# JWT authentication configuration
+jwt:
+  # Disable JWT authentication (set to false to enable)
+  disable-auth: false
+  # JWT signing key (min 32 characters for HMAC algorithms)
+  key: "sentinel-x-example-secret-key-32!"
+  # JWT signing algorithm
+  signing-method: "HS256"
+  # Token expiration duration
+  expired: "2h"
+  # Maximum duration a token can be refreshed
+  max-refresh: "24h"
+  # Token issuer
+  issuer: "sentinel-x-example"
+  # Token audience
+  audience:
+    - "api"
