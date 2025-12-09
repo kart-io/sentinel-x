@@ -29,6 +29,7 @@ import (
 	"cloud.google.com/go/auth/internal/credsfile"
 	"cloud.google.com/go/auth/internal/trustboundary"
 	"cloud.google.com/go/compute/metadata"
+
 	"github.com/googleapis/gax-go/v2/internallog"
 )
 

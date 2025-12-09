@@ -1,3 +1,7 @@
+GO_MOD_NAME := "github.com/kart-io/sentinel-x"
+GO_MOD_DOMAIN := $(shell echo $(GO_MOD_NAME) | awk -F '/' '{print $$1}')
+
+
 .PHONY: tidy
 tidy:
 	go mod tidy && go mod vendor
@@ -30,6 +34,18 @@ run-example:
 .PHONY: run-auth-example
 run-auth-example:
 	go run example/auth/main.go
+
+.PHONY: fmt
+fmt:
+	@gofumpt -version || go install mvdan.cc/gofumpt@latest
+	gofumpt -w -d .
+	@gci -v || go install github.com/daixiang0/gci@latest
+	#gci write -s standard -s default -s 'Prefix($(GO_MOD_DOMAIN))' -s 'Prefix($(GO_MOD_NAME))' --skip-generated .
+	gci write -s standard -s default -s 'Prefix($(GO_MOD_DOMAIN))' --skip-generated .
+
+.PHONY: lint
+lint:
+	golangci-lint run ./...
 
 .PHONY: help
 help:

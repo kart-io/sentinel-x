@@ -135,7 +135,7 @@ func main() {
 	loggerFactory := func() (core.Logger, error) {
 		// 确保日志目录存在
 		logDir := "./logs"
-		if err := os.MkdirAll(logDir, 0755); err != nil {
+		if err := os.MkdirAll(logDir, 0o755); err != nil {
 			return nil, fmt.Errorf("创建日志目录失败: %w", err)
 		}
 

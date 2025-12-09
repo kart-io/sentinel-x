@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-
 	"github.com/kart-io/logger"
 	"github.com/kart-io/logger/core"
 	"github.com/kart-io/logger/factory"
@@ -423,7 +422,7 @@ development: false          # 开发模式
 #   timeout: "10s"
 `
 
-	return os.WriteFile(filename, []byte(configContent), 0644)
+	return os.WriteFile(filename, []byte(configContent), 0o644)
 }
 
 func getCurrentConfigSummary(reloader *reload.ConfigReloader) map[string]interface{} {

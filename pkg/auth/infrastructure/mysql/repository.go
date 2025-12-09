@@ -3,8 +3,9 @@ package mysql
 import (
 	"context"
 
-	"github.com/kart-io/sentinel-x/pkg/auth"
 	"gorm.io/gorm"
+
+	"github.com/kart-io/sentinel-x/pkg/auth"
 )
 
 // CasbinRule represents the database model for Casbin policies

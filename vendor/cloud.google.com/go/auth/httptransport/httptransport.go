@@ -27,6 +27,7 @@ import (
 	detect "cloud.google.com/go/auth/credentials"
 	"cloud.google.com/go/auth/internal/transport"
 	"cloud.google.com/go/auth/internal/transport/headers"
+
 	"github.com/googleapis/gax-go/v2/internallog"
 )
 

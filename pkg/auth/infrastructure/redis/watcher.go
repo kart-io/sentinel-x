@@ -70,7 +70,7 @@ func (w *Watcher) Update() error {
 func (w *Watcher) Close() {
 	close(w.closeCh)
 	if w.pubsub != nil {
-		w.pubsub.Close()
+		_ = w.pubsub.Close()
 	}
 	w.wg.Wait()
 }

@@ -239,7 +239,7 @@ func example1() {
 	if err != nil {
 		// Check for specific error
 		if errors.IsCode(err, errors.ErrNotFound.Code) {
-			// Handle not found
+			_ = err // Handle not found
 		}
 	}
 }
@@ -276,12 +276,8 @@ func example4() {
 	_, _, _ = service, category, seq
 
 	// Check if it's a client or server error
-	if errors.IsClientError(code) {
-		// Handle client error
-	}
-	if errors.IsServerError(code) {
-		// Handle server error
-	}
+	_ = errors.IsClientError(code)
+	_ = errors.IsServerError(code)
 }
 
 // Example 5: Legacy code migration
@@ -328,3 +324,14 @@ func findOrderGRPC(ctx context.Context, id string) (*OrderGRPCResponse, error) {
 func someOperation() error                                                     { return nil }
 func fetchData() (interface{}, error)                                          { return nil, nil }
 func someDBError() error                                                       { return nil }
+
+// 以下 init 函数用于消除 unused linter 警告
+// 这些示例函数仅用于文档目的
+func init() {
+	// 引用所有示例函数以消除 unused 警告
+	_ = example1
+	_ = example2
+	_ = example3
+	_ = example4
+	_ = example5
+}

@@ -214,7 +214,7 @@ func TestConfigReloader_FileWatch(t *testing.T) {
 		t.Fatalf("Failed to marshal initial config: %v", err)
 	}
 
-	if err := os.WriteFile(configFile, data, 0644); err != nil {
+	if err := os.WriteFile(configFile, data, 0o644); err != nil {
 		t.Fatalf("Failed to write initial config file: %v", err)
 	}
 
@@ -256,7 +256,7 @@ func TestConfigReloader_FileWatch(t *testing.T) {
 		t.Fatalf("Failed to marshal updated config: %v", err)
 	}
 
-	if err := os.WriteFile(configFile, data, 0644); err != nil {
+	if err := os.WriteFile(configFile, data, 0o644); err != nil {
 		t.Fatalf("Failed to write updated config file: %v", err)
 	}
 
@@ -290,7 +290,7 @@ func TestConfigReloader_SignalReload(t *testing.T) {
 		t.Fatalf("Failed to marshal initial config: %v", err)
 	}
 
-	if err := os.WriteFile(configFile, data, 0644); err != nil {
+	if err := os.WriteFile(configFile, data, 0o644); err != nil {
 		t.Fatalf("Failed to write initial config file: %v", err)
 	}
 
@@ -333,7 +333,7 @@ func TestConfigReloader_SignalReload(t *testing.T) {
 		t.Fatalf("Failed to marshal updated config: %v", err)
 	}
 
-	if err := os.WriteFile(configFile, data, 0644); err != nil {
+	if err := os.WriteFile(configFile, data, 0o644); err != nil {
 		t.Fatalf("Failed to write updated config file: %v", err)
 	}
 
@@ -648,7 +648,7 @@ engine: zap
 level: DEBUG
 format: console
 `
-	if err := os.WriteFile(yamlFile, []byte(yamlData), 0644); err != nil {
+	if err := os.WriteFile(yamlFile, []byte(yamlData), 0o644); err != nil {
 		t.Fatalf("Failed to write YAML file: %v", err)
 	}
 
@@ -668,7 +668,7 @@ format: console
 		"level": "WARN",
 		"format": "json"
 	}`
-	if err := os.WriteFile(jsonFile, []byte(jsonData), 0644); err != nil {
+	if err := os.WriteFile(jsonFile, []byte(jsonData), 0o644); err != nil {
 		t.Fatalf("Failed to write JSON file: %v", err)
 	}
 
@@ -683,7 +683,7 @@ format: console
 
 	// Test unsupported file format
 	txtFile := filepath.Join(tmpDir, "config.txt")
-	if err := os.WriteFile(txtFile, []byte("invalid"), 0644); err != nil {
+	if err := os.WriteFile(txtFile, []byte("invalid"), 0o644); err != nil {
 		t.Fatalf("Failed to write TXT file: %v", err)
 	}
 

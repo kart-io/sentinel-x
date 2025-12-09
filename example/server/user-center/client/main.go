@@ -6,17 +6,22 @@ import (
 	"log"
 	"time"
 
-	v1 "github.com/kart-io/sentinel-x/example/server/user-center/api/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+
+	v1 "github.com/kart-io/sentinel-x/example/server/user-center/api/v1"
 )
 
 func main() {
-	conn, err := grpc.Dial("localhost:9098", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient("localhost:9098", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
 	}
-	defer conn.Close()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			log.Printf("failed to close connection: %v", err)
+		}
+	}()
 
 	c := v1.NewUserServiceClient(conn)
 

@@ -309,5 +309,7 @@ func NewKratosStdLogger(coreLogger core.Logger) *StdLogger {
 }
 
 // Verify that KratosAdapter implements both Kratos' logger interface and our HTTPAdapter interface
-var _ Logger = (*KratosAdapter)(nil)
-var _ integrations.HTTPAdapter = (*KratosAdapter)(nil)
+var (
+	_ Logger                   = (*KratosAdapter)(nil)
+	_ integrations.HTTPAdapter = (*KratosAdapter)(nil)
+)

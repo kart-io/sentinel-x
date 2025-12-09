@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/spf13/pflag"
-
 	grpcopts "github.com/kart-io/sentinel-x/pkg/options/grpc"
 	httpopts "github.com/kart-io/sentinel-x/pkg/options/http"
+	"github.com/spf13/pflag"
 )
 
 // Mode represents the server startup mode.

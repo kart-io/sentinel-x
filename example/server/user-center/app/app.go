@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"os"
 
+	drivermysql "gorm.io/driver/mysql"
+	"gorm.io/gorm"
+
 	"github.com/kart-io/logger"
 	v1 "github.com/kart-io/sentinel-x/example/server/user-center/api/v1"
 	"github.com/kart-io/sentinel-x/example/server/user-center/handler"
@@ -13,14 +16,11 @@ import (
 	"github.com/kart-io/sentinel-x/pkg/auth"
 	"github.com/kart-io/sentinel-x/pkg/auth/infrastructure/mysql"
 	"github.com/kart-io/sentinel-x/pkg/auth/jwt"
+	// Import bridge to register gin adapter
+	_ "github.com/kart-io/sentinel-x/pkg/bridge/gin"
 	serveropts "github.com/kart-io/sentinel-x/pkg/options/server"
 	"github.com/kart-io/sentinel-x/pkg/server"
 	"github.com/kart-io/sentinel-x/pkg/server/transport"
-	drivermysql "gorm.io/driver/mysql"
-	"gorm.io/gorm"
-
-	// Import bridge to register gin adapter
-	_ "github.com/kart-io/sentinel-x/pkg/bridge/gin"
 )
 
 const (
@@ -43,7 +43,9 @@ func Run(opts *Options) error {
 	if err := opts.Log.Init(); err != nil {
 		return fmt.Errorf("failed to initialize logger: %w", err)
 	}
-	defer logger.Flush()
+	defer func() {
+		_ = logger.Flush()
+	}()
 
 	// 1. Initialize JWT
 	jwtAuth, err := jwt.New(
@@ -69,8 +71,12 @@ func Run(opts *Options) error {
 		repo = &MockRepository{}
 	}
 
-	createModelConf()
-	defer os.Remove("model.conf")
+	if err := createModelConf(); err != nil {
+		return err
+	}
+	defer func() {
+		_ = os.Remove("model.conf")
+	}()
 
 	permSvc, err := auth.NewPermissionService("model.conf", repo)
 	if err != nil {
@@ -189,7 +195,7 @@ func casbinMiddleware(permSvc auth.PermissionService, jwtAuth *jwt.JWT) transpor
 	}
 }
 
-func createModelConf() {
+func createModelConf() error {
 	conf := `
 [request_definition]
 r = sub, obj, act
@@ -206,13 +212,19 @@ e = some(where (p.eft == allow))
 [matchers]
 m = g(r.sub, p.sub) && keyMatch2(r.obj, p.obj) && r.act == p.act
 `
-	os.WriteFile("model.conf", []byte(conf), 0644)
+	return os.WriteFile("model.conf", []byte(conf), 0o644)
 }
 
 func setupPolicies(svc auth.PermissionService) {
-	svc.AddPolicy("admin", "/api/admin/action", "POST")
-	svc.AddPolicy("admin", "/api/users/:id", "GET")
-	svc.AddPolicy("user", "/api/users/:id", "GET")
+	if _, err := svc.AddPolicy("admin", "/api/admin/action", "POST"); err != nil {
+		panic(err)
+	}
+	if _, err := svc.AddPolicy("admin", "/api/users/:id", "GET"); err != nil {
+		panic(err)
+	}
+	if _, err := svc.AddPolicy("user", "/api/users/:id", "GET"); err != nil {
+		panic(err)
+	}
 }
 
 type MockRepository struct {

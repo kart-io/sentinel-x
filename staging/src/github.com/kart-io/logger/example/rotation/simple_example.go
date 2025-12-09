@@ -16,7 +16,7 @@ func main() {
 
 	// 1. 确保日志目录存在
 	logDir := "./logs"
-	if err := os.MkdirAll(logDir, 0755); err != nil {
+	if err := os.MkdirAll(logDir, 0o755); err != nil {
 		fmt.Printf("创建日志目录失败: %v\n", err)
 		return
 	}

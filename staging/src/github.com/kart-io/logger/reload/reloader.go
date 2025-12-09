@@ -11,9 +11,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/fsnotify/fsnotify"
 	"gopkg.in/yaml.v3"
 
+	"github.com/fsnotify/fsnotify"
 	"github.com/kart-io/logger/core"
 	"github.com/kart-io/logger/errors"
 	"github.com/kart-io/logger/factory"

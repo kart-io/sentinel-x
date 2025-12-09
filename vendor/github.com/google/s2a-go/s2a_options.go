@@ -23,12 +23,12 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/google/s2a-go/fallback"
-	"github.com/google/s2a-go/stream"
 	"google.golang.org/grpc/credentials"
 
+	"github.com/google/s2a-go/fallback"
 	s2av1pb "github.com/google/s2a-go/internal/proto/common_go_proto"
 	s2apb "github.com/google/s2a-go/internal/proto/v2/common_go_proto"
+	"github.com/google/s2a-go/stream"
 )
 
 // Identity is the interface for S2A identities.

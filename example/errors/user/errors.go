@@ -66,8 +66,8 @@ var (
 
 	// ErrUserTooManyLoginAttempts indicates too many login attempts.
 	ErrUserTooManyLoginAttempts = errors.NewRateLimitError(ServiceUser, 4).
-		Message("Too many login attempts", "登录尝试次数过多").
-		MustBuild()
+					Message("Too many login attempts", "登录尝试次数过多").
+					MustBuild()
 
 	// ErrUserVerificationCodeExpired indicates verification code expired.
 	ErrUserVerificationCodeExpired = errors.NewAuthErr(ServiceUser, 5,

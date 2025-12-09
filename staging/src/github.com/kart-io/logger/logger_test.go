@@ -9,7 +9,6 @@ import (
 func TestNew(t *testing.T) {
 	opt := option.DefaultLogOption()
 	logger, err := New(opt)
-
 	// Now that slog is implemented, this should work
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -22,7 +21,6 @@ func TestNew(t *testing.T) {
 
 func TestNewWithDefaults(t *testing.T) {
 	logger, err := NewWithDefaults()
-
 	// Now that slog is implemented, this should work
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -138,7 +136,6 @@ func TestNewWithCustomOption(t *testing.T) {
 	}
 
 	logger, err := New(customOpt)
-
 	// Should work now with fallback to slog
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)

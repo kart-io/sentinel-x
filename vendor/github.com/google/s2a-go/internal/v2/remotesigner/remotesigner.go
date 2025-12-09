@@ -26,11 +26,11 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/google/s2a-go/stream"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/grpclog"
 
 	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
+	"github.com/google/s2a-go/stream"
 )
 
 // remoteSigner implementes the crypto.Signer interface.

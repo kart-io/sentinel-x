@@ -8,14 +8,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sashabaranov/go-openai"
-
 	agentErrors "github.com/kart-io/goagent/errors"
 	"github.com/kart-io/goagent/interfaces"
 	agentllm "github.com/kart-io/goagent/llm"
 	"github.com/kart-io/goagent/llm/common"
 	"github.com/kart-io/goagent/llm/constants"
 	"github.com/kart-io/goagent/utils/json"
+	"github.com/sashabaranov/go-openai"
 )
 
 // messageSlicePool is a sync.Pool for reusing message slices

@@ -296,19 +296,19 @@ func (e *Errno) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 'v':
 		if s.Flag('+') {
-			fmt.Fprintf(s, "errno %d [HTTP %d, gRPC %s]: %s", e.Code, e.HTTP, e.GRPCCode.String(), e.MessageEN)
+			_, _ = fmt.Fprintf(s, "errno %d [HTTP %d, gRPC %s]: %s", e.Code, e.HTTP, e.GRPCCode.String(), e.MessageEN)
 			if e.MessageZH != "" {
-				fmt.Fprintf(s, " (%s)", e.MessageZH)
+				_, _ = fmt.Fprintf(s, " (%s)", e.MessageZH)
 			}
 			if e.cause != nil {
-				fmt.Fprintf(s, "\ncaused by: %+v", e.cause)
+				_, _ = fmt.Fprintf(s, "\ncaused by: %+v", e.cause)
 			}
 			return
 		}
 		fallthrough
 	case 's':
-		fmt.Fprint(s, e.Error())
+		_, _ = fmt.Fprint(s, e.Error())
 	case 'q':
-		fmt.Fprintf(s, "%q", e.Error())
+		_, _ = fmt.Fprintf(s, "%q", e.Error())
 	}
 }

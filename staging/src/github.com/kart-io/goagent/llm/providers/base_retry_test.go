@@ -2,12 +2,12 @@ package providers
 
 import (
 	"context"
-	"github.com/kart-io/goagent/llm/common"
 	"os"
 	"testing"
 	"time"
 
 	agentErrors "github.com/kart-io/goagent/errors"
+	"github.com/kart-io/goagent/llm/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

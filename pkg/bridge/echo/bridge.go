@@ -5,10 +5,10 @@ package echo
 import (
 	"net/http"
 
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
 	httpopts "github.com/kart-io/sentinel-x/pkg/options/http"
 	httpserver "github.com/kart-io/sentinel-x/pkg/server/transport/http"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 )
 
 func init() {
@@ -98,7 +98,7 @@ func (b *Bridge) wrapMiddleware(mw httpserver.BridgeMiddleware) echo.MiddlewareF
 			var nextCalled bool
 			mw(func(ctx *httpserver.RequestContext) {
 				nextCalled = true
-				next(c)
+				_ = next(c)
 			})(ctx)
 			if !nextCalled {
 				return nil

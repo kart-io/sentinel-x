@@ -17,16 +17,16 @@ func init() {
 var (
 	// ErrEmptyName indicates name is empty.
 	ErrEmptyName = errors.NewRequestError(ServiceHello, 1).
-		Message("Name cannot be empty", "名称不能为空").
-		MustBuild()
+			Message("Name cannot be empty", "名称不能为空").
+			MustBuild()
 
 	// ErrNameTooLong indicates name is too long.
 	ErrNameTooLong = errors.NewRequestError(ServiceHello, 2).
-		Message("Name is too long", "名称过长").
-		MustBuild()
+			Message("Name is too long", "名称过长").
+			MustBuild()
 
 	// ErrGreetingFailed indicates greeting generation failed.
 	ErrGreetingFailed = errors.NewInternalError(ServiceHello, 1).
-		Message("Failed to generate greeting", "生成问候语失败").
-		MustBuild()
+				Message("Failed to generate greeting", "生成问候语失败").
+				MustBuild()
 )

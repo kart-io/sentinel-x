@@ -37,7 +37,6 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
-
 	"github.com/kart-io/sentinel-x/pkg/auth"
 	"github.com/kart-io/sentinel-x/pkg/errors"
 	jwtopts "github.com/kart-io/sentinel-x/pkg/options/jwt"
@@ -207,7 +206,6 @@ func (j *JWT) Verify(ctx context.Context, tokenString string) (*auth.Claims, err
 		}
 		return j.getVerifyingKey(), nil
 	})
-
 	if err != nil {
 		return nil, j.mapParseError(err)
 	}
@@ -286,7 +284,6 @@ func (j *JWT) verifyForRefresh(ctx context.Context, tokenString string) (*auth.C
 		}
 		return j.getVerifyingKey(), nil
 	})
-
 	if err != nil {
 		return nil, j.mapParseError(err)
 	}
@@ -397,6 +394,6 @@ type customClaims struct {
 // generateTokenID generates a random token ID.
 func generateTokenID() string {
 	b := make([]byte, 16)
-	rand.Read(b)
+	_, _ = rand.Read(b)
 	return hex.EncodeToString(b)
 }

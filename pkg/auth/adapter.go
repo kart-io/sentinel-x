@@ -26,7 +26,7 @@ func (a *Adapter) LoadPolicy(model model.Model) error {
 	}
 
 	for _, p := range policies {
-		persist.LoadPolicyLine(policyToString(p), model)
+		_ = persist.LoadPolicyLine(policyToString(p), model)
 	}
 	return nil
 }

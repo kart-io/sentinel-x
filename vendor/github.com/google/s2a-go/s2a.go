@@ -29,20 +29,20 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/s2a-go/fallback"
-	"github.com/google/s2a-go/internal/handshaker"
-	"github.com/google/s2a-go/internal/handshaker/service"
-	"github.com/google/s2a-go/internal/tokenmanager"
-	"github.com/google/s2a-go/internal/v2"
-	"github.com/google/s2a-go/retry"
-	"github.com/google/s2a-go/stream"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/grpclog"
 	"google.golang.org/protobuf/proto"
 
+	"github.com/google/s2a-go/fallback"
+	"github.com/google/s2a-go/internal/handshaker"
+	"github.com/google/s2a-go/internal/handshaker/service"
 	commonpbv1 "github.com/google/s2a-go/internal/proto/common_go_proto"
 	commonpb "github.com/google/s2a-go/internal/proto/v2/common_go_proto"
 	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
+	"github.com/google/s2a-go/internal/tokenmanager"
+	"github.com/google/s2a-go/internal/v2"
+	"github.com/google/s2a-go/retry"
+	"github.com/google/s2a-go/stream"
 )
 
 const (

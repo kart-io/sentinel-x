@@ -1,4 +1,12 @@
-.PHONY: run run-http run-grpc build proto client
+.PHONY: run run-http run-grpc build proto client fmt lint
+
+# Format the code
+fmt:
+	go fmt ./...
+
+# Lint the code
+lint:
+	golangci-lint run ./...
 
 # Run the server in both HTTP and gRPC modes
 run:

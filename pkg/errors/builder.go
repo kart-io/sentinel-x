@@ -147,7 +147,7 @@ func (b *ErrnoBuilder) MessageZH(zh string) *ErrnoBuilder {
 // Returns an error if registration fails (e.g., duplicate code).
 func (b *ErrnoBuilder) Build() (*Errno, error) {
 	if b.messageEN == "" {
-		return nil, fmt.Errorf("English message is required")
+		return nil, fmt.Errorf("english message is required")
 	}
 
 	e := &Errno{

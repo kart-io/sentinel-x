@@ -140,7 +140,7 @@ func RegisterAdapter(adapterType httpopts.AdapterType, factory AdapterFactory) {
 
 // Ensure types implement interfaces.
 var (
-	_ Adapter         = (*bridgeAdapter)(nil)
-	_ transport.Router = (*bridgeRouter)(nil)
+	_ Adapter           = (*bridgeAdapter)(nil)
+	_ transport.Router  = (*bridgeRouter)(nil)
 	_ transport.Context = (*RequestContext)(nil)
 )

@@ -55,6 +55,7 @@ func (m *mockContext) Set(key, value interface{}) {
 		m.keys[k] = value
 	}
 }
+
 func (m *mockContext) GetString(key string) string {
 	if v, ok := m.keys[key]; ok {
 		if s, ok := v.(string); ok {
@@ -63,6 +64,7 @@ func (m *mockContext) GetString(key string) string {
 	}
 	return ""
 }
+
 func (m *mockContext) GetBool(key string) bool {
 	if v, ok := m.keys[key]; ok {
 		if b, ok := v.(bool); ok {
@@ -71,6 +73,7 @@ func (m *mockContext) GetBool(key string) bool {
 	}
 	return false
 }
+
 func (m *mockContext) GetInt(key string) int {
 	if v, ok := m.keys[key]; ok {
 		if i, ok := v.(int); ok {
@@ -79,6 +82,7 @@ func (m *mockContext) GetInt(key string) int {
 	}
 	return 0
 }
+
 func (m *mockContext) GetInt64(key string) int64 {
 	if v, ok := m.keys[key]; ok {
 		if i, ok := v.(int64); ok {
@@ -87,6 +91,7 @@ func (m *mockContext) GetInt64(key string) int64 {
 	}
 	return 0
 }
+
 func (m *mockContext) GetFloat64(key string) float64 {
 	if v, ok := m.keys[key]; ok {
 		if f, ok := v.(float64); ok {
@@ -95,6 +100,7 @@ func (m *mockContext) GetFloat64(key string) float64 {
 	}
 	return 0
 }
+
 func (m *mockContext) GetTime(key string) time.Time {
 	if v, ok := m.keys[key]; ok {
 		if t, ok := v.(time.Time); ok {
@@ -103,6 +109,7 @@ func (m *mockContext) GetTime(key string) time.Time {
 	}
 	return time.Time{}
 }
+
 func (m *mockContext) GetDuration(key string) time.Duration {
 	if v, ok := m.keys[key]; ok {
 		if d, ok := v.(time.Duration); ok {
@@ -111,6 +118,7 @@ func (m *mockContext) GetDuration(key string) time.Duration {
 	}
 	return 0
 }
+
 func (m *mockContext) GetStringSlice(key string) []string {
 	if v, ok := m.keys[key]; ok {
 		if s, ok := v.([]string); ok {
@@ -119,6 +127,7 @@ func (m *mockContext) GetStringSlice(key string) []string {
 	}
 	return nil
 }
+
 func (m *mockContext) GetStringMap(key string) map[string]interface{} {
 	if v, ok := m.keys[key]; ok {
 		if m, ok := v.(map[string]interface{}); ok {
@@ -127,6 +136,7 @@ func (m *mockContext) GetStringMap(key string) map[string]interface{} {
 	}
 	return nil
 }
+
 func (m *mockContext) GetStringMapString(key string) map[string]string {
 	if v, ok := m.keys[key]; ok {
 		if m, ok := v.(map[string]string); ok {
@@ -135,6 +145,7 @@ func (m *mockContext) GetStringMapString(key string) map[string]string {
 	}
 	return nil
 }
+
 func (m *mockContext) GetStringMapStringSlice(key string) map[string][]string {
 	if v, ok := m.keys[key]; ok {
 		if m, ok := v.(map[string][]string); ok {

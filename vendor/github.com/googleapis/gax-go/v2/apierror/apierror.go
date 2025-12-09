@@ -41,13 +41,14 @@ import (
 	"net/http"
 	"strings"
 
-	jsonerror "github.com/googleapis/gax-go/v2/apierror/internal/proto"
 	"google.golang.org/api/googleapi"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
+
+	jsonerror "github.com/googleapis/gax-go/v2/apierror/internal/proto"
 )
 
 // canonicalMap maps HTTP codes to gRPC status code equivalents.

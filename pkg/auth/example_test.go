@@ -6,12 +6,13 @@ import (
 	"os"
 	"testing"
 
+	drivermysql "gorm.io/driver/mysql"
+	"gorm.io/gorm"
+
 	"github.com/kart-io/sentinel-x/pkg/auth"
 	"github.com/kart-io/sentinel-x/pkg/auth/infrastructure/mysql"
 	"github.com/kart-io/sentinel-x/pkg/auth/infrastructure/redis"
 	redisgo "github.com/redis/go-redis/v9"
-	drivermysql "gorm.io/driver/mysql"
-	"gorm.io/gorm"
 )
 
 // MockRepository is a simple in-memory repository for testing
@@ -76,11 +77,11 @@ m = g(r.sub, p.sub) && r.obj == p.obj && r.act == p.act
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.Remove(f.Name())
+	defer func() { _ = os.Remove(f.Name()) }()
 	if _, err := f.WriteString(modelConf); err != nil {
 		t.Fatal(err)
 	}
-	f.Close()
+	_ = f.Close()
 
 	svc, err := auth.NewPermissionService(f.Name(), repo)
 	if err != nil {
@@ -143,7 +144,7 @@ func Example_mysql() {
 	repo, _ := mysql.NewRepository(db)
 	svc, _ := auth.NewPermissionService("model.conf", repo)
 
-	svc.AddPolicy("alice", "data1", "read")
+	_, _ = svc.AddPolicy("alice", "data1", "read")
 	allowed, _ := svc.Enforce("alice", "data1", "read")
 	fmt.Println(allowed)
 }
@@ -168,7 +169,7 @@ func Example_redis() {
 	svc.SetWatcher(w)
 	defer w.Close()
 
-	svc.AddPolicy("alice", "data1", "read")
+	_, _ = svc.AddPolicy("alice", "data1", "read")
 	allowed, _ := svc.Enforce("alice", "data1", "read")
 	fmt.Println(allowed)
 }

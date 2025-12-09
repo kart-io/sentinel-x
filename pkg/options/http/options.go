@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/spf13/pflag"
-
 	"github.com/kart-io/sentinel-x/pkg/middleware"
+	"github.com/spf13/pflag"
 )
 
 // AdapterType represents the HTTP framework adapter type.

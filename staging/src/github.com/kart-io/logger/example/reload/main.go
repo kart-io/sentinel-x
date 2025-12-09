@@ -221,5 +221,5 @@ func writeConfigFile(filename string, config *option.LogOption) error {
 		return fmt.Errorf("failed to marshal config: %w", err)
 	}
 
-	return os.WriteFile(filename, data, 0644)
+	return os.WriteFile(filename, data, 0o644)
 }

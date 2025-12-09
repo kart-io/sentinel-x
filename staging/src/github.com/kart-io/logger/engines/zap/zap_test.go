@@ -13,7 +13,6 @@ import (
 func TestNewZapLogger(t *testing.T) {
 	opt := option.DefaultLogOption()
 	logger, err := NewZapLogger(opt)
-
 	if err != nil {
 		t.Fatalf("NewZapLogger() error = %v", err)
 	}

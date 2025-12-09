@@ -11,7 +11,6 @@ import (
 func TestNewSlogLogger(t *testing.T) {
 	opt := option.DefaultLogOption()
 	logger, err := NewSlogLogger(opt)
-
 	if err != nil {
 		t.Fatalf("NewSlogLogger() error = %v", err)
 	}

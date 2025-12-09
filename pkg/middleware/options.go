@@ -4,9 +4,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/spf13/pflag"
-
 	"github.com/kart-io/sentinel-x/pkg/server/transport"
+	"github.com/spf13/pflag"
 )
 
 // Options contains all middleware configuration.
@@ -191,11 +190,11 @@ func NewOptions() *Options {
 			BlockProfileRate:     0,
 			MutexProfileFraction: 0,
 		},
-		DisableCORS:    true,  // CORS disabled by default
-		DisableTimeout: true,  // Timeout disabled by default
-		DisablePprof:   true,  // Pprof disabled by default (security)
-		DisableAuth:    true,  // Auth disabled by default
-		DisableAuthz:   true,  // Authz disabled by default
+		DisableCORS:    true, // CORS disabled by default
+		DisableTimeout: true, // Timeout disabled by default
+		DisablePprof:   true, // Pprof disabled by default (security)
+		DisableAuth:    true, // Auth disabled by default
+		DisableAuthz:   true, // Authz disabled by default
 	}
 }
 

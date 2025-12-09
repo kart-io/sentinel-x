@@ -113,12 +113,12 @@ func main() {
 
 	// Define roles with permissions
 	// Admin: full access to all resources
-	rbacAuthz.AddRole("admin",
+	_ = rbacAuthz.AddRole("admin",
 		authz.NewPermission("*", "*"),
 	)
 
 	// Editor: can read, create, and update users
-	rbacAuthz.AddRole("editor",
+	_ = rbacAuthz.AddRole("editor",
 		authz.NewPermission("users", "read"),
 		authz.NewPermission("users", "create"),
 		authz.NewPermission("users", "update"),
@@ -126,7 +126,7 @@ func main() {
 	)
 
 	// Viewer: can only read users
-	rbacAuthz.AddRole("viewer",
+	_ = rbacAuthz.AddRole("viewer",
 		authz.NewPermission("users", "read"),
 		authz.NewPermission("posts", "read"),
 	)
@@ -134,7 +134,7 @@ func main() {
 	// Assign roles to users
 	for _, user := range users {
 		for _, role := range user.Roles {
-			rbacAuthz.AssignRole(user.ID, role)
+			_ = rbacAuthz.AssignRole(user.ID, role)
 		}
 	}
 
@@ -165,7 +165,7 @@ func main() {
 	// Health check
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 	})
 
 	// Start server
@@ -183,8 +183,8 @@ func main() {
 		fmt.Println("\nShutting down server...")
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		server.Shutdown(ctx)
-		tokenStore.Close()
+		_ = server.Shutdown(ctx)
+		_ = tokenStore.Close()
 	}()
 
 	fmt.Println("[Server] Auth demo server started on :8082")
@@ -458,7 +458,7 @@ func userHandler() http.HandlerFunc {
 func jsonResponse(w http.ResponseWriter, code int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
-	json.NewEncoder(w).Encode(data)
+	_ = json.NewEncoder(w).Encode(data)
 }
 
 // httpContext implements transport.Context for standard http.
@@ -477,31 +477,39 @@ func (c *httpContext) Body() io.ReadCloser { return c.req.Body }
 func (c *httpContext) Param(key string) string {
 	return ""
 }
+
 func (c *httpContext) Query(key string) string {
 	return c.req.URL.Query().Get(key)
 }
+
 func (c *httpContext) Header(key string) string {
 	return c.req.Header.Get(key)
 }
+
 func (c *httpContext) SetHeader(key, value string) {
 	c.w.Header().Set(key, value)
 }
+
 func (c *httpContext) Bind(v interface{}) error {
 	return json.NewDecoder(c.req.Body).Decode(v)
 }
+
 func (c *httpContext) JSON(code int, v interface{}) {
 	c.w.Header().Set("Content-Type", "application/json")
 	c.w.WriteHeader(code)
-	json.NewEncoder(c.w).Encode(v)
+	_ = json.NewEncoder(c.w).Encode(v)
 }
+
 func (c *httpContext) String(code int, s string) {
 	c.w.WriteHeader(code)
-	c.w.Write([]byte(s))
+	_, _ = c.w.Write([]byte(s))
 }
+
 func (c *httpContext) Error(code int, err error) {
 	c.w.WriteHeader(code)
-	c.w.Write([]byte(err.Error()))
+	_, _ = c.w.Write([]byte(err.Error()))
 }
+
 func (c *httpContext) GetRawContext() interface{} {
 	return c
 }

@@ -6,14 +6,13 @@ import (
 	"strings"
 	"time"
 
+	agentErrors "github.com/kart-io/goagent/errors"
+	"github.com/kart-io/goagent/interfaces"
 	agentllm "github.com/kart-io/goagent/llm"
 	"github.com/kart-io/goagent/llm/common"
 	"github.com/kart-io/goagent/llm/constants"
-	"github.com/kart-io/goagent/utils/json"
-
-	agentErrors "github.com/kart-io/goagent/errors"
-	"github.com/kart-io/goagent/interfaces"
 	"github.com/kart-io/goagent/utils/httpclient"
+	"github.com/kart-io/goagent/utils/json"
 )
 
 // OllamaClient Ollama LLM 客户端

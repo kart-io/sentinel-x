@@ -35,6 +35,7 @@ func (m *mockLogger) Debugw(msg string, keysAndValues ...interface{}) {}
 func (m *mockLogger) Warnw(msg string, keysAndValues ...interface{}) {
 	m.warnCalls = append(m.warnCalls, mockCall{msg: msg, fields: keysAndValues})
 }
+
 func (m *mockLogger) Errorw(msg string, keysAndValues ...interface{}) {
 	m.errorCalls = append(m.errorCalls, mockCall{msg: msg, fields: keysAndValues})
 }

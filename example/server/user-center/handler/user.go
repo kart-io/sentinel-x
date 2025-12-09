@@ -4,11 +4,12 @@ import (
 	"context"
 	"net/http"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	v1 "github.com/kart-io/sentinel-x/example/server/user-center/api/v1"
 	"github.com/kart-io/sentinel-x/example/server/user-center/service/userservice"
 	"github.com/kart-io/sentinel-x/pkg/server/transport"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 type UserHandler struct {

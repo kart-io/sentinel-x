@@ -3,14 +3,13 @@ package stream
 import (
 	"context"
 	"fmt"
-	"github.com/kart-io/goagent/utils/json"
 	"net/http"
 	"sync"
 
 	"github.com/gorilla/websocket"
-
 	"github.com/kart-io/goagent/core"
 	agentErrors "github.com/kart-io/goagent/errors"
+	"github.com/kart-io/goagent/utils/json"
 )
 
 // WebSocketStreamer WebSocket 流支持

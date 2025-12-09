@@ -56,13 +56,13 @@ var (
 
 	// ErrPaymentTimeout indicates payment timeout.
 	ErrPaymentTimeout = errors.NewTimeoutError(ServiceThirdPartyPayment, 1).
-		Message("Payment timeout", "支付超时").
-		MustBuild()
+				Message("Payment timeout", "支付超时").
+				MustBuild()
 
 	// ErrPaymentChannelUnavailable indicates payment channel unavailable.
 	ErrPaymentChannelUnavailable = errors.NewNetworkError(ServiceThirdPartyPayment, 1).
-		Message("Payment channel unavailable", "支付渠道不可用").
-		MustBuild()
+					Message("Payment channel unavailable", "支付渠道不可用").
+					MustBuild()
 )
 
 // ============================================================================
@@ -76,13 +76,13 @@ var (
 
 	// ErrSMSLimitExceeded indicates SMS limit exceeded.
 	ErrSMSLimitExceeded = errors.NewRateLimitError(ServiceThirdPartySMS, 1).
-		Message("SMS limit exceeded", "短信发送次数超限").
-		MustBuild()
+				Message("SMS limit exceeded", "短信发送次数超限").
+				MustBuild()
 
 	// ErrSMSTimeout indicates SMS service timeout.
 	ErrSMSTimeout = errors.NewTimeoutError(ServiceThirdPartySMS, 1).
-		Message("SMS service timeout", "短信服务超时").
-		MustBuild()
+			Message("SMS service timeout", "短信服务超时").
+			MustBuild()
 
 	// ErrSMSInvalidPhone indicates invalid phone number for SMS.
 	ErrSMSInvalidPhone = errors.NewRequestErr(ServiceThirdPartySMS, 1,
@@ -94,8 +94,8 @@ var (
 
 	// ErrSMSChannelUnavailable indicates SMS channel unavailable.
 	ErrSMSChannelUnavailable = errors.NewNetworkError(ServiceThirdPartySMS, 1).
-		Message("SMS channel unavailable", "短信通道不可用").
-		MustBuild()
+					Message("SMS channel unavailable", "短信通道不可用").
+					MustBuild()
 )
 
 // ============================================================================
@@ -109,8 +109,8 @@ var (
 
 	// ErrEmailTimeout indicates email service timeout.
 	ErrEmailTimeout = errors.NewTimeoutError(ServiceThirdPartyEmail, 1).
-		Message("Email service timeout", "邮件服务超时").
-		MustBuild()
+			Message("Email service timeout", "邮件服务超时").
+			MustBuild()
 
 	// ErrEmailInvalidAddress indicates invalid email address.
 	ErrEmailInvalidAddress = errors.NewRequestErr(ServiceThirdPartyEmail, 1,
@@ -122,13 +122,13 @@ var (
 
 	// ErrEmailLimitExceeded indicates email limit exceeded.
 	ErrEmailLimitExceeded = errors.NewRateLimitError(ServiceThirdPartyEmail, 1).
-		Message("Email limit exceeded", "邮件发送次数超限").
-		MustBuild()
+				Message("Email limit exceeded", "邮件发送次数超限").
+				MustBuild()
 
 	// ErrEmailServerUnavailable indicates email server unavailable.
 	ErrEmailServerUnavailable = errors.NewNetworkError(ServiceThirdPartyEmail, 1).
-		Message("Email server unavailable", "邮件服务器不可用").
-		MustBuild()
+					Message("Email server unavailable", "邮件服务器不可用").
+					MustBuild()
 )
 
 // ============================================================================
@@ -154,9 +154,9 @@ var (
 
 	// ErrStorageFileTooLarge indicates file too large.
 	ErrStorageFileTooLarge = errors.NewRequestError(ServiceThirdPartyStorage, 1).
-		HTTP(413).
-		Message("File too large", "文件过大").
-		MustBuild()
+				HTTP(413).
+				Message("File too large", "文件过大").
+				MustBuild()
 
 	// ErrStorageInvalidFileType indicates invalid file type.
 	ErrStorageInvalidFileType = errors.NewRequestErr(ServiceThirdPartyStorage, 2,
@@ -164,16 +164,16 @@ var (
 
 	// ErrStorageQuotaExceeded indicates storage quota exceeded.
 	ErrStorageQuotaExceeded = errors.NewRateLimitError(ServiceThirdPartyStorage, 1).
-		Message("Storage quota exceeded", "存储配额已用尽").
-		MustBuild()
+				Message("Storage quota exceeded", "存储配额已用尽").
+				MustBuild()
 
 	// ErrStorageTimeout indicates storage service timeout.
 	ErrStorageTimeout = errors.NewTimeoutError(ServiceThirdPartyStorage, 1).
-		Message("Storage service timeout", "存储服务超时").
-		MustBuild()
+				Message("Storage service timeout", "存储服务超时").
+				MustBuild()
 
 	// ErrStorageUnavailable indicates storage service unavailable.
 	ErrStorageUnavailable = errors.NewNetworkError(ServiceThirdPartyStorage, 1).
-		Message("Storage service unavailable", "存储服务不可用").
-		MustBuild()
+				Message("Storage service unavailable", "存储服务不可用").
+				MustBuild()
 )

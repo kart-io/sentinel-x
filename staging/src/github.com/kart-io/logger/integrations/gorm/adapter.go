@@ -198,5 +198,7 @@ func isRecordNotFoundError(err error) bool {
 }
 
 // Verify that GormAdapter implements both GORM's logger interface and our DatabaseAdapter interface
-var _ Interface = (*GormAdapter)(nil)
-var _ integrations.DatabaseAdapter = (*GormAdapter)(nil)
+var (
+	_ Interface                    = (*GormAdapter)(nil)
+	_ integrations.DatabaseAdapter = (*GormAdapter)(nil)
+)

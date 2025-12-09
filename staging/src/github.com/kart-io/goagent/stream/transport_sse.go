@@ -3,12 +3,12 @@ package stream
 import (
 	"context"
 	"fmt"
-	"github.com/kart-io/goagent/utils/json"
 	"net/http"
 	"time"
 
 	"github.com/kart-io/goagent/core"
 	agentErrors "github.com/kart-io/goagent/errors"
+	"github.com/kart-io/goagent/utils/json"
 )
 
 // SSEStreamer Server-Sent Events 流支持

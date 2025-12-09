@@ -88,7 +88,6 @@ func TestLoggerFactory_CreateLogger_UnsupportedEngine(t *testing.T) {
 
 	factory := NewLoggerFactory(opt)
 	logger, err := factory.CreateLogger()
-
 	// With Slog now implemented, this should actually succeed
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -391,7 +390,6 @@ func TestLoggerFactory_Both_Engines_Available(t *testing.T) {
 
 			factory := NewLoggerFactory(opt)
 			logger, err := factory.CreateLogger()
-
 			if err != nil {
 				t.Errorf("Engine %s should be implemented and working: %v", engine, err)
 			}
@@ -506,7 +504,6 @@ func TestLoggerFactory_ZapEngineSpecificMethods(t *testing.T) {
 
 	factory := NewLoggerFactory(opt)
 	logger, err := factory.CreateLogger()
-
 	if err != nil {
 		t.Errorf("Zap engine creation failed: %v", err)
 	}
@@ -560,7 +557,6 @@ func TestLoggerFactory_SlogEngineSpecificMethods(t *testing.T) {
 
 	factory := NewLoggerFactory(opt)
 	logger, err := factory.CreateLogger()
-
 	if err != nil {
 		t.Errorf("Slog engine creation failed: %v", err)
 	}

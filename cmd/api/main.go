@@ -28,5 +28,4 @@ func main() {
 		log.Fatalf("Failed to complete: %v", err)
 	}
 	fmt.Println(resp.Content)
-
 }

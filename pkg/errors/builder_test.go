@@ -118,7 +118,6 @@ func TestErrnoBuilderBuild(t *testing.T) {
 		GRPC(codes.InvalidArgument).
 		Message("Test error", "测试错误").
 		Build()
-
 	if err != nil {
 		t.Fatalf("Build() error = %v", err)
 	}
@@ -184,7 +183,7 @@ func TestErrnoBuilderMustBuild(t *testing.T) {
 
 func TestErrnoBuilderMustBuildPanic(t *testing.T) {
 	// First registration
-	NewBuilder(80, CategoryRequest, 110).
+	_ = NewBuilder(80, CategoryRequest, 110).
 		Message("First", "第一").
 		MustBuild()
 
@@ -195,7 +194,7 @@ func TestErrnoBuilderMustBuildPanic(t *testing.T) {
 		}
 	}()
 
-	NewBuilder(80, CategoryRequest, 110).
+	_ = NewBuilder(80, CategoryRequest, 110).
 		Message("Second", "第二").
 		MustBuild()
 }

@@ -194,7 +194,7 @@ func main() {
 	fmt.Println()
 
 	// 确保日志目录存在
-	os.MkdirAll("./logs", 0755)
+	os.MkdirAll("./logs", 0o755)
 
 	// 示例 1：基本的 lumberjack 轮转
 	fmt.Println("1. 基本轮转示例")

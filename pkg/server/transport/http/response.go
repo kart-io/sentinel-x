@@ -26,7 +26,7 @@ func (c *RequestContext) String(code int, s string) {
 	c.writer.WriteHeader(code)
 	c.statusCode = code
 	c.written = true
-	c.writer.Write([]byte(s))
+	_, _ = c.writer.Write([]byte(s))
 }
 
 // Bytes sends a raw bytes response.
@@ -35,7 +35,7 @@ func (c *RequestContext) Bytes(code int, contentType string, data []byte) {
 	c.writer.WriteHeader(code)
 	c.statusCode = code
 	c.written = true
-	c.writer.Write(data)
+	_, _ = c.writer.Write(data)
 }
 
 // Error sends an error response as JSON.
@@ -64,7 +64,7 @@ func (c *RequestContext) Bind(v interface{}) error {
 
 	// Default to JSON if no content type specified
 	if contentType == "" || contentType == "application/json" ||
-	   len(contentType) > 16 && contentType[:16] == "application/json" {
+		len(contentType) > 16 && contentType[:16] == "application/json" {
 		return json.NewDecoder(c.request.Body).Decode(v)
 	}
 

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
-	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -56,8 +55,10 @@ func NewMetricsCollector(namespace, subsystem string) *MetricsCollector {
 }
 
 // globalMetricsCollector is the default metrics collector.
-var globalMetricsCollector *MetricsCollector
-var metricsOnce sync.Once
+var (
+	globalMetricsCollector *MetricsCollector
+	metricsOnce            sync.Once
+)
 
 // GetMetricsCollector returns the global metrics collector.
 func GetMetricsCollector(namespace, subsystem string) *MetricsCollector {
@@ -281,23 +282,9 @@ func (m *MetricsCollector) GetRequestCount(method, path string, status int) uint
 	return 0
 }
 
-// metricsContextKey is used to store response status in context.
-type metricsContextKey struct{}
-
 // SetResponseStatus sets the response status for metrics recording.
 // Call this from your handler if you want accurate status code tracking.
 func SetResponseStatus(c transport.Context, status int) {
 	// This is a helper for frameworks where we can't easily wrap the response writer
 	_ = status // Status is tracked by the framework's response writer
-}
-
-// getStatusFromKey extracts status code from metrics key.
-func getStatusFromKey(key string) int {
-	parts := strings.SplitN(key, ":", 3)
-	if len(parts) == 3 {
-		if status, err := strconv.Atoi(parts[2]); err == nil {
-			return status
-		}
-	}
-	return 0
 }

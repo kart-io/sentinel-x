@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	var m = map[string]string{
+	m := map[string]string{
 		"name": "kart",
 	}
 

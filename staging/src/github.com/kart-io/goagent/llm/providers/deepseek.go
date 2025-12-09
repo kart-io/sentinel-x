@@ -3,20 +3,18 @@ package providers
 import (
 	"context"
 	"fmt"
-	"github.com/kart-io/goagent/llm/common"
 	"io"
 	"strings"
 	"time"
 
-	agentllm "github.com/kart-io/goagent/llm"
-	"github.com/kart-io/goagent/llm/constants"
-	"github.com/kart-io/goagent/utils/json"
-
 	"github.com/go-resty/resty/v2"
-
 	agentErrors "github.com/kart-io/goagent/errors"
 	"github.com/kart-io/goagent/interfaces"
+	agentllm "github.com/kart-io/goagent/llm"
+	"github.com/kart-io/goagent/llm/common"
+	"github.com/kart-io/goagent/llm/constants"
 	"github.com/kart-io/goagent/utils/httpclient"
+	"github.com/kart-io/goagent/utils/json"
 )
 
 // DeepSeekProvider implements LLM interface for DeepSeek
@@ -549,7 +547,6 @@ func (p *DeepSeekProvider) callAPI(ctx context.Context, endpoint string, payload
 			SetContext(ctx).
 			SetBody(payload).
 			Post(url)
-
 		if err != nil {
 			return nil, agentErrors.NewLLMRequestError(p.ProviderName(), model, err).
 				WithContext("endpoint", endpoint)

@@ -78,23 +78,23 @@ var (
 
 	// ErrTaskRunning indicates task is running.
 	ErrTaskRunning = errors.NewConflictError(ServiceScheduler, 2).
-		Message("Task is running", "任务正在执行").
-		MustBuild()
+			Message("Task is running", "任务正在执行").
+			MustBuild()
 
 	// ErrTaskDisabled indicates task is disabled.
 	ErrTaskDisabled = errors.NewConflictError(ServiceScheduler, 3).
-		Message("Task is disabled", "任务已禁用").
-		MustBuild()
+			Message("Task is disabled", "任务已禁用").
+			MustBuild()
 
 	// ErrTaskPaused indicates task is paused.
 	ErrTaskPaused = errors.NewConflictError(ServiceScheduler, 4).
-		Message("Task is paused", "任务已暂停").
-		MustBuild()
+			Message("Task is paused", "任务已暂停").
+			MustBuild()
 
 	// ErrWorkerBusy indicates worker is busy.
 	ErrWorkerBusy = errors.NewConflictError(ServiceScheduler, 5).
-		Message("Worker is busy", "工作节点繁忙").
-		MustBuild()
+			Message("Worker is busy", "工作节点繁忙").
+			MustBuild()
 )
 
 // ============================================================================
@@ -130,11 +130,11 @@ var (
 var (
 	// ErrTaskTimeout indicates task execution timeout.
 	ErrTaskTimeout = errors.NewTimeoutError(ServiceScheduler, 1).
-		Message("Task execution timeout", "任务执行超时").
-		MustBuild()
+			Message("Task execution timeout", "任务执行超时").
+			MustBuild()
 
 	// ErrWorkerTimeout indicates worker response timeout.
 	ErrWorkerTimeout = errors.NewTimeoutError(ServiceScheduler, 2).
-		Message("Worker response timeout", "工作节点响应超时").
-		MustBuild()
+				Message("Worker response timeout", "工作节点响应超时").
+				MustBuild()
 )

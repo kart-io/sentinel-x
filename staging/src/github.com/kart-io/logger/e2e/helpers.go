@@ -51,11 +51,11 @@ func (h *TestHelper) CreateTempFile(name, content string) string {
 
 	// Ensure directory exists
 	dir := filepath.Dir(filePath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0o755); err != nil {
 		h.t.Fatalf("Failed to create directory %s: %v", dir, err)
 	}
 
-	if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
+	if err := os.WriteFile(filePath, []byte(content), 0o644); err != nil {
 		h.t.Fatalf("Failed to write file %s: %v", filePath, err)
 	}
 
@@ -213,7 +213,7 @@ func (h *TestHelper) CopyFile(src, dst string) {
 
 	// Ensure destination directory exists
 	dstDir := filepath.Dir(dst)
-	if err := os.MkdirAll(dstDir, 0755); err != nil {
+	if err := os.MkdirAll(dstDir, 0o755); err != nil {
 		h.t.Fatalf("Failed to create directory %s: %v", dstDir, err)
 	}
 

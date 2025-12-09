@@ -5,26 +5,24 @@ import (
 	"fmt"
 
 	"github.com/kart-io/logger"
-	"github.com/spf13/pflag"
-
+	v1 "github.com/kart-io/sentinel-x/example/server/example/api/hello/v1"
+	"github.com/kart-io/sentinel-x/example/server/example/handler"
+	"github.com/kart-io/sentinel-x/example/server/example/service/authservice"
+	"github.com/kart-io/sentinel-x/example/server/example/service/helloservice"
 	"github.com/kart-io/sentinel-x/pkg/app"
 	"github.com/kart-io/sentinel-x/pkg/auth/jwt"
 	"github.com/kart-io/sentinel-x/pkg/authz"
 	"github.com/kart-io/sentinel-x/pkg/authz/rbac"
+	// Import bridges to register them
+	_ "github.com/kart-io/sentinel-x/pkg/bridge/echo"
+	_ "github.com/kart-io/sentinel-x/pkg/bridge/gin"
 	"github.com/kart-io/sentinel-x/pkg/middleware"
 	jwtopts "github.com/kart-io/sentinel-x/pkg/options/jwt"
 	logopts "github.com/kart-io/sentinel-x/pkg/options/logger"
 	serveropts "github.com/kart-io/sentinel-x/pkg/options/server"
 	"github.com/kart-io/sentinel-x/pkg/server"
-	v1 "github.com/kart-io/sentinel-x/example/server/example/api/hello/v1"
-	"github.com/kart-io/sentinel-x/example/server/example/handler"
-	"github.com/kart-io/sentinel-x/example/server/example/service/authservice"
-	"github.com/kart-io/sentinel-x/example/server/example/service/helloservice"
 	"github.com/kart-io/sentinel-x/pkg/server/transport"
-
-	// Import bridges to register them
-	_ "github.com/kart-io/sentinel-x/pkg/bridge/echo"
-	_ "github.com/kart-io/sentinel-x/pkg/bridge/gin"
+	"github.com/spf13/pflag"
 )
 
 const (
@@ -76,7 +74,7 @@ func Run(opts *Options) error {
 	if err := opts.Log.Init(); err != nil {
 		return fmt.Errorf("failed to initialize logger: %w", err)
 	}
-	defer logger.Flush()
+	defer func() { _ = logger.Flush() }()
 
 	// Print startup banner
 	printBanner(opts)
@@ -114,15 +112,15 @@ func Run(opts *Options) error {
 		rbacAuthz = rbac.New()
 
 		// Define roles with permissions
-		rbacAuthz.AddRole("admin",
+		_ = rbacAuthz.AddRole("admin",
 			authz.NewPermission("*", "*"),
 		)
-		rbacAuthz.AddRole("editor",
+		_ = rbacAuthz.AddRole("editor",
 			authz.NewPermission("hello", "read"),
 			authz.NewPermission("hello", "create"),
 			authz.NewPermission("hello", "update"),
 		)
-		rbacAuthz.AddRole("viewer",
+		_ = rbacAuthz.AddRole("viewer",
 			authz.NewPermission("hello", "read"),
 		)
 
@@ -146,7 +144,7 @@ func Run(opts *Options) error {
 	grpcHandler := handler.NewHelloGRPCHandler(helloSvc)
 
 	// Register service
-	mgr.RegisterService(
+	_ = mgr.RegisterService(
 		helloSvc,
 		httpHandler,
 		&transport.GRPCServiceDesc{
@@ -159,12 +157,12 @@ func Run(opts *Options) error {
 	if jwtAuth != nil {
 		authSvc := authservice.NewService()
 		authHandler := handler.NewAuthHTTPHandler(jwtAuth)
-		mgr.RegisterHTTP(authSvc, authHandler)
+		_ = mgr.RegisterHTTP(authSvc, authHandler)
 
 		// Assign roles to demo users
 		for _, user := range authHandler.GetUsers() {
 			for _, role := range user.Roles {
-				rbacAuthz.AssignRole(user.ID, role)
+				_ = rbacAuthz.AssignRole(user.ID, role)
 			}
 		}
 
