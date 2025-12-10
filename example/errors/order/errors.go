@@ -16,7 +16,7 @@ import (
 
 	"google.golang.org/grpc/codes"
 
-	"github.com/kart-io/sentinel-x/pkg/errors"
+	"github.com/kart-io/sentinel-x/pkg/utils/errors"
 )
 
 // ============================================================================

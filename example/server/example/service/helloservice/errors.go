@@ -2,7 +2,7 @@
 package helloservice
 
 import (
-	"github.com/kart-io/sentinel-x/pkg/errors"
+	"github.com/kart-io/sentinel-x/pkg/utils/errors"
 )
 
 // Service code for HelloService.

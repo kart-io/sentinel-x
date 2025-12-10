@@ -10,12 +10,11 @@ import (
 
 	"google.golang.org/protobuf/encoding/protowire"
 	"google.golang.org/protobuf/internal/encoding/messageset"
+	protoerrors "google.golang.org/protobuf/internal/errors"
 	"google.golang.org/protobuf/internal/order"
 	"google.golang.org/protobuf/internal/pragma"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/runtime/protoiface"
-
-	protoerrors "google.golang.org/protobuf/internal/errors"
 )
 
 // MarshalOptions configures the marshaler.

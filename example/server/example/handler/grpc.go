@@ -7,7 +7,7 @@ import (
 
 	v1 "github.com/kart-io/sentinel-x/example/server/example/api/hello/v1"
 	"github.com/kart-io/sentinel-x/example/server/example/service/helloservice"
-	"github.com/kart-io/sentinel-x/pkg/errors"
+	"github.com/kart-io/sentinel-x/pkg/utils/errors"
 )
 
 // HelloGRPCHandler handles gRPC requests for HelloService.

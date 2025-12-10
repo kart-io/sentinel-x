@@ -4,10 +4,10 @@ package handler
 import (
 	"time"
 
-	"github.com/kart-io/sentinel-x/pkg/auth"
-	"github.com/kart-io/sentinel-x/pkg/errors"
-	"github.com/kart-io/sentinel-x/pkg/response"
-	"github.com/kart-io/sentinel-x/pkg/server/transport"
+	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	"github.com/kart-io/sentinel-x/pkg/security/auth"
+	"github.com/kart-io/sentinel-x/pkg/utils/errors"
+	"github.com/kart-io/sentinel-x/pkg/utils/response"
 )
 
 // User represents a user in the system.

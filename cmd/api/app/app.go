@@ -5,20 +5,20 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kart-io/logger"
-	"github.com/kart-io/sentinel-x/pkg/app"
-	"github.com/kart-io/sentinel-x/pkg/auth/jwt"
-	"github.com/kart-io/sentinel-x/pkg/authz"
-	"github.com/kart-io/sentinel-x/pkg/authz/rbac"
-	// Import bridges to register them
-	_ "github.com/kart-io/sentinel-x/pkg/bridge/echo"
-	_ "github.com/kart-io/sentinel-x/pkg/bridge/gin"
-	"github.com/kart-io/sentinel-x/pkg/middleware"
-	serveropts "github.com/kart-io/sentinel-x/pkg/options/server"
-	"github.com/kart-io/sentinel-x/pkg/server"
-	"github.com/redis/go-redis/v9"
-	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+
+	"github.com/kart-io/logger"
+	// Import bridges to register them
+	_ "github.com/kart-io/sentinel-x/pkg/infra/adapter/echo"
+	_ "github.com/kart-io/sentinel-x/pkg/infra/adapter/gin"
+	"github.com/kart-io/sentinel-x/pkg/infra/app"
+	"github.com/kart-io/sentinel-x/pkg/infra/datasource"
+	"github.com/kart-io/sentinel-x/pkg/infra/middleware"
+	"github.com/kart-io/sentinel-x/pkg/infra/server"
+	"github.com/kart-io/sentinel-x/pkg/security/auth/jwt"
+	"github.com/kart-io/sentinel-x/pkg/security/authz"
+	"github.com/kart-io/sentinel-x/pkg/security/authz/rbac"
+	goredis "github.com/redis/go-redis/v9"
 )
 
 const (
@@ -91,23 +91,56 @@ func Run(opts *Options) error {
 		"mode", opts.Server.Mode.String(),
 	)
 
-	// Initialize database connections
-	ctx := context.Background()
-	db, err := initDatabase(ctx, opts)
-	if err != nil {
-		return fmt.Errorf("failed to initialize database: %w", err)
-	}
-	logger.Info("Database initialized successfully")
+	// Initialize datasource manager
+	dsMgr := datasource.NewManager()
+	datasource.SetGlobal(dsMgr) // Set as global if needed by other components
+	defer dsMgr.CloseAll()
 
-	// Initialize Redis
-	rdb, err := initRedis(ctx, opts)
-	if err != nil {
-		return fmt.Errorf("failed to initialize Redis: %w", err)
+	// Register datasources
+	if opts.MySQL.Host != "" {
+		if err := dsMgr.RegisterMySQL("primary", opts.MySQL); err != nil {
+			return fmt.Errorf("failed to register mysql: %w", err)
+		}
 	}
-	logger.Info("Redis initialized successfully")
+
+	if opts.Redis.Host != "" {
+		if err := dsMgr.RegisterRedis("cache", opts.Redis); err != nil {
+			return fmt.Errorf("failed to register redis: %w", err)
+		}
+	}
+
+	// Initialize all datasources
+	ctx := context.Background()
+	if err := dsMgr.InitAll(ctx); err != nil {
+		return fmt.Errorf("failed to initialize datasources: %w", err)
+	}
+	logger.Info("Datasources initialized successfully")
+
+	// Get clients for dependency injection
+	var db *gorm.DB
+	if opts.MySQL.Host != "" {
+		mysqlClient, err := dsMgr.GetMySQL("primary")
+		if err != nil {
+			return fmt.Errorf("failed to get mysql client: %w", err)
+		}
+		db = mysqlClient.DB()
+	}
+
+	var rdb *goredis.Client
+	if opts.Redis.Host != "" {
+		redisClient, err := dsMgr.GetRedis("cache")
+		if err != nil {
+			return fmt.Errorf("failed to get redis client: %w", err)
+		}
+		rdb = redisClient.Client()
+	}
+
+	// Prevent unused variable error until services are registered
+	_ = db
+	_ = rdb
 
 	// Configure health checks
-	configureHealth(opts, db, rdb)
+	configureHealth(opts, dsMgr)
 
 	// Initialize authentication and authorization
 	jwtAuth, rbacAuthz, err := initAuth(opts)
@@ -122,10 +155,10 @@ func Run(opts *Options) error {
 
 	// Create server manager
 	mgr := server.NewManager(
-		serveropts.WithMode(opts.Server.Mode),
-		serveropts.WithHTTPOptions(opts.Server.HTTP),
-		serveropts.WithGRPCOptions(opts.Server.GRPC),
-		serveropts.WithShutdownTimeout(opts.Server.ShutdownTimeout),
+		server.WithMode(opts.Server.Mode),
+		server.WithHTTPOptions(opts.Server.HTTP),
+		server.WithGRPCOptions(opts.Server.GRPC),
+		server.WithShutdownTimeout(opts.Server.ShutdownTimeout),
 	)
 
 	// TODO: Register your services here
@@ -143,83 +176,6 @@ func Run(opts *Options) error {
 	// Run server with graceful shutdown
 	logger.Info("Starting server manager...")
 	return mgr.Run()
-}
-
-// initDatabase initializes the MySQL database connection.
-func initDatabase(ctx context.Context, opts *Options) (*gorm.DB, error) {
-	if opts.MySQL.Host == "" {
-		logger.Warn("MySQL host not configured, skipping database initialization")
-		return nil, nil
-	}
-
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
-		opts.MySQL.Username,
-		opts.MySQL.Password,
-		opts.MySQL.Host,
-		opts.MySQL.Port,
-		opts.MySQL.Database,
-	)
-
-	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to database: %w", err)
-	}
-
-	sqlDB, err := db.DB()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get database instance: %w", err)
-	}
-
-	// Configure connection pool
-	sqlDB.SetMaxIdleConns(opts.MySQL.MaxIdleConnections)
-	sqlDB.SetMaxOpenConns(opts.MySQL.MaxOpenConnections)
-	sqlDB.SetConnMaxLifetime(opts.MySQL.MaxConnectionLifeTime)
-
-	// Test connection
-	if err := sqlDB.PingContext(ctx); err != nil {
-		return nil, fmt.Errorf("failed to ping database: %w", err)
-	}
-
-	logger.Infow("Database connection established",
-		"host", opts.MySQL.Host,
-		"database", opts.MySQL.Database,
-		"max_idle_conns", opts.MySQL.MaxIdleConnections,
-		"max_open_conns", opts.MySQL.MaxOpenConnections,
-	)
-
-	return db, nil
-}
-
-// initRedis initializes the Redis connection.
-func initRedis(ctx context.Context, opts *Options) (*redis.Client, error) {
-	if opts.Redis.Host == "" {
-		logger.Warn("Redis host not configured, skipping Redis initialization")
-		return nil, nil
-	}
-
-	addr := fmt.Sprintf("%s:%d", opts.Redis.Host, opts.Redis.Port)
-
-	rdb := redis.NewClient(&redis.Options{
-		Addr:         addr,
-		Password:     opts.Redis.Password,
-		DB:           opts.Redis.Database,
-		MaxRetries:   opts.Redis.MaxRetries,
-		PoolSize:     opts.Redis.PoolSize,
-		MinIdleConns: opts.Redis.MinIdleConns,
-	})
-
-	// Test connection
-	if err := rdb.Ping(ctx).Err(); err != nil {
-		return nil, fmt.Errorf("failed to ping Redis: %w", err)
-	}
-
-	logger.Infow("Redis connection established",
-		"addr", addr,
-		"db", opts.Redis.Database,
-		"pool_size", opts.Redis.PoolSize,
-	)
-
-	return rdb, nil
 }
 
 // initAuth initializes JWT authentication and RBAC authorization.
@@ -300,27 +256,29 @@ func configureAuthMiddleware(opts *Options, jwtAuth *jwt.JWT, rbacAuthz *rbac.RB
 }
 
 // configureHealth configures the health check manager.
-func configureHealth(opts *Options, db *gorm.DB, rdb *redis.Client) {
+func configureHealth(opts *Options, dsMgr *datasource.Manager) {
 	healthMgr := middleware.GetHealthManager()
 	healthMgr.SetVersion(app.GetVersion())
 
-	// Database health check
-	if db != nil {
-		healthMgr.RegisterChecker("database", func() error {
-			sqlDB, err := db.DB()
-			if err != nil {
-				return err
-			}
-			return sqlDB.Ping()
-		})
-	}
+	// Register health checks for all initialized datasources
+	// The datasource manager provides a unified way to check health
+	healthMgr.RegisterChecker("datasources", func() error {
+		if !dsMgr.IsHealthy(context.Background()) {
+			return fmt.Errorf("one or more datasources are unhealthy")
+		}
+		return nil
+	})
 
-	// Redis health check
-	if rdb != nil {
-		healthMgr.RegisterChecker("redis", func() error {
-			return rdb.Ping(context.Background()).Err()
-		})
-	}
+	// Individual checks can also be registered if needed, but IsHealthy covers all.
+	// For more granular reporting in /health endpoint, we could iterate:
+	//
+	// if opts.MySQL.Host != "" {
+	// 	healthMgr.RegisterChecker("mysql", func() error {
+	// 		client, err := dsMgr.GetMySQL("primary")
+	// 		if err != nil { return err }
+	// 		return client.Ping(context.Background())
+	// 	})
+	// }
 
 	logger.Info("Health checks configured")
 }

@@ -41,15 +41,15 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/kart-io/sentinel-x/pkg/auth"
-	"github.com/kart-io/sentinel-x/pkg/auth/jwt"
-	"github.com/kart-io/sentinel-x/pkg/authz"
-	"github.com/kart-io/sentinel-x/pkg/authz/rbac"
-	"github.com/kart-io/sentinel-x/pkg/errors"
-	"github.com/kart-io/sentinel-x/pkg/middleware"
-	jwtopts "github.com/kart-io/sentinel-x/pkg/options/jwt"
-	"github.com/kart-io/sentinel-x/pkg/response"
-	"github.com/kart-io/sentinel-x/pkg/server/transport"
+	"github.com/kart-io/sentinel-x/pkg/infra/middleware"
+	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	"github.com/kart-io/sentinel-x/pkg/security/auth"
+	"github.com/kart-io/sentinel-x/pkg/security/auth/jwt"
+	jwtopts "github.com/kart-io/sentinel-x/pkg/security/auth/jwt"
+	"github.com/kart-io/sentinel-x/pkg/security/authz"
+	"github.com/kart-io/sentinel-x/pkg/security/authz/rbac"
+	"github.com/kart-io/sentinel-x/pkg/utils/errors"
+	"github.com/kart-io/sentinel-x/pkg/utils/response"
 )
 
 // User represents a user in the system.

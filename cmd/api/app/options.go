@@ -2,11 +2,11 @@
 package app
 
 import (
-	jwtopts "github.com/kart-io/sentinel-x/pkg/options/jwt"
-	logopts "github.com/kart-io/sentinel-x/pkg/options/logger"
-	mysqlopts "github.com/kart-io/sentinel-x/pkg/options/mysql"
-	redisopts "github.com/kart-io/sentinel-x/pkg/options/redis"
-	serveropts "github.com/kart-io/sentinel-x/pkg/options/server"
+	mysqlopts "github.com/kart-io/sentinel-x/pkg/component/mysql"
+	redisopts "github.com/kart-io/sentinel-x/pkg/component/redis"
+	logopts "github.com/kart-io/sentinel-x/pkg/infra/logger"
+	serveropts "github.com/kart-io/sentinel-x/pkg/infra/server"
+	jwtopts "github.com/kart-io/sentinel-x/pkg/security/auth/jwt"
 	"github.com/spf13/pflag"
 )
 
@@ -44,8 +44,8 @@ func (o *Options) AddFlags(fs *pflag.FlagSet) {
 	o.Server.AddFlags(fs)
 	o.Log.AddFlags(fs)
 	o.JWT.AddFlags(fs)
-	o.MySQL.AddFlags(fs)
-	o.Redis.AddFlags(fs)
+	o.MySQL.AddFlags(fs, "mysql.")
+	o.Redis.AddFlags(fs, "redis.")
 }
 
 // Validate validates the options.

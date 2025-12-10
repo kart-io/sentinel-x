@@ -11,7 +11,7 @@ server:
   # HTTP server configuration
   http:
     # Listen address
-    addr: ":8100"
+    addr: ":8080"
     # Read timeout
     read-timeout: 30s
     # Write timeout
@@ -109,7 +109,7 @@ server:
   # gRPC server configuration
   grpc:
     # Listen address
-    addr: ":9100"
+    addr: ":8100"
     # Timeout
     timeout: 30s
     # Max receive message size (bytes)
@@ -161,11 +161,11 @@ mysql:
   # Database port
   port: 3306
   # Database username
-  username: "sentinel"
+  username: "root"
   # Database password
-  password: "sentinel123"
+  password: "root123"
   # Database name
-  database: "sentinel"
+  database: "user_auth"
   # Maximum idle connections
   max-idle-connections: 10
   # Maximum open connections

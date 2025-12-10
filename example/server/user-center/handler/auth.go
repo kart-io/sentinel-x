@@ -2,9 +2,9 @@ package handler
 
 import (
 	"github.com/kart-io/sentinel-x/example/server/user-center/service/userservice"
-	"github.com/kart-io/sentinel-x/pkg/errors"
-	"github.com/kart-io/sentinel-x/pkg/response"
-	"github.com/kart-io/sentinel-x/pkg/server/transport"
+	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	"github.com/kart-io/sentinel-x/pkg/utils/errors"
+	"github.com/kart-io/sentinel-x/pkg/utils/response"
 )
 
 type AuthHandler struct {

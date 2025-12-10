@@ -12,15 +12,15 @@ import (
 	v1 "github.com/kart-io/sentinel-x/example/server/user-center/api/v1"
 	"github.com/kart-io/sentinel-x/example/server/user-center/handler"
 	"github.com/kart-io/sentinel-x/example/server/user-center/service/userservice"
-	"github.com/kart-io/sentinel-x/pkg/app"
-	"github.com/kart-io/sentinel-x/pkg/auth/jwt"
-	"github.com/kart-io/sentinel-x/pkg/authz/casbin"
-	"github.com/kart-io/sentinel-x/pkg/authz/casbin/infrastructure/mysql"
 	// Import bridge to register gin adapter
-	_ "github.com/kart-io/sentinel-x/pkg/bridge/gin"
-	serveropts "github.com/kart-io/sentinel-x/pkg/options/server"
-	"github.com/kart-io/sentinel-x/pkg/server"
-	"github.com/kart-io/sentinel-x/pkg/server/transport"
+	_ "github.com/kart-io/sentinel-x/pkg/infra/adapter/gin"
+	"github.com/kart-io/sentinel-x/pkg/infra/app"
+	"github.com/kart-io/sentinel-x/pkg/infra/server"
+	serveropts "github.com/kart-io/sentinel-x/pkg/infra/server"
+	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	"github.com/kart-io/sentinel-x/pkg/security/auth/jwt"
+	"github.com/kart-io/sentinel-x/pkg/security/authz/casbin"
+	"github.com/kart-io/sentinel-x/pkg/security/authz/casbin/infrastructure/mysql"
 )
 
 const (

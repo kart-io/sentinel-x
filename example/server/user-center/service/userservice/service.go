@@ -5,7 +5,7 @@ import (
 	"errors"
 
 	"github.com/kart-io/sentinel-x/example/server/user-center/model"
-	"github.com/kart-io/sentinel-x/pkg/auth/jwt"
+	"github.com/kart-io/sentinel-x/pkg/security/auth/jwt"
 )
 
 type Service struct {
