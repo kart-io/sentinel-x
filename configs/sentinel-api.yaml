@@ -140,16 +140,19 @@ log:
 
 # JWT authentication configuration
 jwt:
-  # Disable authentication
+  # Disable authentication (set to true for development without auth)
   disable-auth: false
-  # Secret key for signing tokens
-  secret: "your-secret-key-change-in-production"
+  # Secret key for signing tokens (min 32 characters for HMAC algorithms)
+  # WARNING: Change this in production!
+  key: "your-secret-key-change-in-production-min-32-chars"
+  # Signing algorithm
+  signing-method: "HS256"
   # Token issuer
   issuer: "sentinel-x"
   # Token expiration duration
-  expired: 24h
-  # Refresh token expiration
-  refresh-expired: 168h
+  expired: 2h
+  # Maximum refresh duration
+  max-refresh: 24h
 
 # MySQL database configuration
 mysql:

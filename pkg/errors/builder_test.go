@@ -333,74 +333,74 @@ func TestQuickCreationFunctions(t *testing.T) {
 // TestNewBuilderBoundaryValidation tests the boundary validation for service, category, and sequence.
 func TestNewBuilderBoundaryValidation(t *testing.T) {
 	tests := []struct {
-		name     string
-		service  int
-		category int
-		sequence int
+		name      string
+		service   int
+		category  int
+		sequence  int
 		wantPanic bool
-		panicMsg string
+		panicMsg  string
 	}{
 		{
-			name:     "valid_min_values",
-			service:  0,
-			category: 0,
-			sequence: 0,
+			name:      "valid_min_values",
+			service:   0,
+			category:  0,
+			sequence:  0,
 			wantPanic: false,
 		},
 		{
-			name:     "valid_max_values",
-			service:  99,
-			category: 99,
-			sequence: 999,
+			name:      "valid_max_values",
+			service:   99,
+			category:  99,
+			sequence:  999,
 			wantPanic: false,
 		},
 		{
-			name:     "service_too_small",
-			service:  -1,
-			category: 0,
-			sequence: 0,
+			name:      "service_too_small",
+			service:   -1,
+			category:  0,
+			sequence:  0,
 			wantPanic: true,
-			panicMsg: "service code must be 0-99",
+			panicMsg:  "service code must be 0-99",
 		},
 		{
-			name:     "service_too_large",
-			service:  100,
-			category: 0,
-			sequence: 0,
+			name:      "service_too_large",
+			service:   100,
+			category:  0,
+			sequence:  0,
 			wantPanic: true,
-			panicMsg: "service code must be 0-99",
+			panicMsg:  "service code must be 0-99",
 		},
 		{
-			name:     "category_too_small",
-			service:  0,
-			category: -1,
-			sequence: 0,
+			name:      "category_too_small",
+			service:   0,
+			category:  -1,
+			sequence:  0,
 			wantPanic: true,
-			panicMsg: "category code must be 0-99",
+			panicMsg:  "category code must be 0-99",
 		},
 		{
-			name:     "category_too_large",
-			service:  0,
-			category: 100,
-			sequence: 0,
+			name:      "category_too_large",
+			service:   0,
+			category:  100,
+			sequence:  0,
 			wantPanic: true,
-			panicMsg: "category code must be 0-99",
+			panicMsg:  "category code must be 0-99",
 		},
 		{
-			name:     "sequence_too_small",
-			service:  0,
-			category: 0,
-			sequence: -1,
+			name:      "sequence_too_small",
+			service:   0,
+			category:  0,
+			sequence:  -1,
 			wantPanic: true,
-			panicMsg: "sequence must be 0-999",
+			panicMsg:  "sequence must be 0-999",
 		},
 		{
-			name:     "sequence_too_large",
-			service:  0,
-			category: 0,
-			sequence: 1000,
+			name:      "sequence_too_large",
+			service:   0,
+			category:  0,
+			sequence:  1000,
 			wantPanic: true,
-			panicMsg: "sequence must be 0-999",
+			panicMsg:  "sequence must be 0-999",
 		},
 	}
 

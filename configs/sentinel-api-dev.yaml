@@ -1,0 +1,71 @@
+# Sentinel-X API Server Development Configuration
+# This config is for local development without external dependencies
+
+# Server configuration
+server:
+  mode: http  # HTTP only for simpler development
+  shutdown-timeout: 10s
+
+# HTTP server configuration
+http:
+  addr: ":8100"
+  read-timeout: 30s
+  write-timeout: 30s
+  idle-timeout: 60s
+  adapter: gin
+
+# Middleware configuration
+middleware:
+  # Core middleware (enabled)
+  disable-recovery: false
+  disable-request-id: false
+  disable-logger: false
+  disable-health: false
+  disable-metrics: false
+
+  # Auth middleware (disabled for development)
+  disable-auth: true
+  disable-authz: true
+
+  # Other middleware (disabled for simplicity)
+  disable-cors: true
+  disable-timeout: true
+  disable-pprof: true
+
+  # Health check paths
+  health:
+    path: /health
+    liveness-path: /live
+    readiness-path: /ready
+
+  # Metrics config
+  metrics:
+    path: /metrics
+    namespace: sentinel
+    subsystem: api
+
+# Logger configuration
+log:
+  level: debug
+  format: console
+  development: true
+  output-paths:
+    - stdout
+
+# JWT configuration (disabled for development)
+jwt:
+  disable-auth: true
+  key: "development-key-not-for-production-use-32ch"
+  signing-method: "HS256"
+  issuer: "sentinel-x-dev"
+  expired: 24h
+  max-refresh: 168h
+
+# MySQL - disabled for development (empty database name skips connection)
+mysql:
+  host: ""
+  database: ""
+
+# Redis - disabled for development (empty host skips connection)
+redis:
+  host: ""

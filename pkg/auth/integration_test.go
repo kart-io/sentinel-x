@@ -18,8 +18,8 @@ import (
 	"github.com/kart-io/sentinel-x/pkg/authz/rbac"
 	"github.com/kart-io/sentinel-x/pkg/errors"
 	"github.com/kart-io/sentinel-x/pkg/middleware"
-	"github.com/kart-io/sentinel-x/pkg/server/transport"
 	jwtopts "github.com/kart-io/sentinel-x/pkg/options/jwt"
+	"github.com/kart-io/sentinel-x/pkg/server/transport"
 )
 
 const (

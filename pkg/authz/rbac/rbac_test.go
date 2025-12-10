@@ -256,7 +256,7 @@ func TestRBACDenyRule(t *testing.T) {
 	// Add role with allow and deny permissions
 	err := rbac.AddRole("editor",
 		authz.NewPermission("posts", "*"), // Allow all actions on posts
-		authz.Permission{                  // Deny delete
+		authz.Permission{ // Deny delete
 			Resource: "posts",
 			Action:   "delete",
 			Effect:   authz.EffectDeny,

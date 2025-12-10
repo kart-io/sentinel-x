@@ -59,20 +59,20 @@ type Options struct {
 
 // RecoveryOptions defines recovery middleware options.
 type RecoveryOptions struct {
-	EnableStackTrace bool                                                          `json:"enable-stack-trace" mapstructure:"enable-stack-trace"`
+	EnableStackTrace bool                                                       `json:"enable-stack-trace" mapstructure:"enable-stack-trace"`
 	OnPanic          func(ctx transport.Context, err interface{}, stack []byte) `json:"-" mapstructure:"-"`
 }
 
 // RequestIDOptions defines request ID middleware options.
 type RequestIDOptions struct {
-	Header    string          `json:"header" mapstructure:"header"`
+	Header    string        `json:"header" mapstructure:"header"`
 	Generator func() string `json:"-" mapstructure:"-"`
 }
 
 // LoggerOptions defines logger middleware options.
 type LoggerOptions struct {
-	SkipPaths           []string                                   `json:"skip-paths" mapstructure:"skip-paths"`
-	UseStructuredLogger bool                                       `json:"use-structured-logger" mapstructure:"use-structured-logger"`
+	SkipPaths           []string                                 `json:"skip-paths" mapstructure:"skip-paths"`
+	UseStructuredLogger bool                                     `json:"use-structured-logger" mapstructure:"use-structured-logger"`
 	Output              func(format string, args ...interface{}) `json:"-" mapstructure:"-"`
 }
 
@@ -94,9 +94,9 @@ type TimeoutOptions struct {
 
 // HealthOptions defines health check options.
 type HealthOptions struct {
-	Path          string         `json:"path" mapstructure:"path"`
-	LivenessPath  string         `json:"liveness-path" mapstructure:"liveness-path"`
-	ReadinessPath string         `json:"readiness-path" mapstructure:"readiness-path"`
+	Path          string       `json:"path" mapstructure:"path"`
+	LivenessPath  string       `json:"liveness-path" mapstructure:"liveness-path"`
+	ReadinessPath string       `json:"readiness-path" mapstructure:"readiness-path"`
 	Checker       func() error `json:"-" mapstructure:"-"`
 }
 

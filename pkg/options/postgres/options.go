@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"time"
@@ -8,18 +9,68 @@ import (
 	"github.com/spf13/pflag"
 )
 
+// redactedPassword is the placeholder used when serializing passwords.
+const redactedPassword = "[REDACTED]"
+
 // Options defines configuration options for PostgreSQL.
 type Options struct {
 	Host                  string        `json:"host" mapstructure:"host"`
 	Port                  int           `json:"port" mapstructure:"port"`
 	Username              string        `json:"username" mapstructure:"username"`
-	Password              string        `json:"password" mapstructure:"password"`
+	Password              string        `json:"-" mapstructure:"password"` // Excluded from JSON serialization
 	Database              string        `json:"database" mapstructure:"database"`
 	SSLMode               string        `json:"ssl-mode" mapstructure:"ssl-mode"`
 	MaxIdleConnections    int           `json:"max-idle-connections" mapstructure:"max-idle-connections"`
 	MaxOpenConnections    int           `json:"max-open-connections" mapstructure:"max-open-connections"`
 	MaxConnectionLifeTime time.Duration `json:"max-connection-life-time" mapstructure:"max-connection-life-time"`
 	LogLevel              int           `json:"log-level" mapstructure:"log-level"`
+}
+
+// optionsForJSON is used for JSON marshaling with password redacted.
+type optionsForJSON struct {
+	Host                  string        `json:"host"`
+	Port                  int           `json:"port"`
+	Username              string        `json:"username"`
+	Password              string        `json:"password"`
+	Database              string        `json:"database"`
+	SSLMode               string        `json:"ssl-mode"`
+	MaxIdleConnections    int           `json:"max-idle-connections"`
+	MaxOpenConnections    int           `json:"max-open-connections"`
+	MaxConnectionLifeTime time.Duration `json:"max-connection-life-time"`
+	LogLevel              int           `json:"log-level"`
+}
+
+// MarshalJSON implements json.Marshaler with password redaction.
+// This prevents accidental password exposure in logs or debug output.
+func (o *Options) MarshalJSON() ([]byte, error) {
+	password := redactedPassword
+	if o.Password == "" {
+		password = ""
+	}
+
+	return json.Marshal(optionsForJSON{
+		Host:                  o.Host,
+		Port:                  o.Port,
+		Username:              o.Username,
+		Password:              password,
+		Database:              o.Database,
+		SSLMode:               o.SSLMode,
+		MaxIdleConnections:    o.MaxIdleConnections,
+		MaxOpenConnections:    o.MaxOpenConnections,
+		MaxConnectionLifeTime: o.MaxConnectionLifeTime,
+		LogLevel:              o.LogLevel,
+	})
+}
+
+// String returns a string representation with password redacted.
+// Safe for logging and debugging.
+func (o *Options) String() string {
+	password := redactedPassword
+	if o.Password == "" {
+		password = ""
+	}
+	return fmt.Sprintf("PostgreSQL{host=%s, port=%d, user=%s, password=%s, database=%s, sslmode=%s}",
+		o.Host, o.Port, o.Username, password, o.Database, o.SSLMode)
 }
 
 // NewOptions creates a new Options object with default values.

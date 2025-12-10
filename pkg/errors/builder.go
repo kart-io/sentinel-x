@@ -457,4 +457,3 @@ func NewConfigError(service, sequence int) *ErrnoBuilder {
 		HTTP(http.StatusInternalServerError).
 		GRPC(codes.Internal)
 }
-

@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/kart-io/sentinel-x/pkg/middleware"
 	httpopts "github.com/kart-io/sentinel-x/pkg/options/http"
 	serveropts "github.com/kart-io/sentinel-x/pkg/options/server"
-	"github.com/kart-io/sentinel-x/pkg/middleware"
 	"github.com/kart-io/sentinel-x/pkg/server/service"
 	"github.com/kart-io/sentinel-x/pkg/server/transport"
 )

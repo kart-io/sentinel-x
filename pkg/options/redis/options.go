@@ -1,6 +1,7 @@
 package redis
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"time"
@@ -8,11 +9,14 @@ import (
 	"github.com/spf13/pflag"
 )
 
+// redactedPassword is the placeholder used when serializing passwords.
+const redactedPassword = "[REDACTED]"
+
 // Options defines configuration options for Redis.
 type Options struct {
 	Host         string        `json:"host" mapstructure:"host"`
 	Port         int           `json:"port" mapstructure:"port"`
-	Password     string        `json:"password" mapstructure:"password"`
+	Password     string        `json:"-" mapstructure:"password"` // Excluded from JSON serialization
 	Database     int           `json:"database" mapstructure:"database"`
 	MaxRetries   int           `json:"max-retries" mapstructure:"max-retries"`
 	PoolSize     int           `json:"pool-size" mapstructure:"pool-size"`
@@ -21,6 +25,55 @@ type Options struct {
 	ReadTimeout  time.Duration `json:"read-timeout" mapstructure:"read-timeout"`
 	WriteTimeout time.Duration `json:"write-timeout" mapstructure:"write-timeout"`
 	PoolTimeout  time.Duration `json:"pool-timeout" mapstructure:"pool-timeout"`
+}
+
+// optionsForJSON is used for JSON marshaling with password redacted.
+type optionsForJSON struct {
+	Host         string        `json:"host"`
+	Port         int           `json:"port"`
+	Password     string        `json:"password"`
+	Database     int           `json:"database"`
+	MaxRetries   int           `json:"max-retries"`
+	PoolSize     int           `json:"pool-size"`
+	MinIdleConns int           `json:"min-idle-conns"`
+	DialTimeout  time.Duration `json:"dial-timeout"`
+	ReadTimeout  time.Duration `json:"read-timeout"`
+	WriteTimeout time.Duration `json:"write-timeout"`
+	PoolTimeout  time.Duration `json:"pool-timeout"`
+}
+
+// MarshalJSON implements json.Marshaler with password redaction.
+// This prevents accidental password exposure in logs or debug output.
+func (o *Options) MarshalJSON() ([]byte, error) {
+	password := redactedPassword
+	if o.Password == "" {
+		password = ""
+	}
+
+	return json.Marshal(optionsForJSON{
+		Host:         o.Host,
+		Port:         o.Port,
+		Password:     password,
+		Database:     o.Database,
+		MaxRetries:   o.MaxRetries,
+		PoolSize:     o.PoolSize,
+		MinIdleConns: o.MinIdleConns,
+		DialTimeout:  o.DialTimeout,
+		ReadTimeout:  o.ReadTimeout,
+		WriteTimeout: o.WriteTimeout,
+		PoolTimeout:  o.PoolTimeout,
+	})
+}
+
+// String returns a string representation with password redacted.
+// Safe for logging and debugging.
+func (o *Options) String() string {
+	password := redactedPassword
+	if o.Password == "" {
+		password = ""
+	}
+	return fmt.Sprintf("Redis{host=%s, port=%d, password=%s, database=%d}",
+		o.Host, o.Port, password, o.Database)
 }
 
 // NewOptions creates a new Options object with default values.
