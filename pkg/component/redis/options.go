@@ -84,13 +84,21 @@ func NewOptions() *Options {
 		Password:     "",
 		Database:     0,
 		MaxRetries:   3,
-		PoolSize:     10,
-		MinIdleConns: 0,
+		PoolSize:     50,
+		MinIdleConns: 10,
 		DialTimeout:  5 * time.Second,
 		ReadTimeout:  3 * time.Second,
 		WriteTimeout: 3 * time.Second,
 		PoolTimeout:  4 * time.Second,
 	}
+}
+
+// Complete fills in any fields not set that are required to have valid data.
+// For Redis options, this method currently has no completion logic as all
+// defaults are set in NewOptions(). This method is provided to satisfy the
+// component.ConfigOptions interface.
+func (o *Options) Complete() error {
+	return nil
 }
 
 // Validate checks if the options are valid.

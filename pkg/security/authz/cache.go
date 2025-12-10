@@ -3,6 +3,8 @@ package authz
 
 import (
 	"context"
+	"sort"
+	"strings"
 	"sync"
 	"time"
 )
@@ -24,6 +26,12 @@ type CachedAuthorizer struct {
 
 type cacheEntry struct {
 	allowed   bool
+	expiresAt time.Time
+}
+
+// cacheItem represents a cache entry with its key for sorting purposes.
+type cacheItem struct {
+	key       string
 	expiresAt time.Time
 }
 
@@ -153,39 +161,116 @@ func (c *CachedAuthorizer) Size() int {
 
 // cacheKey generates a cache key.
 func (c *CachedAuthorizer) cacheKey(subject, resource, action string) string {
-	return subject + ":" + resource + ":" + action
+	return buildCacheKey(subject, resource, action)
+}
+
+// buildCacheKey builds cache key with optimized string concatenation.
+func buildCacheKey(subject, resource, action string) string {
+	var b strings.Builder
+	b.Grow(len(subject) + len(resource) + len(action) + 2)
+	b.WriteString(subject)
+	b.WriteByte(':')
+	b.WriteString(resource)
+	b.WriteByte(':')
+	b.WriteString(action)
+	return b.String()
 }
 
 // evictOldest removes the oldest entries when cache is full.
 // Must be called with lock held.
+// This method implements a two-phase eviction strategy:
+// 1. First, remove all expired entries
+// 2. If insufficient, remove oldest (earliest expiring) active entries
 func (c *CachedAuthorizer) evictOldest() {
-	// Simple eviction: remove ~10% of entries (oldest by expiration)
 	toRemove := c.maxSize / 10
 	if toRemove < 1 {
 		toRemove = 1
 	}
 
-	var oldest []string
+	now := time.Now()
+
+	// Categorize entries into expired and active
+	expired, active := c.categorizeEntries(now)
+
+	// Build final eviction list
+	toDelete := c.buildEvictionList(expired, active, toRemove)
+
+	// Execute deletions
+	c.deleteEntries(toDelete)
+}
+
+// categorizeEntries separates cache entries into expired and active categories.
+// This function is responsible solely for classification, not deletion.
+func (c *CachedAuthorizer) categorizeEntries(now time.Time) (expired []string, active []cacheItem) {
+	expired = make([]string, 0)
+	active = make([]cacheItem, 0)
+
 	for key, entry := range c.cache {
-		if time.Now().After(entry.expiresAt) {
-			oldest = append(oldest, key)
-		}
-		if len(oldest) >= toRemove {
-			break
-		}
-	}
-
-	// If not enough expired entries, just remove some arbitrary entries
-	if len(oldest) < toRemove {
-		for key := range c.cache {
-			oldest = append(oldest, key)
-			if len(oldest) >= toRemove {
-				break
-			}
+		if now.After(entry.expiresAt) {
+			// Entry has expired
+			expired = append(expired, key)
+		} else {
+			// Entry is still active
+			active = append(active, cacheItem{
+				key:       key,
+				expiresAt: entry.expiresAt,
+			})
 		}
 	}
 
-	for _, key := range oldest {
+	return expired, active
+}
+
+// buildEvictionList constructs the final list of keys to delete.
+// It prioritizes expired entries first, then adds oldest active entries if needed.
+func (c *CachedAuthorizer) buildEvictionList(expired []string, active []cacheItem, limit int) []string {
+	toDelete := make([]string, 0, limit)
+
+	// First, include all expired entries (up to limit)
+	for i := 0; i < len(expired) && len(toDelete) < limit; i++ {
+		toDelete = append(toDelete, expired[i])
+	}
+
+	// If we haven't reached the limit, add oldest active entries
+	if len(toDelete) < limit {
+		remaining := limit - len(toDelete)
+		oldestActive := c.collectOldestEntries(active, remaining)
+		toDelete = append(toDelete, oldestActive...)
+	}
+
+	return toDelete
+}
+
+// collectOldestEntries returns the keys of the oldest entries by expiration time.
+// Entries are sorted by expiresAt in ascending order (earliest first).
+func (c *CachedAuthorizer) collectOldestEntries(items []cacheItem, count int) []string {
+	if len(items) == 0 {
+		return []string{}
+	}
+
+	// Sort by expiration time (earliest first)
+	sort.Slice(items, func(i, j int) bool {
+		return items[i].expiresAt.Before(items[j].expiresAt)
+	})
+
+	// Collect the oldest 'count' entries
+	limit := count
+	if limit > len(items) {
+		limit = len(items)
+	}
+
+	result := make([]string, limit)
+	for i := 0; i < limit; i++ {
+		result[i] = items[i].key
+	}
+
+	return result
+}
+
+// deleteEntries removes the specified keys from the cache.
+// This function is responsible solely for deletion, not selection logic.
+func (c *CachedAuthorizer) deleteEntries(keys []string) {
+	for _, key := range keys {
 		delete(c.cache, key)
 	}
 }

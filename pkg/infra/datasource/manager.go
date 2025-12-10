@@ -609,29 +609,71 @@ func (m *Manager) closeClient(client interface{}) error {
 // =============================================================================
 
 var (
-	globalManager     *Manager
-	globalManagerOnce sync.Once
-	globalManagerMu   sync.RWMutex
+	globalManager   *Manager
+	globalManagerMu sync.RWMutex
+	globalManagerSet bool
 )
 
-// Global returns the global singleton manager instance.
-func Global() *Manager {
-	globalManagerOnce.Do(func() {
+// GetGlobal returns the global singleton manager instance.
+// If not set via SetGlobal, it creates a default manager instance.
+// This function is thread-safe.
+func GetGlobal() *Manager {
+	globalManagerMu.RLock()
+	if globalManager != nil {
+		defer globalManagerMu.RUnlock()
+		return globalManager
+	}
+	globalManagerMu.RUnlock()
+
+	// Double-check pattern for initialization
+	globalManagerMu.Lock()
+	defer globalManagerMu.Unlock()
+
+	if globalManager == nil {
 		globalManager = NewManager()
-	})
+		globalManagerSet = true
+	}
 	return globalManager
 }
 
 // SetGlobal sets the global manager instance.
-// This should be called early in application initialization if custom configuration is needed.
-// This function is thread-safe and uses sync.Once to ensure single initialization.
-func SetGlobal(mgr *Manager) {
+// This should be called early in application initialization before any calls to GetGlobal.
+// Returns an error if a global manager has already been set or initialized.
+// This function is thread-safe.
+func SetGlobal(mgr *Manager) error {
+	if mgr == nil {
+		return fmt.Errorf("cannot set nil manager as global instance")
+	}
+
 	globalManagerMu.Lock()
 	defer globalManagerMu.Unlock()
 
-	// Reset the once to allow setting a new manager
-	globalManagerOnce = sync.Once{}
-	globalManagerOnce.Do(func() {
-		globalManager = mgr
-	})
+	if globalManagerSet {
+		return fmt.Errorf("global manager already set, cannot override existing instance")
+	}
+
+	globalManager = mgr
+	globalManagerSet = true
+	return nil
+}
+
+// MustSetGlobal sets the global manager instance or panics if already set.
+// This should only be used in initialization code where failure is unrecoverable.
+func MustSetGlobal(mgr *Manager) {
+	if err := SetGlobal(mgr); err != nil {
+		panic(fmt.Sprintf("failed to set global manager: %v", err))
+	}
+}
+
+// ResetGlobal resets the global manager instance.
+// This is primarily intended for testing purposes and should not be used in production code.
+// Returns the previous manager instance if any.
+func ResetGlobal() *Manager {
+	globalManagerMu.Lock()
+	defer globalManagerMu.Unlock()
+
+	prev := globalManager
+	globalManager = nil
+	globalManagerSet = false
+	return prev
 }

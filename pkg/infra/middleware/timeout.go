@@ -2,8 +2,11 @@ package middleware
 
 import (
 	"context"
+	"fmt"
+	"runtime/debug"
 	"time"
 
+	"github.com/kart-io/logger"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 	"github.com/kart-io/sentinel-x/pkg/utils/errors"
 	"github.com/kart-io/sentinel-x/pkg/utils/response"
@@ -66,15 +69,13 @@ func TimeoutWithConfig(config TimeoutConfig) transport.MiddlewareFunc {
 
 			go func() {
 				defer func() {
-					// Prevent panic from causing channel to never close
+					// Recover from panic to prevent process crash
 					if r := recover(); r != nil {
-						// Log panic if needed, but ensure channel signals completion
+						// Log panic information for debugging
+						logPanic(r, req.URL.Path)
 					}
-					// Non-blocking send to done channel
-					select {
-					case done <- struct{}{}:
-					default:
-					}
+					// Signal completion - buffered channel guarantees non-blocking send
+					done <- struct{}{}
 				}()
 				next(c)
 			}()
@@ -90,4 +91,14 @@ func TimeoutWithConfig(config TimeoutConfig) transport.MiddlewareFunc {
 			}
 		}
 	}
+}
+
+// logPanic logs panic information with stack trace for debugging.
+func logPanic(r interface{}, path string) {
+	stack := debug.Stack()
+	logger.Errorw("panic recovered in timeout middleware",
+		"panic", fmt.Sprintf("%v", r),
+		"path", path,
+		"stack", string(stack),
+	)
 }

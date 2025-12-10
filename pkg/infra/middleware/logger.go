@@ -2,11 +2,32 @@ package middleware
 
 import (
 	"log"
+	"sync"
 	"time"
 
 	"github.com/kart-io/logger"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 )
+
+// fieldsPool is a sync.Pool for reusing fields slices to reduce heap allocations.
+var fieldsPool = sync.Pool{
+	New: func() interface{} {
+		s := make([]interface{}, 0, 16)
+		return &s
+	},
+}
+
+// acquireFields retrieves a fields slice from the pool.
+func acquireFields() *[]interface{} {
+	return fieldsPool.Get().(*[]interface{})
+}
+
+// releaseFields resets and returns the fields slice to the pool.
+func releaseFields(fields *[]interface{}) {
+	// Reset slice to zero length but keep capacity
+	*fields = (*fields)[:0]
+	fieldsPool.Put(fields)
+}
 
 // LoggerConfig defines the config for Logger middleware.
 type LoggerConfig struct {
@@ -73,18 +94,22 @@ func LoggerWithConfig(config LoggerConfig) transport.MiddlewareFunc {
 
 			// Log the request
 			if config.UseStructuredLogger {
-				// Use structured logger
-				fields := []interface{}{
+				// Acquire fields slice from pool
+				fields := acquireFields()
+				defer releaseFields(fields)
+
+				// Populate fields
+				*fields = append(*fields,
 					"method", req.Method,
 					"path", path,
 					"remote_addr", req.RemoteAddr,
 					"latency", latency.String(),
 					"latency_ms", latency.Milliseconds(),
-				}
+				)
 				if requestID != "" {
-					fields = append(fields, "request_id", requestID)
+					*fields = append(*fields, "request_id", requestID)
 				}
-				logger.Infow("HTTP Request", fields...)
+				logger.Infow("HTTP Request", (*fields)...)
 			} else {
 				// Use legacy printf-style logging
 				if requestID != "" {

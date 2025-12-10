@@ -73,6 +73,14 @@ func NewOptions() *Options {
 	}
 }
 
+// Complete fills in any fields not set that are required to have valid data.
+// For Etcd options, this method currently has no completion logic as all
+// defaults are set in NewOptions(). This method is provided to satisfy the
+// component.ConfigOptions interface.
+func (o *Options) Complete() error {
+	return nil
+}
+
 // Validate checks if the options are valid.
 func (o *Options) Validate() error {
 	// 如果 CLI 参数为空，从环境变量读取

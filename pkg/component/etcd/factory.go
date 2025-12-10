@@ -79,3 +79,26 @@ func (f *Factory) MustCreate(ctx context.Context) *Client {
 	}
 	return client
 }
+
+// Options returns the etcd options used by this factory.
+// This is useful for inspecting or cloning the configuration.
+func (f *Factory) Options() *Options {
+	return f.opts
+}
+
+// Clone creates a new factory with a copy of the current options.
+// This is useful when you need to create multiple factories with
+// slightly different configurations based on the same base options.
+//
+// Example:
+//
+//	factory := NewFactory(baseOpts)
+//	devFactory := factory.Clone()
+//	devFactory.Options().Endpoints = []string{"etcd-dev:2379"}
+func (f *Factory) Clone() *Factory {
+	// Create a shallow copy of options
+	optsCopy := *f.opts
+	return &Factory{
+		opts: &optsCopy,
+	}
+}

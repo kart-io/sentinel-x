@@ -99,26 +99,34 @@ fmt.Printf("Open connections: %d\n", stats.OpenConnections)
 ### 使用工厂模式
 
 ```go
-// 创建工厂
-factory := pgclient.NewFactory()
+// 创建配置
+opts := &postgres.Options{
+    Host:     "localhost",
+    Port:     5432,
+    Username: "postgres",
+    Password: "password",
+    Database: "mydb",
+    SSLMode:  "disable",
+}
 
-// 创建命名客户端
-client1, err := factory.Create("db1", opts1)
+// 创建工厂
+factory := pgclient.NewFactory(opts)
+
+// 使用工厂创建客户端
+client, err := factory.Create(context.Background())
 if err != nil {
     log.Fatalf("Failed to create client: %v", err)
 }
+defer client.Close()
 
-// 获取客户端
-client := factory.Get("db1")
-
-// 获取或创建
-client2, err := factory.GetOrCreate("db2", opts2)
-
-// 列出所有客户端
-names := factory.List()
-
-// 关闭所有客户端
-factory.CloseAll()
+// 克隆工厂以创建不同配置的客户端
+devFactory := factory.Clone()
+devFactory.Options().Database = "dev_db"
+devClient, err := devFactory.Create(context.Background())
+if err != nil {
+    log.Fatalf("Failed to create dev client: %v", err)
+}
+defer devClient.Close()
 ```
 
 ## DSN 构建

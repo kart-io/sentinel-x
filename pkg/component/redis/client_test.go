@@ -89,8 +89,12 @@ func TestNewOptions_Defaults(t *testing.T) {
 		t.Errorf("expected default max retries 3, got %d", opts.MaxRetries)
 	}
 
-	if opts.PoolSize != 10 {
-		t.Errorf("expected default pool size 10, got %d", opts.PoolSize)
+	if opts.PoolSize != 50 {
+		t.Errorf("expected default pool size 50, got %d", opts.PoolSize)
+	}
+
+	if opts.MinIdleConns != 10 {
+		t.Errorf("expected default min idle conns 10, got %d", opts.MinIdleConns)
 	}
 
 	if opts.DialTimeout != 5*time.Second {

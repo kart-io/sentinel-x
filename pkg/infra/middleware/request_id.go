@@ -4,6 +4,9 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"fmt"
+	"sync/atomic"
+	"time"
 
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 )
@@ -12,6 +15,10 @@ import (
 const (
 	HeaderXRequestID = "X-Request-ID"
 )
+
+// requestIDCounter is the atomic counter for fallback request ID generation.
+// It is used when cryptographic random number generation fails.
+var requestIDCounter uint64
 
 // RequestIDConfig defines the config for RequestID middleware.
 type RequestIDConfig struct {
@@ -88,9 +95,22 @@ func GetRequestID(ctx context.Context) string {
 	return ""
 }
 
-// generateRequestID generates a random request ID.
+// generateRequestID generates a random request ID using cryptographic random bytes.
+// If random generation fails, it falls back to generateFallbackRequestID.
 func generateRequestID() string {
 	b := make([]byte, 16)
-	_, _ = rand.Read(b)
+	n, err := rand.Read(b)
+	if err != nil || n != 16 {
+		return generateFallbackRequestID()
+	}
 	return hex.EncodeToString(b)
+}
+
+// generateFallbackRequestID generates a deterministic request ID when random generation fails.
+// It uses the current Unix timestamp combined with an atomic counter to ensure uniqueness.
+// Format: timestamp(hex)-counter(hex)
+func generateFallbackRequestID() string {
+	timestamp := time.Now().Unix()
+	counter := atomic.AddUint64(&requestIDCounter, 1)
+	return fmt.Sprintf("%x-%x", timestamp, counter)
 }

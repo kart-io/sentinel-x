@@ -323,7 +323,67 @@ func (r *RBAC) SetRoleParent(role string, parents ...string) error {
 		}
 	}
 
+	// Temporarily set the new hierarchy
+	oldParents := r.roleHierarchy[role]
 	r.roleHierarchy[role] = parents
+
+	// Detect circular dependency
+	if cycle := r.detectCycle(role); cycle != nil {
+		// Rollback to old hierarchy
+		if oldParents == nil {
+			delete(r.roleHierarchy, role)
+		} else {
+			r.roleHierarchy[role] = oldParents
+		}
+		return errors.ErrInvalidParam.WithMessagef("circular role dependency detected: %v", cycle)
+	}
+
+	return nil
+}
+
+// detectCycle detects circular dependencies in role hierarchy using DFS.
+// Returns the cycle path if detected, nil otherwise.
+func (r *RBAC) detectCycle(startRole string) []string {
+	visited := make(map[string]bool)
+	recStack := make(map[string]bool)
+	var path []string
+
+	var dfs func(string) bool
+	dfs = func(role string) bool {
+		visited[role] = true
+		recStack[role] = true
+		path = append(path, role)
+
+		// Visit all parent roles
+		for _, parent := range r.roleHierarchy[role] {
+			if !visited[parent] {
+				if dfs(parent) {
+					return true
+				}
+			} else if recStack[parent] {
+				// Cycle detected, find the cycle path
+				cycleStart := -1
+				for i, r := range path {
+					if r == parent {
+						cycleStart = i
+						break
+					}
+				}
+				if cycleStart >= 0 {
+					path = append(path[cycleStart:], parent)
+				}
+				return true
+			}
+		}
+
+		recStack[role] = false
+		path = path[:len(path)-1]
+		return false
+	}
+
+	if dfs(startRole) {
+		return path
+	}
 	return nil
 }
 

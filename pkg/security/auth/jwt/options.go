@@ -24,6 +24,7 @@ package jwt
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/spf13/pflag"
@@ -44,6 +45,9 @@ const (
 
 	// MinKeyLength is the minimum required key length for security.
 	MinKeyLength = 32
+
+	// RecommendedKeyLength is the recommended key length for enhanced security.
+	RecommendedKeyLength = 64
 
 	// MaxKeyLength is the maximum allowed key length.
 	MaxKeyLength = 256
@@ -159,19 +163,37 @@ func (o *Options) validateKey() error {
 		return fmt.Errorf("jwt key is required")
 	}
 
-	// For HMAC algorithms, validate key length
+	// For HMAC algorithms, validate key length and warn if weak
 	if o.isHMAC() {
-		if len(o.Key) < MinKeyLength {
-			return fmt.Errorf("jwt key must be at least %d characters for HMAC algorithms, got: %d",
-				MinKeyLength, len(o.Key))
+		if err := validateKeyLength(o.Key); err != nil {
+			return err
 		}
-		if len(o.Key) > MaxKeyLength {
-			return fmt.Errorf("jwt key must be at most %d characters, got: %d",
-				MaxKeyLength, len(o.Key))
-		}
+		warnWeakKeyStrength(o.Key)
 	}
 
 	return nil
+}
+
+// validateKeyLength validates that the key meets minimum length requirements.
+func validateKeyLength(key string) error {
+	if len(key) < MinKeyLength {
+		return fmt.Errorf("jwt key must be at least %d characters for HMAC algorithms, got: %d",
+			MinKeyLength, len(key))
+	}
+	if len(key) > MaxKeyLength {
+		return fmt.Errorf("jwt key must be at most %d characters, got: %d",
+			MaxKeyLength, len(key))
+	}
+	return nil
+}
+
+// warnWeakKeyStrength warns if the key length is below recommended strength.
+func warnWeakKeyStrength(key string) {
+	if len(key) >= MinKeyLength && len(key) < RecommendedKeyLength {
+		fmt.Fprintf(os.Stderr, "WARNING: JWT key length (%d) is below recommended length (%d). "+
+			"Consider using a stronger key for enhanced security.\n",
+			len(key), RecommendedKeyLength)
+	}
 }
 
 // isHMAC returns true if the signing method is an HMAC algorithm.

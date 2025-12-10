@@ -110,40 +110,62 @@ func (s *MemoryStore) cleanup() {
 
 // doCleanup removes expired entries in batches to minimize lock contention.
 func (s *MemoryStore) doCleanup() {
-	// First pass: collect expired tokens under read lock
-	s.mu.RLock()
-	var expired []string
-	now := time.Now()
-	for token, exp := range s.tokens {
-		if now.After(exp) {
-			expired = append(expired, token)
-		}
-	}
-	s.mu.RUnlock()
+	// Phase 1: Collect potentially expired tokens under read lock
+	expired := s.collectExpiredTokens()
 
-	// No expired tokens
 	if len(expired) == 0 {
 		return
 	}
 
-	// Second pass: delete in batches under write lock
-	const batchSize = 100
-	for i := 0; i < len(expired); i += batchSize {
-		end := i + batchSize
-		if end > len(expired) {
-			end = len(expired)
+	// Phase 2: Delete expired tokens under write lock with current time verification
+	s.deleteExpiredTokens(expired)
+}
+
+// collectExpiredTokens collects tokens that appear to be expired under read lock.
+// Returns a list of candidate tokens for deletion.
+func (s *MemoryStore) collectExpiredTokens() []string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	var expired []string
+	now := time.Now()
+	for token, exp := range s.tokens {
+		if isExpired(exp, now) {
+			expired = append(expired, token)
 		}
-		batch := expired[i:end]
+	}
+
+	return expired
+}
+
+// deleteExpiredTokens deletes the candidate tokens in batches under write lock.
+// Re-validates expiration using current time to avoid deleting renewed tokens.
+func (s *MemoryStore) deleteExpiredTokens(candidates []string) {
+	const batchSize = 100
+
+	for i := 0; i < len(candidates); i += batchSize {
+		end := i + batchSize
+		if end > len(candidates) {
+			end = len(candidates)
+		}
+		batch := candidates[i:end]
 
 		s.mu.Lock()
+		// Use current time for each batch to ensure accurate expiration check
+		now := time.Now()
 		for _, token := range batch {
-			// Re-check expiration in case token was renewed
-			if exp, exists := s.tokens[token]; exists && now.After(exp) {
+			// Re-check expiration in case token was renewed between collection and deletion
+			if exp, exists := s.tokens[token]; exists && isExpired(exp, now) {
 				delete(s.tokens, token)
 			}
 		}
 		s.mu.Unlock()
 	}
+}
+
+// isExpired checks if the expiration time has passed.
+func isExpired(expiration time.Time, now time.Time) bool {
+	return now.After(expiration)
 }
 
 // Size returns the number of revoked tokens in the store.

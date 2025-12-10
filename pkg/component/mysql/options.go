@@ -22,6 +22,7 @@ type Options struct {
 	MaxIdleConnections    int           `json:"max-idle-connections" mapstructure:"max-idle-connections"`
 	MaxOpenConnections    int           `json:"max-open-connections" mapstructure:"max-open-connections"`
 	MaxConnectionLifeTime time.Duration `json:"max-connection-life-time" mapstructure:"max-connection-life-time"`
+	MaxIdleTime           time.Duration `json:"max-idle-time" mapstructure:"max-idle-time"`
 	LogLevel              int           `json:"log-level" mapstructure:"log-level"`
 }
 
@@ -35,6 +36,7 @@ type optionsForJSON struct {
 	MaxIdleConnections    int           `json:"max-idle-connections"`
 	MaxOpenConnections    int           `json:"max-open-connections"`
 	MaxConnectionLifeTime time.Duration `json:"max-connection-life-time"`
+	MaxIdleTime           time.Duration `json:"max-idle-time"`
 	LogLevel              int           `json:"log-level"`
 }
 
@@ -55,6 +57,7 @@ func (o *Options) MarshalJSON() ([]byte, error) {
 		MaxIdleConnections:    o.MaxIdleConnections,
 		MaxOpenConnections:    o.MaxOpenConnections,
 		MaxConnectionLifeTime: o.MaxConnectionLifeTime,
+		MaxIdleTime:           o.MaxIdleTime,
 		LogLevel:              o.LogLevel,
 	})
 }
@@ -78,11 +81,20 @@ func NewOptions() *Options {
 		Username:              "root",
 		Password:              "",
 		Database:              "",
-		MaxIdleConnections:    10,
-		MaxOpenConnections:    100,
-		MaxConnectionLifeTime: 10 * time.Second,
+		MaxIdleConnections:    20,
+		MaxOpenConnections:    200,
+		MaxConnectionLifeTime: 3600 * time.Second,
+		MaxIdleTime:           600 * time.Second,
 		LogLevel:              1, // Silent
 	}
+}
+
+// Complete fills in any fields not set that are required to have valid data.
+// For MySQL options, this method currently has no completion logic as all
+// defaults are set in NewOptions(). This method is provided to satisfy the
+// component.ConfigOptions interface.
+func (o *Options) Complete() error {
+	return nil
 }
 
 // Validate checks if the options are valid.
@@ -111,5 +123,6 @@ func (o *Options) AddFlags(fs *pflag.FlagSet, namePrefix string) {
 	fs.IntVar(&o.MaxIdleConnections, namePrefix+"max-idle-connections", o.MaxIdleConnections, "MySQL max idle connections")
 	fs.IntVar(&o.MaxOpenConnections, namePrefix+"max-open-connections", o.MaxOpenConnections, "MySQL max open connections")
 	fs.DurationVar(&o.MaxConnectionLifeTime, namePrefix+"max-connection-life-time", o.MaxConnectionLifeTime, "MySQL max connection life time")
+	fs.DurationVar(&o.MaxIdleTime, namePrefix+"max-idle-time", o.MaxIdleTime, "MySQL max idle time")
 	fs.IntVar(&o.LogLevel, namePrefix+"log-level", o.LogLevel, "MySQL log level")
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync"
 
+	"github.com/kart-io/logger"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -35,12 +36,62 @@ func NewWatcher(client *redis.Client, channel ...string) *Watcher {
 	return w
 }
 
+// recoverFromPanic recovers from panics in the subscription goroutine
+func recoverFromPanic() {
+	if r := recover(); r != nil {
+		logger.Global().Errorw("Recovered from panic in Redis watcher subscription",
+			"error", r,
+			"component", "redis.watcher",
+		)
+	}
+}
+
+// handleChannelClosed handles the channel closure event
+func handleChannelClosed(closeCh chan struct{}) {
+	select {
+	case <-closeCh:
+		// Normal closure - watcher was explicitly closed
+		logger.Global().Debugw("Redis subscription channel closed normally",
+			"component", "redis.watcher",
+		)
+	default:
+		// Abnormal closure - network error or other issue
+		logger.Global().Warnw("Redis subscription channel closed unexpectedly",
+			"component", "redis.watcher",
+			"reason", "possible network disconnect or Redis error",
+		)
+	}
+}
+
+// executeCallback executes the callback in a separate goroutine to avoid blocking
+func executeCallback(callback func(string), payload string) {
+	if callback == nil {
+		return
+	}
+
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				logger.Global().Errorw("Recovered from panic in callback execution",
+					"error", r,
+					"component", "redis.watcher",
+					"payload", payload,
+				)
+			}
+		}()
+
+		callback(payload)
+	}()
+}
+
 func (w *Watcher) startSubscribe() {
 	w.pubsub = w.client.Subscribe(context.Background(), w.channel)
 	w.wg.Add(1)
 
 	go func() {
 		defer w.wg.Done()
+		defer recoverFromPanic()
+
 		ch := w.pubsub.Channel()
 
 		for {
@@ -49,11 +100,10 @@ func (w *Watcher) startSubscribe() {
 				return
 			case msg, ok := <-ch:
 				if !ok {
+					handleChannelClosed(w.closeCh)
 					return
 				}
-				if w.callback != nil {
-					w.callback(msg.Payload)
-				}
+				executeCallback(w.callback, msg.Payload)
 			}
 		}
 	}()

@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/kart-io/sentinel-x/pkg/component/mysql"
-	"github.com/kart-io/sentinel-x/pkg/infra/middleware"
 )
 
 // Example_basicUsage demonstrates basic MySQL client creation and usage.
@@ -134,28 +133,6 @@ func Example_gormUsage() {
 	db.Where("age > ?", 25).Find(&users)
 
 	fmt.Printf("Found %d users\n", len(users))
-}
-
-// Example_healthMiddleware demonstrates integration with health check middleware.
-func Example_healthMiddleware() {
-	opts := mysql.NewOptions()
-	opts.Host = "localhost"
-	opts.Database = "testdb"
-
-	client, err := mysql.New(opts)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer client.Close()
-
-	// Register with health middleware
-	// Convert storage.HealthChecker to middleware.HealthChecker
-	healthMgr := middleware.GetHealthManager()
-	healthChecker := middleware.HealthChecker(client.Health())
-	healthMgr.RegisterChecker("mysql", healthChecker)
-
-	// The health endpoint will now include MySQL status
-	fmt.Println("MySQL health check registered")
 }
 
 // Example_connectionPool demonstrates connection pool configuration.

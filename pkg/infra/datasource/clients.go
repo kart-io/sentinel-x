@@ -171,7 +171,7 @@ func NewPostgresClientWithContext(ctx context.Context, opts *PostgresOptions) (*
 
 // NewPostgresFactory creates a PostgreSQL client factory for dependency injection.
 func NewPostgresFactory(opts *PostgresOptions) Factory {
-	return postgres.NewSimpleFactory(opts)
+	return postgres.NewFactory(opts)
 }
 
 // NewPostgresOptions creates default PostgreSQL options.

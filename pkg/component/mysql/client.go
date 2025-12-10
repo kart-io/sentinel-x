@@ -113,6 +113,9 @@ func NewWithContext(ctx context.Context, opts *Options) (*Client, error) {
 	if opts.MaxConnectionLifeTime > 0 {
 		sqlDB.SetConnMaxLifetime(opts.MaxConnectionLifeTime)
 	}
+	if opts.MaxIdleTime > 0 {
+		sqlDB.SetConnMaxIdleTime(opts.MaxIdleTime)
+	}
 
 	// Verify connection with context
 	if err := sqlDB.PingContext(ctx); err != nil {

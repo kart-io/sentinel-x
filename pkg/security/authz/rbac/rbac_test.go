@@ -530,3 +530,213 @@ func TestRBACSetRoleParentValidation(t *testing.T) {
 		t.Fatalf("SetRoleParent error: %v", err)
 	}
 }
+
+// TestRBACCircularDependencyDetection tests circular dependency detection in role hierarchy.
+func TestRBACCircularDependencyDetection(t *testing.T) {
+	rbac := New()
+
+	// Create roles for testing circular dependencies
+	_ = rbac.AddRole("roleA", authz.NewPermission("posts", "read"))
+	_ = rbac.AddRole("roleB", authz.NewPermission("posts", "write"))
+	_ = rbac.AddRole("roleC", authz.NewPermission("posts", "delete"))
+	_ = rbac.AddRole("roleD", authz.NewPermission("comments", "read"))
+
+	tests := []struct {
+		name      string
+		setup     func()
+		role      string
+		parents   []string
+		wantError bool
+		desc      string
+	}{
+		{
+			name:      "direct self-reference",
+			setup:     func() {},
+			role:      "roleA",
+			parents:   []string{"roleA"},
+			wantError: true,
+			desc:      "role cannot be its own parent",
+		},
+		{
+			name: "two-node cycle",
+			setup: func() {
+				_ = rbac.SetRoleParent("roleA", "roleB")
+			},
+			role:      "roleB",
+			parents:   []string{"roleA"},
+			wantError: true,
+			desc:      "A->B, B->A creates a cycle",
+		},
+		{
+			name: "three-node cycle",
+			setup: func() {
+				rbac.Clear()
+				_ = rbac.AddRole("roleA", authz.NewPermission("posts", "read"))
+				_ = rbac.AddRole("roleB", authz.NewPermission("posts", "write"))
+				_ = rbac.AddRole("roleC", authz.NewPermission("posts", "delete"))
+				_ = rbac.SetRoleParent("roleA", "roleB")
+				_ = rbac.SetRoleParent("roleB", "roleC")
+			},
+			role:      "roleC",
+			parents:   []string{"roleA"},
+			wantError: true,
+			desc:      "A->B->C, C->A creates a cycle",
+		},
+		{
+			name: "four-node cycle",
+			setup: func() {
+				rbac.Clear()
+				_ = rbac.AddRole("roleA", authz.NewPermission("posts", "read"))
+				_ = rbac.AddRole("roleB", authz.NewPermission("posts", "write"))
+				_ = rbac.AddRole("roleC", authz.NewPermission("posts", "delete"))
+				_ = rbac.AddRole("roleD", authz.NewPermission("comments", "read"))
+				_ = rbac.SetRoleParent("roleA", "roleB")
+				_ = rbac.SetRoleParent("roleB", "roleC")
+				_ = rbac.SetRoleParent("roleC", "roleD")
+			},
+			role:      "roleD",
+			parents:   []string{"roleA"},
+			wantError: true,
+			desc:      "A->B->C->D, D->A creates a cycle",
+		},
+		{
+			name: "valid linear hierarchy",
+			setup: func() {
+				rbac.Clear()
+				_ = rbac.AddRole("roleA", authz.NewPermission("posts", "read"))
+				_ = rbac.AddRole("roleB", authz.NewPermission("posts", "write"))
+				_ = rbac.AddRole("roleC", authz.NewPermission("posts", "delete"))
+				_ = rbac.AddRole("roleD", authz.NewPermission("comments", "read"))
+			},
+			role:      "roleA",
+			parents:   []string{"roleB"},
+			wantError: false,
+			desc:      "A->B (no cycle)",
+		},
+		{
+			name: "valid multi-parent hierarchy",
+			setup: func() {
+				rbac.Clear()
+				_ = rbac.AddRole("roleA", authz.NewPermission("posts", "read"))
+				_ = rbac.AddRole("roleB", authz.NewPermission("posts", "write"))
+				_ = rbac.AddRole("roleC", authz.NewPermission("posts", "delete"))
+				_ = rbac.AddRole("roleD", authz.NewPermission("comments", "read"))
+			},
+			role:      "roleA",
+			parents:   []string{"roleB", "roleC"},
+			wantError: false,
+			desc:      "A->B and A->C (no cycle)",
+		},
+		{
+			name: "cycle with multiple parents",
+			setup: func() {
+				rbac.Clear()
+				_ = rbac.AddRole("roleA", authz.NewPermission("posts", "read"))
+				_ = rbac.AddRole("roleB", authz.NewPermission("posts", "write"))
+				_ = rbac.AddRole("roleC", authz.NewPermission("posts", "delete"))
+				_ = rbac.SetRoleParent("roleB", "roleC")
+			},
+			role:      "roleC",
+			parents:   []string{"roleA", "roleB"},
+			wantError: true,
+			desc:      "C->(A,B), B->C creates a cycle through B",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.setup()
+
+			err := rbac.SetRoleParent(tt.role, tt.parents...)
+
+			if tt.wantError {
+				if err == nil {
+					t.Errorf("Expected error for %s, but got nil", tt.desc)
+				} else {
+					t.Logf("Correctly detected circular dependency: %v", err)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Unexpected error for %s: %v", tt.desc, err)
+				}
+			}
+		})
+	}
+}
+
+// TestRBACCircularDependencyRollback tests that failed circular dependency attempts don't modify state.
+func TestRBACCircularDependencyRollback(t *testing.T) {
+	rbac := New()
+
+	// Create roles
+	_ = rbac.AddRole("roleA", authz.NewPermission("posts", "read"))
+	_ = rbac.AddRole("roleB", authz.NewPermission("posts", "write"))
+	_ = rbac.AddRole("roleC", authz.NewPermission("posts", "delete"))
+
+	// Set up valid hierarchy
+	err := rbac.SetRoleParent("roleA", "roleB")
+	if err != nil {
+		t.Fatalf("Initial SetRoleParent failed: %v", err)
+	}
+
+	// Attempt to create a cycle
+	err = rbac.SetRoleParent("roleB", "roleA")
+	if err == nil {
+		t.Fatal("Expected circular dependency error, got nil")
+	}
+
+	// Verify roleB's parent wasn't changed
+	rbac.mu.RLock()
+	parents := rbac.roleHierarchy["roleB"]
+	rbac.mu.RUnlock()
+
+	if len(parents) != 0 {
+		t.Errorf("roleB should have no parents after rollback, got %v", parents)
+	}
+
+	// Verify roleA's parent is still roleB
+	rbac.mu.RLock()
+	parentsA := rbac.roleHierarchy["roleA"]
+	rbac.mu.RUnlock()
+
+	if len(parentsA) != 1 || parentsA[0] != "roleB" {
+		t.Errorf("roleA's parent should still be roleB, got %v", parentsA)
+	}
+}
+
+// TestRBACComplexHierarchyNoCycle tests complex valid hierarchy without cycles.
+func TestRBACComplexHierarchyNoCycle(t *testing.T) {
+	rbac := New()
+
+	// Create a diamond hierarchy:
+	//       D
+	//      / \
+	//     B   C
+	//      \ /
+	//       A
+	_ = rbac.AddRole("roleA", authz.NewPermission("posts", "read"))
+	_ = rbac.AddRole("roleB", authz.NewPermission("posts", "write"))
+	_ = rbac.AddRole("roleC", authz.NewPermission("comments", "write"))
+	_ = rbac.AddRole("roleD", authz.NewPermission("posts", "delete"))
+
+	err := rbac.SetRoleParent("roleA", "roleB", "roleC")
+	if err != nil {
+		t.Fatalf("SetRoleParent A->(B,C) failed: %v", err)
+	}
+
+	err = rbac.SetRoleParent("roleB", "roleD")
+	if err != nil {
+		t.Fatalf("SetRoleParent B->D failed: %v", err)
+	}
+
+	err = rbac.SetRoleParent("roleC", "roleD")
+	if err != nil {
+		t.Fatalf("SetRoleParent C->D failed: %v", err)
+	}
+
+	// Now try to create a cycle from D to A (should fail)
+	err = rbac.SetRoleParent("roleD", "roleA")
+	if err == nil {
+		t.Error("Expected circular dependency error for diamond cycle, got nil")
+	}
+}

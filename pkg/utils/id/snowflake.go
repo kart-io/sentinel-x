@@ -17,6 +17,9 @@ const (
 	snowflakeMaxSeq    = (1 << snowflakeSeqBits) - 1
 	snowflakeTimeShift = snowflakeNodeBits + snowflakeSeqBits
 	snowflakeNodeShift = snowflakeSeqBits
+
+	// Clock drift thresholds
+	maxClockDriftMs = 5000 // Maximum acceptable clock drift in milliseconds (5 seconds)
 )
 
 // SnowflakeGenerator generates Twitter Snowflake IDs.
@@ -81,6 +84,42 @@ func NewSnowflakeGenerator(opts ...SnowflakeOption) (*SnowflakeGenerator, error)
 	return g, nil
 }
 
+// checkClockDrift detects and handles clock drift.
+// Returns the current time after drift is resolved.
+// Panics if drift is larger than maxClockDriftMs.
+// Must be called while holding the lock.
+func (g *SnowflakeGenerator) checkClockDrift(now int64) int64 {
+	if now >= g.lastTime {
+		return now
+	}
+
+	drift := g.lastTime - now
+	if drift > maxClockDriftMs {
+		// Large clock drift detected - this is a serious system issue
+		panic(ErrClockMovedBackward)
+	}
+
+	// Small clock drift - wait for clock to catch up while holding the lock
+	// This ensures no other goroutine can generate IDs during this period
+	for now < g.lastTime {
+		time.Sleep(time.Millisecond)
+		now = g.timeFunc()
+	}
+
+	return now
+}
+
+// waitForNextMillisecond waits until the next millisecond.
+// Must be called while holding the lock.
+func (g *SnowflakeGenerator) waitForNextMillisecond() int64 {
+	now := g.timeFunc()
+	for now <= g.lastTime {
+		time.Sleep(time.Millisecond)
+		now = g.timeFunc()
+	}
+	return now
+}
+
 // Generate creates a new Snowflake ID string.
 func (g *SnowflakeGenerator) Generate() string {
 	id := g.GenerateInt64()
@@ -99,29 +138,22 @@ func (g *SnowflakeGenerator) GenerateN(n int) []string {
 // GenerateInt64 creates a new Snowflake ID as int64.
 func (g *SnowflakeGenerator) GenerateInt64() int64 {
 	g.mu.Lock()
+	defer g.mu.Unlock()
 
 	now := g.timeFunc()
 
-	// Handle clock moving backward - release lock while waiting
-	for now < g.lastTime {
-		g.mu.Unlock()
-		time.Sleep(time.Millisecond)
-		g.mu.Lock()
-		now = g.timeFunc()
-	}
+	// Check for clock drift and handle it appropriately
+	now = g.checkClockDrift(now)
 
 	if now == g.lastTime {
+		// Same millisecond - increment sequence
 		g.sequence = (g.sequence + 1) & snowflakeMaxSeq
 		if g.sequence == 0 {
-			// Sequence overflow, wait for next millisecond - release lock while waiting
-			for now <= g.lastTime {
-				g.mu.Unlock()
-				time.Sleep(time.Millisecond)
-				g.mu.Lock()
-				now = g.timeFunc()
-			}
+			// Sequence overflow - wait for next millisecond while holding lock
+			now = g.waitForNextMillisecond()
 		}
 	} else {
+		// New millisecond - reset sequence
 		g.sequence = 0
 	}
 
@@ -132,7 +164,6 @@ func (g *SnowflakeGenerator) GenerateInt64() int64 {
 		(g.nodeID << snowflakeNodeShift) |
 		g.sequence
 
-	g.mu.Unlock()
 	return id
 }
 

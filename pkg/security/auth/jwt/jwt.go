@@ -39,6 +39,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/kart-io/logger"
 	"github.com/kart-io/sentinel-x/pkg/security/auth"
 	"github.com/kart-io/sentinel-x/pkg/utils/errors"
 )
@@ -281,21 +282,55 @@ func (j *JWT) Verify(ctx context.Context, tokenString string) (*auth.Claims, err
 }
 
 // Refresh creates a new token using a valid existing token.
+// Security: Revokes old token and generates new token ID to prevent session fixation attacks.
 func (j *JWT) Refresh(ctx context.Context, tokenString string) (auth.Token, error) {
-	// Verify the existing token (allow expired for refresh)
+	// 1. Verify the token is valid for refresh
 	claims, err := j.verifyForRefresh(ctx, tokenString)
 	if err != nil {
 		return nil, err
 	}
 
-	// Check if refresh is allowed (within max refresh window)
+	// 2. Check if refresh is allowed (within max refresh window)
+	if err := j.checkRefreshWindow(claims); err != nil {
+		return nil, err
+	}
+
+	// 3. Revoke old token (non-blocking - log warnings on failure)
+	j.revokeOldToken(ctx, tokenString)
+
+	// 4. Generate new token with new ID (do not reuse old TokenID)
+	return j.generateRefreshToken(ctx, claims)
+}
+
+// checkRefreshWindow validates if the token is within the allowed refresh window.
+func (j *JWT) checkRefreshWindow(claims *auth.Claims) error {
 	issuedAt := time.Unix(claims.IssuedAt, 0)
 	maxRefreshTime := issuedAt.Add(j.opts.MaxRefresh)
 	if time.Now().After(maxRefreshTime) {
-		return nil, errors.ErrSessionExpired.WithMessage("token refresh window expired")
+		return errors.ErrSessionExpired.WithMessage("token refresh window expired")
+	}
+	return nil
+}
+
+// revokeOldToken attempts to revoke the old token.
+// Failures are logged but do not block the refresh process.
+func (j *JWT) revokeOldToken(ctx context.Context, tokenString string) {
+	if j.store == nil {
+		return
 	}
 
-	// Create new token with same subject and extra claims
+	if err := j.Revoke(ctx, tokenString); err != nil {
+		// Log warning but don't block refresh
+		// Using structured logging for better observability
+		logger.Warnw("failed to revoke old token during refresh",
+			"error", err,
+			"tokenPrefix", tokenPrefix(tokenString))
+	}
+}
+
+// generateRefreshToken creates a new token with same claims but new ID.
+func (j *JWT) generateRefreshToken(ctx context.Context, claims *auth.Claims) (auth.Token, error) {
+	// Build sign options with existing claims (but NOT the old TokenID)
 	signOpts := []auth.SignOption{}
 	if len(claims.Extra) > 0 {
 		signOpts = append(signOpts, auth.WithExtra(claims.Extra))
@@ -303,8 +338,18 @@ func (j *JWT) Refresh(ctx context.Context, tokenString string) (auth.Token, erro
 	if len(claims.Audience) > 0 {
 		signOpts = append(signOpts, auth.WithAudience(claims.Audience...))
 	}
+	// Note: We deliberately do NOT pass auth.WithTokenID() here
+	// This ensures a new token ID is generated, preventing session fixation
 
 	return j.Sign(ctx, claims.Subject, signOpts...)
+}
+
+// tokenPrefix returns the first 16 characters of a token for logging purposes.
+func tokenPrefix(tokenString string) string {
+	if len(tokenString) > 16 {
+		return tokenString[:16] + "..."
+	}
+	return tokenString
 }
 
 // verifyForRefresh verifies a token for refresh, allowing expired tokens.
@@ -365,29 +410,53 @@ func (j *JWT) verifyForRefresh(ctx context.Context, tokenString string) (*auth.C
 }
 
 // Revoke invalidates the given token.
+// It stores the token in the revocation list until its MaxRefresh time expires.
+// This prevents race conditions where a token expires between verification and revocation.
 func (j *JWT) Revoke(ctx context.Context, tokenString string) error {
 	if j.store == nil {
 		return errors.ErrNotImplemented.WithMessage("token revocation requires a store")
 	}
 
-	// Parse token to get expiration
-	claims, err := j.verifyForRefresh(ctx, tokenString)
-	if err != nil {
-		// Allow revoking invalid tokens (they're already unusable)
-		if errors.IsCode(err, errors.ErrTokenExpired.Code) {
-			return nil
-		}
-		return err
+	if tokenString == "" {
+		return errors.ErrInvalidToken.WithMessage("token is empty")
 	}
 
-	// Calculate TTL for store (time until token expires)
-	expiration := time.Until(time.Unix(claims.ExpiresAt, 0))
-	if expiration < 0 {
-		// Token already expired, no need to store
+	// Parse token without validation to extract claims
+	parser := jwt.NewParser(jwt.WithoutClaimsValidation())
+	token, err := parser.ParseWithClaims(tokenString, &customClaims{}, func(token *jwt.Token) (interface{}, error) {
+		// Validate signing method
+		if token.Method.Alg() != j.method.Alg() {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		// Validate signature
+		return j.getVerifyingKey()
+	})
+	if err != nil {
+		return j.mapParseError(err)
+	}
+
+	claims, ok := token.Claims.(*customClaims)
+	if !ok {
+		return errors.ErrInvalidToken.WithMessage("invalid claims type")
+	}
+
+	// Verify IssuedAt exists
+	if claims.IssuedAt == nil {
+		return errors.ErrInvalidToken.WithMessage("missing issued at claim")
+	}
+
+	// Calculate TTL until MaxRefresh time (not ExpiresAt)
+	issuedAt := claims.IssuedAt.Time
+	maxRefreshTime := issuedAt.Add(j.opts.MaxRefresh)
+	ttl := time.Until(maxRefreshTime)
+
+	// If beyond MaxRefresh window, token is already invalid
+	if ttl <= 0 {
 		return nil
 	}
 
-	return j.store.Revoke(ctx, tokenString, expiration)
+	// Store token in revocation list with TTL until MaxRefresh
+	return j.store.Revoke(ctx, tokenString, ttl)
 }
 
 // getSigningKey returns the key used for signing.
