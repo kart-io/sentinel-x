@@ -747,7 +747,6 @@ gorm.io/gorm/logger
 gorm.io/gorm/migrator
 gorm.io/gorm/schema
 gorm.io/gorm/utils
-# github.com/kart-io/goagent => ./staging/src/github.com/kart-io/goagent
 # gin-reload-example => ./staging/src/github.com/kart-io/logger/example/gin-reload
 # github.com/kart-io/logger/example/integrations => ./staging/src/github.com/kart-io/logger/example/integrations
 # github.com/kart-io/logger/example/integrations/gin => ./staging/src/github.com/kart-io/logger/example/integrations/gin

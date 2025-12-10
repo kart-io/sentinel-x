@@ -112,8 +112,6 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251111163417-95abcf5c77ba // indirect
 )
 
-replace github.com/kart-io/goagent => ./staging/src/github.com/kart-io/goagent
-
 replace gin-reload-example => ./staging/src/github.com/kart-io/logger/example/gin-reload
 
 replace github.com/kart-io/logger/example/integrations => ./staging/src/github.com/kart-io/logger/example/integrations

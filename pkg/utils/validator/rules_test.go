@@ -297,7 +297,7 @@ func TestSafeStringValidation(t *testing.T) {
 		// Edge cases
 		{"empty_string", "", false},
 		{"safe_text_no_keywords", "This is a normal description", false},
-		{"safe_word_selected", "You have selected this item", false}, // "selected" not "SELECT "
+		{"safe_word_selected", "You have selected this item", false},      // "selected" not "SELECT "
 		{"safe_word_scripts", "The scripts folder contains files", false}, // "scripts" not "<script"
 	}
 
