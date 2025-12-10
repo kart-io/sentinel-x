@@ -2,6 +2,7 @@ package http
 
 import (
 	"net/http"
+	"sync"
 
 	httpopts "github.com/kart-io/sentinel-x/pkg/options/http"
 	"github.com/kart-io/sentinel-x/pkg/server/transport"
@@ -104,26 +105,46 @@ func (r *bridgeRouter) Use(middleware ...transport.MiddlewareFunc) {
 }
 
 // bridges stores registered bridge factories.
-var bridges = make(map[httpopts.AdapterType]BridgeFactory)
+var (
+	bridges   = make(map[httpopts.AdapterType]BridgeFactory)
+	bridgesMu sync.RWMutex
+)
 
 // RegisterBridge registers a bridge factory for the given adapter type.
 func RegisterBridge(adapterType httpopts.AdapterType, factory BridgeFactory) {
+	bridgesMu.Lock()
+	defer bridgesMu.Unlock()
 	bridges[adapterType] = factory
+}
+
+// getBridge returns a bridge factory for the given adapter type (internal helper).
+func getBridge(adapterType httpopts.AdapterType) (BridgeFactory, bool) {
+	bridgesMu.RLock()
+	defer bridgesMu.RUnlock()
+	factory, ok := bridges[adapterType]
+	return factory, ok
 }
 
 // GetAdapter returns an adapter for the given type.
 // This creates a bridge and wraps it in the backward-compatible Adapter interface.
 func GetAdapter(adapterType httpopts.AdapterType) Adapter {
-	if factory, ok := bridges[adapterType]; ok {
+	// Try bridges first
+	if factory, ok := getBridge(adapterType); ok {
 		bridge := factory()
 		return newBridgeAdapter(bridge)
 	}
+
+	// Try legacy adapters
+	if factory, ok := getLegacyAdapter(adapterType); ok {
+		return factory()
+	}
+
 	return nil
 }
 
 // GetBridge returns a FrameworkBridge directly for the given type.
 func GetBridge(adapterType httpopts.AdapterType) FrameworkBridge {
-	if factory, ok := bridges[adapterType]; ok {
+	if factory, ok := getBridge(adapterType); ok {
 		return factory()
 	}
 	return nil
@@ -133,12 +154,25 @@ func GetBridge(adapterType httpopts.AdapterType) FrameworkBridge {
 // Deprecated: Use RegisterBridge instead.
 type AdapterFactory func() Adapter
 
-var legacyAdapters = make(map[httpopts.AdapterType]AdapterFactory)
+var (
+	legacyAdapters   = make(map[httpopts.AdapterType]AdapterFactory)
+	legacyAdaptersMu sync.RWMutex
+)
 
 // RegisterAdapter registers an adapter factory (legacy, for backward compatibility).
 // Deprecated: Use RegisterBridge instead.
 func RegisterAdapter(adapterType httpopts.AdapterType, factory AdapterFactory) {
+	legacyAdaptersMu.Lock()
+	defer legacyAdaptersMu.Unlock()
 	legacyAdapters[adapterType] = factory
+}
+
+// getLegacyAdapter returns a legacy adapter factory (internal helper).
+func getLegacyAdapter(adapterType httpopts.AdapterType) (AdapterFactory, bool) {
+	legacyAdaptersMu.RLock()
+	defer legacyAdaptersMu.RUnlock()
+	factory, ok := legacyAdapters[adapterType]
+	return factory, ok
 }
 
 // Ensure types implement interfaces.

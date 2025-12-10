@@ -3,6 +3,7 @@ package middleware
 import (
 	"strings"
 
+	"github.com/kart-io/logger"
 	"github.com/kart-io/sentinel-x/pkg/auth"
 	"github.com/kart-io/sentinel-x/pkg/errors"
 	"github.com/kart-io/sentinel-x/pkg/response"
@@ -135,6 +136,8 @@ func Auth(opts ...AuthOption) transport.MiddlewareFunc {
 			// Verify token
 			claims, err := options.Authenticator.Verify(ctx.Request(), tokenString)
 			if err != nil {
+				// Log authentication failure for security audit
+				logAuthFailure(ctx, tokenString, err)
 				handleAuthError(ctx, options, err)
 				return
 			}
@@ -235,4 +238,32 @@ func WithoutAuth() Option {
 	return func(o *Options) {
 		o.DisableAuth = true
 	}
+}
+
+// logAuthFailure logs authentication failures for security audit.
+// This helps detect brute force attacks, token forgery attempts, and other security issues.
+func logAuthFailure(ctx transport.Context, token string, err error) {
+	// Get request information
+	req := ctx.HTTPRequest()
+	if req == nil {
+		return
+	}
+
+	// Only record token prefix to avoid leaking complete token in logs
+	tokenPrefix := ""
+	if len(token) > 20 {
+		tokenPrefix = token[:20] + "..."
+	} else if len(token) > 0 {
+		tokenPrefix = token[:len(token)/2] + "..."
+	}
+
+	// Log using structured logger with security-relevant fields
+	logger.Warnw("authentication failed",
+		"error", err.Error(),
+		"remote_addr", req.RemoteAddr,
+		"token_prefix", tokenPrefix,
+		"path", req.URL.Path,
+		"method", req.Method,
+		"user_agent", req.UserAgent(),
+	)
 }

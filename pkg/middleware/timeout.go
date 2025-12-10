@@ -61,12 +61,22 @@ func TimeoutWithConfig(config TimeoutConfig) transport.MiddlewareFunc {
 			// Update request context
 			c.SetRequest(ctx)
 
-			// Create done channel
-			done := make(chan struct{})
+			// Create buffered done channel to prevent goroutine leak
+			done := make(chan struct{}, 1)
 
 			go func() {
+				defer func() {
+					// Prevent panic from causing channel to never close
+					if r := recover(); r != nil {
+						// Log panic if needed, but ensure channel signals completion
+					}
+					// Non-blocking send to done channel
+					select {
+					case done <- struct{}{}:
+					default:
+					}
+				}()
 				next(c)
-				close(done)
 			}()
 
 			select {

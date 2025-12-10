@@ -58,6 +58,7 @@ func NewMetricsCollector(namespace, subsystem string) *MetricsCollector {
 var (
 	globalMetricsCollector *MetricsCollector
 	metricsOnce            sync.Once
+	metricsMu              sync.RWMutex
 )
 
 // GetMetricsCollector returns the global metrics collector.
@@ -65,7 +66,19 @@ func GetMetricsCollector(namespace, subsystem string) *MetricsCollector {
 	metricsOnce.Do(func() {
 		globalMetricsCollector = NewMetricsCollector(namespace, subsystem)
 	})
+
+	metricsMu.RLock()
+	defer metricsMu.RUnlock()
 	return globalMetricsCollector
+}
+
+// ResetMetricsCollector resets the global metrics collector (useful for testing).
+// This allows tests to create a new collector with different configuration.
+func ResetMetricsCollector() {
+	metricsMu.Lock()
+	defer metricsMu.Unlock()
+	globalMetricsCollector = nil
+	metricsOnce = sync.Once{}
 }
 
 // RecordRequest records a request metric.
@@ -258,15 +271,20 @@ func RegisterMetricsRoutes(router transport.Router, opts MetricsOptions) {
 	})
 }
 
-// ResetMetrics resets all metrics (useful for testing).
+// ResetMetrics resets all metrics data (useful for testing).
+// This clears metric data but keeps the same collector instance.
 func ResetMetrics() {
-	if globalMetricsCollector != nil {
-		globalMetricsCollector.mu.Lock()
-		globalMetricsCollector.requestsTotal = make(map[string]*uint64)
-		globalMetricsCollector.requestDuration = make(map[string]*histogram)
-		globalMetricsCollector.startTime = time.Now()
-		atomic.StoreInt64(&globalMetricsCollector.activeRequests, 0)
-		globalMetricsCollector.mu.Unlock()
+	metricsMu.RLock()
+	collector := globalMetricsCollector
+	metricsMu.RUnlock()
+
+	if collector != nil {
+		collector.mu.Lock()
+		collector.requestsTotal = make(map[string]*uint64)
+		collector.requestDuration = make(map[string]*histogram)
+		collector.startTime = time.Now()
+		atomic.StoreInt64(&collector.activeRequests, 0)
+		collector.mu.Unlock()
 	}
 }
 

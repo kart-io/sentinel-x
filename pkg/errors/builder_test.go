@@ -2,6 +2,7 @@ package errors
 
 import (
 	"net/http"
+	"strings"
 	"testing"
 
 	"google.golang.org/grpc/codes"
@@ -327,4 +328,109 @@ func TestQuickCreationFunctions(t *testing.T) {
 	if err4.HTTP != http.StatusInternalServerError {
 		t.Errorf("NewInternalErr HTTP = %d, want %d", err4.HTTP, http.StatusInternalServerError)
 	}
+}
+
+// TestNewBuilderBoundaryValidation tests the boundary validation for service, category, and sequence.
+func TestNewBuilderBoundaryValidation(t *testing.T) {
+	tests := []struct {
+		name     string
+		service  int
+		category int
+		sequence int
+		wantPanic bool
+		panicMsg string
+	}{
+		{
+			name:     "valid_min_values",
+			service:  0,
+			category: 0,
+			sequence: 0,
+			wantPanic: false,
+		},
+		{
+			name:     "valid_max_values",
+			service:  99,
+			category: 99,
+			sequence: 999,
+			wantPanic: false,
+		},
+		{
+			name:     "service_too_small",
+			service:  -1,
+			category: 0,
+			sequence: 0,
+			wantPanic: true,
+			panicMsg: "service code must be 0-99",
+		},
+		{
+			name:     "service_too_large",
+			service:  100,
+			category: 0,
+			sequence: 0,
+			wantPanic: true,
+			panicMsg: "service code must be 0-99",
+		},
+		{
+			name:     "category_too_small",
+			service:  0,
+			category: -1,
+			sequence: 0,
+			wantPanic: true,
+			panicMsg: "category code must be 0-99",
+		},
+		{
+			name:     "category_too_large",
+			service:  0,
+			category: 100,
+			sequence: 0,
+			wantPanic: true,
+			panicMsg: "category code must be 0-99",
+		},
+		{
+			name:     "sequence_too_small",
+			service:  0,
+			category: 0,
+			sequence: -1,
+			wantPanic: true,
+			panicMsg: "sequence must be 0-999",
+		},
+		{
+			name:     "sequence_too_large",
+			service:  0,
+			category: 0,
+			sequence: 1000,
+			wantPanic: true,
+			panicMsg: "sequence must be 0-999",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			defer func() {
+				r := recover()
+				if tt.wantPanic {
+					if r == nil {
+						t.Errorf("NewBuilder() should panic for %s", tt.name)
+					}
+					// Verify panic message contains expected text
+					if msg, ok := r.(string); ok {
+						if !contains(msg, tt.panicMsg) {
+							t.Errorf("Panic message = %q, want to contain %q", msg, tt.panicMsg)
+						}
+					}
+				} else {
+					if r != nil {
+						t.Errorf("NewBuilder() should not panic for %s, got: %v", tt.name, r)
+					}
+				}
+			}()
+
+			_ = NewBuilder(tt.service, tt.category, tt.sequence)
+		})
+	}
+}
+
+// contains checks if s contains substr (helper for panic message verification).
+func contains(s, substr string) bool {
+	return strings.Contains(s, substr)
 }

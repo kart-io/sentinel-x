@@ -36,20 +36,16 @@
 //
 //	server := http.NewServer(
 //	    http.WithMiddleware(
-//	        middleware.WithRecovery(
-//	            middleware.RecoveryWithStackTrace(),
-//	        ),
+//	        middleware.WithRecovery(true, nil),
 //	        middleware.WithCORS(
-//	            middleware.CORSWithOrigins("https://example.com"),
-//	            middleware.CORSWithCredentials(),
+//	            []string{"https://example.com"}, // origins
+//	            nil, // methods (use defaults)
+//	            nil, // headers (use defaults)
+//	            true, // allow credentials
+//	            0, // maxAge (use default)
 //	        ),
-//	        middleware.WithHealth(
-//	            middleware.HealthWithPath("/healthz"),
-//	        ),
-//	        middleware.WithPprof(
-//	            middleware.PprofWithPrefix("/debug/pprof"),
-//	            middleware.PprofWithBlockProfileRate(1),
-//	        ),
+//	        middleware.WithHealth("/healthz", "", "", nil),
+//	        middleware.WithPprof("/debug/pprof", 1, 0),
 //	    ),
 //	)
 package middleware

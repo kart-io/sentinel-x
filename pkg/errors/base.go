@@ -286,7 +286,7 @@ var (
 	ErrVersionConflict = Register(&Errno{
 		Code:      MakeCode(ServiceCommon, CategoryConflict, 3),
 		HTTP:      http.StatusConflict,
-		GRPCCode:  codes.Aborted,
+		GRPCCode:  codes.AlreadyExists,
 		MessageEN: "Version conflict",
 		MessageZH: "版本冲突",
 	})
@@ -412,7 +412,7 @@ var (
 	ErrDBDeadlock = Register(&Errno{
 		Code:      MakeCode(ServiceCommon, CategoryDatabase, 4),
 		HTTP:      http.StatusInternalServerError,
-		GRPCCode:  codes.Aborted,
+		GRPCCode:  codes.Internal,
 		MessageEN: "Database deadlock",
 		MessageZH: "数据库死锁",
 	})

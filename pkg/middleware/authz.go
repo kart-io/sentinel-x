@@ -3,6 +3,7 @@ package middleware
 import (
 	"strings"
 
+	"github.com/kart-io/logger"
 	"github.com/kart-io/sentinel-x/pkg/auth"
 	"github.com/kart-io/sentinel-x/pkg/authz"
 	"github.com/kart-io/sentinel-x/pkg/errors"
@@ -136,14 +137,19 @@ func Authz(opts ...AuthzOption) transport.MiddlewareFunc {
 			// Check authorization
 			allowed, err := options.Authorizer.Authorize(ctx.Request(), subject, resource, action)
 			if err != nil {
+				// Log authorization error for security audit
+				logAuthzFailure(ctx, subject, resource, action, err)
 				handleAuthzError(ctx, options, err)
 				return
 			}
 
 			if !allowed {
-				handleAuthzError(ctx, options, errors.ErrNoPermission.WithMessagef(
+				authzErr := errors.ErrNoPermission.WithMessagef(
 					"access denied: subject=%s, resource=%s, action=%s",
-					subject, resource, action))
+					subject, resource, action)
+				// Log authorization denial for security audit
+				logAuthzFailure(ctx, subject, resource, action, authzErr)
+				handleAuthzError(ctx, options, authzErr)
 				return
 			}
 
@@ -264,4 +270,26 @@ func AuthzWithActionMapping(mapping ActionMapping) AuthzOption {
 		}
 		return strings.ToLower(method)
 	})
+}
+
+// logAuthzFailure logs authorization failures for security audit.
+// This helps detect unauthorized access attempts and permission violations.
+func logAuthzFailure(ctx transport.Context, subject, resource, action string, err error) {
+	// Get request information
+	req := ctx.HTTPRequest()
+	if req == nil {
+		return
+	}
+
+	// Log using structured logger with security-relevant fields
+	logger.Warnw("authorization denied",
+		"subject", subject,
+		"resource", resource,
+		"action", action,
+		"error", err.Error(),
+		"remote_addr", req.RemoteAddr,
+		"path", req.URL.Path,
+		"method", req.Method,
+		"user_agent", req.UserAgent(),
+	)
 }

@@ -31,7 +31,9 @@ package jwt
 import (
 	"context"
 	"crypto/rand"
+	"crypto/x509"
 	"encoding/hex"
+	"encoding/pem"
 	"fmt"
 	"strings"
 	"time"
@@ -145,7 +147,11 @@ func (j *JWT) Sign(ctx context.Context, subject string, opts ...auth.SignOption)
 	// Generate token ID
 	tokenID := signOpts.TokenID
 	if tokenID == "" {
-		tokenID = generateTokenID()
+		var err error
+		tokenID, err = generateTokenID()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// Build claims
@@ -179,7 +185,11 @@ func (j *JWT) Sign(ctx context.Context, subject string, opts ...auth.SignOption)
 	}
 
 	// Sign token
-	tokenString, err := token.SignedString(j.getSigningKey())
+	signingKey, err := j.getSigningKey()
+	if err != nil {
+		return nil, err
+	}
+	tokenString, err := token.SignedString(signingKey)
 	if err != nil {
 		return nil, errors.ErrInternal.WithCause(err).WithMessage("failed to sign token")
 	}
@@ -204,7 +214,7 @@ func (j *JWT) Verify(ctx context.Context, tokenString string) (*auth.Claims, err
 		if token.Method.Alg() != j.method.Alg() {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
-		return j.getVerifyingKey(), nil
+		return j.getVerifyingKey()
 	})
 	if err != nil {
 		return nil, j.mapParseError(err)
@@ -282,7 +292,7 @@ func (j *JWT) verifyForRefresh(ctx context.Context, tokenString string) (*auth.C
 		if token.Method.Alg() != j.method.Alg() {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
-		return j.getVerifyingKey(), nil
+		return j.getVerifyingKey()
 	})
 	if err != nil {
 		return nil, j.mapParseError(err)
@@ -291,6 +301,17 @@ func (j *JWT) verifyForRefresh(ctx context.Context, tokenString string) (*auth.C
 	claims, ok := token.Claims.(*customClaims)
 	if !ok {
 		return nil, errors.ErrInvalidToken.WithMessage("invalid claims type")
+	}
+
+	// SECURITY FIX: Enforce MaxRefresh time check
+	// Even though we allow expired tokens for refresh, we must enforce the MaxRefresh window
+	if claims.IssuedAt == nil {
+		return nil, errors.ErrInvalidToken.WithMessage("missing issued at claim")
+	}
+	issuedAt := claims.IssuedAt.Time
+	maxRefreshTime := issuedAt.Add(j.opts.MaxRefresh)
+	if time.Now().After(maxRefreshTime) {
+		return nil, errors.ErrSessionExpired.WithMessage("token refresh period exceeded")
 	}
 
 	// Check if token is revoked
@@ -343,26 +364,70 @@ func (j *JWT) Revoke(ctx context.Context, tokenString string) error {
 }
 
 // getSigningKey returns the key used for signing.
-func (j *JWT) getSigningKey() interface{} {
+func (j *JWT) getSigningKey() (interface{}, error) {
 	// For HMAC algorithms, return the key as bytes
 	if strings.HasPrefix(j.opts.SigningMethod, "HS") {
-		return []byte(j.opts.Key)
+		return []byte(j.opts.Key), nil
 	}
-	// For RSA/ECDSA, the key should be parsed (simplified for now)
-	return []byte(j.opts.Key)
+
+	// For RSA/ECDSA algorithms, parse PEM format private key
+	block, _ := pem.Decode([]byte(j.opts.Key))
+	if block == nil {
+		return nil, errors.ErrInvalidParam.WithMessage("invalid private key PEM format")
+	}
+
+	// Parse RSA private key
+	if strings.HasPrefix(j.opts.SigningMethod, "RS") {
+		key, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+		if err != nil {
+			// Try PKCS8 format as fallback
+			pkcs8Key, err2 := x509.ParsePKCS8PrivateKey(block.Bytes)
+			if err2 != nil {
+				return nil, errors.ErrInvalidParam.WithCause(err).WithMessage("failed to parse RSA private key")
+			}
+			return pkcs8Key, nil
+		}
+		return key, nil
+	}
+
+	// Parse ECDSA private key
+	key, err := x509.ParseECPrivateKey(block.Bytes)
+	if err != nil {
+		// Try PKCS8 format as fallback
+		pkcs8Key, err2 := x509.ParsePKCS8PrivateKey(block.Bytes)
+		if err2 != nil {
+			return nil, errors.ErrInvalidParam.WithCause(err).WithMessage("failed to parse ECDSA private key")
+		}
+		return pkcs8Key, nil
+	}
+	return key, nil
 }
 
 // getVerifyingKey returns the key used for verification.
-func (j *JWT) getVerifyingKey() interface{} {
+func (j *JWT) getVerifyingKey() (interface{}, error) {
 	// For HMAC, use the same key for verification
 	if strings.HasPrefix(j.opts.SigningMethod, "HS") {
-		return []byte(j.opts.Key)
+		return []byte(j.opts.Key), nil
 	}
-	// For RSA/ECDSA, use public key if available
-	if j.opts.PublicKey != "" {
-		return []byte(j.opts.PublicKey)
+
+	// For RSA/ECDSA, require public key
+	if j.opts.PublicKey == "" {
+		return nil, errors.ErrInvalidParam.WithMessage("public key required for RSA/ECDSA verification")
 	}
-	return []byte(j.opts.Key)
+
+	// Parse PEM format public key
+	block, _ := pem.Decode([]byte(j.opts.PublicKey))
+	if block == nil {
+		return nil, errors.ErrInvalidParam.WithMessage("invalid public key PEM format")
+	}
+
+	// Parse public key
+	key, err := x509.ParsePKIXPublicKey(block.Bytes)
+	if err != nil {
+		return nil, errors.ErrInvalidParam.WithCause(err).WithMessage("failed to parse public key")
+	}
+
+	return key, nil
 }
 
 // mapParseError maps jwt parse errors to sentinel-x errors.
@@ -392,8 +457,10 @@ type customClaims struct {
 }
 
 // generateTokenID generates a random token ID.
-func generateTokenID() string {
+func generateTokenID() (string, error) {
 	b := make([]byte, 16)
-	_, _ = rand.Read(b)
-	return hex.EncodeToString(b)
+	if _, err := rand.Read(b); err != nil {
+		return "", errors.ErrInternal.WithCause(err).WithMessage("failed to generate token ID")
+	}
+	return hex.EncodeToString(b), nil
 }

@@ -1,6 +1,8 @@
 package postgres
 
 import (
+	"fmt"
+	"os"
 	"time"
 
 	"github.com/spf13/pflag"
@@ -38,6 +40,17 @@ func NewOptions() *Options {
 
 // Validate checks if the options are valid.
 func (o *Options) Validate() error {
+	// 如果 CLI 参数为空，从环境变量读取
+	if o.Password == "" {
+		o.Password = os.Getenv("POSTGRES_PASSWORD")
+	}
+
+	// 警告使用 CLI 参数传递密码
+	// 如果密码非空但环境变量为空，说明密码是通过 CLI 传递的
+	if o.Password != "" && os.Getenv("POSTGRES_PASSWORD") == "" {
+		fmt.Fprintf(os.Stderr, "WARNING: Passing PostgreSQL password via CLI is insecure. Use POSTGRES_PASSWORD environment variable instead.\n")
+	}
+
 	return nil
 }
 
@@ -46,7 +59,7 @@ func (o *Options) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.Host, "postgres.host", o.Host, "PostgreSQL host")
 	fs.IntVar(&o.Port, "postgres.port", o.Port, "PostgreSQL port")
 	fs.StringVar(&o.Username, "postgres.username", o.Username, "PostgreSQL username")
-	fs.StringVar(&o.Password, "postgres.password", o.Password, "PostgreSQL password")
+	fs.StringVar(&o.Password, "postgres.password", o.Password, "PostgreSQL password (DEPRECATED: use POSTGRES_PASSWORD env var instead)")
 	fs.StringVar(&o.Database, "postgres.database", o.Database, "PostgreSQL database")
 	fs.StringVar(&o.SSLMode, "postgres.ssl-mode", o.SSLMode, "PostgreSQL SSL mode")
 	fs.IntVar(&o.MaxIdleConnections, "postgres.max-idle-connections", o.MaxIdleConnections, "PostgreSQL max idle connections")

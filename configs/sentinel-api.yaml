@@ -1,0 +1,188 @@
+# Sentinel-X API Server Configuration
+# This is an example configuration file for the API server
+
+# Server configuration
+server:
+  # Server mode: http, grpc, or both
+  mode: both
+  # Graceful shutdown timeout
+  shutdown-timeout: 30s
+
+  # HTTP server configuration
+  http:
+    # Listen address
+    addr: ":8100"
+    # Read timeout
+    read-timeout: 30s
+    # Write timeout
+    write-timeout: 30s
+    # Idle timeout
+    idle-timeout: 60s
+    # HTTP framework adapter: gin or echo
+    adapter: gin
+
+    # Middleware configuration
+    middleware:
+      # Recovery middleware (panic recovery)
+      disable-recovery: false
+      recovery:
+        enable-stack-trace: false
+
+      # Request ID middleware
+      disable-request-id: false
+      request-id:
+        header: X-Request-ID
+
+      # Logger middleware
+      disable-logger: false
+      logger:
+        skip-paths:
+          - /health
+          - /live
+          - /ready
+          - /metrics
+        use-structured-logger: true
+
+      # CORS middleware
+      disable-cors: false
+      cors:
+        allow-origins:
+          - "*"
+        allow-methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+          - HEAD
+          - OPTIONS
+        allow-headers:
+          - Origin
+          - Content-Type
+          - Accept
+          - Authorization
+          - X-Request-ID
+        allow-credentials: false
+        max-age: 86400
+
+      # Timeout middleware
+      disable-timeout: false
+      timeout:
+        timeout: 30s
+        skip-paths:
+          - /health
+          - /live
+          - /ready
+          - /metrics
+
+      # Health check endpoints
+      disable-health: false
+      health:
+        path: /health
+        liveness-path: /live
+        readiness-path: /ready
+
+      # Metrics endpoint
+      disable-metrics: false
+      metrics:
+        path: /metrics
+        namespace: sentinel
+        subsystem: api
+
+      # Pprof endpoints (disabled by default for security)
+      disable-pprof: true
+      pprof:
+        prefix: /debug/pprof
+        enable-cmdline: true
+        enable-profile: true
+        enable-symbol: true
+        enable-trace: true
+        block-profile-rate: 0
+        mutex-profile-fraction: 0
+
+      # Authentication middleware
+      disable-auth: false
+
+      # Authorization middleware
+      disable-authz: false
+
+  # gRPC server configuration
+  grpc:
+    # Listen address
+    addr: ":9100"
+    # Timeout
+    timeout: 30s
+    # Max receive message size (bytes)
+    max-recv-msg-size: 4194304
+    # Max send message size (bytes)
+    max-send-msg-size: 4194304
+    # Enable gRPC reflection
+    enable-reflection: true
+
+# Logger configuration
+log:
+  # Log level: debug, info, warn, error, fatal
+  level: info
+  # Log format: json, text
+  format: json
+  # Log output paths
+  output-paths:
+    - stdout
+  # Error output paths
+  error-output-paths:
+    - stderr
+  # Enable caller information
+  enable-caller: true
+  # Enable stacktrace for error level and above
+  enable-stacktrace: false
+  # Development mode (pretty print for text format)
+  development: false
+
+# JWT authentication configuration
+jwt:
+  # Disable authentication
+  disable-auth: false
+  # Secret key for signing tokens
+  secret: "your-secret-key-change-in-production"
+  # Token issuer
+  issuer: "sentinel-x"
+  # Token expiration duration
+  expired: 24h
+  # Refresh token expiration
+  refresh-expired: 168h
+
+# MySQL database configuration
+mysql:
+  # Database host
+  host: "localhost"
+  # Database port
+  port: 3306
+  # Database username
+  username: "sentinel"
+  # Database password
+  password: "sentinel123"
+  # Database name
+  database: "sentinel"
+  # Maximum idle connections
+  max-idle-connections: 10
+  # Maximum open connections
+  max-open-connections: 100
+  # Connection maximum lifetime
+  max-connection-life-time: 3600s
+
+# Redis configuration
+redis:
+  # Redis host
+  host: "localhost"
+  # Redis port
+  port: 6379
+  # Redis password (leave empty if no password)
+  password: ""
+  # Redis database number
+  database: 0
+  # Maximum retries
+  max-retries: 3
+  # Connection pool size
+  pool-size: 10
+  # Minimum idle connections
+  min-idle-conns: 5

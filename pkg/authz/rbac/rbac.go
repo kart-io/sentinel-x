@@ -96,8 +96,15 @@ func (r *RBAC) Authorize(ctx context.Context, subject, resource, action string) 
 
 // AuthorizeWithContext checks authorization with additional context.
 func (r *RBAC) AuthorizeWithContext(ctx context.Context, subject, resource, action string, context map[string]interface{}) (bool, error) {
+	// Validate all required inputs
 	if subject == "" {
 		return false, errors.ErrInvalidParam.WithMessage("subject is required")
+	}
+	if resource == "" {
+		return false, errors.ErrInvalidParam.WithMessage("resource is required")
+	}
+	if action == "" {
+		return false, errors.ErrInvalidParam.WithMessage("action is required")
 	}
 
 	r.mu.RLock()

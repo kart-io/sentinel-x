@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -36,8 +37,10 @@ type CORSConfig struct {
 }
 
 // DefaultCORSConfig is the default CORS middleware config.
+// NOTE: AllowOrigins is empty by default and must be explicitly configured.
+// This forces developers to consciously configure allowed origins for security.
 var DefaultCORSConfig = CORSConfig{
-	AllowOrigins: []string{"*"},
+	AllowOrigins: []string{}, // 强制显式配置，不允许空配置运行
 	AllowMethods: []string{
 		http.MethodGet,
 		http.MethodPost,
@@ -64,8 +67,34 @@ func CORS() transport.MiddlewareFunc {
 	return CORSWithConfig(DefaultCORSConfig)
 }
 
+// Validate checks if the CORS configuration is valid.
+func (c CORSConfig) Validate() error {
+	if len(c.AllowOrigins) == 0 {
+		return fmt.Errorf("CORS: AllowOrigins must be explicitly configured, empty list not allowed")
+	}
+
+	// 禁止 * 与 credentials 同时使用
+	hasWildcard := false
+	for _, origin := range c.AllowOrigins {
+		if origin == "*" {
+			hasWildcard = true
+			break
+		}
+	}
+	if hasWildcard && c.AllowCredentials {
+		return fmt.Errorf("CORS: cannot use wildcard origin '*' with AllowCredentials=true")
+	}
+
+	return nil
+}
+
 // CORSWithConfig returns a CORS middleware with custom config.
 func CORSWithConfig(config CORSConfig) transport.MiddlewareFunc {
+	// Validate configuration
+	if err := config.Validate(); err != nil {
+		panic(err) // 配置错误应该在启动时失败
+	}
+
 	// Set defaults
 	if len(config.AllowOrigins) == 0 {
 		config.AllowOrigins = DefaultCORSConfig.AllowOrigins

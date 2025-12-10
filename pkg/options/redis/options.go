@@ -1,6 +1,8 @@
 package redis
 
 import (
+	"fmt"
+	"os"
 	"time"
 
 	"github.com/spf13/pflag"
@@ -40,6 +42,17 @@ func NewOptions() *Options {
 
 // Validate checks if the options are valid.
 func (o *Options) Validate() error {
+	// 如果 CLI 参数为空，从环境变量读取
+	if o.Password == "" {
+		o.Password = os.Getenv("REDIS_PASSWORD")
+	}
+
+	// 警告使用 CLI 参数传递密码
+	// 如果密码非空但环境变量为空，说明密码是通过 CLI 传递的
+	if o.Password != "" && os.Getenv("REDIS_PASSWORD") == "" {
+		fmt.Fprintf(os.Stderr, "WARNING: Passing Redis password via CLI is insecure. Use REDIS_PASSWORD environment variable instead.\n")
+	}
+
 	return nil
 }
 
@@ -47,7 +60,7 @@ func (o *Options) Validate() error {
 func (o *Options) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.Host, "redis.host", o.Host, "Redis host")
 	fs.IntVar(&o.Port, "redis.port", o.Port, "Redis port")
-	fs.StringVar(&o.Password, "redis.password", o.Password, "Redis password")
+	fs.StringVar(&o.Password, "redis.password", o.Password, "Redis password (DEPRECATED: use REDIS_PASSWORD env var instead)")
 	fs.IntVar(&o.Database, "redis.database", o.Database, "Redis database")
 	fs.IntVar(&o.MaxRetries, "redis.max-retries", o.MaxRetries, "Redis max retries")
 	fs.IntVar(&o.PoolSize, "redis.pool-size", o.PoolSize, "Redis pool size")

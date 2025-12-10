@@ -8,6 +8,12 @@ import (
 	"github.com/spf13/pflag"
 )
 
+// PathMatcher contains common path matching configuration.
+type PathMatcher struct {
+	SkipPaths        []string
+	SkipPathPrefixes []string
+}
+
 // Options contains all middleware configuration.
 type Options struct {
 	// Recovery options
@@ -53,95 +59,63 @@ type Options struct {
 
 // RecoveryOptions defines recovery middleware options.
 type RecoveryOptions struct {
-	// EnableStackTrace includes stack trace in error response.
-	EnableStackTrace bool `json:"enable-stack-trace" mapstructure:"enable-stack-trace"`
-	// OnPanic is called when a panic occurs (not configurable via config file).
-	OnPanic func(ctx transport.Context, err interface{}, stack []byte) `json:"-" mapstructure:"-"`
+	EnableStackTrace bool                                                          `json:"enable-stack-trace" mapstructure:"enable-stack-trace"`
+	OnPanic          func(ctx transport.Context, err interface{}, stack []byte) `json:"-" mapstructure:"-"`
 }
 
 // RequestIDOptions defines request ID middleware options.
 type RequestIDOptions struct {
-	// Header is the header name for request ID.
-	Header string `json:"header" mapstructure:"header"`
-	// Generator is the function to generate request IDs (not configurable via config file).
+	Header    string          `json:"header" mapstructure:"header"`
 	Generator func() string `json:"-" mapstructure:"-"`
 }
 
 // LoggerOptions defines logger middleware options.
 type LoggerOptions struct {
-	// SkipPaths is a list of paths to skip logging.
-	SkipPaths []string `json:"skip-paths" mapstructure:"skip-paths"`
-	// UseStructuredLogger enables structured logging using kart-io/logger.
-	// When true, logs are output in JSON format via the global structured logger.
-	// Default: true
-	UseStructuredLogger bool `json:"use-structured-logger" mapstructure:"use-structured-logger"`
-	// Output is the logger output function (not configurable via config file).
-	// Only used when UseStructuredLogger is false.
-	Output func(format string, args ...interface{}) `json:"-" mapstructure:"-"`
+	SkipPaths           []string                                   `json:"skip-paths" mapstructure:"skip-paths"`
+	UseStructuredLogger bool                                       `json:"use-structured-logger" mapstructure:"use-structured-logger"`
+	Output              func(format string, args ...interface{}) `json:"-" mapstructure:"-"`
 }
 
 // CORSOptions defines CORS middleware options.
 type CORSOptions struct {
-	// AllowOrigins is a list of origins that may access the resource.
-	AllowOrigins []string `json:"allow-origins" mapstructure:"allow-origins"`
-	// AllowMethods is a list of methods allowed.
-	AllowMethods []string `json:"allow-methods" mapstructure:"allow-methods"`
-	// AllowHeaders is a list of headers that can be used.
-	AllowHeaders []string `json:"allow-headers" mapstructure:"allow-headers"`
-	// ExposeHeaders is a list of headers browsers are allowed to access.
-	ExposeHeaders []string `json:"expose-headers" mapstructure:"expose-headers"`
-	// AllowCredentials indicates whether credentials are allowed.
-	AllowCredentials bool `json:"allow-credentials" mapstructure:"allow-credentials"`
-	// MaxAge indicates how long preflight results can be cached.
-	MaxAge int `json:"max-age" mapstructure:"max-age"`
+	AllowOrigins     []string `json:"allow-origins" mapstructure:"allow-origins"`
+	AllowMethods     []string `json:"allow-methods" mapstructure:"allow-methods"`
+	AllowHeaders     []string `json:"allow-headers" mapstructure:"allow-headers"`
+	ExposeHeaders    []string `json:"expose-headers" mapstructure:"expose-headers"`
+	AllowCredentials bool     `json:"allow-credentials" mapstructure:"allow-credentials"`
+	MaxAge           int      `json:"max-age" mapstructure:"max-age"`
 }
 
 // TimeoutOptions defines timeout middleware options.
 type TimeoutOptions struct {
-	// Timeout is the request timeout duration.
-	Timeout time.Duration `json:"timeout" mapstructure:"timeout"`
-	// SkipPaths is a list of paths to skip timeout.
-	SkipPaths []string `json:"skip-paths" mapstructure:"skip-paths"`
+	Timeout   time.Duration `json:"timeout" mapstructure:"timeout"`
+	SkipPaths []string      `json:"skip-paths" mapstructure:"skip-paths"`
 }
 
 // HealthOptions defines health check options.
 type HealthOptions struct {
-	// Path is the health check endpoint path.
-	Path string `json:"path" mapstructure:"path"`
-	// LivenessPath is the liveness probe path.
-	LivenessPath string `json:"liveness-path" mapstructure:"liveness-path"`
-	// ReadinessPath is the readiness probe path.
-	ReadinessPath string `json:"readiness-path" mapstructure:"readiness-path"`
-	// Checker is a custom health check function (not configurable via config file).
-	Checker func() error `json:"-" mapstructure:"-"`
+	Path          string         `json:"path" mapstructure:"path"`
+	LivenessPath  string         `json:"liveness-path" mapstructure:"liveness-path"`
+	ReadinessPath string         `json:"readiness-path" mapstructure:"readiness-path"`
+	Checker       func() error `json:"-" mapstructure:"-"`
 }
 
 // MetricsOptions defines metrics options.
 type MetricsOptions struct {
-	// Path is the metrics endpoint path.
-	Path string `json:"path" mapstructure:"path"`
-	// Namespace is the metrics namespace.
+	Path      string `json:"path" mapstructure:"path"`
 	Namespace string `json:"namespace" mapstructure:"namespace"`
-	// Subsystem is the metrics subsystem.
 	Subsystem string `json:"subsystem" mapstructure:"subsystem"`
 }
 
 // PprofOptions defines pprof options.
 type PprofOptions struct {
-	// Prefix is the URL prefix for pprof endpoints.
-	Prefix string `json:"prefix" mapstructure:"prefix"`
-	// EnableCmdline enables /debug/pprof/cmdline endpoint.
-	EnableCmdline bool `json:"enable-cmdline" mapstructure:"enable-cmdline"`
-	// EnableProfile enables /debug/pprof/profile endpoint.
-	EnableProfile bool `json:"enable-profile" mapstructure:"enable-profile"`
-	// EnableSymbol enables /debug/pprof/symbol endpoint.
-	EnableSymbol bool `json:"enable-symbol" mapstructure:"enable-symbol"`
-	// EnableTrace enables /debug/pprof/trace endpoint.
-	EnableTrace bool `json:"enable-trace" mapstructure:"enable-trace"`
-	// BlockProfileRate sets the rate for block profiling.
-	BlockProfileRate int `json:"block-profile-rate" mapstructure:"block-profile-rate"`
-	// MutexProfileFraction sets the fraction of mutex contention events reported.
-	MutexProfileFraction int `json:"mutex-profile-fraction" mapstructure:"mutex-profile-fraction"`
+	Prefix               string `json:"prefix" mapstructure:"prefix"`
+	EnableCmdline        bool   `json:"enable-cmdline" mapstructure:"enable-cmdline"`
+	EnableProfile        bool   `json:"enable-profile" mapstructure:"enable-profile"`
+	EnableSymbol         bool   `json:"enable-symbol" mapstructure:"enable-symbol"`
+	EnableTrace          bool   `json:"enable-trace" mapstructure:"enable-trace"`
+	BlockProfileRate     int    `json:"block-profile-rate" mapstructure:"block-profile-rate"`
+	MutexProfileFraction int    `json:"mutex-profile-fraction" mapstructure:"mutex-profile-fraction"`
 }
 
 // Option is a function that configures Options.
@@ -260,321 +234,166 @@ func (o *Options) Complete() error {
 	return nil
 }
 
+// Generic middleware enable/disable functions
+
 // WithRecovery configures recovery middleware.
-func WithRecovery(opts ...func(*RecoveryOptions)) Option {
+func WithRecovery(enableStackTrace bool, onPanic func(ctx transport.Context, err interface{}, stack []byte)) Option {
 	return func(o *Options) {
 		o.DisableRecovery = false
-		for _, opt := range opts {
-			opt(&o.Recovery)
+		o.Recovery.EnableStackTrace = enableStackTrace
+		if onPanic != nil {
+			o.Recovery.OnPanic = onPanic
 		}
 	}
 }
 
 // WithoutRecovery disables recovery middleware.
 func WithoutRecovery() Option {
-	return func(o *Options) {
-		o.DisableRecovery = true
-	}
-}
-
-// RecoveryWithStackTrace enables stack trace in recovery response.
-func RecoveryWithStackTrace() func(*RecoveryOptions) {
-	return func(o *RecoveryOptions) {
-		o.EnableStackTrace = true
-	}
-}
-
-// RecoveryWithPanicHandler sets custom panic handler.
-func RecoveryWithPanicHandler(handler func(ctx transport.Context, err interface{}, stack []byte)) func(*RecoveryOptions) {
-	return func(o *RecoveryOptions) {
-		o.OnPanic = handler
-	}
+	return func(o *Options) { o.DisableRecovery = true }
 }
 
 // WithRequestID configures request ID middleware.
-func WithRequestID(opts ...func(*RequestIDOptions)) Option {
+func WithRequestID(header string, generator func() string) Option {
 	return func(o *Options) {
 		o.DisableRequestID = false
-		for _, opt := range opts {
-			opt(&o.RequestID)
+		if header != "" {
+			o.RequestID.Header = header
+		}
+		if generator != nil {
+			o.RequestID.Generator = generator
 		}
 	}
 }
 
 // WithoutRequestID disables request ID middleware.
 func WithoutRequestID() Option {
-	return func(o *Options) {
-		o.DisableRequestID = true
-	}
-}
-
-// RequestIDWithHeader sets custom header name.
-func RequestIDWithHeader(header string) func(*RequestIDOptions) {
-	return func(o *RequestIDOptions) {
-		o.Header = header
-	}
-}
-
-// RequestIDWithGenerator sets custom ID generator.
-func RequestIDWithGenerator(gen func() string) func(*RequestIDOptions) {
-	return func(o *RequestIDOptions) {
-		o.Generator = gen
-	}
+	return func(o *Options) { o.DisableRequestID = true }
 }
 
 // WithLogger configures logger middleware.
-func WithLogger(opts ...func(*LoggerOptions)) Option {
+func WithLogger(skipPaths []string, output func(format string, args ...interface{})) Option {
 	return func(o *Options) {
 		o.DisableLogger = false
-		for _, opt := range opts {
-			opt(&o.Logger)
+		if skipPaths != nil {
+			o.Logger.SkipPaths = skipPaths
+		}
+		if output != nil {
+			o.Logger.Output = output
 		}
 	}
 }
 
 // WithoutLogger disables logger middleware.
 func WithoutLogger() Option {
-	return func(o *Options) {
-		o.DisableLogger = true
-	}
-}
-
-// LoggerWithSkipPaths sets paths to skip logging.
-func LoggerWithSkipPaths(paths ...string) func(*LoggerOptions) {
-	return func(o *LoggerOptions) {
-		o.SkipPaths = paths
-	}
-}
-
-// LoggerWithOutput sets custom output function.
-func LoggerWithOutput(output func(format string, args ...interface{})) func(*LoggerOptions) {
-	return func(o *LoggerOptions) {
-		o.Output = output
-	}
+	return func(o *Options) { o.DisableLogger = true }
 }
 
 // WithCORS configures and enables CORS middleware.
-func WithCORS(opts ...func(*CORSOptions)) Option {
+func WithCORS(origins []string, methods []string, headers []string, credentials bool, maxAge int) Option {
 	return func(o *Options) {
 		o.DisableCORS = false
-		for _, opt := range opts {
-			opt(&o.CORS)
+		if origins != nil {
+			o.CORS.AllowOrigins = origins
+		}
+		if methods != nil {
+			o.CORS.AllowMethods = methods
+		}
+		if headers != nil {
+			o.CORS.AllowHeaders = headers
+		}
+		o.CORS.AllowCredentials = credentials
+		if maxAge > 0 {
+			o.CORS.MaxAge = maxAge
 		}
 	}
 }
 
 // WithoutCORS disables CORS middleware.
 func WithoutCORS() Option {
-	return func(o *Options) {
-		o.DisableCORS = true
-	}
-}
-
-// CORSWithOrigins sets allowed origins.
-func CORSWithOrigins(origins ...string) func(*CORSOptions) {
-	return func(o *CORSOptions) {
-		o.AllowOrigins = origins
-	}
-}
-
-// CORSWithMethods sets allowed methods.
-func CORSWithMethods(methods ...string) func(*CORSOptions) {
-	return func(o *CORSOptions) {
-		o.AllowMethods = methods
-	}
-}
-
-// CORSWithHeaders sets allowed headers.
-func CORSWithHeaders(headers ...string) func(*CORSOptions) {
-	return func(o *CORSOptions) {
-		o.AllowHeaders = headers
-	}
-}
-
-// CORSWithCredentials enables credentials.
-func CORSWithCredentials() func(*CORSOptions) {
-	return func(o *CORSOptions) {
-		o.AllowCredentials = true
-	}
-}
-
-// CORSWithMaxAge sets preflight cache duration.
-func CORSWithMaxAge(maxAge int) func(*CORSOptions) {
-	return func(o *CORSOptions) {
-		o.MaxAge = maxAge
-	}
+	return func(o *Options) { o.DisableCORS = true }
 }
 
 // WithTimeout configures and enables timeout middleware.
-func WithTimeout(timeout time.Duration, opts ...func(*TimeoutOptions)) Option {
+func WithTimeout(timeout time.Duration, skipPaths []string) Option {
 	return func(o *Options) {
 		o.DisableTimeout = false
 		o.Timeout.Timeout = timeout
-		for _, opt := range opts {
-			opt(&o.Timeout)
+		if skipPaths != nil {
+			o.Timeout.SkipPaths = skipPaths
 		}
 	}
 }
 
 // WithoutTimeout disables timeout middleware.
 func WithoutTimeout() Option {
-	return func(o *Options) {
-		o.DisableTimeout = true
-	}
-}
-
-// TimeoutWithSkipPaths sets paths to skip timeout.
-func TimeoutWithSkipPaths(paths ...string) func(*TimeoutOptions) {
-	return func(o *TimeoutOptions) {
-		o.SkipPaths = paths
-	}
+	return func(o *Options) { o.DisableTimeout = true }
 }
 
 // WithHealth configures and enables health check endpoints.
-func WithHealth(opts ...func(*HealthOptions)) Option {
+func WithHealth(path, livenessPath, readinessPath string, checker func() error) Option {
 	return func(o *Options) {
 		o.DisableHealth = false
-		for _, opt := range opts {
-			opt(&o.Health)
+		if path != "" {
+			o.Health.Path = path
+		}
+		if livenessPath != "" {
+			o.Health.LivenessPath = livenessPath
+		}
+		if readinessPath != "" {
+			o.Health.ReadinessPath = readinessPath
+		}
+		if checker != nil {
+			o.Health.Checker = checker
 		}
 	}
 }
 
 // WithoutHealth disables health check endpoints.
 func WithoutHealth() Option {
-	return func(o *Options) {
-		o.DisableHealth = true
-	}
-}
-
-// HealthWithPath sets the main health check path.
-func HealthWithPath(path string) func(*HealthOptions) {
-	return func(o *HealthOptions) {
-		o.Path = path
-	}
-}
-
-// HealthWithLivenessPath sets the liveness probe path.
-func HealthWithLivenessPath(path string) func(*HealthOptions) {
-	return func(o *HealthOptions) {
-		o.LivenessPath = path
-	}
-}
-
-// HealthWithReadinessPath sets the readiness probe path.
-func HealthWithReadinessPath(path string) func(*HealthOptions) {
-	return func(o *HealthOptions) {
-		o.ReadinessPath = path
-	}
-}
-
-// HealthWithChecker sets custom health check function.
-func HealthWithChecker(checker func() error) func(*HealthOptions) {
-	return func(o *HealthOptions) {
-		o.Checker = checker
-	}
+	return func(o *Options) { o.DisableHealth = true }
 }
 
 // WithMetrics configures and enables metrics endpoint.
-func WithMetrics(opts ...func(*MetricsOptions)) Option {
+func WithMetrics(path, namespace, subsystem string) Option {
 	return func(o *Options) {
 		o.DisableMetrics = false
-		for _, opt := range opts {
-			opt(&o.Metrics)
+		if path != "" {
+			o.Metrics.Path = path
+		}
+		if namespace != "" {
+			o.Metrics.Namespace = namespace
+		}
+		if subsystem != "" {
+			o.Metrics.Subsystem = subsystem
 		}
 	}
 }
 
 // WithoutMetrics disables metrics endpoint.
 func WithoutMetrics() Option {
-	return func(o *Options) {
-		o.DisableMetrics = true
-	}
-}
-
-// MetricsWithPath sets the metrics endpoint path.
-func MetricsWithPath(path string) func(*MetricsOptions) {
-	return func(o *MetricsOptions) {
-		o.Path = path
-	}
-}
-
-// MetricsWithNamespace sets the metrics namespace.
-func MetricsWithNamespace(namespace string) func(*MetricsOptions) {
-	return func(o *MetricsOptions) {
-		o.Namespace = namespace
-	}
-}
-
-// MetricsWithSubsystem sets the metrics subsystem.
-func MetricsWithSubsystem(subsystem string) func(*MetricsOptions) {
-	return func(o *MetricsOptions) {
-		o.Subsystem = subsystem
-	}
+	return func(o *Options) { o.DisableMetrics = true }
 }
 
 // WithPprof configures and enables pprof endpoints.
-func WithPprof(opts ...func(*PprofOptions)) Option {
+func WithPprof(prefix string, blockRate, mutexFraction int) Option {
 	return func(o *Options) {
 		o.DisablePprof = false
-		for _, opt := range opts {
-			opt(&o.Pprof)
+		if prefix != "" {
+			o.Pprof.Prefix = prefix
+		}
+		if blockRate >= 0 {
+			o.Pprof.BlockProfileRate = blockRate
+		}
+		if mutexFraction >= 0 {
+			o.Pprof.MutexProfileFraction = mutexFraction
 		}
 	}
 }
 
 // WithoutPprof disables pprof endpoints.
 func WithoutPprof() Option {
-	return func(o *Options) {
-		o.DisablePprof = true
-	}
+	return func(o *Options) { o.DisablePprof = true }
 }
 
-// PprofWithPrefix sets the URL prefix for pprof endpoints.
-func PprofWithPrefix(prefix string) func(*PprofOptions) {
-	return func(o *PprofOptions) {
-		o.Prefix = prefix
-	}
-}
-
-// PprofWithBlockProfileRate sets the block profile rate.
-func PprofWithBlockProfileRate(rate int) func(*PprofOptions) {
-	return func(o *PprofOptions) {
-		o.BlockProfileRate = rate
-	}
-}
-
-// PprofWithMutexProfileFraction sets the mutex profile fraction.
-func PprofWithMutexProfileFraction(fraction int) func(*PprofOptions) {
-	return func(o *PprofOptions) {
-		o.MutexProfileFraction = fraction
-	}
-}
-
-// PprofDisableCmdline disables the cmdline endpoint.
-func PprofDisableCmdline() func(*PprofOptions) {
-	return func(o *PprofOptions) {
-		o.EnableCmdline = false
-	}
-}
-
-// PprofDisableProfile disables the profile endpoint.
-func PprofDisableProfile() func(*PprofOptions) {
-	return func(o *PprofOptions) {
-		o.EnableProfile = false
-	}
-}
-
-// PprofDisableSymbol disables the symbol endpoint.
-func PprofDisableSymbol() func(*PprofOptions) {
-	return func(o *PprofOptions) {
-		o.EnableSymbol = false
-	}
-}
-
-// PprofDisableTrace disables the trace endpoint.
-func PprofDisableTrace() func(*PprofOptions) {
-	return func(o *PprofOptions) {
-		o.EnableTrace = false
-	}
-}
+// Note: WithAuth/WithoutAuth are defined in auth.go
+// Note: WithAuthz/WithoutAuthz are defined in authz.go
