@@ -67,18 +67,12 @@ func Example_healthCheck() {
 	defer client.Close()
 
 	// Basic health check
-	status := mysql.CheckHealth(client, 5*time.Second)
-	if status.Healthy {
-		fmt.Printf("MySQL is healthy (latency: %v)\n", status.Latency)
+	ctx := context.Background()
+	err = client.CheckHealth(ctx)
+	if err != nil {
+		fmt.Printf("MySQL is unhealthy: %v\n", err)
 	} else {
-		fmt.Printf("MySQL is unhealthy: %v\n", status.Error)
-	}
-
-	// Health check with statistics
-	status, stats := mysql.HealthWithStats(client, 5*time.Second)
-	if status.Healthy {
-		fmt.Printf("Open connections: %v\n", stats["open_connections"])
-		fmt.Printf("Idle connections: %v\n", stats["idle_connections"])
+		fmt.Println("MySQL is healthy")
 	}
 }
 

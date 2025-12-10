@@ -173,7 +173,7 @@ func (p *TelemetryProvider) initTracer(res *resource.Resource) (*sdktrace.Tracer
 	case "noop":
 		exporter = &noopExporter{}
 	default:
-		return nil, agentErrors.New(agentErrors.CodeInvalidConfig, "unsupported trace exporter").
+		return nil, agentErrors.New(agentErrors.CodeAgentConfig, "unsupported trace exporter").
 			WithComponent("telemetry").
 			WithOperation("initTracer").
 			WithContext("exporter", p.config.TraceExporter)
@@ -206,7 +206,7 @@ func (p *TelemetryProvider) createOTLPExporter() (sdktrace.SpanExporter, error) 
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {
-		return nil, agentErrors.Wrap(err, agentErrors.CodeStoreConnection, "failed to create gRPC connection").
+		return nil, agentErrors.Wrap(err, agentErrors.CodeNetwork, "failed to create gRPC connection").
 			WithComponent("telemetry").
 			WithOperation("createOTLPExporter").
 			WithContext("endpoint", p.config.TraceEndpoint)

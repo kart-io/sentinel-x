@@ -159,7 +159,7 @@ func (m *InterruptManager) CreateInterrupt(ctx context.Context, interrupt *Inter
 	case <-ctx.Done():
 		return &interruptCopy, nil, ctx.Err()
 	case <-time.After(getTimeoutForInterrupt(&interruptCopy)):
-		return &interruptCopy, nil, agentErrors.New(agentErrors.CodeContextTimeout, "interrupt timed out").
+		return &interruptCopy, nil, agentErrors.New(agentErrors.CodeAgentTimeout, "interrupt timed out").
 			WithComponent("interrupt_manager").
 			WithOperation("create_interrupt").
 			WithContext("interrupt_id", interruptCopy.ID)
@@ -173,7 +173,7 @@ func (m *InterruptManager) RespondToInterrupt(interruptID string, response *Inte
 
 	interrupt, ok := m.interrupts[interruptID]
 	if !ok {
-		return agentErrors.New(agentErrors.CodeAgentNotFound, "interrupt not found").
+		return agentErrors.New(agentErrors.CodeNotFound, "interrupt not found").
 			WithComponent("interrupt_manager").
 			WithOperation("respond_to_interrupt").
 			WithContext("interrupt_id", interruptID)
@@ -207,7 +207,7 @@ func (m *InterruptManager) GetInterrupt(interruptID string) (*Interrupt, error) 
 
 	interrupt, ok := m.interrupts[interruptID]
 	if !ok {
-		return nil, agentErrors.New(agentErrors.CodeAgentNotFound, "interrupt not found").
+		return nil, agentErrors.New(agentErrors.CodeNotFound, "interrupt not found").
 			WithComponent("interrupt_manager").
 			WithOperation("get_interrupt").
 			WithContext("interrupt_id", interruptID)

@@ -82,13 +82,15 @@ func newFromConfig(config *Config) (*Store, error) {
 		Logger: logger.Default.LogMode(config.LogLevel),
 	})
 	if err != nil {
-		return nil, agentErrors.NewStoreConnectionError("postgres", config.DSN, err)
+		return nil, agentErrors.NewErrorWithCause(agentErrors.CodeNetwork, "failed to connect to postgres", err).
+			WithComponent("postgres_store").
+			WithContext("dsn", config.DSN)
 	}
 
 	// Get underlying SQL database
 	sqlDB, err := db.DB()
 	if err != nil {
-		return nil, agentErrors.Wrap(err, agentErrors.CodeStoreConnection, "failed to get SQL database").WithComponent("postgres_store").WithOperation("new")
+		return nil, agentErrors.Wrap(err, agentErrors.CodeNetwork, "failed to get SQL database").WithComponent("postgres_store").WithOperation("new")
 	}
 
 	// Set connection pool settings
@@ -105,7 +107,7 @@ func newFromConfig(config *Config) (*Store, error) {
 	// Auto-migrate if enabled
 	if config.AutoMigrate {
 		if err := store.migrate(); err != nil {
-			return nil, agentErrors.Wrap(err, agentErrors.CodeStoreConnection, "failed to migrate database").WithComponent("postgres_store").WithOperation("new")
+			return nil, agentErrors.Wrap(err, agentErrors.CodeNetwork, "failed to migrate database").WithComponent("postgres_store").WithOperation("new")
 		}
 	}
 
@@ -125,7 +127,7 @@ func NewFromDB(db *gorm.DB, config *Config) (*Store, error) {
 
 	if config.AutoMigrate {
 		if err := store.migrate(); err != nil {
-			return nil, agentErrors.Wrap(err, agentErrors.CodeStoreConnection, "failed to migrate database").WithComponent("postgres_store").WithOperation("new_from_db")
+			return nil, agentErrors.Wrap(err, agentErrors.CodeNetwork, "failed to migrate database").WithComponent("postgres_store").WithOperation("new_from_db")
 		}
 	}
 
@@ -156,7 +158,7 @@ func (s *Store) Put(ctx context.Context, namespace []string, key string, value i
 	// Serialize value to JSON
 	valueJSON, err := json.Marshal(value)
 	if err != nil {
-		return agentErrors.Wrap(err, agentErrors.CodeStoreSerialization, "failed to marshal value").
+		return agentErrors.Wrap(err, agentErrors.CodeInvalidInput, "failed to marshal value").
 			WithComponent("postgres_store").
 			WithOperation("put").
 			WithContext("namespace", nsKey).
@@ -175,7 +177,7 @@ func (s *Store) Put(ctx context.Context, namespace []string, key string, value i
 		existing.UpdatedAt = now
 
 		if err := s.getDB().Save(&existing).Error; err != nil {
-			return agentErrors.Wrap(err, agentErrors.CodeStoreConnection, "failed to update value").
+			return agentErrors.Wrap(err, agentErrors.CodeNetwork, "failed to update value").
 				WithComponent("postgres_store").
 				WithOperation("put").
 				WithContext("namespace", nsKey).
@@ -193,14 +195,14 @@ func (s *Store) Put(ctx context.Context, namespace []string, key string, value i
 		}
 
 		if err := s.getDB().Create(&model).Error; err != nil {
-			return agentErrors.Wrap(err, agentErrors.CodeStoreConnection, "failed to create value").
+			return agentErrors.Wrap(err, agentErrors.CodeNetwork, "failed to create value").
 				WithComponent("postgres_store").
 				WithOperation("put").
 				WithContext("namespace", nsKey).
 				WithContext("key", key)
 		}
 	} else {
-		return agentErrors.Wrap(result.Error, agentErrors.CodeStoreConnection, "failed to query existing value").
+		return agentErrors.Wrap(result.Error, agentErrors.CodeNetwork, "failed to query existing value").
 			WithComponent("postgres_store").
 			WithOperation("put").
 			WithContext("namespace", nsKey).
@@ -219,9 +221,13 @@ func (s *Store) Get(ctx context.Context, namespace []string, key string) (*store
 
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return nil, agentErrors.NewStoreNotFoundError(namespace, key)
+			return nil, agentErrors.NewErrorf(agentErrors.CodeNotFound, "key '%s' not found in namespace %v", key, namespace).
+				WithComponent("postgres_store").
+				WithOperation("get").
+				WithContext("namespace", nsKey).
+				WithContext("key", key)
 		}
-		return nil, agentErrors.Wrap(result.Error, agentErrors.CodeStoreConnection, "failed to get value").
+		return nil, agentErrors.Wrap(result.Error, agentErrors.CodeNetwork, "failed to get value").
 			WithComponent("postgres_store").
 			WithOperation("get").
 			WithContext("namespace", nsKey).
@@ -231,7 +237,7 @@ func (s *Store) Get(ctx context.Context, namespace []string, key string) (*store
 	// Deserialize value
 	var value interface{}
 	if err := json.Unmarshal(model.Value, &value); err != nil {
-		return nil, agentErrors.Wrap(err, agentErrors.CodeStoreSerialization, "failed to unmarshal value").
+		return nil, agentErrors.Wrap(err, agentErrors.CodeInvalidInput, "failed to unmarshal value").
 			WithComponent("postgres_store").
 			WithOperation("get").
 			WithContext("namespace", nsKey).
@@ -264,7 +270,7 @@ func (s *Store) Delete(ctx context.Context, namespace []string, key string) erro
 
 	result := s.getDB().Where("namespace = ? AND key = ?", nsKey, key).Delete(&storeModel{})
 	if result.Error != nil {
-		return agentErrors.Wrap(result.Error, agentErrors.CodeStoreConnection, "failed to delete value").
+		return agentErrors.Wrap(result.Error, agentErrors.CodeNetwork, "failed to delete value").
 			WithComponent("postgres_store").
 			WithOperation("delete").
 			WithContext("namespace", nsKey).
@@ -286,7 +292,7 @@ func (s *Store) Search(ctx context.Context, namespace []string, filter map[strin
 		filterJSON := map[string]interface{}{key: value}
 		filterBytes, err := json.Marshal(filterJSON)
 		if err != nil {
-			return nil, agentErrors.Wrap(err, agentErrors.CodeStoreSerialization, "failed to marshal filter").
+			return nil, agentErrors.Wrap(err, agentErrors.CodeInvalidInput, "failed to marshal filter").
 				WithComponent("postgres_store").
 				WithOperation("search").
 				WithContext("namespace", nsKey)
@@ -297,7 +303,7 @@ func (s *Store) Search(ctx context.Context, namespace []string, filter map[strin
 
 	var models []storeModel
 	if err := query.Find(&models).Error; err != nil {
-		return nil, agentErrors.Wrap(err, agentErrors.CodeStoreConnection, "failed to search values").
+		return nil, agentErrors.Wrap(err, agentErrors.CodeNetwork, "failed to search values").
 			WithComponent("postgres_store").
 			WithOperation("search").
 			WithContext("namespace", nsKey)
@@ -344,7 +350,7 @@ func (s *Store) List(ctx context.Context, namespace []string) ([]string, error) 
 		Pluck("key", &keys).
 		Error
 	if err != nil {
-		return nil, agentErrors.Wrap(err, agentErrors.CodeStoreConnection, "failed to list keys").
+		return nil, agentErrors.Wrap(err, agentErrors.CodeNetwork, "failed to list keys").
 			WithComponent("postgres_store").
 			WithOperation("list").
 			WithContext("namespace", nsKey)
@@ -359,7 +365,7 @@ func (s *Store) Clear(ctx context.Context, namespace []string) error {
 
 	result := s.getDB().Where("namespace = ?", nsKey).Delete(&storeModel{})
 	if result.Error != nil {
-		return agentErrors.Wrap(result.Error, agentErrors.CodeStoreConnection, "failed to clear namespace").
+		return agentErrors.Wrap(result.Error, agentErrors.CodeNetwork, "failed to clear namespace").
 			WithComponent("postgres_store").
 			WithOperation("clear").
 			WithContext("namespace", nsKey)
@@ -399,7 +405,7 @@ func (s *Store) Size(ctx context.Context) (int64, error) {
 	var count int64
 	err := s.getDB().Model(&storeModel{}).Count(&count).Error
 	if err != nil {
-		return 0, agentErrors.Wrap(err, agentErrors.CodeStoreConnection, "failed to count values").
+		return 0, agentErrors.Wrap(err, agentErrors.CodeNetwork, "failed to count values").
 			WithComponent("postgres_store").
 			WithOperation("size")
 	}

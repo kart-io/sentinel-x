@@ -5,7 +5,7 @@ import (
 )
 
 // BuiltinTools 内置工具注册表
-var BuiltinTools = []core.MCPTool{
+var BuiltinTools = []core.Tool{
 	// 文件系统工具 (4)
 	NewReadFileTool(),
 	NewWriteFileTool(),
@@ -33,8 +33,8 @@ func RegisterBuiltinTools(toolbox core.ToolBox) error {
 }
 
 // GetToolsByCategory 按分类获取工具
-func GetToolsByCategory(category string) []core.MCPTool {
-	tools := make([]core.MCPTool, 0)
+func GetToolsByCategory(category string) []core.Tool {
+	tools := make([]core.Tool, 0)
 	for _, tool := range BuiltinTools {
 		if tool.Category() == category {
 			tools = append(tools, tool)

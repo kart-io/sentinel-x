@@ -156,7 +156,7 @@ func (a *StreamingLLMAgent) processStreamAsync(ctx context.Context, input *core.
 
 	// 发送状态更新
 	if err := writer.WriteStatus("Starting LLM generation..."); err != nil {
-		if writeErr := writer.WriteError(agentErrors.Wrap(err, agentErrors.CodeStreamWrite, "failed to write starting status")); writeErr != nil {
+		if writeErr := writer.WriteError(agentErrors.Wrap(err, agentErrors.CodeNetwork, "failed to write starting status")); writeErr != nil {
 			fmt.Printf("failed to write error: %v\n", writeErr)
 		}
 		return
@@ -388,7 +388,7 @@ func (c *TextAccumulatorConsumer) OnChunk(chunk *core.LegacyStreamChunk) error {
 
 		textSize := int64(len(chunk.Text))
 		if c.curSize+textSize > c.maxSize {
-			return agentErrors.New(agentErrors.CodeStreamRead, "text accumulator size limit exceeded").
+			return agentErrors.New(agentErrors.CodeNetwork, "text accumulator size limit exceeded").
 				WithComponent("text_accumulator").
 				WithOperation("OnChunk").
 				WithContext("max_size", c.maxSize).

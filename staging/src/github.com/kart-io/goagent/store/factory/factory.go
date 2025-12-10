@@ -35,7 +35,9 @@ type Config struct {
 // NewStore creates a new store based on the configuration
 func NewStore(config *Config) (store.Store, error) {
 	if config == nil {
-		return nil, agentErrors.NewInvalidConfigError("store_factory", "config", "config cannot be nil")
+		return nil, agentErrors.NewError(agentErrors.CodeAgentConfig, "config cannot be nil").
+			WithComponent("store_factory").
+			WithOperation("new_store")
 	}
 
 	switch config.Type {
@@ -109,7 +111,9 @@ func NewStore(config *Config) (store.Store, error) {
 		return redis.New(cfg.Addr, opts...)
 
 	default:
-		return nil, agentErrors.NewInvalidConfigError("store_factory", "type", "unknown store type").
+		return nil, agentErrors.NewError(agentErrors.CodeAgentConfig, "unknown store type").
+			WithComponent("store_factory").
+			WithOperation("new_store").
 			WithContext("store_type", string(config.Type))
 	}
 }

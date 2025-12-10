@@ -2,7 +2,6 @@ package providers
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
@@ -151,7 +150,10 @@ func (c *KimiClient) Complete(ctx context.Context, req *agentllm.CompletionReque
 
 	model := c.GetModel(req.Model)
 	if err != nil {
-		return nil, agentErrors.NewLLMRequestError(c.ProviderName(), model, err)
+		return nil, agentErrors.NewErrorWithCause(agentErrors.CodeExternalService, "kimi API call failed", err).
+			WithComponent("kimi").
+			WithOperation("complete").
+			WithContext("model", model)
 	}
 
 	body := resp.Body()
@@ -159,23 +161,31 @@ func (c *KimiClient) Complete(ctx context.Context, req *agentllm.CompletionReque
 	if !resp.IsSuccess() {
 		var errResp kimiError
 		if err := json.Unmarshal(body, &errResp); err == nil && errResp.Error.Message != "" {
-			return nil, agentErrors.NewLLMResponseError(c.ProviderName(), model,
-				fmt.Sprintf("%s (type: %s, code: %s)",
-					errResp.Error.Message, errResp.Error.Type, errResp.Error.Code))
+			return nil, agentErrors.NewErrorf(agentErrors.CodeExternalService, "kimi API error: %s (type: %s, code: %s)",
+				errResp.Error.Message, errResp.Error.Type, errResp.Error.Code).
+				WithComponent("kimi").
+				WithOperation("complete").
+				WithContext("model", model)
 		}
-		return nil, agentErrors.NewLLMResponseError(c.ProviderName(), model,
-			fmt.Sprintf("API error (status %d): %s", resp.StatusCode(), string(body)))
+		return nil, agentErrors.NewErrorf(agentErrors.CodeExternalService, "kimi API error (status %d): %s", resp.StatusCode(), string(body)).
+			WithComponent("kimi").
+			WithOperation("complete").
+			WithContext("model", model)
 	}
 
 	// 解析响应
 	var kimiResp kimiResponse
 	if err := json.Unmarshal(body, &kimiResp); err != nil {
-		return nil, agentErrors.NewParserInvalidJSONError(string(body), err).
-			WithContext("provider", c.ProviderName())
+		return nil, agentErrors.NewErrorWithCause(agentErrors.CodeInvalidInput, "failed to decode kimi response", err).
+			WithComponent("kimi").
+			WithOperation("complete")
 	}
 
 	if len(kimiResp.Choices) == 0 {
-		return nil, agentErrors.NewLLMResponseError(c.ProviderName(), model, "no choices in response")
+		return nil, agentErrors.NewError(agentErrors.CodeExternalService, "no choices in kimi response").
+			WithComponent("kimi").
+			WithOperation("complete").
+			WithContext("model", model)
 	}
 
 	// 构建响应
@@ -235,15 +245,16 @@ func (c *KimiClient) ListModels() ([]string, error) {
 		SetContext(ctx).
 		Get(c.baseURL + "/models")
 
-	model := c.GetModel("")
 	if err != nil {
-		return nil, agentErrors.NewLLMRequestError(c.ProviderName(), model, err).
-			WithContext("operation", "list_models")
+		return nil, agentErrors.NewErrorWithCause(agentErrors.CodeExternalService, "kimi list models failed", err).
+			WithComponent("kimi").
+			WithOperation("list_models")
 	}
 
 	if !resp.IsSuccess() {
-		return nil, agentErrors.NewLLMResponseError(c.ProviderName(), model,
-			fmt.Sprintf("failed to list models (status %d): %s", resp.StatusCode(), resp.String()))
+		return nil, agentErrors.NewErrorf(agentErrors.CodeExternalService, "kimi failed to list models (status %d): %s", resp.StatusCode(), resp.String()).
+			WithComponent("kimi").
+			WithOperation("list_models")
 	}
 
 	var result struct {
@@ -256,8 +267,9 @@ func (c *KimiClient) ListModels() ([]string, error) {
 	}
 
 	if err := json.NewDecoder(strings.NewReader(resp.String())).Decode(&result); err != nil {
-		return nil, agentErrors.NewParserInvalidJSONError("models list response", err).
-			WithContext("provider", c.ProviderName())
+		return nil, agentErrors.NewErrorWithCause(agentErrors.CodeInvalidInput, "failed to decode kimi models list response", err).
+			WithComponent("kimi").
+			WithOperation("list_models")
 	}
 
 	models := make([]string, len(result.Data))

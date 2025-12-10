@@ -516,7 +516,7 @@ func (m *RetryMiddleware) OnError(ctx context.Context, err error) error {
 
 	// Note: Actual retry logic would need to be implemented in the chain execution
 	// This is a simplified version showing the pattern
-	return agentErrors.Wrap(err, agentErrors.CodeMiddlewareExecution, "retry needed for error").
+	return agentErrors.Wrap(err, agentErrors.CodeAgentExecution, "retry needed for error").
 		WithComponent("retry_middleware").
 		WithOperation("on_error")
 }

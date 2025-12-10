@@ -74,33 +74,3 @@ func (c *Client) checkClusterHealth(ctx context.Context) error {
 	// More sophisticated checks could verify leader election status
 	return nil
 }
-
-// HealthWithTimeout performs a health check with a specific timeout.
-// This is a convenience method that creates a timeout context and calls CheckHealth.
-//
-// Example usage:
-//
-//	status := client.HealthWithTimeout(5 * time.Second)
-//	if !status.Healthy {
-//	    log.Printf("health check failed: %v", status.Error)
-//	}
-func (c *Client) HealthWithTimeout(timeout time.Duration) storage.HealthStatus {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	return c.CheckHealth(ctx)
-}
-
-// IsHealthy is a simple boolean health check.
-// It returns true if the etcd cluster is healthy, false otherwise.
-//
-// This is a convenience method for cases where you only need a yes/no answer.
-//
-// Example usage:
-//
-//	if !client.IsHealthy(ctx) {
-//	    log.Println("etcd cluster is unhealthy")
-//	}
-func (c *Client) IsHealthy(ctx context.Context) bool {
-	status := c.CheckHealth(ctx)
-	return status.Healthy
-}

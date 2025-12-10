@@ -38,7 +38,7 @@ func (w *WebSocketStreamer) WriteChunk(chunk *core.LegacyStreamChunk) error {
 	defer w.mu.Unlock()
 
 	if w.closed {
-		return agentErrors.New(agentErrors.CodeStreamWrite, "streamer is closed").
+		return agentErrors.New(agentErrors.CodeNetwork, "streamer is closed").
 			WithComponent("websocket_transport").
 			WithOperation("WriteChunk")
 	}
@@ -75,7 +75,7 @@ func (w *WebSocketStreamer) WriteBinary(data []byte) error {
 	defer w.mu.Unlock()
 
 	if w.closed {
-		return agentErrors.New(agentErrors.CodeStreamWrite, "streamer is closed").
+		return agentErrors.New(agentErrors.CodeNetwork, "streamer is closed").
 			WithComponent("websocket_transport").
 			WithOperation("WriteBinary")
 	}
@@ -314,7 +314,7 @@ func WebSocketStreamHandler(handler func(ctx context.Context, input *core.AgentI
 		// 解析输入
 		inputData, ok := chunk.Data.(map[string]interface{})
 		if !ok {
-			if err := streamer.WriteError(agentErrors.New(agentErrors.CodeDistributedSerialization, "invalid input format").
+			if err := streamer.WriteError(agentErrors.New(agentErrors.CodeInvalidInput, "invalid input format").
 				WithComponent("websocket_transport").
 				WithOperation("WebSocketStreamHandler")); err != nil {
 				fmt.Printf("failed to write error: %v", err)

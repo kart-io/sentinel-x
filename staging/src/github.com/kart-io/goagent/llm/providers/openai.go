@@ -99,11 +99,17 @@ func (p *OpenAIProvider) Complete(ctx context.Context, req *agentllm.CompletionR
 		TopP:        float32(req.TopP),
 	})
 	if err != nil {
-		return nil, agentErrors.NewLLMRequestError(p.ProviderName(), model, err)
+		return nil, agentErrors.NewErrorWithCause(agentErrors.CodeExternalService, "openai API call failed", err).
+			WithComponent("openai").
+			WithOperation("complete").
+			WithContext("model", model)
 	}
 
 	if len(resp.Choices) == 0 {
-		return nil, agentErrors.NewLLMResponseError(p.ProviderName(), model, "no choices in response")
+		return nil, agentErrors.NewError(agentErrors.CodeExternalService, "no choices in openai response").
+			WithComponent("openai").
+			WithOperation("complete").
+			WithContext("model", model)
 	}
 
 	return &agentllm.CompletionResponse{
@@ -155,8 +161,10 @@ func (p *OpenAIProvider) Stream(ctx context.Context, prompt string) (<-chan stri
 		Stream:      true,
 	})
 	if err != nil {
-		return nil, agentErrors.NewLLMRequestError(p.ProviderName(), model, err).
-			WithContext("stream", true)
+		return nil, agentErrors.NewErrorWithCause(agentErrors.CodeExternalService, "openai streaming API call failed", err).
+			WithComponent("openai").
+			WithOperation("stream").
+			WithContext("model", model)
 	}
 
 	go func() {
@@ -219,12 +227,17 @@ func (p *OpenAIProvider) GenerateWithTools(ctx context.Context, prompt string, t
 		Functions:   functions,
 	})
 	if err != nil {
-		return nil, agentErrors.NewLLMRequestError(p.ProviderName(), model, err).
-			WithContext("tool_calling", true)
+		return nil, agentErrors.NewErrorWithCause(agentErrors.CodeExternalService, "openai tool calling API call failed", err).
+			WithComponent("openai").
+			WithOperation("tool_calling").
+			WithContext("model", model)
 	}
 
 	if len(resp.Choices) == 0 {
-		return nil, agentErrors.NewLLMResponseError(p.ProviderName(), model, "no choices in response")
+		return nil, agentErrors.NewError(agentErrors.CodeExternalService, "no choices in openai tool response").
+			WithComponent("openai").
+			WithOperation("tool_calling").
+			WithContext("model", model)
 	}
 
 	choice := resp.Choices[0]
@@ -283,9 +296,10 @@ func (p *OpenAIProvider) StreamWithTools(ctx context.Context, prompt string, too
 		Stream:      true,
 	})
 	if err != nil {
-		return nil, agentErrors.NewLLMRequestError(p.ProviderName(), model, err).
-			WithContext("stream", true).
-			WithContext("tool_calling", true)
+		return nil, agentErrors.NewErrorWithCause(agentErrors.CodeExternalService, "openai streaming with tools API call failed", err).
+			WithComponent("openai").
+			WithOperation("stream_with_tools").
+			WithContext("model", model)
 	}
 
 	go func() {
@@ -387,22 +401,22 @@ func (p *OpenAIProvider) StreamWithTools(ctx context.Context, prompt string, too
 
 // Embed generates embeddings for text
 func (p *OpenAIProvider) Embed(ctx context.Context, text string) ([]float64, error) {
-	textPreview := text
-	if len(text) > 100 {
-		textPreview = text[:100] + "..."
-	}
-
 	resp, err := p.client.CreateEmbeddings(ctx, openai.EmbeddingRequest{
 		Input: []string{text},
 		Model: openai.AdaEmbeddingV2,
 	})
 	if err != nil {
-		return nil, agentErrors.NewRetrievalEmbeddingError(textPreview, err).
+		return nil, agentErrors.NewErrorWithCause(agentErrors.CodeEmbedding, "openai embedding API call failed", err).
+			WithComponent("openai").
+			WithOperation("embed").
 			WithContext("model", string(openai.AdaEmbeddingV2))
 	}
 
 	if len(resp.Data) == 0 {
-		return nil, agentErrors.NewLLMResponseError(p.ProviderName(), string(openai.AdaEmbeddingV2), "no embeddings in response")
+		return nil, agentErrors.NewError(agentErrors.CodeExternalService, "no embeddings in openai response").
+			WithComponent("openai").
+			WithOperation("embed").
+			WithContext("model", string(openai.AdaEmbeddingV2))
 	}
 
 	// Convert float32 to float64

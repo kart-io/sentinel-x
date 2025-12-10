@@ -407,25 +407,18 @@ func (e *ToolExecutor) shouldRetry(err error) bool {
 	var agentErr *agentErrors.AgentError
 	if errors.As(err, &agentErr) {
 		switch agentErr.Code {
-		case agentErrors.CodeToolTimeout,
-			agentErrors.CodeLLMTimeout,
-			agentErrors.CodeContextTimeout,
-			agentErrors.CodeLLMRateLimit,
-			agentErrors.CodeStreamTimeout,
-			agentErrors.CodeStoreConnection,
-			agentErrors.CodeDistributedConnection,
-			agentErrors.CodeDistributedHeartbeat,
-			agentErrors.CodeRouterOverload:
+		case agentErrors.CodeAgentTimeout,
+			agentErrors.CodeRateLimit,
+			agentErrors.CodeNetwork,
+			agentErrors.CodeResourceLimit:
 			// 这些是临时性错误，可以重试
 			return true
 		case agentErrors.CodeToolValidation,
 			agentErrors.CodeInvalidInput,
-			agentErrors.CodeInvalidConfig,
+			agentErrors.CodeAgentConfig,
 			agentErrors.CodeToolNotFound,
-			agentErrors.CodeNotImplemented,
-			agentErrors.CodeAgentValidation,
-			agentErrors.CodeParserFailed,
-			agentErrors.CodeVectorDimMismatch:
+			agentErrors.CodeUnknown,
+			agentErrors.CodeAgentExecution:
 			// 这些是永久性错误，重试无意义
 			return false
 		default:

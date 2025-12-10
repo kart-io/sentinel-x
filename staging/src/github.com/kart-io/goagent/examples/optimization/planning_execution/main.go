@@ -26,7 +26,7 @@ func main() {
 	// 检查 API Key
 	apiKey := os.Getenv("DEEPSEEK_API_KEY")
 	if apiKey == "" {
-		err := errors.New(errors.CodeInvalidConfig, "DEEPSEEK_API_KEY environment variable is not set").
+		err := errors.New(errors.CodeAgentConfig, "DEEPSEEK_API_KEY environment variable is not set").
 			WithOperation("initialization").
 			WithComponent("planning_execution_example").
 			WithContext("env_var", "DEEPSEEK_API_KEY")
@@ -38,7 +38,7 @@ func main() {
 	// 初始化 LLM 客户端
 	llmClient, err := providers.NewDeepSeekWithOptions(llm.WithAPIKey(apiKey), llm.WithModel("deepseek-chat"), llm.WithMaxTokens(2000), llm.WithTemperature(0.7), llm.WithTimeout(60))
 	if err != nil {
-		wrappedErr := errors.Wrap(err, errors.CodeLLMRequest, "failed to create LLM client").
+		wrappedErr := errors.Wrap(err, errors.CodeExternalService, "failed to create LLM client").
 			WithOperation("initialization").
 			WithComponent("planning_execution_example").
 			WithContext("provider", "deepseek").

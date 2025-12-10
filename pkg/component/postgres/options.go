@@ -90,26 +90,20 @@ func NewOptions() *Options {
 }
 
 // Complete fills in any fields not set that are required to have valid data.
-// For PostgreSQL options, this method currently has no completion logic as all
-// defaults are set in NewOptions(). This method is provided to satisfy the
-// component.ConfigOptions interface.
+// This includes reading sensitive information from environment variables and
+// setting default values for connection pool parameters.
 func (o *Options) Complete() error {
-	return nil
-}
-
-// Validate checks if the options are valid.
-func (o *Options) Validate() error {
-	// 如果 CLI 参数为空，从环境变量读取
+	// Read password from environment variable if not set
 	if o.Password == "" {
 		o.Password = os.Getenv("POSTGRES_PASSWORD")
 	}
 
-	// 警告使用 CLI 参数传递密码
-	// 如果密码非空但环境变量为空，说明密码是通过 CLI 传递的
-	if o.Password != "" && os.Getenv("POSTGRES_PASSWORD") == "" {
-		fmt.Fprintf(os.Stderr, "WARNING: Passing PostgreSQL password via CLI is insecure. Use POSTGRES_PASSWORD environment variable instead.\n")
-	}
+	return nil
+}
 
+// Validate checks if the options are valid.
+// This method is idempotent and has no side effects.
+func (o *Options) Validate() error {
 	return nil
 }
 

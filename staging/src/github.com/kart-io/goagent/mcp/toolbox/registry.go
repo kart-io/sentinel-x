@@ -9,19 +9,19 @@ import (
 
 // MemoryRegistry 内存工具注册表
 type MemoryRegistry struct {
-	tools map[string]core.MCPTool
+	tools map[string]core.Tool
 	mutex sync.RWMutex
 }
 
 // NewMemoryRegistry 创建内存注册表
 func NewMemoryRegistry() *MemoryRegistry {
 	return &MemoryRegistry{
-		tools: make(map[string]core.MCPTool),
+		tools: make(map[string]core.Tool),
 	}
 }
 
 // Register 注册工具
-func (r *MemoryRegistry) Register(tool core.MCPTool) error {
+func (r *MemoryRegistry) Register(tool core.Tool) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -48,7 +48,7 @@ func (r *MemoryRegistry) Unregister(name string) error {
 }
 
 // Get 获取工具
-func (r *MemoryRegistry) Get(name string) (core.MCPTool, bool) {
+func (r *MemoryRegistry) Get(name string) (core.Tool, bool) {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
 
@@ -57,11 +57,11 @@ func (r *MemoryRegistry) Get(name string) (core.MCPTool, bool) {
 }
 
 // List 列出所有工具
-func (r *MemoryRegistry) List() []core.MCPTool {
+func (r *MemoryRegistry) List() []core.Tool {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
 
-	tools := make([]core.MCPTool, 0, len(r.tools))
+	tools := make([]core.Tool, 0, len(r.tools))
 	for _, tool := range r.tools {
 		tools = append(tools, tool)
 	}
@@ -69,8 +69,8 @@ func (r *MemoryRegistry) List() []core.MCPTool {
 	return tools
 }
 
-// Exists 检查工具是否存在
-func (r *MemoryRegistry) Exists(name string) bool {
+// Has 检查工具是否存在
+func (r *MemoryRegistry) Has(name string) bool {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
 
@@ -91,15 +91,15 @@ func (r *MemoryRegistry) Clear() {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
-	r.tools = make(map[string]core.MCPTool)
+	r.tools = make(map[string]core.Tool)
 }
 
 // GetByCategory 按分类获取工具
-func (r *MemoryRegistry) GetByCategory(category string) []core.MCPTool {
+func (r *MemoryRegistry) GetByCategory(category string) []core.Tool {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
 
-	tools := make([]core.MCPTool, 0)
+	tools := make([]core.Tool, 0)
 	for _, tool := range r.tools {
 		if tool.Category() == category {
 			tools = append(tools, tool)
@@ -141,7 +141,7 @@ func (r *MemoryRegistry) ListCategories() []string {
 }
 
 // Update 更新工具
-func (r *MemoryRegistry) Update(tool core.MCPTool) error {
+func (r *MemoryRegistry) Update(tool core.Tool) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -155,7 +155,7 @@ func (r *MemoryRegistry) Update(tool core.MCPTool) error {
 }
 
 // RegisterBatch 批量注册工具
-func (r *MemoryRegistry) RegisterBatch(tools []core.MCPTool) error {
+func (r *MemoryRegistry) RegisterBatch(tools []core.Tool) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -163,7 +163,7 @@ func (r *MemoryRegistry) RegisterBatch(tools []core.MCPTool) error {
 	for _, tool := range tools {
 		name := tool.Name()
 		if _, exists := r.tools[name]; exists {
-			return agentErrors.New(agentErrors.CodeInvalidConfig, "tool already exists").
+			return agentErrors.New(agentErrors.CodeAgentConfig, "tool already exists").
 				WithComponent("memory_registry").
 				WithOperation("register_batch").
 				WithContext("tool_name", name)

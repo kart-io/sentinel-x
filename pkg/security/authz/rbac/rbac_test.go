@@ -3,6 +3,7 @@ package rbac
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/kart-io/sentinel-x/pkg/security/authz"
 )
@@ -739,4 +740,293 @@ func TestRBACComplexHierarchyNoCycle(t *testing.T) {
 	if err == nil {
 		t.Error("Expected circular dependency error for diamond cycle, got nil")
 	}
+}
+
+// mockAuditLogger is a mock implementation of AuditLogger for testing.
+type mockAuditLogger struct {
+	events []AuditEvent
+}
+
+func (m *mockAuditLogger) Log(event AuditEvent) {
+	m.events = append(m.events, event)
+}
+
+func (m *mockAuditLogger) Reset() {
+	m.events = nil
+}
+
+func (m *mockAuditLogger) GetEvents() []AuditEvent {
+	return m.events
+}
+
+// TestAuditLoggerDisabledByDefault tests that audit logging is disabled by default.
+func TestAuditLoggerDisabledByDefault(t *testing.T) {
+	rbac := New()
+
+	// Add role - should not panic without audit logger
+	err := rbac.AddRole("admin", authz.NewPermission("*", "*"))
+	if err != nil {
+		t.Fatalf("AddRole error: %v", err)
+	}
+
+	// Assign role - should not panic without audit logger
+	err = rbac.AssignRole("user-1", "admin")
+	if err != nil {
+		t.Fatalf("AssignRole error: %v", err)
+	}
+
+	// All operations should work normally without audit logger
+}
+
+// TestAuditLoggerAddRole tests audit logging for AddRole operation.
+func TestAuditLoggerAddRole(t *testing.T) {
+	mock := &mockAuditLogger{}
+	rbac := New(WithAuditLogger(mock))
+
+	perm := authz.NewPermission("posts", "read")
+	err := rbac.AddRole("viewer", perm)
+	if err != nil {
+		t.Fatalf("AddRole error: %v", err)
+	}
+
+	events := mock.GetEvents()
+	if len(events) != 1 {
+		t.Fatalf("Expected 1 audit event, got %d", len(events))
+	}
+
+	event := events[0]
+	if event.Type != AuditRoleAdded {
+		t.Errorf("Expected event type %s, got %s", AuditRoleAdded, event.Type)
+	}
+	if event.Target != "viewer" {
+		t.Errorf("Expected target 'viewer', got '%s'", event.Target)
+	}
+	if event.Details["count"] != 1 {
+		t.Errorf("Expected count 1, got %v", event.Details["count"])
+	}
+}
+
+// TestAuditLoggerRemoveRole tests audit logging for RemoveRole operation.
+func TestAuditLoggerRemoveRole(t *testing.T) {
+	mock := &mockAuditLogger{}
+	rbac := New(WithAuditLogger(mock))
+
+	perm := authz.NewPermission("posts", "read")
+	_ = rbac.AddRole("viewer", perm)
+
+	mock.Reset()
+
+	err := rbac.RemoveRole("viewer")
+	if err != nil {
+		t.Fatalf("RemoveRole error: %v", err)
+	}
+
+	events := mock.GetEvents()
+	if len(events) != 1 {
+		t.Fatalf("Expected 1 audit event, got %d", len(events))
+	}
+
+	event := events[0]
+	if event.Type != AuditRoleRemoved {
+		t.Errorf("Expected event type %s, got %s", AuditRoleRemoved, event.Type)
+	}
+	if event.Target != "viewer" {
+		t.Errorf("Expected target 'viewer', got '%s'", event.Target)
+	}
+}
+
+// TestAuditLoggerAssignRole tests audit logging for AssignRole operation.
+func TestAuditLoggerAssignRole(t *testing.T) {
+	mock := &mockAuditLogger{}
+	rbac := New(WithAuditLogger(mock))
+
+	_ = rbac.AddRole("admin", authz.NewPermission("*", "*"))
+
+	mock.Reset()
+
+	err := rbac.AssignRole("user-123", "admin")
+	if err != nil {
+		t.Fatalf("AssignRole error: %v", err)
+	}
+
+	events := mock.GetEvents()
+	if len(events) != 1 {
+		t.Fatalf("Expected 1 audit event, got %d", len(events))
+	}
+
+	event := events[0]
+	if event.Type != AuditUserRoleAssigned {
+		t.Errorf("Expected event type %s, got %s", AuditUserRoleAssigned, event.Type)
+	}
+	if event.Target != "user-123" {
+		t.Errorf("Expected target 'user-123', got '%s'", event.Target)
+	}
+	if event.Details["role"] != "admin" {
+		t.Errorf("Expected role 'admin', got '%v'", event.Details["role"])
+	}
+}
+
+// TestAuditLoggerRevokeRole tests audit logging for RevokeRole operation.
+func TestAuditLoggerRevokeRole(t *testing.T) {
+	mock := &mockAuditLogger{}
+	rbac := New(WithAuditLogger(mock))
+
+	_ = rbac.AddRole("admin", authz.NewPermission("*", "*"))
+	_ = rbac.AssignRole("user-123", "admin")
+
+	mock.Reset()
+
+	err := rbac.RevokeRole("user-123", "admin")
+	if err != nil {
+		t.Fatalf("RevokeRole error: %v", err)
+	}
+
+	events := mock.GetEvents()
+	if len(events) != 1 {
+		t.Fatalf("Expected 1 audit event, got %d", len(events))
+	}
+
+	event := events[0]
+	if event.Type != AuditUserRoleRevoked {
+		t.Errorf("Expected event type %s, got %s", AuditUserRoleRevoked, event.Type)
+	}
+	if event.Target != "user-123" {
+		t.Errorf("Expected target 'user-123', got '%s'", event.Target)
+	}
+	if event.Details["role"] != "admin" {
+		t.Errorf("Expected role 'admin', got '%v'", event.Details["role"])
+	}
+}
+
+// TestAuditLoggerSetRoleParent tests audit logging for SetRoleParent operation.
+func TestAuditLoggerSetRoleParent(t *testing.T) {
+	mock := &mockAuditLogger{}
+	rbac := New(WithAuditLogger(mock))
+
+	_ = rbac.AddRole("child", authz.NewPermission("posts", "read"))
+	_ = rbac.AddRole("parent", authz.NewPermission("posts", "write"))
+
+	mock.Reset()
+
+	err := rbac.SetRoleParent("child", "parent")
+	if err != nil {
+		t.Fatalf("SetRoleParent error: %v", err)
+	}
+
+	events := mock.GetEvents()
+	if len(events) != 1 {
+		t.Fatalf("Expected 1 audit event, got %d", len(events))
+	}
+
+	event := events[0]
+	if event.Type != AuditRoleHierarchyChanged {
+		t.Errorf("Expected event type %s, got %s", AuditRoleHierarchyChanged, event.Type)
+	}
+	if event.Target != "child" {
+		t.Errorf("Expected target 'child', got '%s'", event.Target)
+	}
+}
+
+// TestAuditLoggerMultipleOperations tests audit logging for multiple operations.
+func TestAuditLoggerMultipleOperations(t *testing.T) {
+	mock := &mockAuditLogger{}
+	rbac := New(WithAuditLogger(mock))
+
+	// Perform multiple operations
+	_ = rbac.AddRole("admin", authz.NewPermission("*", "*"))
+	_ = rbac.AddRole("editor", authz.NewPermission("posts", "*"))
+	_ = rbac.AssignRole("user-1", "admin")
+	_ = rbac.AssignRole("user-2", "editor")
+	_ = rbac.RevokeRole("user-2", "editor")
+	_ = rbac.RemoveRole("editor")
+
+	events := mock.GetEvents()
+	if len(events) != 6 {
+		t.Fatalf("Expected 6 audit events, got %d", len(events))
+	}
+
+	// Verify event types in order
+	expectedTypes := []AuditEventType{
+		AuditRoleAdded,
+		AuditRoleAdded,
+		AuditUserRoleAssigned,
+		AuditUserRoleAssigned,
+		AuditUserRoleRevoked,
+		AuditRoleRemoved,
+	}
+
+	for i, event := range events {
+		if event.Type != expectedTypes[i] {
+			t.Errorf("Event %d: expected type %s, got %s", i, expectedTypes[i], event.Type)
+		}
+		if event.Timestamp.IsZero() {
+			t.Errorf("Event %d: timestamp is zero", i)
+		}
+	}
+}
+
+// TestAuditLoggerEventTimestamp tests that audit events have proper timestamps.
+func TestAuditLoggerEventTimestamp(t *testing.T) {
+	mock := &mockAuditLogger{}
+	rbac := New(WithAuditLogger(mock))
+
+	_ = rbac.AddRole("admin", authz.NewPermission("*", "*"))
+
+	events := mock.GetEvents()
+	if len(events) != 1 {
+		t.Fatalf("Expected 1 audit event, got %d", len(events))
+	}
+
+	event := events[0]
+	if event.Timestamp.IsZero() {
+		t.Error("Event timestamp should not be zero")
+	}
+}
+
+// TestAuditLoggerConcurrentOperations tests audit logging under concurrent operations.
+func TestAuditLoggerConcurrentOperations(t *testing.T) {
+	mock := &mockAuditLogger{}
+	rbac := New(WithAuditLogger(mock))
+
+	// Pre-create roles
+	for i := 0; i < 10; i++ {
+		_ = rbac.AddRole("role"+string(rune('0'+i)), authz.NewPermission("posts", "read"))
+	}
+
+	mock.Reset()
+
+	// Perform concurrent operations
+	done := make(chan bool)
+	for i := 0; i < 10; i++ {
+		go func(i int) {
+			_ = rbac.AssignRole("user-"+string(rune('0'+i)), "role"+string(rune('0'+i)))
+			done <- true
+		}(i)
+	}
+
+	// Wait for all goroutines to complete
+	for i := 0; i < 10; i++ {
+		<-done
+	}
+
+	events := mock.GetEvents()
+	if len(events) != 10 {
+		t.Errorf("Expected 10 audit events, got %d", len(events))
+	}
+}
+
+// TestDefaultAuditLogger tests the default audit logger implementation.
+func TestDefaultAuditLogger(t *testing.T) {
+	logger := &defaultAuditLogger{}
+
+	// This should not panic
+	logger.Log(AuditEvent{
+		Type:      AuditRoleAdded,
+		Timestamp: time.Now(),
+		Actor:     "admin",
+		Target:    "viewer",
+		Details: map[string]interface{}{
+			"permissions": []authz.Permission{authz.NewPermission("posts", "read")},
+		},
+	})
 }

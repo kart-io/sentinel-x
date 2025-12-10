@@ -23,7 +23,10 @@ import (
 // TextAnalyzerTool 文本分析工具
 // 分析文本的字符数、单词数、行数等信息
 type TextAnalyzerTool struct {
-	*core.BaseTool
+	name        string
+	description string
+	category    string
+	schema      *core.ToolSchema
 }
 
 // NewTextAnalyzerTool 创建文本分析工具
@@ -50,13 +53,41 @@ func NewTextAnalyzerTool() *TextAnalyzerTool {
 	}
 
 	return &TextAnalyzerTool{
-		BaseTool: core.NewBaseTool(
-			"text_analyzer",
-			"分析文本的统计信息（字符数、单词数、行数、词频等）",
-			"text",
-			schema,
-		),
+		name:        "text_analyzer",
+		description: "分析文本的统计信息（字符数、单词数、行数、词频等）",
+		category:    "text",
+		schema:      schema,
 	}
+}
+
+// Name 返回工具名称
+func (t *TextAnalyzerTool) Name() string {
+	return t.name
+}
+
+// Description 返回工具描述
+func (t *TextAnalyzerTool) Description() string {
+	return t.description
+}
+
+// Category 返回工具分类
+func (t *TextAnalyzerTool) Category() string {
+	return t.category
+}
+
+// Schema 返回工具的参数 JSON Schema
+func (t *TextAnalyzerTool) Schema() *core.ToolSchema {
+	return t.schema
+}
+
+// RequiresAuth 是否需要权限认证
+func (t *TextAnalyzerTool) RequiresAuth() bool {
+	return false
+}
+
+// IsDangerous 是否是危险操作
+func (t *TextAnalyzerTool) IsDangerous() bool {
+	return false
 }
 
 // Execute 执行文本分析
@@ -188,7 +219,10 @@ func (t *TextAnalyzerTool) Validate(input map[string]interface{}) error {
 // CalculatorTool 计算器工具
 // 支持基本数学运算和高级函数
 type CalculatorTool struct {
-	*core.BaseTool
+	name        string
+	description string
+	category    string
+	schema      *core.ToolSchema
 }
 
 // NewCalculatorTool 创建计算器工具
@@ -221,13 +255,41 @@ func NewCalculatorTool() *CalculatorTool {
 	}
 
 	return &CalculatorTool{
-		BaseTool: core.NewBaseTool(
-			"calculator",
-			"执行数学运算（加减乘除、幂运算、平方根、百分比）",
-			"math",
-			schema,
-		),
+		name:        "calculator",
+		description: "执行数学运算（加减乘除、幂运算、平方根、百分比）",
+		category:    "math",
+		schema:      schema,
 	}
+}
+
+// Name 返回工具名称
+func (t *CalculatorTool) Name() string {
+	return t.name
+}
+
+// Description 返回工具描述
+func (t *CalculatorTool) Description() string {
+	return t.description
+}
+
+// Category 返回工具分类
+func (t *CalculatorTool) Category() string {
+	return t.category
+}
+
+// Schema 返回工具的参数 JSON Schema
+func (t *CalculatorTool) Schema() *core.ToolSchema {
+	return t.schema
+}
+
+// RequiresAuth 是否需要权限认证
+func (t *CalculatorTool) RequiresAuth() bool {
+	return false
+}
+
+// IsDangerous 是否是危险操作
+func (t *CalculatorTool) IsDangerous() bool {
+	return false
 }
 
 // Execute 执行计算
@@ -347,7 +409,10 @@ func (t *CalculatorTool) Validate(input map[string]interface{}) error {
 // StreamingCounterTool 流式计数工具
 // 演示流式输出功能
 type StreamingCounterTool struct {
-	*core.BaseTool
+	name        string
+	description string
+	category    string
+	schema      *core.ToolSchema
 }
 
 // NewStreamingCounterTool 创建流式计数工具
@@ -375,13 +440,41 @@ func NewStreamingCounterTool() *StreamingCounterTool {
 	}
 
 	return &StreamingCounterTool{
-		BaseTool: core.NewBaseTool(
-			"streaming_counter",
-			"流式输出计数（演示流式功能）",
-			"demo",
-			schema,
-		),
+		name:        "streaming_counter",
+		description: "流式输出计数（演示流式功能）",
+		category:    "demo",
+		schema:      schema,
 	}
+}
+
+// Name 返回工具名称
+func (t *StreamingCounterTool) Name() string {
+	return t.name
+}
+
+// Description 返回工具描述
+func (t *StreamingCounterTool) Description() string {
+	return t.description
+}
+
+// Category 返回工具分类
+func (t *StreamingCounterTool) Category() string {
+	return t.category
+}
+
+// Schema 返回工具的参数 JSON Schema
+func (t *StreamingCounterTool) Schema() *core.ToolSchema {
+	return t.schema
+}
+
+// RequiresAuth 是否需要权限认证
+func (t *StreamingCounterTool) RequiresAuth() bool {
+	return false
+}
+
+// IsDangerous 是否是危险操作
+func (t *StreamingCounterTool) IsDangerous() bool {
+	return false
 }
 
 // Execute 执行流式计数
@@ -462,7 +555,7 @@ func main() {
 	// 注册自定义工具
 	fmt.Println("步骤 1: 注册自定义工具")
 
-	customTools := []core.MCPTool{
+	customTools := []core.Tool{
 		NewTextAnalyzerTool(),
 		NewCalculatorTool(),
 		NewStreamingCounterTool(),

@@ -188,7 +188,10 @@ func (p *HuggingFaceProvider) execute(ctx context.Context, req *HuggingFaceReque
 		SetBody(req).
 		Post(endpoint)
 	if err != nil {
-		return nil, agentErrors.NewLLMRequestError(string(constants.ProviderHuggingFace), model, err)
+		return nil, agentErrors.NewErrorWithCause(agentErrors.CodeExternalService, "huggingface HTTP request failed", err).
+			WithComponent("huggingface").
+			WithOperation("execute").
+			WithContext("model", model)
 	}
 
 	// Check status code
@@ -199,11 +202,17 @@ func (p *HuggingFaceProvider) execute(ctx context.Context, req *HuggingFaceReque
 	// Deserialize response (array format)
 	var respArray []HuggingFaceResponse
 	if err := json.NewDecoder(strings.NewReader(resp.String())).Decode(&respArray); err != nil {
-		return nil, agentErrors.NewLLMResponseError(string(constants.ProviderHuggingFace), model, constants.ErrFailedDecodeResponse)
+		return nil, agentErrors.NewErrorWithCause(agentErrors.CodeInvalidInput, "failed to decode huggingface response", err).
+			WithComponent("huggingface").
+			WithOperation("execute").
+			WithContext("model", model)
 	}
 
 	if len(respArray) == 0 {
-		return nil, agentErrors.NewLLMResponseError(string(constants.ProviderHuggingFace), model, constants.ErrEmptyResponseArray)
+		return nil, agentErrors.NewError(agentErrors.CodeExternalService, "empty response array from huggingface").
+			WithComponent("huggingface").
+			WithOperation("execute").
+			WithContext("model", model)
 	}
 
 	return &respArray[0], nil
@@ -217,48 +226,77 @@ func (p *HuggingFaceProvider) handleHTTPError(resp *resty.Response, model string
 		// Use error message from API
 		switch resp.StatusCode() {
 		case 400:
-			return agentErrors.NewInvalidInputError(string(constants.ProviderHuggingFace), "request", errResp.Error)
+			return agentErrors.NewError(agentErrors.CodeInvalidInput, fmt.Sprintf("huggingface bad request: %s", errResp.Error)).
+				WithComponent("huggingface").
+				WithContext("model", model)
 		case 401:
-			return agentErrors.NewInvalidConfigError(string(constants.ProviderHuggingFace), constants.ErrorFieldAPIKey, errResp.Error)
+			return agentErrors.NewError(agentErrors.CodeAgentConfig, fmt.Sprintf("huggingface auth failed: %s", errResp.Error)).
+				WithComponent("huggingface").
+				WithContext("model", model)
 		case 403:
-			return agentErrors.NewInvalidConfigError(string(constants.ProviderHuggingFace), constants.ErrorFieldAPIKey, errResp.Error)
+			return agentErrors.NewError(agentErrors.CodeAgentConfig, fmt.Sprintf("huggingface permission denied: %s", errResp.Error)).
+				WithComponent("huggingface").
+				WithContext("model", model)
 		case 404:
-			return agentErrors.NewLLMResponseError(string(constants.ProviderHuggingFace), model, errResp.Error)
+			return agentErrors.NewError(agentErrors.CodeExternalService, fmt.Sprintf("huggingface model not found: %s", errResp.Error)).
+				WithComponent("huggingface").
+				WithContext("model", model)
 		case 429:
 			retryAfter := common.ParseRetryAfter(resp.Header().Get("Retry-After"))
-			return agentErrors.NewLLMRateLimitError(string(constants.ProviderHuggingFace), model, retryAfter)
+			return agentErrors.NewErrorf(agentErrors.CodeRateLimit, "huggingface rate limited, retry after: %d", retryAfter).
+				WithComponent("huggingface").
+				WithContext("model", model)
 		case 503:
 			// Model is loading - this is retryable
 			estimatedTime := int(errResp.EstimatedTime)
 			if estimatedTime == 0 {
 				estimatedTime = constants.HuggingFaceDefaultEstimatedTime
 			}
-			return agentErrors.NewLLMRequestError(string(constants.ProviderHuggingFace), model,
-				fmt.Errorf("model loading (estimated time: %d seconds)", estimatedTime))
+			return agentErrors.NewError(agentErrors.CodeExternalService, fmt.Sprintf("huggingface model loading (estimated: %ds)", estimatedTime)).
+				WithComponent("huggingface").
+				WithContext("model", model)
 		case 500, 502, 504:
-			return agentErrors.NewLLMRequestError(string(constants.ProviderHuggingFace), model, fmt.Errorf("server error: %s", errResp.Error))
+			return agentErrors.NewError(agentErrors.CodeExternalService, fmt.Sprintf("huggingface server error: %s", errResp.Error)).
+				WithComponent("huggingface").
+				WithContext("model", model)
 		}
 	}
 
 	// Fallback error handling
 	switch resp.StatusCode() {
 	case 400:
-		return agentErrors.NewInvalidInputError(string(constants.ProviderHuggingFace), "request", constants.StatusBadRequest)
+		return agentErrors.NewError(agentErrors.CodeInvalidInput, "huggingface bad request").
+			WithComponent("huggingface").
+			WithContext("model", model)
 	case 401:
-		return agentErrors.NewInvalidConfigError(string(constants.ProviderHuggingFace), constants.ErrorFieldAPIKey, constants.StatusInvalidAPIKey)
+		return agentErrors.NewError(agentErrors.CodeAgentConfig, "huggingface invalid API key").
+			WithComponent("huggingface").
+			WithContext("model", model)
 	case 403:
-		return agentErrors.NewInvalidConfigError(string(constants.ProviderHuggingFace), constants.ErrorFieldAPIKey, constants.StatusAPIKeyLacksPermissions)
+		return agentErrors.NewError(agentErrors.CodeAgentConfig, "huggingface API key lacks permissions").
+			WithComponent("huggingface").
+			WithContext("model", model)
 	case 404:
-		return agentErrors.NewLLMResponseError(string(constants.ProviderHuggingFace), model, constants.StatusModelNotFound)
+		return agentErrors.NewError(agentErrors.CodeExternalService, "huggingface model not found").
+			WithComponent("huggingface").
+			WithContext("model", model)
 	case 429:
 		retryAfter := common.ParseRetryAfter(resp.Header().Get("Retry-After"))
-		return agentErrors.NewLLMRateLimitError(string(constants.ProviderHuggingFace), model, retryAfter)
+		return agentErrors.NewErrorf(agentErrors.CodeRateLimit, "huggingface rate limited, retry after: %d", retryAfter).
+			WithComponent("huggingface").
+			WithContext("model", model)
 	case 503:
-		return agentErrors.NewLLMRequestError(string(constants.ProviderHuggingFace), model, fmt.Errorf("model loading"))
+		return agentErrors.NewError(agentErrors.CodeExternalService, "huggingface model loading").
+			WithComponent("huggingface").
+			WithContext("model", model)
 	case 500, 502, 504:
-		return agentErrors.NewLLMRequestError(string(constants.ProviderHuggingFace), model, fmt.Errorf("server error: %d", resp.StatusCode()))
+		return agentErrors.NewErrorf(agentErrors.CodeExternalService, "huggingface server error: status %d", resp.StatusCode()).
+			WithComponent("huggingface").
+			WithContext("model", model)
 	default:
-		return agentErrors.NewLLMRequestError(string(constants.ProviderHuggingFace), model, fmt.Errorf("unexpected status: %d", resp.StatusCode()))
+		return agentErrors.NewErrorf(agentErrors.CodeExternalService, "huggingface unexpected status: %d", resp.StatusCode()).
+			WithComponent("huggingface").
+			WithContext("model", model)
 	}
 }
 
@@ -367,7 +405,10 @@ func (p *HuggingFaceProvider) Stream(ctx context.Context, prompt string) (<-chan
 	// Execute streaming request
 	resp, err := streamClient.Post(endpoint)
 	if err != nil {
-		return nil, agentErrors.NewLLMRequestError(string(constants.ProviderHuggingFace), model, err)
+		return nil, agentErrors.NewErrorWithCause(agentErrors.CodeExternalService, "huggingface streaming request failed", err).
+			WithComponent("huggingface").
+			WithOperation("stream").
+			WithContext("model", model)
 	}
 
 	if !resp.IsSuccess() {

@@ -48,7 +48,7 @@ func IsRetryable(err error) bool {
 	}
 
 	code := agentErrors.GetCode(err)
-	return code == agentErrors.CodeLLMRateLimit ||
-		code == agentErrors.CodeLLMTimeout ||
-		code == agentErrors.CodeLLMRequest
+	return code == agentErrors.CodeRateLimit ||
+		code == agentErrors.CodeAgentTimeout ||
+		code == agentErrors.CodeExternalService
 }

@@ -233,7 +233,7 @@ func normalizeVector(vec []float32) []float32 {
 // cosineSimilarity 计算余弦相似度
 func cosineSimilarity(vec1, vec2 []float32) (float32, error) {
 	if len(vec1) != len(vec2) {
-		return 0, agentErrors.New(agentErrors.CodeVectorDimMismatch, "vectors must have same length").
+		return 0, agentErrors.New(agentErrors.CodeInvalidInput, "vectors must have same length").
 			WithComponent("embeddings_client").
 			WithOperation("cosine_similarity").
 			WithContext("vec1_len", len(vec1)).
@@ -257,7 +257,7 @@ func cosineSimilarity(vec1, vec2 []float32) (float32, error) {
 // euclideanDistance 计算欧氏距离
 func euclideanDistance(vec1, vec2 []float32) (float32, error) {
 	if len(vec1) != len(vec2) {
-		return 0, agentErrors.New(agentErrors.CodeVectorDimMismatch, "vectors must have same length").
+		return 0, agentErrors.New(agentErrors.CodeInvalidInput, "vectors must have same length").
 			WithComponent("embeddings_client").
 			WithOperation("euclidean_distance").
 			WithContext("vec1_len", len(vec1)).
@@ -276,7 +276,7 @@ func euclideanDistance(vec1, vec2 []float32) (float32, error) {
 // dotProduct 计算点积
 func dotProduct(vec1, vec2 []float32) (float32, error) {
 	if len(vec1) != len(vec2) {
-		return 0, agentErrors.New(agentErrors.CodeVectorDimMismatch, "vectors must have same length").
+		return 0, agentErrors.New(agentErrors.CodeInvalidInput, "vectors must have same length").
 			WithComponent("embeddings_client").
 			WithOperation("dot_product").
 			WithContext("vec1_len", len(vec1)).

@@ -216,7 +216,7 @@ func (e *AgentExecutor) executePlan(ctx context.Context, state *ExecutionState) 
 		case <-state.PauseChan:
 			e.handlePause(ctx, state)
 		case <-state.CancelChan:
-			result.Error = agentErrors.New(agentErrors.CodeContextCanceled, "execution cancelled").
+			result.Error = agentErrors.New(agentErrors.CodeAgentTimeout, "execution cancelled").
 				WithComponent("agent_executor").
 				WithOperation("execute_plan").
 				WithContext("plan_id", state.Plan.ID)
@@ -427,7 +427,7 @@ func (e *AgentExecutor) executeStep(ctx context.Context, step *Step) *StepResult
 	if agent == nil {
 		return &StepResult{
 			Success: false,
-			Error: agentErrors.New(agentErrors.CodeAgentNotFound, "no agent available for step type").
+			Error: agentErrors.New(agentErrors.CodeNotFound, "no agent available for step type").
 				WithComponent("agent_executor").
 				WithOperation("select_agent").
 				WithContext("step_type", string(step.Type)).Error(),
@@ -591,7 +591,7 @@ func (e *AgentExecutor) Pause(planID string) error {
 	e.mu.RUnlock()
 
 	if !exists {
-		return agentErrors.New(agentErrors.CodePlanNotFound, "plan not found").
+		return agentErrors.New(agentErrors.CodeNotFound, "plan not found").
 			WithComponent("agent_executor").
 			WithOperation("pause").
 			WithContext("plan_id", planID)
@@ -615,7 +615,7 @@ func (e *AgentExecutor) Resume(planID string) error {
 	e.mu.RUnlock()
 
 	if !exists {
-		return agentErrors.New(agentErrors.CodePlanNotFound, "plan not found").
+		return agentErrors.New(agentErrors.CodeNotFound, "plan not found").
 			WithComponent("agent_executor").
 			WithOperation("resume").
 			WithContext("plan_id", planID)
@@ -639,7 +639,7 @@ func (e *AgentExecutor) Cancel(planID string) error {
 	e.mu.RUnlock()
 
 	if !exists {
-		return agentErrors.New(agentErrors.CodePlanNotFound, "plan not found").
+		return agentErrors.New(agentErrors.CodeNotFound, "plan not found").
 			WithComponent("agent_executor").
 			WithOperation("cancel").
 			WithContext("plan_id", planID)
@@ -663,7 +663,7 @@ func (e *AgentExecutor) GetStatus(planID string) (*PlanStatus, error) {
 	e.mu.RUnlock()
 
 	if !exists {
-		return nil, agentErrors.New(agentErrors.CodePlanNotFound, "plan not found").
+		return nil, agentErrors.New(agentErrors.CodeNotFound, "plan not found").
 			WithComponent("agent_executor").
 			WithOperation("get_status").
 			WithContext("plan_id", planID)

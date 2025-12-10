@@ -66,7 +66,7 @@ func (c *Coordinator) ExecuteAgent(ctx context.Context, serviceName, agentName s
 	// 获取服务实例
 	instance, err := c.selectInstance(serviceName)
 	if err != nil {
-		return nil, agentErrors.Wrap(err, agentErrors.CodeDistributedCoordination, "failed to select instance").
+		return nil, agentErrors.Wrap(err, agentErrors.CodeNetwork, "failed to select instance").
 			WithComponent("distributed_coordinator").
 			WithOperation("execute_agent").
 			WithContext("service_name", serviceName).
@@ -253,7 +253,7 @@ func (c *Coordinator) selectInstance(serviceName string) (*ServiceInstance, erro
 	}
 
 	if len(instances) == 0 {
-		return nil, agentErrors.New(agentErrors.CodeAgentNotFound, "no healthy instances for service").
+		return nil, agentErrors.New(agentErrors.CodeNotFound, "no healthy instances for service").
 			WithComponent("distributed_coordinator").
 			WithOperation("select_instance").
 			WithContext("service_name", serviceName)
@@ -286,7 +286,7 @@ func (c *Coordinator) executeWithFailover(ctx context.Context, serviceName, agen
 	}
 
 	if len(availableInstances) == 0 {
-		return nil, agentErrors.New(agentErrors.CodeDistributedCoordination, "no available instances for failover").
+		return nil, agentErrors.New(agentErrors.CodeNetwork, "no available instances for failover").
 			WithComponent("distributed_coordinator").
 			WithOperation("execute_with_failover").
 			WithContext("service_name", serviceName).

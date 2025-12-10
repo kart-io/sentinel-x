@@ -114,7 +114,7 @@ func ResolveTyped[T any](c *Container, name string) (T, error) {
 
 	typed, ok := service.(T)
 	if !ok {
-		return zero, agentErrors.New(agentErrors.CodeTypeMismatch, "service type mismatch").
+		return zero, agentErrors.New(agentErrors.CodeInvalidInput, "service type mismatch").
 			WithComponent("container").
 			WithOperation("resolve_typed").
 			WithContext("name", name)

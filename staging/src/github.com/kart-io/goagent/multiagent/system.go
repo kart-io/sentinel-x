@@ -213,13 +213,13 @@ func (s *MultiAgentSystem) RegisterAgent(id string, agent CollaborativeAgent) er
 	defer s.mu.Unlock()
 
 	if s.closed {
-		return agentErrors.New(agentErrors.CodeInvalidConfig, "system is closed").
+		return agentErrors.New(agentErrors.CodeAgentConfig, "system is closed").
 			WithComponent("multiagent_system").
 			WithOperation("register_agent")
 	}
 
 	if len(s.agents) >= s.maxAgents {
-		return agentErrors.Newf(agentErrors.CodeMultiAgentRegistration, "maximum number of agents (%d) reached", s.maxAgents).
+		return agentErrors.Newf(agentErrors.CodeAgentConfig, "maximum number of agents (%d) reached", s.maxAgents).
 			WithComponent("multiagent_system").
 			WithOperation("register_agent").
 			WithContext("max_agents", s.maxAgents).
@@ -227,7 +227,7 @@ func (s *MultiAgentSystem) RegisterAgent(id string, agent CollaborativeAgent) er
 	}
 
 	if _, exists := s.agents[id]; exists {
-		return agentErrors.Newf(agentErrors.CodeMultiAgentRegistration, "agent %s already registered", id).
+		return agentErrors.Newf(agentErrors.CodeAgentConfig, "agent %s already registered", id).
 			WithComponent("multiagent_system").
 			WithOperation("register_agent").
 			WithContext("agent_id", id)
@@ -248,7 +248,7 @@ func (s *MultiAgentSystem) UnregisterAgent(id string) error {
 	defer s.mu.Unlock()
 
 	if _, exists := s.agents[id]; !exists {
-		return agentErrors.Newf(agentErrors.CodeAgentNotFound, "agent %s not found", id).
+		return agentErrors.Newf(agentErrors.CodeNotFound, "agent %s not found", id).
 			WithComponent("multiagent_system").
 			WithOperation("unregister_agent").
 			WithContext("agent_id", id)
@@ -280,7 +280,7 @@ func (s *MultiAgentSystem) CreateTeam(team *Team) error {
 	defer s.mu.Unlock()
 
 	if _, exists := s.teams[team.ID]; exists {
-		return agentErrors.Newf(agentErrors.CodeInvalidConfig, "team %s already exists", team.ID).
+		return agentErrors.Newf(agentErrors.CodeAgentConfig, "team %s already exists", team.ID).
 			WithComponent("multiagent_system").
 			WithOperation("create_team").
 			WithContext("team_id", team.ID)
@@ -289,7 +289,7 @@ func (s *MultiAgentSystem) CreateTeam(team *Team) error {
 	// Verify all members exist
 	for _, memberID := range team.Members {
 		if _, exists := s.agents[memberID]; !exists {
-			return agentErrors.Newf(agentErrors.CodeAgentNotFound, "agent %s not found", memberID).
+			return agentErrors.Newf(agentErrors.CodeNotFound, "agent %s not found", memberID).
 				WithComponent("multiagent_system").
 				WithOperation("create_team").
 				WithContext("team_id", team.ID).
@@ -300,7 +300,7 @@ func (s *MultiAgentSystem) CreateTeam(team *Team) error {
 	// Verify leader exists and is a member
 	if team.Leader != "" {
 		if _, exists := s.agents[team.Leader]; !exists {
-			return agentErrors.Newf(agentErrors.CodeAgentNotFound, "leader %s not found", team.Leader).
+			return agentErrors.Newf(agentErrors.CodeNotFound, "leader %s not found", team.Leader).
 				WithComponent("multiagent_system").
 				WithOperation("create_team").
 				WithContext("team_id", team.ID).
@@ -378,7 +378,7 @@ func (s *MultiAgentSystem) executeParallelTask(ctx context.Context, task *Collab
 	s.mu.RUnlock()
 
 	if len(agents) == 0 {
-		return agentErrors.New(agentErrors.CodeAgentNotFound, "no available agents").
+		return agentErrors.New(agentErrors.CodeNotFound, "no available agents").
 			WithComponent("multiagent_system").
 			WithOperation("execute_parallel_task").
 			WithContext("task_id", task.ID)
@@ -448,7 +448,7 @@ func (s *MultiAgentSystem) executeSequentialTask(ctx context.Context, task *Coll
 	s.mu.RUnlock()
 
 	if len(agents) == 0 {
-		return agentErrors.New(agentErrors.CodeAgentNotFound, "no available agents").
+		return agentErrors.New(agentErrors.CodeNotFound, "no available agents").
 			WithComponent("multiagent_system").
 			WithOperation("execute_sequential_task").
 			WithContext("task_id", task.ID)
@@ -511,7 +511,7 @@ func (s *MultiAgentSystem) executeHierarchicalTask(ctx context.Context, task *Co
 	s.mu.RUnlock()
 
 	if leader == nil {
-		return agentErrors.New(agentErrors.CodeAgentNotFound, "no leader agent available").
+		return agentErrors.New(agentErrors.CodeNotFound, "no leader agent available").
 			WithComponent("multiagent_system").
 			WithOperation("execute_hierarchical_task").
 			WithContext("task_id", task.ID)
@@ -752,7 +752,7 @@ func (s *MultiAgentSystem) executeConsensusTask(ctx context.Context, task *Colla
 	s.mu.RUnlock()
 
 	if len(agents) < 3 {
-		return agentErrors.New(agentErrors.CodeInvalidConfig, "consensus requires at least 3 agents").
+		return agentErrors.New(agentErrors.CodeAgentConfig, "consensus requires at least 3 agents").
 			WithComponent("multiagent_system").
 			WithOperation("execute_consensus_task").
 			WithContext("task_id", task.ID).
@@ -823,7 +823,7 @@ func (s *MultiAgentSystem) executeConsensusTask(ctx context.Context, task *Colla
 	}
 
 	if !consensusReached {
-		return agentErrors.Newf(agentErrors.CodeMultiAgentConsensus, "consensus not reached: %d/%d votes (need %.0f%%)", yesVotes, len(votes), quorum*100).
+		return agentErrors.Newf(agentErrors.CodeAgentExecution, "consensus not reached: %d/%d votes (need %.0f%%)", yesVotes, len(votes), quorum*100).
 			WithComponent("multiagent_system").
 			WithOperation("execute_consensus_task").
 			WithContext("task_id", task.ID).
@@ -855,7 +855,7 @@ func (s *MultiAgentSystem) executePipelineTask(ctx context.Context, task *Collab
 	s.mu.RUnlock()
 
 	if len(agents) < len(stages) {
-		return agentErrors.New(agentErrors.CodeInvalidConfig, "not enough agents for pipeline stages").
+		return agentErrors.New(agentErrors.CodeAgentConfig, "not enough agents for pipeline stages").
 			WithComponent("multiagent_system").
 			WithOperation("execute_pipeline_task").
 			WithContext("task_id", task.ID).
@@ -991,7 +991,7 @@ func (s *MultiAgentSystem) SendMessage(message Message) error {
 	case s.messageQueue <- message:
 		return nil
 	case <-time.After(s.timeout):
-		return agentErrors.New(agentErrors.CodeMultiAgentMessage, "message queue full, timeout sending message").
+		return agentErrors.New(agentErrors.CodeNetwork, "message queue full, timeout sending message").
 			WithComponent("multiagent_system").
 			WithOperation("send_message").
 			WithContext("from", message.From).

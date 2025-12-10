@@ -619,7 +619,7 @@ func (m *ContextEnrichmentMiddleware) Process(ctx context.Context, state core.St
 				defer mu.Unlock()
 
 				if err != nil {
-					errors = append(errors, agentErrors.Wrap(err, agentErrors.CodeMiddlewareExecution, "enricher failed").
+					errors = append(errors, agentErrors.Wrap(err, agentErrors.CodeAgentExecution, "enricher failed").
 						WithComponent("context_enrichment").
 						WithOperation("enrich").
 						WithContext("enricher_name", e.Name))
@@ -633,7 +633,7 @@ func (m *ContextEnrichmentMiddleware) Process(ctx context.Context, state core.St
 			// Run synchronously
 			data, err := enricher.Enrich(ctx, state)
 			if err != nil {
-				errors = append(errors, agentErrors.Wrap(err, agentErrors.CodeMiddlewareExecution, "enricher failed").
+				errors = append(errors, agentErrors.Wrap(err, agentErrors.CodeAgentExecution, "enricher failed").
 					WithComponent("context_enrichment").
 					WithOperation("enrich").
 					WithContext("enricher_name", enricher.Name))

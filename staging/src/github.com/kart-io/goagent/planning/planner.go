@@ -223,7 +223,7 @@ func (p *SmartPlanner) CreatePlan(ctx context.Context, goal string, constraints 
 		},
 	})
 	if err != nil {
-		return nil, agentErrors.Wrap(err, agentErrors.CodeLLMRequest, "LLM failed to generate plan").
+		return nil, agentErrors.Wrap(err, agentErrors.CodeExternalService, "LLM failed to generate plan").
 			WithComponent("smart_planner").
 			WithOperation("llm_complete").
 			WithContext("goal", goal)
@@ -245,7 +245,7 @@ func (p *SmartPlanner) CreatePlan(ctx context.Context, goal string, constraints 
 	// Validate the plan
 	valid, issues, err := p.ValidatePlan(ctx, plan)
 	if err != nil {
-		return nil, agentErrors.Wrap(err, agentErrors.CodePlanValidation, "plan validation failed").
+		return nil, agentErrors.Wrap(err, agentErrors.CodeInvalidInput, "plan validation failed").
 			WithComponent("smart_planner").
 			WithOperation("validate_plan").
 			WithContext("plan_id", plan.ID)
@@ -293,7 +293,7 @@ Please provide an improved plan that addresses the feedback while maintaining th
 		},
 	})
 	if err != nil {
-		return nil, agentErrors.Wrap(err, agentErrors.CodeLLMRequest, "failed to refine plan").
+		return nil, agentErrors.Wrap(err, agentErrors.CodeExternalService, "failed to refine plan").
 			WithComponent("smart_planner").
 			WithOperation("refine_plan").
 			WithContext("plan_id", plan.ID)
@@ -327,7 +327,7 @@ Provide 3-7 detailed sub-steps that fully accomplish the original step.`,
 		},
 	})
 	if err != nil {
-		return nil, agentErrors.Wrap(err, agentErrors.CodeLLMRequest, "failed to decompose step").
+		return nil, agentErrors.Wrap(err, agentErrors.CodeExternalService, "failed to decompose step").
 			WithComponent("smart_planner").
 			WithOperation("decompose_plan").
 			WithContext("step_id", step.ID)
@@ -362,7 +362,7 @@ func (p *SmartPlanner) ValidatePlan(ctx context.Context, plan *Plan) (bool, []st
 	for _, validator := range p.validators {
 		v, i, err := validator.Validate(ctx, plan)
 		if err != nil {
-			return false, nil, agentErrors.Wrap(err, agentErrors.CodePlanValidation, "validator failed").
+			return false, nil, agentErrors.Wrap(err, agentErrors.CodeInvalidInput, "validator failed").
 				WithComponent("smart_planner").
 				WithOperation("validate_plan").
 				WithContext("validator_type", fmt.Sprintf("%T", validator))

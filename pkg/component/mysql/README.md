@@ -75,17 +75,14 @@ if err := client.Ping(context.Background()); err != nil {
     log.Printf("MySQL unhealthy: %v", err)
 }
 
-// 详细健康检查
-status := mysql.CheckHealth(client, 5*time.Second)
-if status.Healthy {
-    log.Printf("MySQL healthy (latency: %v)", status.Latency)
+// 健康检查
+ctx := context.Background()
+err = client.CheckHealth(ctx)
+if err != nil {
+    log.Printf("MySQL unhealthy: %v", err)
 } else {
-    log.Printf("MySQL unhealthy: %v", status.Error)
+    log.Println("MySQL is healthy")
 }
-
-// 健康检查 + 统计信息
-status, stats := mysql.HealthWithStats(client, 5*time.Second)
-log.Printf("Pool stats: %+v", stats)
 ```
 
 ### 使用 GORM
@@ -276,14 +273,11 @@ func (f *Factory) Options() *Options
 func (f *Factory) Clone() *Factory
 ```
 
-### 健康检查函数
+### 健康检查方法
 
 ```go
 // 执行健康检查
-func CheckHealth(client *Client, timeout time.Duration) storage.HealthStatus
-
-// 执行健康检查并返回详细统计信息
-func HealthWithStats(client *Client, timeout time.Duration) (storage.HealthStatus, map[string]interface{})
+func (c *Client) CheckHealth(ctx context.Context) error
 ```
 
 ### DSN 构建
@@ -381,10 +375,11 @@ db.Where("active = ?", true).Find(&users)
 ticker := time.NewTicker(30 * time.Second)
 defer ticker.Stop()
 
+ctx := context.Background()
 for range ticker.C {
-    status := mysql.CheckHealth(client, 5*time.Second)
-    if !status.Healthy {
-        log.Printf("MySQL health check failed: %v", status.Error)
+    err := client.CheckHealth(ctx)
+    if err != nil {
+        log.Printf("MySQL health check failed: %v", err)
         // 触发告警或重连逻辑
     }
 }

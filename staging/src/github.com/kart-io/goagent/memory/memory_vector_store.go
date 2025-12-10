@@ -53,7 +53,7 @@ func (s *InMemoryVectorStore) Store(ctx context.Context, id string, vector []flo
 	defer s.mu.Unlock()
 
 	if len(vector) != s.dimension {
-		return agentErrors.New(agentErrors.CodeVectorDimMismatch, "vector dimension mismatch").
+		return agentErrors.New(agentErrors.CodeInvalidInput, "vector dimension mismatch").
 			WithComponent("in_memory_vector_store").
 			WithOperation("store").
 			WithContext("expected", s.dimension).
@@ -73,7 +73,7 @@ func (s *InMemoryVectorStore) Search(ctx context.Context, query []float32, k int
 	defer s.mu.RUnlock()
 
 	if len(query) != s.dimension {
-		return nil, nil, agentErrors.New(agentErrors.CodeVectorDimMismatch, "query dimension mismatch").
+		return nil, nil, agentErrors.New(agentErrors.CodeInvalidInput, "query dimension mismatch").
 			WithComponent("in_memory_vector_store").
 			WithOperation("search").
 			WithContext("expected", s.dimension).
@@ -134,7 +134,7 @@ func (s *InMemoryVectorStore) GenerateEmbedding(ctx context.Context, content int
 
 	data, err := json.Marshal(content)
 	if err != nil {
-		return nil, agentErrors.Wrap(err, agentErrors.CodeDistributedSerialization, "failed to marshal content").
+		return nil, agentErrors.Wrap(err, agentErrors.CodeInvalidInput, "failed to marshal content").
 			WithComponent("in_memory_vector_store").
 			WithOperation("generate_embedding")
 	}

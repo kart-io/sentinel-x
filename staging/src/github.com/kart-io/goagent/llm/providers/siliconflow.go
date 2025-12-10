@@ -2,7 +2,6 @@ package providers
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
@@ -137,23 +136,32 @@ func (c *SiliconFlowClient) Complete(ctx context.Context, req *agentllm.Completi
 		SetBody(sfReq).
 		Post(c.baseURL + "/chat/completions")
 	if err != nil {
-		return nil, agentErrors.NewLLMRequestError(c.ProviderName(), model, err)
+		return nil, agentErrors.NewErrorWithCause(agentErrors.CodeExternalService, "siliconflow API call failed", err).
+			WithComponent("siliconflow").
+			WithOperation("complete").
+			WithContext("model", model)
 	}
 
 	if !resp.IsSuccess() {
-		return nil, agentErrors.NewLLMResponseError(c.ProviderName(), model,
-			fmt.Sprintf("API error (status %d): %s", resp.StatusCode(), resp.String()))
+		return nil, agentErrors.NewErrorf(agentErrors.CodeExternalService, "siliconflow API error (status %d): %s", resp.StatusCode(), resp.String()).
+			WithComponent("siliconflow").
+			WithOperation("complete").
+			WithContext("model", model)
 	}
 
 	// 解析响应
 	var sfResp siliconFlowResponse
 	if err := json.NewDecoder(strings.NewReader(resp.String())).Decode(&sfResp); err != nil {
-		return nil, agentErrors.NewParserInvalidJSONError("response body", err).
-			WithContext("provider", c.ProviderName())
+		return nil, agentErrors.NewErrorWithCause(agentErrors.CodeInvalidInput, "failed to decode siliconflow response body", err).
+			WithComponent("siliconflow").
+			WithOperation("complete")
 	}
 
 	if len(sfResp.Choices) == 0 {
-		return nil, agentErrors.NewLLMResponseError(c.ProviderName(), model, "no choices in response")
+		return nil, agentErrors.NewError(agentErrors.CodeExternalService, "no choices in siliconflow response").
+			WithComponent("siliconflow").
+			WithOperation("complete").
+			WithContext("model", model)
 	}
 
 	// 构建响应

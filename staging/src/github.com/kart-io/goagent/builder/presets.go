@@ -38,7 +38,10 @@ func (b *AgentBuilder[C, S]) ConfigureForChatbot() *AgentBuilder[C, S] {
 			func(req *middleware.MiddlewareRequest) error {
 				// 验证输入长度
 				if len(fmt.Sprintf("%v", req.Input)) > 1000 {
-					return agentErrors.NewInvalidInputError("chatbot", "message", "message too long")
+					return agentErrors.New(agentErrors.CodeInvalidInput, "message too long").
+						WithComponent("chatbot").
+						WithContext("field", "message").
+						WithContext("max_length", 1000)
 				}
 				return nil
 			},

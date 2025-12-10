@@ -280,17 +280,6 @@ func example4() {
 	_ = errors.IsServerError(code)
 }
 
-// Example 5: Legacy code migration
-func example5() {
-	// Convert legacy code to new code
-	newCode := errors.LegacyToNewCode(1001)
-	_ = newCode
-
-	// Get Errno from legacy code
-	errno := errors.FromLegacyCode(2001)
-	_ = errno
-}
-
 // ============================================================================
 // Helper Types (for compilation)
 // ============================================================================
@@ -333,5 +322,4 @@ func init() {
 	_ = example2
 	_ = example3
 	_ = example4
-	_ = example5
 }

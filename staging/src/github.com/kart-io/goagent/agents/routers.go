@@ -59,7 +59,7 @@ func (r *LLMRouter) Route(ctx context.Context, task Task, agents map[string]core
 		MaxTokens:   50,
 	})
 	if err != nil {
-		return "", agentErrors.Wrap(err, agentErrors.CodeLLMRequest, "LLM routing failed").
+		return "", agentErrors.Wrap(err, agentErrors.CodeExternalService, "LLM routing failed").
 			WithComponent("agent_router").
 			WithOperation("Route")
 	}
@@ -73,7 +73,7 @@ func (r *LLMRouter) Route(ctx context.Context, task Task, agents map[string]core
 		for name := range agents {
 			return name, nil
 		}
-		return "", agentErrors.New(agentErrors.CodeRouterNoMatch, "no suitable agent found").
+		return "", agentErrors.New(agentErrors.CodeNotFound, "no suitable agent found").
 			WithComponent("agent_router").
 			WithOperation("Route")
 	}
@@ -194,7 +194,7 @@ func (r *RuleBasedRouter) Route(ctx context.Context, task Task, agents map[strin
 		return name, nil
 	}
 
-	return "", agentErrors.New(agentErrors.CodeRouterNoMatch, "no agents available").
+	return "", agentErrors.New(agentErrors.CodeNotFound, "no agents available").
 		WithComponent("agent_router").
 		WithOperation("Route")
 }
@@ -232,7 +232,7 @@ func NewRoundRobinRouter() *RoundRobinRouter {
 // Route selects the next agent in round-robin fashion
 func (r *RoundRobinRouter) Route(ctx context.Context, task Task, agents map[string]core.Agent) (string, error) {
 	if len(agents) == 0 {
-		return "", agentErrors.New(agentErrors.CodeRouterNoMatch, "no agents available").
+		return "", agentErrors.New(agentErrors.CodeNotFound, "no agents available").
 			WithComponent("agent_router").
 			WithOperation("Route")
 	}
@@ -322,7 +322,7 @@ func (r *CapabilityRouter) Route(ctx context.Context, task Task, agents map[stri
 		return name, nil
 	}
 
-	return "", agentErrors.New(agentErrors.CodeRouterNoMatch, "no agents available").
+	return "", agentErrors.New(agentErrors.CodeNotFound, "no agents available").
 		WithComponent("agent_router").
 		WithOperation("Route")
 }
@@ -383,7 +383,7 @@ func (r *LoadBalancingRouter) Route(ctx context.Context, task Task, agents map[s
 	}
 
 	// All agents at max capacity
-	return "", agentErrors.New(agentErrors.CodeRouterOverload, "all agents at maximum capacity").
+	return "", agentErrors.New(agentErrors.CodeResourceLimit, "all agents at maximum capacity").
 		WithComponent("agent_router").
 		WithOperation("Route")
 }
@@ -521,7 +521,7 @@ func NewRandomRouter() *RandomRouter {
 // Route randomly selects an agent
 func (r *RandomRouter) Route(ctx context.Context, task Task, agents map[string]core.Agent) (string, error) {
 	if len(agents) == 0 {
-		return "", agentErrors.New(agentErrors.CodeRouterNoMatch, "no agents available").
+		return "", agentErrors.New(agentErrors.CodeNotFound, "no agents available").
 			WithComponent("agent_router").
 			WithOperation("Route")
 	}

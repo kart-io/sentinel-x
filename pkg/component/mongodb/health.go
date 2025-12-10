@@ -1,7 +1,22 @@
 package mongodb
 
-// This file contains health check utilities for MongoDB clients.
-// The primary health check interface is implemented in the Client type
-// via the Health() method, which returns a storage.HealthChecker function.
+import (
+	"context"
+	"fmt"
+)
+
+// CheckHealth performs a health check on the MongoDB connection.
+// It verifies that the database is accessible and responsive.
 //
-// Additional health check utilities can be added here as needed.
+// Example usage:
+//
+//	err := client.CheckHealth(ctx)
+//	if err != nil {
+//	    log.Printf("MongoDB unhealthy: %v", err)
+//	}
+func (c *Client) CheckHealth(ctx context.Context) error {
+	if c.client == nil {
+		return fmt.Errorf("mongodb client is nil")
+	}
+	return c.Ping(ctx)
+}

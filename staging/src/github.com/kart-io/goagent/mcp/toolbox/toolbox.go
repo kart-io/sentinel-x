@@ -15,10 +15,10 @@ import (
 // StandardToolBox 标准工具箱实现
 type StandardToolBox struct {
 	// 工具注册表
-	registry core.ToolRegistry
+	registry *MemoryRegistry
 
 	// 工具执行器
-	executor core.ToolExecutor
+	executor *StandardExecutor
 
 	// 权限管理器
 	permissionManager *PermissionManager
@@ -49,7 +49,7 @@ func NewStandardToolBox() *StandardToolBox {
 }
 
 // Register 注册工具
-func (tb *StandardToolBox) Register(tool core.MCPTool) error {
+func (tb *StandardToolBox) Register(tool core.Tool) error {
 	// 验证工具 Schema
 	if err := tools.ValidateToolSchema(tool.Schema()); err != nil {
 		return agentErrors.Wrap(err, agentErrors.CodeToolValidation, "invalid tool schema").
@@ -87,23 +87,24 @@ func (tb *StandardToolBox) Unregister(name string) error {
 }
 
 // Get 获取工具
-func (tb *StandardToolBox) Get(name string) (core.MCPTool, error) {
-	tool, exists := tb.registry.Get(name)
-	if !exists {
-		return nil, &core.ErrToolNotFound{ToolName: name}
-	}
-	return tool, nil
+func (tb *StandardToolBox) Get(name string) (core.Tool, bool) {
+	return tb.registry.Get(name)
+}
+
+// Has 检查工具是否存在
+func (tb *StandardToolBox) Has(name string) bool {
+	return tb.registry.Has(name)
 }
 
 // List 列出所有工具
-func (tb *StandardToolBox) List() []core.MCPTool {
+func (tb *StandardToolBox) List() []core.Tool {
 	return tb.registry.List()
 }
 
 // ListByCategory 按分类列出工具
-func (tb *StandardToolBox) ListByCategory(category string) []core.MCPTool {
+func (tb *StandardToolBox) ListByCategory(category string) []core.Tool {
 	tools := tb.registry.List()
-	result := make([]core.MCPTool, 0)
+	result := make([]core.Tool, 0)
 
 	for _, tool := range tools {
 		if tool.Category() == category {
@@ -115,9 +116,9 @@ func (tb *StandardToolBox) ListByCategory(category string) []core.MCPTool {
 }
 
 // Search 搜索工具
-func (tb *StandardToolBox) Search(query string) []core.MCPTool {
+func (tb *StandardToolBox) Search(query string) []core.Tool {
 	tools := tb.registry.List()
-	result := make([]core.MCPTool, 0)
+	result := make([]core.Tool, 0)
 	query = strings.ToLower(query)
 
 	for _, tool := range tools {
@@ -134,6 +135,11 @@ func (tb *StandardToolBox) Search(query string) []core.MCPTool {
 
 // Execute 执行工具
 func (tb *StandardToolBox) Execute(ctx context.Context, call *core.ToolCall) (*core.ToolCallResult, error) {
+	return tb.ExecuteWithPermission(ctx, call, nil)
+}
+
+// ExecuteWithPermission 执行工具（带权限检查）
+func (tb *StandardToolBox) ExecuteWithPermission(ctx context.Context, call *core.ToolCall, permission *core.ToolPermission) (*core.ToolCallResult, error) {
 	startTime := time.Now()
 
 	// 验证调用
@@ -142,6 +148,14 @@ func (tb *StandardToolBox) Execute(ctx context.Context, call *core.ToolCall) (*c
 	}
 
 	// 检查权限
+	if permission != nil && !permission.Allowed {
+		return nil, &core.ErrPermissionDenied{
+			UserID:   permission.UserID,
+			ToolName: call.ToolName,
+			Reason:   permission.Reason,
+		}
+	}
+
 	if call.UserID != "" {
 		allowed, err := tb.HasPermission(call.UserID, call.ToolName)
 		if err != nil {
@@ -157,9 +171,9 @@ func (tb *StandardToolBox) Execute(ctx context.Context, call *core.ToolCall) (*c
 	}
 
 	// 获取工具
-	tool, err := tb.Get(call.ToolName)
-	if err != nil {
-		return nil, err
+	tool, exists := tb.Get(call.ToolName)
+	if !exists {
+		return nil, &core.ErrToolNotFound{ToolName: call.ToolName}
 	}
 
 	// 生成调用 ID
@@ -225,9 +239,9 @@ func (tb *StandardToolBox) ExecuteBatch(ctx context.Context, calls []*core.ToolC
 
 // GetMetadata 获取工具元数据
 func (tb *StandardToolBox) GetMetadata(name string) (*core.ToolMetadata, error) {
-	tool, err := tb.Get(name)
-	if err != nil {
-		return nil, err
+	tool, exists := tb.Get(name)
+	if !exists {
+		return nil, &core.ErrToolNotFound{ToolName: name}
 	}
 
 	return &core.ToolMetadata{
@@ -262,9 +276,9 @@ func (tb *StandardToolBox) ListMetadata() []*core.ToolMetadata {
 // Validate 验证工具调用
 func (tb *StandardToolBox) Validate(call *core.ToolCall) error {
 	// 检查工具是否存在
-	tool, err := tb.Get(call.ToolName)
-	if err != nil {
-		return err
+	tool, exists := tb.Get(call.ToolName)
+	if !exists {
+		return &core.ErrToolNotFound{ToolName: call.ToolName}
 	}
 
 	// 验证输入参数

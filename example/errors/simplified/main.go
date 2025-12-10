@@ -1,7 +1,6 @@
 // Package example demonstrates the simplified error API.
 //
-// This example shows how to use the new simplified error creation functions
-// that replace the old Builder pattern.
+// This example shows how to use the new simplified error creation functions.
 package main
 
 import (
@@ -20,82 +19,58 @@ func init() {
 }
 
 // ============================================================================
-// Old Style (Deprecated but still works)
+// Error Definitions
 // ============================================================================
 
-var OldStyleError = errors.NewNotFoundError(ServiceExample, 1).
-	Message("Old style error", "旧风格错误").
-	MustBuild()
-
-var OldStyleCustom = errors.NewBuilder(ServiceExample, errors.CategoryRequest, 2).
-	HTTP(http.StatusBadRequest).
-	GRPC(codes.InvalidArgument).
-	Message("Old style custom", "旧风格自定义").
-	MustBuild()
-
-// ============================================================================
-// New Style (Recommended)
-// ============================================================================
-
-// Standard category errors - much simpler!
+// Standard category errors - simple and clean!
 var (
-	NewStyleNotFound = errors.NewNotFoundErr(ServiceExample, 10,
-		"New style not found", "新风格未找到")
+	ErrNotFound = errors.NewNotFoundErr(ServiceExample, 1,
+		"Resource not found", "资源未找到")
 
-	NewStyleInvalid = errors.NewRequestErr(ServiceExample, 11,
-		"New style invalid", "新风格无效")
+	ErrInvalidInput = errors.NewRequestErr(ServiceExample, 2,
+		"Invalid input", "输入无效")
 
-	NewStyleConflict = errors.NewConflictErr(ServiceExample, 12,
-		"New style conflict", "新风格冲突")
+	ErrConflict = errors.NewConflictErr(ServiceExample, 3,
+		"Resource conflict", "资源冲突")
 
-	NewStyleInternal = errors.NewInternalErr(ServiceExample, 13,
-		"New style internal", "新风格内部")
+	ErrInternal = errors.NewInternalErr(ServiceExample, 4,
+		"Internal error", "内部错误")
 )
 
-// Custom HTTP/gRPC codes - also simpler!
-var NewStyleCustom = errors.NewError(ServiceExample, errors.CategoryResource, 14,
+// Custom HTTP/gRPC codes - also simple!
+var ErrCustom = errors.NewError(ServiceExample, errors.CategoryResource, 5,
 	http.StatusGone, codes.NotFound,
-	"New style custom", "新风格自定义")
+	"Resource has expired", "资源已过期")
 
 // ============================================================================
-// Comparison
+// Demo
 // ============================================================================
 
 func main() {
-	fmt.Println("=== Old Style (Deprecated) ===")
-	fmt.Printf("Code: %d, Message: %s\n", OldStyleError.Code, OldStyleError.MessageEN)
-	fmt.Printf("Code: %d, Message: %s\n", OldStyleCustom.Code, OldStyleCustom.MessageEN)
+	fmt.Println("=== Error Definitions ===")
+	fmt.Printf("ErrNotFound: Code=%d, Message=%s\n", ErrNotFound.Code, ErrNotFound.MessageEN)
+	fmt.Printf("ErrInvalidInput: Code=%d, Message=%s\n", ErrInvalidInput.Code, ErrInvalidInput.MessageEN)
+	fmt.Printf("ErrConflict: Code=%d, Message=%s\n", ErrConflict.Code, ErrConflict.MessageEN)
+	fmt.Printf("ErrInternal: Code=%d, Message=%s\n", ErrInternal.Code, ErrInternal.MessageEN)
+	fmt.Printf("ErrCustom: Code=%d, Message=%s\n", ErrCustom.Code, ErrCustom.MessageEN)
 
-	fmt.Println("\n=== New Style (Recommended) ===")
-	fmt.Printf("Code: %d, Message: %s\n", NewStyleNotFound.Code, NewStyleNotFound.MessageEN)
-	fmt.Printf("Code: %d, Message: %s\n", NewStyleInvalid.Code, NewStyleInvalid.MessageEN)
-	fmt.Printf("Code: %d, Message: %s\n", NewStyleConflict.Code, NewStyleConflict.MessageEN)
-	fmt.Printf("Code: %d, Message: %s\n", NewStyleInternal.Code, NewStyleInternal.MessageEN)
-	fmt.Printf("Code: %d, Message: %s\n", NewStyleCustom.Code, NewStyleCustom.MessageEN)
-
-	fmt.Println("\n=== Comparison ===")
-	fmt.Println("Old Style:")
-	fmt.Println("  - Requires method chaining")
-	fmt.Println("  - More verbose")
-	fmt.Println("  - Creates intermediate objects")
-	fmt.Println("  - Still works but deprecated")
-	fmt.Println("\nNew Style:")
-	fmt.Println("  - Single function call")
-	fmt.Println("  - Less code")
-	fmt.Println("  - Direct creation")
-	fmt.Println("  - Recommended for all new code")
+	fmt.Println("\n=== Error Creation Benefits ===")
+	fmt.Println("- Single function call")
+	fmt.Println("- Less code")
+	fmt.Println("- Direct creation")
+	fmt.Println("- Type-safe")
 
 	fmt.Println("\n=== Runtime Usage ===")
 
-	// Both styles produce identical runtime behavior
-	err1 := NewStyleNotFound.WithMessagef("user %s not found", "alice")
-	err2 := NewStyleInvalid.WithCause(fmt.Errorf("invalid input"))
+	// Use errors with dynamic messages
+	err1 := ErrNotFound.WithMessagef("user %s not found", "alice")
+	err2 := ErrInvalidInput.WithCause(fmt.Errorf("invalid email format"))
 
 	fmt.Printf("Error 1: %s\n", err1.Error())
 	fmt.Printf("Error 2: %s\n", err2.Error())
 
-	// All existing functionality works
-	fmt.Printf("HTTP Status: %d\n", NewStyleNotFound.HTTPStatus())
-	fmt.Printf("gRPC Code: %s\n", NewStyleNotFound.GRPCStatus().String())
-	fmt.Printf("Chinese Message: %s\n", NewStyleNotFound.Message("zh"))
+	// Access error properties
+	fmt.Printf("HTTP Status: %d\n", ErrNotFound.HTTPStatus())
+	fmt.Printf("gRPC Code: %s\n", ErrNotFound.GRPCStatus().String())
+	fmt.Printf("Chinese Message: %s\n", ErrNotFound.Message("zh"))
 }

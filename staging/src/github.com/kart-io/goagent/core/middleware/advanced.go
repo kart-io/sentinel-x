@@ -206,7 +206,7 @@ func (m *RateLimiterMiddleware) OnBefore(ctx context.Context, request *Middlewar
 	} else {
 		// Check rate limit
 		if window.count >= m.maxRequests {
-			return nil, agentErrors.New(agentErrors.CodeMiddlewareExecution,
+			return nil, agentErrors.New(agentErrors.CodeAgentExecution,
 				fmt.Sprintf("rate limit exceeded: %d requests in %v", m.maxRequests, m.windowSize)).
 				WithComponent("rate-limiter").
 				WithOperation("OnBefore").
@@ -273,12 +273,12 @@ func (m *AuthenticationMiddleware) OnBefore(ctx context.Context, request *Middle
 	if m.authFunc != nil {
 		authenticated, err := m.authFunc(ctx, request)
 		if err != nil {
-			return nil, agentErrors.Wrap(err, agentErrors.CodeMiddlewareExecution, "authentication error").
+			return nil, agentErrors.Wrap(err, agentErrors.CodeAgentExecution, "authentication error").
 				WithComponent("authentication").
 				WithOperation("OnBefore")
 		}
 		if !authenticated {
-			return nil, agentErrors.New(agentErrors.CodeMiddlewareExecution, "authentication failed: unauthorized").
+			return nil, agentErrors.New(agentErrors.CodeAgentExecution, "authentication failed: unauthorized").
 				WithComponent("authentication").
 				WithOperation("OnBefore")
 		}
@@ -310,7 +310,7 @@ func NewValidationMiddleware(validators ...func(*MiddlewareRequest) error) *Vali
 func (m *ValidationMiddleware) OnBefore(ctx context.Context, request *MiddlewareRequest) (*MiddlewareRequest, error) {
 	for i, validator := range m.validators {
 		if err := validator(request); err != nil {
-			return nil, agentErrors.Wrap(err, agentErrors.CodeMiddlewareExecution, "validation failed").
+			return nil, agentErrors.Wrap(err, agentErrors.CodeAgentExecution, "validation failed").
 				WithComponent("validation").
 				WithOperation("OnBefore").
 				WithContext("validator_index", i)
@@ -350,7 +350,7 @@ func (m *TransformMiddleware) OnBefore(ctx context.Context, request *MiddlewareR
 	if m.inputTransform != nil {
 		transformed, err := m.inputTransform(request.Input)
 		if err != nil {
-			return nil, agentErrors.Wrap(err, agentErrors.CodeMiddlewareExecution, "input transform failed").
+			return nil, agentErrors.Wrap(err, agentErrors.CodeAgentExecution, "input transform failed").
 				WithComponent("transform").
 				WithOperation("OnBefore")
 		}
@@ -364,7 +364,7 @@ func (m *TransformMiddleware) OnAfter(ctx context.Context, response *MiddlewareR
 	if m.outputTransform != nil && response.Error == nil {
 		transformed, err := m.outputTransform(response.Output)
 		if err != nil {
-			return nil, agentErrors.Wrap(err, agentErrors.CodeMiddlewareExecution, "output transform failed").
+			return nil, agentErrors.Wrap(err, agentErrors.CodeAgentExecution, "output transform failed").
 				WithComponent("transform").
 				WithOperation("OnAfter")
 		}
@@ -410,7 +410,7 @@ func (m *CircuitBreakerMiddleware) OnBefore(ctx context.Context, request *Middle
 			m.state = "half-open"
 			m.mu.Unlock()
 		} else {
-			return nil, agentErrors.New(agentErrors.CodeMiddlewareExecution, "circuit breaker is open").
+			return nil, agentErrors.New(agentErrors.CodeAgentExecution, "circuit breaker is open").
 				WithComponent("circuit-breaker").
 				WithOperation("OnBefore").
 				WithContext("state", state).
@@ -486,7 +486,7 @@ func (m *RandomDelayMiddleware) OnBefore(ctx context.Context, request *Middlewar
 		// Use crypto/rand for secure random number generation
 		n, err := cryptorand.Int(cryptorand.Reader, big.NewInt(delayRange))
 		if err != nil {
-			return nil, agentErrors.Wrap(err, agentErrors.CodeMiddlewareExecution, "failed to generate random delay").
+			return nil, agentErrors.Wrap(err, agentErrors.CodeAgentExecution, "failed to generate random delay").
 				WithComponent("random-delay").
 				WithOperation("OnBefore").
 				WithContext("min_delay", m.minDelay).

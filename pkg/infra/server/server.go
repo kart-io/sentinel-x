@@ -149,6 +149,9 @@ func (m *Manager) Start(ctx context.Context) error {
 	// Start gRPC server
 	if m.grpcServer != nil {
 		if err := m.grpcServer.Start(ctx); err != nil {
+			if m.httpServer != nil {
+				_ = m.httpServer.Stop(ctx)
+			}
 			return fmt.Errorf("failed to start gRPC server: %w", err)
 		}
 		logger.Infow("gRPC server started", "addr", m.opts.GRPC.Addr)
@@ -157,6 +160,12 @@ func (m *Manager) Start(ctx context.Context) error {
 	// Start custom servers
 	for _, server := range m.servers {
 		if err := server.Start(ctx); err != nil {
+			if m.grpcServer != nil {
+				_ = m.grpcServer.Stop(ctx)
+			}
+			if m.httpServer != nil {
+				_ = m.httpServer.Stop(ctx)
+			}
 			return fmt.Errorf("failed to start server %s: %w", server.Name(), err)
 		}
 		logger.Infow("Custom server started", "name", server.Name())

@@ -118,7 +118,7 @@ func Example_redisRateLimiter() {
 // Example_rateLimitByAPIKey demonstrates rate limiting by API key.
 func Example_rateLimitByAPIKey() {
 	config := middleware.RateLimitConfig{
-		Limit:  1000,            // Higher limit for API keys
+		Limit:  1000, // Higher limit for API keys
 		Window: 1 * time.Minute,
 		KeyFunc: func(c transport.Context) string {
 			apiKey := c.Header("X-API-Key")

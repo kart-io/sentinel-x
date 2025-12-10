@@ -192,7 +192,7 @@ func (m *RateLimitMiddleware) Wrap(tool interfaces.Tool, next ToolInvoker) ToolI
 
 			return nil, errors.Wrap(
 				fmt.Errorf("rate limit exceeded for tool: %s", tool.Name()),
-				errors.CodeMiddlewareExecution,
+				errors.CodeAgentExecution,
 				"rate limit exceeded",
 			)
 		}

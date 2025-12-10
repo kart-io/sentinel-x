@@ -33,7 +33,10 @@ func TestSnowflakeClockDrift(t *testing.T) {
 		}
 
 		// Generate first ID
-		id1 := gen.GenerateInt64()
+		id1, err := gen.GenerateInt64()
+		if err != nil {
+			t.Fatalf("failed to generate first ID: %v", err)
+		}
 		if id1 == 0 {
 			t.Error("expected non-zero ID")
 		}
@@ -46,7 +49,10 @@ func TestSnowflakeClockDrift(t *testing.T) {
 
 		// Should handle clock drift and generate new ID
 		// The time function will gradually advance time back
-		id2 := gen.GenerateInt64()
+		id2, err := gen.GenerateInt64()
+		if err != nil {
+			t.Fatalf("failed to generate second ID: %v", err)
+		}
 		if id2 == 0 {
 			t.Error("expected non-zero ID")
 		}
@@ -58,7 +64,7 @@ func TestSnowflakeClockDrift(t *testing.T) {
 	})
 
 	t.Run("LargeClockDrift", func(t *testing.T) {
-		// Test large clock drift (> 5 seconds) - should panic
+		// Test large clock drift (> 5 seconds) - should return error
 		var currentTime int64 = 1704067200000 + 10000
 		var mu sync.Mutex
 
@@ -77,7 +83,10 @@ func TestSnowflakeClockDrift(t *testing.T) {
 		}
 
 		// Generate first ID
-		id1 := gen.GenerateInt64()
+		id1, err := gen.GenerateInt64()
+		if err != nil {
+			t.Fatalf("failed to generate first ID: %v", err)
+		}
 		if id1 == 0 {
 			t.Error("expected non-zero ID")
 		}
@@ -87,18 +96,11 @@ func TestSnowflakeClockDrift(t *testing.T) {
 		currentTime -= 6000
 		mu.Unlock()
 
-		// Should panic with clock drift error
-		defer func() {
-			if r := recover(); r != nil {
-				if r != ErrClockMovedBackward {
-					t.Errorf("expected ErrClockMovedBackward, got %v", r)
-				}
-			} else {
-				t.Error("expected panic for large clock drift")
-			}
-		}()
-
-		gen.GenerateInt64()
+		// Should return error for large clock drift
+		_, err = gen.GenerateInt64()
+		if err != ErrClockMovedBackward {
+			t.Errorf("expected ErrClockMovedBackward, got %v", err)
+		}
 	})
 
 	t.Run("NoClockDrift", func(t *testing.T) {
@@ -126,7 +128,10 @@ func TestSnowflakeClockDrift(t *testing.T) {
 		ids := make(map[int64]bool)
 
 		for i := 0; i < numIDs; i++ {
-			id := gen.GenerateInt64()
+			id, err := gen.GenerateInt64()
+			if err != nil {
+				t.Fatalf("failed to generate ID: %v", err)
+			}
 			if id == 0 {
 				t.Error("expected non-zero ID")
 			}
@@ -167,7 +172,10 @@ func TestSnowflakeClockDrift(t *testing.T) {
 
 		// Generate IDs until sequence overflows (4096 IDs in same millisecond)
 		for i := 0; i <= snowflakeMaxSeq; i++ {
-			gen.GenerateInt64()
+			_, err := gen.GenerateInt64()
+			if err != nil {
+				t.Fatalf("failed to generate ID: %v", err)
+			}
 		}
 
 		// Mark overflow as detected so time can advance
@@ -176,7 +184,10 @@ func TestSnowflakeClockDrift(t *testing.T) {
 		mu.Unlock()
 
 		// Next ID should be generated successfully after time advances
-		id := gen.GenerateInt64()
+		id, err := gen.GenerateInt64()
+		if err != nil {
+			t.Fatalf("failed to generate ID after overflow: %v", err)
+		}
 		if id == 0 {
 			t.Error("expected non-zero ID after sequence overflow")
 		}
@@ -207,7 +218,10 @@ func TestSnowflakeClockDrift(t *testing.T) {
 		}
 
 		// Generate first ID
-		id1 := gen.GenerateInt64()
+		id1, err := gen.GenerateInt64()
+		if err != nil {
+			t.Fatalf("failed to generate first ID: %v", err)
+		}
 		parsed1 := ParseSnowflake(id1)
 
 		// Move time forward
@@ -216,7 +230,10 @@ func TestSnowflakeClockDrift(t *testing.T) {
 		mu.Unlock()
 
 		// Generate second ID
-		id2 := gen.GenerateInt64()
+		id2, err := gen.GenerateInt64()
+		if err != nil {
+			t.Fatalf("failed to generate second ID: %v", err)
+		}
 		parsed2 := ParseSnowflake(id2)
 
 		// Second ID timestamp should be greater
@@ -248,7 +265,11 @@ func TestSnowflakeClockDrift(t *testing.T) {
 			go func() {
 				defer wg.Done()
 				for j := 0; j < numIDsPerGoroutine; j++ {
-					id := gen.GenerateInt64()
+					id, err := gen.GenerateInt64()
+					if err != nil {
+						t.Errorf("failed to generate ID: %v", err)
+						return
+					}
 					if id == 0 {
 						t.Error("expected non-zero ID")
 					}
@@ -271,7 +292,7 @@ func BenchmarkSnowflakeNormal(b *testing.B) {
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			gen.GenerateInt64()
+			_, _ = gen.GenerateInt64()
 		}
 	})
 }

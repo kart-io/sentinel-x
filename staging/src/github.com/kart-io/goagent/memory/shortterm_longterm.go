@@ -59,7 +59,7 @@ func (m *ShortTermMemory) Get(ctx context.Context, id string) (*MemoryEntry, err
 
 	entry, exists := m.entries[id]
 	if !exists {
-		return nil, agentErrors.New(agentErrors.CodeStoreNotFound, "not found in short-term memory").
+		return nil, agentErrors.New(agentErrors.CodeNotFound, "not found in short-term memory").
 			WithComponent("short_term_memory").
 			WithOperation("get").
 			WithContext("id", id)
@@ -303,7 +303,7 @@ func (m *LongTermMemory) Get(ctx context.Context, id string) (*MemoryEntry, erro
 
 	entry, exists := m.entries[id]
 	if !exists {
-		return nil, agentErrors.New(agentErrors.CodeStoreNotFound, "not found in long-term memory").
+		return nil, agentErrors.New(agentErrors.CodeNotFound, "not found in long-term memory").
 			WithComponent("long_term_memory").
 			WithOperation("get").
 			WithContext("id", id)

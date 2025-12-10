@@ -102,7 +102,7 @@ func TestNewCohere(t *testing.T) {
 			name:    "missing API key",
 			config:  &llm.LLMOptions{},
 			wantErr: true,
-			errCode: agentErrors.CodeInvalidConfig,
+			errCode: agentErrors.CodeAgentConfig,
 		},
 	}
 
@@ -328,7 +328,7 @@ func TestCohereErrorHandling(t *testing.T) {
 			responseBody: CohereErrorResponse{
 				Message: "Invalid API key",
 			},
-			expectedErrCode: agentErrors.CodeInvalidConfig,
+			expectedErrCode: agentErrors.CodeAgentConfig,
 		},
 		{
 			name:       "403 forbidden",
@@ -336,7 +336,7 @@ func TestCohereErrorHandling(t *testing.T) {
 			responseBody: CohereErrorResponse{
 				Message: "Access forbidden",
 			},
-			expectedErrCode: agentErrors.CodeInvalidConfig,
+			expectedErrCode: agentErrors.CodeAgentConfig,
 		},
 		{
 			name:       "404 not found",
@@ -344,22 +344,22 @@ func TestCohereErrorHandling(t *testing.T) {
 			responseBody: CohereErrorResponse{
 				Message: "Endpoint not found",
 			},
-			expectedErrCode: agentErrors.CodeLLMResponse,
+			expectedErrCode: agentErrors.CodeExternalService,
 		},
 		{
 			name:            "429 rate limit",
 			statusCode:      429,
-			expectedErrCode: agentErrors.CodeLLMRateLimit,
+			expectedErrCode: agentErrors.CodeRateLimit,
 		},
 		{
 			name:            "500 server error",
 			statusCode:      500,
-			expectedErrCode: agentErrors.CodeLLMRequest,
+			expectedErrCode: agentErrors.CodeExternalService,
 		},
 		{
 			name:            "503 service unavailable",
 			statusCode:      503,
-			expectedErrCode: agentErrors.CodeLLMRequest,
+			expectedErrCode: agentErrors.CodeExternalService,
 		},
 	}
 
@@ -478,8 +478,8 @@ func TestCohereContextCancellation(t *testing.T) {
 	})
 
 	require.Error(t, err)
-	assert.True(t, agentErrors.IsCode(err, agentErrors.CodeLLMRequest) ||
-		agentErrors.IsCode(err, agentErrors.CodeContextCanceled))
+	assert.True(t, agentErrors.IsCode(err, agentErrors.CodeExternalService) ||
+		agentErrors.IsCode(err, agentErrors.CodeAgentTimeout))
 }
 
 // TestCohereStream tests streaming
@@ -534,7 +534,7 @@ func TestCohereStreamError(t *testing.T) {
 
 	_, err = provider.Stream(context.Background(), "test")
 	require.Error(t, err)
-	assert.True(t, agentErrors.IsCode(err, agentErrors.CodeInvalidConfig))
+	assert.True(t, agentErrors.IsCode(err, agentErrors.CodeAgentConfig))
 }
 
 // TestCohereProvider tests Provider method

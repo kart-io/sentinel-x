@@ -283,7 +283,7 @@ func (p *RunnablePipe[I, M, O]) Stream(ctx context.Context, input I) (<-chan Str
 		// 流式执行第二个 Runnable
 		stream, err := p.second.Stream(ctx, middle)
 		if err != nil {
-			outChan <- StreamChunk[O]{Error: agentErrors.Wrap(err, agentErrors.CodeStreamRead, "second runnable stream failed").
+			outChan <- StreamChunk[O]{Error: agentErrors.Wrap(err, agentErrors.CodeNetwork, "second runnable stream failed").
 				WithComponent("runnable_pipe").
 				WithOperation("stream")}
 			return
@@ -487,7 +487,7 @@ func (s *RunnableSequence) Stream(ctx context.Context, input any) (<-chan Stream
 				// 最后一个使用 Stream
 				stream, err := runnable.Stream(ctx, current)
 				if err != nil {
-					outChan <- StreamChunk[any]{Error: agentErrors.Wrap(err, agentErrors.CodeStreamRead, "runnable stream failed").
+					outChan <- StreamChunk[any]{Error: agentErrors.Wrap(err, agentErrors.CodeNetwork, "runnable stream failed").
 						WithComponent("runnable_sequence").
 						WithOperation("stream").
 						WithContext("index", i)}

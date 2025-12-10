@@ -44,7 +44,7 @@ func NewNATSCommunicator(agentID string, config *NATSConfig) (*NATSCommunicator,
 
 	conn, err := nats.Connect(config.URL, opts...)
 	if err != nil {
-		return nil, agentErrors.Wrap(err, agentErrors.CodeStoreConnection, "failed to connect to NATS").
+		return nil, agentErrors.Wrap(err, agentErrors.CodeNetwork, "failed to connect to NATS").
 			WithComponent("nats_communicator").
 			WithOperation("new_communicator").
 			WithContext("url", config.URL)
@@ -52,7 +52,7 @@ func NewNATSCommunicator(agentID string, config *NATSConfig) (*NATSCommunicator,
 
 	js, err := conn.JetStream()
 	if err != nil {
-		return nil, agentErrors.Wrap(err, agentErrors.CodeStoreConnection, "failed to create JetStream context").
+		return nil, agentErrors.Wrap(err, agentErrors.CodeNetwork, "failed to create JetStream context").
 			WithComponent("nats_communicator").
 			WithOperation("new_communicator")
 	}
@@ -72,7 +72,7 @@ func (c *NATSCommunicator) Send(ctx context.Context, to string, message *AgentMe
 
 	data, err := json.Marshal(message)
 	if err != nil {
-		return agentErrors.Wrap(err, agentErrors.CodeDistributedSerialization, "failed to marshal message").
+		return agentErrors.Wrap(err, agentErrors.CodeInvalidInput, "failed to marshal message").
 			WithComponent("nats_communicator").
 			WithOperation("send").
 			WithContext("to", to)
@@ -85,7 +85,7 @@ func (c *NATSCommunicator) Send(ctx context.Context, to string, message *AgentMe
 // Receive 接收消息
 func (c *NATSCommunicator) Receive(ctx context.Context) (*AgentMessage, error) {
 	// NATS 使用订阅模式，这里返回错误
-	return nil, agentErrors.New(agentErrors.CodeNotImplemented, "use Subscribe instead for NATS communicator").
+	return nil, agentErrors.New(agentErrors.CodeUnknown, "use Subscribe instead for NATS communicator").
 		WithComponent("nats_communicator").
 		WithOperation("receive")
 }
@@ -96,7 +96,7 @@ func (c *NATSCommunicator) Broadcast(ctx context.Context, message *AgentMessage)
 
 	data, err := json.Marshal(message)
 	if err != nil {
-		return agentErrors.Wrap(err, agentErrors.CodeDistributedSerialization, "failed to marshal message").
+		return agentErrors.Wrap(err, agentErrors.CodeInvalidInput, "failed to marshal message").
 			WithComponent("nats_communicator").
 			WithOperation("broadcast")
 	}
@@ -123,7 +123,7 @@ func (c *NATSCommunicator) Subscribe(ctx context.Context, topic string) (<-chan 
 		}
 	})
 	if err != nil {
-		return nil, agentErrors.Wrap(err, agentErrors.CodeDistributedConnection, "failed to subscribe").
+		return nil, agentErrors.Wrap(err, agentErrors.CodeNetwork, "failed to subscribe").
 			WithComponent("nats_communicator").
 			WithOperation("subscribe").
 			WithContext("topic", topic)

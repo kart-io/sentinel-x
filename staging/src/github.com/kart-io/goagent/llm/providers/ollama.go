@@ -138,7 +138,9 @@ func (c *OllamaClient) Complete(ctx context.Context, req *agentllm.CompletionReq
 		}
 		prompt += "Assistant: "
 	} else {
-		return nil, agentErrors.NewInvalidInputError("ollama", "messages", "no messages provided")
+		return nil, agentErrors.NewError(agentErrors.CodeInvalidInput, "no messages provided").
+			WithComponent("ollama").
+			WithOperation("complete")
 	}
 
 	// 构建请求
@@ -166,19 +168,25 @@ func (c *OllamaClient) Complete(ctx context.Context, req *agentllm.CompletionReq
 		SetBody(ollamaReq).
 		Post(c.baseURL + "/api/generate")
 	if err != nil {
-		return nil, agentErrors.NewLLMRequestError(c.ProviderName(), c.GetModel(req.Model), err)
+		return nil, agentErrors.NewErrorWithCause(agentErrors.CodeExternalService, "ollama API call failed", err).
+			WithComponent("ollama").
+			WithOperation("complete").
+			WithContext("model", c.GetModel(req.Model))
 	}
 
 	if !resp.IsSuccess() {
-		return nil, agentErrors.NewLLMResponseError(c.ProviderName(), c.GetModel(req.Model),
-			fmt.Sprintf("API error (status %d): %s", resp.StatusCode(), resp.String()))
+		return nil, agentErrors.NewErrorf(agentErrors.CodeExternalService, "ollama API error (status %d): %s", resp.StatusCode(), resp.String()).
+			WithComponent("ollama").
+			WithOperation("complete").
+			WithContext("model", c.GetModel(req.Model))
 	}
 
 	// 解析响应
 	var ollamaResp ollamaGenerateResponse
 	if err := json.NewDecoder(strings.NewReader(resp.String())).Decode(&ollamaResp); err != nil {
-		return nil, agentErrors.NewParserInvalidJSONError("response body", err).
-			WithContext("provider", c.ProviderName())
+		return nil, agentErrors.NewErrorWithCause(agentErrors.CodeInvalidInput, "failed to decode ollama response body", err).
+			WithComponent("ollama").
+			WithOperation("complete")
 	}
 
 	// 构建响应
@@ -235,20 +243,25 @@ func (c *OllamaClient) Chat(ctx context.Context, messages []agentllm.Message) (*
 		SetBody(ollamaReq).
 		Post(c.baseURL + "/api/chat")
 	if err != nil {
-		return nil, agentErrors.NewLLMRequestError(c.ProviderName(), model, err).
-			WithContext("operation", "chat")
+		return nil, agentErrors.NewErrorWithCause(agentErrors.CodeExternalService, "ollama chat API call failed", err).
+			WithComponent("ollama").
+			WithOperation("chat").
+			WithContext("model", model)
 	}
 
 	if !resp.IsSuccess() {
-		return nil, agentErrors.NewLLMResponseError(c.ProviderName(), model,
-			fmt.Sprintf("chat API error (status %d): %s", resp.StatusCode(), resp.String()))
+		return nil, agentErrors.NewErrorf(agentErrors.CodeExternalService, "ollama chat API error (status %d): %s", resp.StatusCode(), resp.String()).
+			WithComponent("ollama").
+			WithOperation("chat").
+			WithContext("model", model)
 	}
 
 	// 解析响应
 	var ollamaResp ollamaChatResponse
 	if err := json.NewDecoder(strings.NewReader(resp.String())).Decode(&ollamaResp); err != nil {
-		return nil, agentErrors.NewParserInvalidJSONError("chat response body", err).
-			WithContext("provider", c.ProviderName())
+		return nil, agentErrors.NewErrorWithCause(agentErrors.CodeInvalidInput, "failed to decode ollama chat response body", err).
+			WithComponent("ollama").
+			WithOperation("chat")
 	}
 
 	// 构建响应
@@ -292,15 +305,16 @@ func (c *OllamaClient) ListModels() ([]string, error) {
 	resp, err := c.client.R().
 		Get(c.baseURL + "/api/tags")
 
-	model := c.GetModel("")
 	if err != nil {
-		return nil, agentErrors.NewLLMRequestError(c.ProviderName(), model, err).
-			WithContext("operation", "list_models")
+		return nil, agentErrors.NewErrorWithCause(agentErrors.CodeExternalService, "ollama list models failed", err).
+			WithComponent("ollama").
+			WithOperation("list_models")
 	}
 
 	if !resp.IsSuccess() {
-		return nil, agentErrors.NewLLMResponseError(c.ProviderName(), model,
-			fmt.Sprintf("list models error (status %d): %s", resp.StatusCode(), resp.String()))
+		return nil, agentErrors.NewErrorf(agentErrors.CodeExternalService, "ollama list models error (status %d): %s", resp.StatusCode(), resp.String()).
+			WithComponent("ollama").
+			WithOperation("list_models")
 	}
 
 	var result struct {
@@ -310,8 +324,9 @@ func (c *OllamaClient) ListModels() ([]string, error) {
 	}
 
 	if err := json.NewDecoder(strings.NewReader(resp.String())).Decode(&result); err != nil {
-		return nil, agentErrors.NewParserInvalidJSONError("models list response", err).
-			WithContext("provider", c.ProviderName())
+		return nil, agentErrors.NewErrorWithCause(agentErrors.CodeInvalidInput, "failed to decode ollama models list response", err).
+			WithComponent("ollama").
+			WithOperation("list_models")
 	}
 
 	models := make([]string, len(result.Models))

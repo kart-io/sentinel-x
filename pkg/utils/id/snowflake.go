@@ -85,18 +85,17 @@ func NewSnowflakeGenerator(opts ...SnowflakeOption) (*SnowflakeGenerator, error)
 }
 
 // checkClockDrift detects and handles clock drift.
-// Returns the current time after drift is resolved.
-// Panics if drift is larger than maxClockDriftMs.
+// Returns the current time after drift is resolved, or an error if drift is too large.
 // Must be called while holding the lock.
-func (g *SnowflakeGenerator) checkClockDrift(now int64) int64 {
+func (g *SnowflakeGenerator) checkClockDrift(now int64) (int64, error) {
 	if now >= g.lastTime {
-		return now
+		return now, nil
 	}
 
 	drift := g.lastTime - now
 	if drift > maxClockDriftMs {
-		// Large clock drift detected - this is a serious system issue
-		panic(ErrClockMovedBackward)
+		// Large clock drift detected - return error instead of panic
+		return 0, ErrClockMovedBackward
 	}
 
 	// Small clock drift - wait for clock to catch up while holding the lock
@@ -106,7 +105,7 @@ func (g *SnowflakeGenerator) checkClockDrift(now int64) int64 {
 		now = g.timeFunc()
 	}
 
-	return now
+	return now, nil
 }
 
 // waitForNextMillisecond waits until the next millisecond.
@@ -121,29 +120,43 @@ func (g *SnowflakeGenerator) waitForNextMillisecond() int64 {
 }
 
 // Generate creates a new Snowflake ID string.
-func (g *SnowflakeGenerator) Generate() string {
-	id := g.GenerateInt64()
-	return strconv.FormatInt(id, 10)
+// Returns an error if clock drift is too large.
+func (g *SnowflakeGenerator) Generate() (string, error) {
+	id, err := g.GenerateInt64()
+	if err != nil {
+		return "", err
+	}
+	return strconv.FormatInt(id, 10), nil
 }
 
 // GenerateN creates n Snowflake ID strings.
-func (g *SnowflakeGenerator) GenerateN(n int) []string {
+// Returns an error if clock drift is too large during generation.
+func (g *SnowflakeGenerator) GenerateN(n int) ([]string, error) {
 	ids := make([]string, n)
 	for i := 0; i < n; i++ {
-		ids[i] = g.Generate()
+		id, err := g.Generate()
+		if err != nil {
+			return nil, err
+		}
+		ids[i] = id
 	}
-	return ids
+	return ids, nil
 }
 
 // GenerateInt64 creates a new Snowflake ID as int64.
-func (g *SnowflakeGenerator) GenerateInt64() int64 {
+// Returns an error if clock drift is too large.
+func (g *SnowflakeGenerator) GenerateInt64() (int64, error) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
 	now := g.timeFunc()
 
 	// Check for clock drift and handle it appropriately
-	now = g.checkClockDrift(now)
+	var err error
+	now, err = g.checkClockDrift(now)
+	if err != nil {
+		return 0, err
+	}
 
 	if now == g.lastTime {
 		// Same millisecond - increment sequence
@@ -164,7 +177,7 @@ func (g *SnowflakeGenerator) GenerateInt64() int64 {
 		(g.nodeID << snowflakeNodeShift) |
 		g.sequence
 
-	return id
+	return id, nil
 }
 
 // ParseSnowflake extracts components from a Snowflake ID.

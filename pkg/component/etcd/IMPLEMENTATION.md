@@ -26,10 +26,10 @@ Successfully implemented a complete Etcd storage client for the sentinel-x proje
    - Methods: `CheckHealth()`, `checkClusterHealth()`, `HealthWithTimeout()`, `IsHealthy()`
    - Includes latency measurement and cluster member verification
 
-3. **factory.go** (82 lines)
+3. **factory.go** (75 lines)
    - Factory pattern implementation for client creation
    - Implements `storage.Factory` interface
-   - Methods: `NewFactory()`, `Create()`, `CreateWithOptions()`, `MustCreate()`
+   - Methods: `NewFactory()`, `Create()`, `Options()`, `Clone()`
 
 4. **doc.go** (148 lines)
    - Comprehensive package documentation

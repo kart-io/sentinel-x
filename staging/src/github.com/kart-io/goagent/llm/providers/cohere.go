@@ -211,7 +211,10 @@ func (p *CohereProvider) execute(ctx context.Context, req *CohereRequest) (*Cohe
 
 	model := p.GetModel("")
 	if err != nil {
-		return nil, agentErrors.NewLLMRequestError(string(constants.ProviderCohere), model, err)
+		return nil, agentErrors.NewErrorWithCause(agentErrors.CodeExternalService, "failed to send request", err).
+			WithComponent(string(constants.ProviderCohere)).
+			WithOperation("execute").
+			WithContext("model", model)
 	}
 
 	// Check status code
@@ -222,7 +225,10 @@ func (p *CohereProvider) execute(ctx context.Context, req *CohereRequest) (*Cohe
 	// Deserialize response
 	var cohereResp CohereResponse
 	if err := json.NewDecoder(strings.NewReader(resp.String())).Decode(&cohereResp); err != nil {
-		return nil, agentErrors.NewLLMResponseError(string(constants.ProviderCohere), req.Model, constants.ErrFailedDecodeResponse)
+		return nil, agentErrors.NewError(agentErrors.CodeExternalService, constants.ErrFailedDecodeResponse).
+			WithComponent(string(constants.ProviderCohere)).
+			WithOperation("execute").
+			WithContext("model", req.Model)
 	}
 
 	return &cohereResp, nil
@@ -236,38 +242,75 @@ func (p *CohereProvider) handleHTTPError(resp *resty.Response, model string) err
 		// Use error message from API
 		switch resp.StatusCode() {
 		case 400:
-			return agentErrors.NewInvalidInputError(string(constants.ProviderCohere), "request", errResp.Message)
+			return agentErrors.NewErrorf(agentErrors.CodeInvalidInput, "bad request: %s", errResp.Message).
+				WithComponent(string(constants.ProviderCohere)).
+				WithOperation("http_request")
 		case 401:
-			return agentErrors.NewInvalidConfigError(string(constants.ProviderCohere), constants.ErrorFieldAPIKey, errResp.Message)
+			return agentErrors.NewErrorf(agentErrors.CodeAgentConfig, "authentication failed: %s", errResp.Message).
+				WithComponent(string(constants.ProviderCohere)).
+				WithOperation("http_request").
+				WithContext("field", constants.ErrorFieldAPIKey)
 		case 403:
-			return agentErrors.NewInvalidConfigError(string(constants.ProviderCohere), constants.ErrorFieldAPIKey, errResp.Message)
+			return agentErrors.NewErrorf(agentErrors.CodeAgentConfig, "permission denied: %s", errResp.Message).
+				WithComponent(string(constants.ProviderCohere)).
+				WithOperation("http_request").
+				WithContext("field", constants.ErrorFieldAPIKey)
 		case 404:
-			return agentErrors.NewLLMResponseError(string(constants.ProviderCohere), model, errResp.Message)
+			return agentErrors.NewErrorf(agentErrors.CodeExternalService, "resource not found: %s", errResp.Message).
+				WithComponent(string(constants.ProviderCohere)).
+				WithOperation("http_request").
+				WithContext("model", model)
 		case 429:
 			retryAfter := common.ParseRetryAfter(resp.Header().Get("Retry-After"))
-			return agentErrors.NewLLMRateLimitError(string(constants.ProviderCohere), model, retryAfter)
+			return agentErrors.NewErrorf(agentErrors.CodeRateLimit, "rate limit exceeded, retry after: %d", retryAfter).
+				WithComponent(string(constants.ProviderCohere)).
+				WithOperation("http_request").
+				WithContext("model", model)
 		case 500, 502, 503, 504:
-			return agentErrors.NewLLMRequestError(string(constants.ProviderCohere), model, fmt.Errorf("server error: %s", errResp.Message))
+			return agentErrors.NewErrorWithCause(agentErrors.CodeExternalService, "server error", fmt.Errorf("%s", errResp.Message)).
+				WithComponent(string(constants.ProviderCohere)).
+				WithOperation("http_request").
+				WithContext("model", model)
 		}
 	}
 
 	// Fallback error handling
 	switch resp.StatusCode() {
 	case 400:
-		return agentErrors.NewInvalidInputError(string(constants.ProviderCohere), "request", constants.StatusBadRequest)
+		return agentErrors.NewError(agentErrors.CodeInvalidInput, constants.StatusBadRequest).
+			WithComponent(string(constants.ProviderCohere)).
+			WithOperation("http_request")
 	case 401:
-		return agentErrors.NewInvalidConfigError(string(constants.ProviderCohere), constants.ErrorFieldAPIKey, constants.StatusInvalidAPIKey)
+		return agentErrors.NewError(agentErrors.CodeAgentConfig, constants.StatusInvalidAPIKey).
+			WithComponent(string(constants.ProviderCohere)).
+			WithOperation("http_request").
+			WithContext("field", constants.ErrorFieldAPIKey)
 	case 403:
-		return agentErrors.NewInvalidConfigError(string(constants.ProviderCohere), constants.ErrorFieldAPIKey, constants.StatusAPIKeyLacksPermissions)
+		return agentErrors.NewError(agentErrors.CodeAgentConfig, constants.StatusAPIKeyLacksPermissions).
+			WithComponent(string(constants.ProviderCohere)).
+			WithOperation("http_request").
+			WithContext("field", constants.ErrorFieldAPIKey)
 	case 404:
-		return agentErrors.NewLLMResponseError(string(constants.ProviderCohere), model, constants.StatusEndpointNotFound)
+		return agentErrors.NewError(agentErrors.CodeExternalService, constants.StatusEndpointNotFound).
+			WithComponent(string(constants.ProviderCohere)).
+			WithOperation("http_request").
+			WithContext("model", model)
 	case 429:
 		retryAfter := common.ParseRetryAfter(resp.Header().Get("Retry-After"))
-		return agentErrors.NewLLMRateLimitError(string(constants.ProviderCohere), model, retryAfter)
+		return agentErrors.NewErrorf(agentErrors.CodeRateLimit, "rate limit exceeded, retry after: %d", retryAfter).
+			WithComponent(string(constants.ProviderCohere)).
+			WithOperation("http_request").
+			WithContext("model", model)
 	case 500, 502, 503, 504:
-		return agentErrors.NewLLMRequestError(string(constants.ProviderCohere), model, fmt.Errorf("server error: %d", resp.StatusCode()))
+		return agentErrors.NewErrorWithCause(agentErrors.CodeExternalService, "server error", fmt.Errorf("status code: %d", resp.StatusCode())).
+			WithComponent(string(constants.ProviderCohere)).
+			WithOperation("http_request").
+			WithContext("model", model)
 	default:
-		return agentErrors.NewLLMRequestError(string(constants.ProviderCohere), model, fmt.Errorf("unexpected status: %d", resp.StatusCode()))
+		return agentErrors.NewErrorWithCause(agentErrors.CodeExternalService, "unexpected status code", fmt.Errorf("status: %d", resp.StatusCode())).
+			WithComponent(string(constants.ProviderCohere)).
+			WithOperation("http_request").
+			WithContext("model", model)
 	}
 }
 
@@ -350,7 +393,10 @@ func (p *CohereProvider) Stream(ctx context.Context, prompt string) (<-chan stri
 	// Execute streaming request
 	resp, err := streamClient.Post(p.baseURL + constants.CohereChatPath)
 	if err != nil {
-		return nil, agentErrors.NewLLMRequestError(string(constants.ProviderCohere), model, err)
+		return nil, agentErrors.NewErrorWithCause(agentErrors.CodeExternalService, "failed to send streaming request", err).
+			WithComponent(string(constants.ProviderCohere)).
+			WithOperation("generate_stream").
+			WithContext("model", model)
 	}
 
 	if !resp.IsSuccess() {

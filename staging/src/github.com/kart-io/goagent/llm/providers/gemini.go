@@ -52,8 +52,9 @@ func NewGeminiWithOptions(opts ...agentllm.ClientOption) (*GeminiProvider, error
 	// Create client with API key
 	client, err := genai.NewClient(ctx, base.Config.APIKey, "", option.WithAPIKey(base.Config.APIKey))
 	if err != nil {
-		return nil, agentErrors.NewAgentInitializationError("gemini_provider", err).
-			WithContext("provider", "gemini")
+		return nil, agentErrors.NewErrorWithCause(agentErrors.CodeAgentConfig, "failed to create gemini client", err).
+			WithComponent("gemini").
+			WithOperation("new_client")
 	}
 
 	modelName := base.Config.Model
@@ -140,12 +141,16 @@ func (p *GeminiProvider) Complete(ctx context.Context, req *agentllm.CompletionR
 
 	// Get the last message as the prompt
 	if len(req.Messages) == 0 {
-		return nil, agentErrors.NewInvalidInputError("gemini_provider", "messages", "no messages provided")
+		return nil, agentErrors.NewError(agentErrors.CodeInvalidInput, "no messages provided").
+			WithComponent("gemini").
+			WithOperation("complete")
 	}
 
 	lastMessage := req.Messages[len(req.Messages)-1]
 	if lastMessage.Role != "user" {
-		return nil, agentErrors.NewInvalidInputError("gemini_provider", "last_message", "last message must be from user")
+		return nil, agentErrors.NewError(agentErrors.CodeInvalidInput, "last message must be from user").
+			WithComponent("gemini").
+			WithOperation("complete")
 	}
 
 	// Apply request-specific parameters using common.BaseProvider
@@ -163,7 +168,10 @@ func (p *GeminiProvider) Complete(ctx context.Context, req *agentllm.CompletionR
 	// Send the message
 	resp, err := cs.SendMessage(ctx, genai.Text(lastMessage.Content))
 	if err != nil {
-		return nil, agentErrors.NewLLMRequestError("gemini", p.modelName, err)
+		return nil, agentErrors.NewErrorWithCause(agentErrors.CodeExternalService, "gemini API call failed", err).
+			WithComponent("gemini").
+			WithOperation("complete").
+			WithContext("model", p.modelName)
 	}
 
 	// Extract content from response
@@ -279,12 +287,17 @@ func (p *GeminiProvider) GenerateWithTools(ctx context.Context, prompt string, t
 	}
 	resp, err := cs.SendMessage(ctx, genai.Text(finalPrompt))
 	if err != nil {
-		return nil, agentErrors.NewLLMRequestError("gemini", modelName, err).
-			WithContext("tool_calling", true)
+		return nil, agentErrors.NewErrorWithCause(agentErrors.CodeExternalService, "gemini tool calling API call failed", err).
+			WithComponent("gemini").
+			WithOperation("tool_calling").
+			WithContext("model", modelName)
 	}
 
 	if len(resp.Candidates) == 0 {
-		return nil, agentErrors.NewLLMResponseError("gemini", modelName, "no candidates returned")
+		return nil, agentErrors.NewError(agentErrors.CodeExternalService, "no candidates returned from gemini").
+			WithComponent("gemini").
+			WithOperation("tool_calling").
+			WithContext("model", modelName)
 	}
 
 	// Convert to llm.ToolCallResponse format (符合接口定义)

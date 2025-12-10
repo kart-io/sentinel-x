@@ -49,7 +49,7 @@ func NewVertexAIEmbedder(ctx context.Context, config VertexAIEmbedderConfig) (*V
 		}
 	}
 	if config.ProjectID == "" {
-		return nil, agentErrors.New(agentErrors.CodeInvalidConfig, "project ID is required").
+		return nil, agentErrors.New(agentErrors.CodeAgentConfig, "project ID is required").
 			WithComponent("vertex_ai_embedder").
 			WithOperation("create")
 	}
@@ -121,7 +121,7 @@ func (e *VertexAIEmbedder) Embed(ctx context.Context, texts []string) ([][]float
 
 	resp, err := e.client.Predict(ctx, req)
 	if err != nil {
-		return nil, agentErrors.Wrap(err, agentErrors.CodeRetrievalEmbedding, "failed to get embeddings from Vertex AI").
+		return nil, agentErrors.Wrap(err, agentErrors.CodeEmbedding, "failed to get embeddings from Vertex AI").
 			WithComponent("vertex_ai_embedder").
 			WithOperation("embed").
 			WithContext("num_texts", len(texts))
@@ -202,7 +202,7 @@ func (e *VertexAIEmbedder) EmbedQuery(ctx context.Context, query string) ([]floa
 
 	resp, err := e.client.Predict(ctx, req)
 	if err != nil {
-		return nil, agentErrors.Wrap(err, agentErrors.CodeRetrievalEmbedding, "failed to get query embedding from Vertex AI").
+		return nil, agentErrors.Wrap(err, agentErrors.CodeEmbedding, "failed to get query embedding from Vertex AI").
 			WithComponent("vertex_ai_embedder").
 			WithOperation("embed_query").
 			WithContext("query", truncateString(query, 100))
@@ -302,7 +302,7 @@ func NewOpenAIEmbedder(config OpenAIEmbedderConfig) (*OpenAIEmbedder, error) {
 		config.APIKey = os.Getenv("OPENAI_API_KEY")
 	}
 	if config.APIKey == "" {
-		return nil, agentErrors.New(agentErrors.CodeInvalidConfig, "API key is required").
+		return nil, agentErrors.New(agentErrors.CodeAgentConfig, "API key is required").
 			WithComponent("openai_embedder").
 			WithOperation("create")
 	}
@@ -366,7 +366,7 @@ func (e *OpenAIEmbedder) Embed(ctx context.Context, texts []string) ([][]float32
 		Model: e.model,
 	})
 	if err != nil {
-		return nil, agentErrors.Wrap(err, agentErrors.CodeRetrievalEmbedding, "failed to create embeddings").
+		return nil, agentErrors.Wrap(err, agentErrors.CodeEmbedding, "failed to create embeddings").
 			WithComponent("openai_embedder").
 			WithOperation("embed").
 			WithContext("num_texts", len(texts))

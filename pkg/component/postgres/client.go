@@ -16,9 +16,8 @@ import (
 // Client wraps gorm.DB and provides a PostgreSQL database client.
 // It implements the storage.Client interface.
 type Client struct {
-	db     *gorm.DB
-	opts   *Options
-	health *HealthChecker
+	db   *gorm.DB
+	opts *Options
 }
 
 // Compile-time check that Client implements storage.Client.
@@ -90,9 +89,6 @@ func NewWithContext(ctx context.Context, opts *Options) (*Client, error) {
 		db:   db,
 		opts: opts,
 	}
-
-	// Initialize health checker
-	client.health = NewHealthChecker(client)
 
 	// Verify connection with context
 	if err := client.Ping(ctx); err != nil {
@@ -173,15 +169,4 @@ func (c *Client) Health() storage.HealthChecker {
 		defer cancel()
 		return c.Ping(ctx)
 	}
-}
-
-// HealthCheck performs a health check on the database.
-// This implements the service.HealthChecker interface.
-func (c *Client) HealthCheck(ctx context.Context) error {
-	return c.health.HealthCheck(ctx)
-}
-
-// Stats returns database connection statistics.
-func (c *Client) Stats() (sql.DBStats, error) {
-	return c.health.Stats()
 }

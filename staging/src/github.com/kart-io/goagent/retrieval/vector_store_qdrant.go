@@ -55,7 +55,7 @@ func NewQdrantVectorStore(ctx context.Context, config QdrantConfig) (*QdrantVect
 	}
 
 	if config.CollectionName == "" {
-		return nil, agentErrors.New(agentErrors.CodeInvalidConfig, "collection name is required").
+		return nil, agentErrors.New(agentErrors.CodeAgentConfig, "collection name is required").
 			WithComponent("qdrant_store").
 			WithOperation("create")
 	}
@@ -260,7 +260,7 @@ func (q *QdrantVectorStore) AddDocuments(ctx context.Context, docs []*interfaces
 
 	vectors, err := q.config.Embedder.Embed(ctx, texts)
 	if err != nil {
-		return agentErrors.Wrap(err, agentErrors.CodeRetrievalEmbedding, "failed to generate vectors").
+		return agentErrors.Wrap(err, agentErrors.CodeEmbedding, "failed to generate vectors").
 			WithComponent("qdrant_store").
 			WithOperation("add_documents").
 			WithContext("num_docs", len(docs))
@@ -274,7 +274,7 @@ func (q *QdrantVectorStore) Search(ctx context.Context, query string, topK int) 
 	// 生成查询向量
 	queryVector, err := q.config.Embedder.EmbedQuery(ctx, query)
 	if err != nil {
-		return nil, agentErrors.Wrap(err, agentErrors.CodeRetrievalEmbedding, "failed to embed query").
+		return nil, agentErrors.Wrap(err, agentErrors.CodeEmbedding, "failed to embed query").
 			WithComponent("qdrant_store").
 			WithOperation("search").
 			WithContext("query", query)
@@ -297,7 +297,7 @@ func (q *QdrantVectorStore) SearchByVector(ctx context.Context, queryVector []fl
 		WithPayload:    qdrant.NewWithPayload(true),
 	})
 	if err != nil {
-		return nil, agentErrors.Wrap(err, agentErrors.CodeRetrievalSearch, "failed to search vectors").
+		return nil, agentErrors.Wrap(err, agentErrors.CodeRetrieval, "failed to search vectors").
 			WithComponent("qdrant_store").
 			WithOperation("search_by_vector").
 			WithContext("topK", topK)
@@ -425,7 +425,7 @@ func (q *QdrantVectorStore) Update(ctx context.Context, docs []*interfaces.Docum
 
 	vectors, err := q.config.Embedder.Embed(ctx, texts)
 	if err != nil {
-		return agentErrors.Wrap(err, agentErrors.CodeRetrievalEmbedding, "failed to generate vectors for update").
+		return agentErrors.Wrap(err, agentErrors.CodeEmbedding, "failed to generate vectors for update").
 			WithComponent("qdrant_store").
 			WithOperation("update_documents").
 			WithContext("num_docs", len(docs))

@@ -13,7 +13,12 @@ import (
 
 // WriteFileTool 写入文件工具
 type WriteFileTool struct {
-	*core.BaseTool
+	name         string
+	description  string
+	category     string
+	schema       *core.ToolSchema
+	requiresAuth bool
+	isDangerous  bool
 }
 
 // NewWriteFileTool 创建写入文件工具
@@ -44,19 +49,44 @@ func NewWriteFileTool() *WriteFileTool {
 		Required: []string{"path", "content"},
 	}
 
-	tool := &WriteFileTool{
-		BaseTool: core.NewBaseTool(
-			"write_file",
-			"写入文件内容",
-			"filesystem",
-			schema,
-		),
+	return &WriteFileTool{
+		name:         "write_file",
+		description:  "写入文件内容",
+		category:     "filesystem",
+		schema:       schema,
+		requiresAuth: true,
+		isDangerous:  true, // 写文件是危险操作
 	}
+}
 
-	tool.SetRequiresAuth(true)
-	tool.SetIsDangerous(true) // 写文件是危险操作
+// Name 返回工具名称
+func (t *WriteFileTool) Name() string {
+	return t.name
+}
 
-	return tool
+// Description 返回工具描述
+func (t *WriteFileTool) Description() string {
+	return t.description
+}
+
+// Category 返回工具类别
+func (t *WriteFileTool) Category() string {
+	return t.category
+}
+
+// Schema 返回工具的 JSON Schema
+func (t *WriteFileTool) Schema() *core.ToolSchema {
+	return t.schema
+}
+
+// RequiresAuth 返回是否需要认证
+func (t *WriteFileTool) RequiresAuth() bool {
+	return t.requiresAuth
+}
+
+// IsDangerous 返回是否是危险操作
+func (t *WriteFileTool) IsDangerous() bool {
+	return t.isDangerous
 }
 
 // Execute 执行工具

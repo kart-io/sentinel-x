@@ -63,12 +63,6 @@
 //	    log.Printf("etcd healthy (latency: %v)", status.Latency)
 //	}
 //
-// Simple boolean health check:
-//
-//	if !client.IsHealthy(ctx) {
-//	    log.Println("etcd cluster is unhealthy")
-//	}
-//
 // # Advanced Usage
 //
 // Access the underlying etcd client for etcd-specific operations:

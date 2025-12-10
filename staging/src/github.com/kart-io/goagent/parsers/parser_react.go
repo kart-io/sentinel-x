@@ -67,7 +67,7 @@ func (p *ReActOutputParser) Parse(ctx context.Context, text string) (*ReActOutpu
 	if matches := p.actionPattern.FindStringSubmatch(text); len(matches) > 1 {
 		result.Action = strings.TrimSpace(matches[1])
 	} else {
-		return nil, agentErrors.New(agentErrors.CodeParserMissingField, "no action found in output").
+		return nil, agentErrors.New(agentErrors.CodeInvalidInput, "no action found in output").
 			WithComponent("react_parser").
 			WithOperation("parse").
 			WithContext("text_length", len(text))
@@ -115,7 +115,7 @@ func (p *ReActOutputParser) ParseWithRetry(ctx context.Context, text string, max
 		}
 		lastErr = err
 	}
-	return nil, agentErrors.Wrap(lastErr, agentErrors.CodeParserFailed, "failed to parse after retries").
+	return nil, agentErrors.Wrap(lastErr, agentErrors.CodeInvalidInput, "failed to parse after retries").
 		WithComponent("react_parser").
 		WithOperation("parse_with_retry").
 		WithContext("max_retries", maxRetries)
@@ -124,7 +124,7 @@ func (p *ReActOutputParser) ParseWithRetry(ctx context.Context, text string, max
 // Validate 验证解析结果
 func (p *ReActOutputParser) Validate(parsed *ReActOutput) error {
 	if parsed == nil {
-		return agentErrors.New(agentErrors.CodeParserFailed, "parsed output is nil").
+		return agentErrors.New(agentErrors.CodeInvalidInput, "parsed output is nil").
 			WithComponent("react_parser").
 			WithOperation("validate")
 	}
@@ -135,14 +135,14 @@ func (p *ReActOutputParser) Validate(parsed *ReActOutput) error {
 	}
 
 	if parsed.Action == "" {
-		return agentErrors.New(agentErrors.CodeParserMissingField, "missing action in parsed output").
+		return agentErrors.New(agentErrors.CodeInvalidInput, "missing action in parsed output").
 			WithComponent("react_parser").
 			WithOperation("validate").
 			WithContext("field", "action")
 	}
 
 	if parsed.ActionInput == nil {
-		return agentErrors.New(agentErrors.CodeParserMissingField, "missing action_input in parsed output").
+		return agentErrors.New(agentErrors.CodeInvalidInput, "missing action_input in parsed output").
 			WithComponent("react_parser").
 			WithOperation("validate").
 			WithContext("field", "action_input")

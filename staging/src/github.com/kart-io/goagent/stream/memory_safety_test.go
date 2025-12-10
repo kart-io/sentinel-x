@@ -42,7 +42,7 @@ func TestReader_Collect_SizeLimitExceeded(t *testing.T) {
 
 	// Should get error due to size limit
 	require.Error(t, err)
-	assert.True(t, agentErrors.IsCode(err, agentErrors.CodeStreamRead))
+	assert.True(t, agentErrors.IsCode(err, agentErrors.CodeNetwork))
 	assert.Contains(t, err.Error(), "collect size limit exceeded")
 
 	// Should have collected at least one chunk before hitting limit
@@ -130,7 +130,7 @@ func TestReader_CollectText_SizeLimitExceeded(t *testing.T) {
 
 	// Should get error due to size limit
 	require.Error(t, err)
-	assert.True(t, agentErrors.IsCode(err, agentErrors.CodeStreamRead))
+	assert.True(t, agentErrors.IsCode(err, agentErrors.CodeNetwork))
 	assert.Contains(t, err.Error(), "collect text size limit exceeded")
 
 	// Should have collected some text before hitting limit
@@ -293,7 +293,7 @@ func TestTextAccumulatorConsumer_SizeLimitExceeded(t *testing.T) {
 	err = consumer.OnChunk(chunk2)
 
 	require.Error(t, err)
-	assert.True(t, agentErrors.IsCode(err, agentErrors.CodeStreamRead))
+	assert.True(t, agentErrors.IsCode(err, agentErrors.CodeNetwork))
 	assert.Contains(t, err.Error(), "text accumulator size limit exceeded")
 
 	// Text should contain only first chunk
@@ -472,7 +472,7 @@ func TestReader_Collect_LargeChunks(t *testing.T) {
 
 	// Should fail on second chunk (first chunk collected successfully)
 	require.Error(t, err)
-	assert.True(t, agentErrors.IsCode(err, agentErrors.CodeStreamRead))
+	assert.True(t, agentErrors.IsCode(err, agentErrors.CodeNetwork))
 	assert.Contains(t, err.Error(), "collect size limit exceeded")
 
 	// Should have collected exactly one chunk

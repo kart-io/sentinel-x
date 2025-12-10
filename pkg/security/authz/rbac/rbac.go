@@ -31,10 +31,68 @@ package rbac
 import (
 	"context"
 	"sync"
+	"time"
 
+	"github.com/kart-io/logger"
 	"github.com/kart-io/sentinel-x/pkg/security/authz"
 	"github.com/kart-io/sentinel-x/pkg/utils/errors"
 )
+
+// AuditEventType represents the type of audit event.
+type AuditEventType string
+
+const (
+	// AuditRoleAdded indicates a new role was added.
+	AuditRoleAdded AuditEventType = "role_added"
+	// AuditRoleRemoved indicates a role was removed.
+	AuditRoleRemoved AuditEventType = "role_removed"
+	// AuditRoleUpdated indicates a role's permissions were updated.
+	AuditRoleUpdated AuditEventType = "role_updated"
+	// AuditPermissionAdded indicates a permission was added to a role.
+	AuditPermissionAdded AuditEventType = "permission_added"
+	// AuditPermissionRemoved indicates a permission was removed from a role.
+	AuditPermissionRemoved AuditEventType = "permission_removed"
+	// AuditUserRoleAssigned indicates a role was assigned to a user.
+	AuditUserRoleAssigned AuditEventType = "user_role_assigned"
+	// AuditUserRoleRevoked indicates a role was revoked from a user.
+	AuditUserRoleRevoked AuditEventType = "user_role_revoked"
+	// AuditRoleHierarchyChanged indicates a role's parent hierarchy was changed.
+	AuditRoleHierarchyChanged AuditEventType = "role_hierarchy_changed"
+)
+
+// AuditEvent represents an audit event for permission changes.
+type AuditEvent struct {
+	// Type is the type of audit event.
+	Type AuditEventType
+	// Timestamp is when the event occurred.
+	Timestamp time.Time
+	// Actor is the user who performed the action.
+	Actor string
+	// Target is the object being operated on (role name, user ID, etc).
+	Target string
+	// Details contains additional information about the event.
+	Details map[string]interface{}
+}
+
+// AuditLogger is an interface for logging audit events.
+type AuditLogger interface {
+	// Log records an audit event.
+	Log(event AuditEvent)
+}
+
+// defaultAuditLogger is the default implementation using the logger package.
+type defaultAuditLogger struct{}
+
+// Log implements AuditLogger interface using the global logger.
+func (l *defaultAuditLogger) Log(event AuditEvent) {
+	logger.Infow("rbac audit",
+		"type", string(event.Type),
+		"timestamp", event.Timestamp,
+		"actor", event.Actor,
+		"target", event.Target,
+		"details", event.Details,
+	)
+}
 
 // RBAC implements Role-Based Access Control.
 type RBAC struct {
@@ -54,6 +112,9 @@ type RBAC struct {
 
 	// superAdmin is the role that has all permissions
 	superAdmin string
+
+	// auditLogger is the optional audit logger for tracking permission changes
+	auditLogger AuditLogger
 }
 
 // Option is a functional option for RBAC.
@@ -86,6 +147,14 @@ func WithStore(store authz.PolicyStore) Option {
 func WithSuperAdmin(role string) Option {
 	return func(r *RBAC) {
 		r.superAdmin = role
+	}
+}
+
+// WithAuditLogger sets the audit logger for tracking permission changes.
+// If not set, no audit logging will be performed.
+func WithAuditLogger(logger AuditLogger) Option {
+	return func(r *RBAC) {
+		r.auditLogger = logger
 	}
 }
 
@@ -193,6 +262,19 @@ func (r *RBAC) AddRole(role string, permissions ...authz.Permission) error {
 		}
 	}
 
+	// Record audit log
+	if r.auditLogger != nil {
+		r.auditLogger.Log(AuditEvent{
+			Type:      AuditRoleAdded,
+			Timestamp: time.Now(),
+			Target:    role,
+			Details: map[string]interface{}{
+				"permissions": permissions,
+				"count":       len(permissions),
+			},
+		})
+	}
+
 	return nil
 }
 
@@ -201,6 +283,9 @@ func (r *RBAC) RemoveRole(role string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
+	// Get role info for audit log before deletion
+	oldPermissions := r.roles[role]
+
 	delete(r.roles, role)
 	delete(r.roleHierarchy, role)
 
@@ -208,6 +293,18 @@ func (r *RBAC) RemoveRole(role string) error {
 		if err := r.store.DeleteRole(context.Background(), role); err != nil {
 			return err
 		}
+	}
+
+	// Record audit log
+	if r.auditLogger != nil {
+		r.auditLogger.Log(AuditEvent{
+			Type:      AuditRoleRemoved,
+			Timestamp: time.Now(),
+			Target:    role,
+			Details: map[string]interface{}{
+				"permissions": oldPermissions,
+			},
+		})
 	}
 
 	return nil
@@ -251,6 +348,18 @@ func (r *RBAC) AssignRole(subject, role string) error {
 		}
 	}
 
+	// Record audit log
+	if r.auditLogger != nil {
+		r.auditLogger.Log(AuditEvent{
+			Type:      AuditUserRoleAssigned,
+			Timestamp: time.Now(),
+			Target:    subject,
+			Details: map[string]interface{}{
+				"role": role,
+			},
+		})
+	}
+
 	return nil
 }
 
@@ -270,6 +379,18 @@ func (r *RBAC) RevokeRole(subject, role string) error {
 		if err := r.store.DeleteRoleAssignment(context.Background(), subject, role); err != nil {
 			return err
 		}
+	}
+
+	// Record audit log
+	if r.auditLogger != nil {
+		r.auditLogger.Log(AuditEvent{
+			Type:      AuditUserRoleRevoked,
+			Timestamp: time.Now(),
+			Target:    subject,
+			Details: map[string]interface{}{
+				"role": role,
+			},
+		})
 	}
 
 	return nil
@@ -336,6 +457,19 @@ func (r *RBAC) SetRoleParent(role string, parents ...string) error {
 			r.roleHierarchy[role] = oldParents
 		}
 		return errors.ErrInvalidParam.WithMessagef("circular role dependency detected: %v", cycle)
+	}
+
+	// Record audit log
+	if r.auditLogger != nil {
+		r.auditLogger.Log(AuditEvent{
+			Type:      AuditRoleHierarchyChanged,
+			Timestamp: time.Now(),
+			Target:    role,
+			Details: map[string]interface{}{
+				"old_parents": oldParents,
+				"new_parents": parents,
+			},
+		})
 	}
 
 	return nil

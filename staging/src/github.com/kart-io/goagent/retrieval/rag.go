@@ -46,7 +46,7 @@ type RAGRetrieverConfig struct {
 // NewRAGRetriever 创建 RAG 检索器
 func NewRAGRetriever(config RAGRetrieverConfig) (*RAGRetriever, error) {
 	if config.VectorStore == nil {
-		return nil, agentErrors.New(agentErrors.CodeInvalidConfig, "vector store is required").
+		return nil, agentErrors.New(agentErrors.CodeAgentConfig, "vector store is required").
 			WithComponent("rag_engine").
 			WithOperation("create")
 	}
@@ -78,7 +78,7 @@ func (r *RAGRetriever) Retrieve(ctx context.Context, query string) ([]*interface
 	// 从向量存储检索文档
 	docs, err := r.vectorStore.SimilaritySearch(ctx, query, r.topK)
 	if err != nil {
-		return nil, agentErrors.Wrap(err, agentErrors.CodeRetrievalSearch, "failed to search documents").
+		return nil, agentErrors.Wrap(err, agentErrors.CodeRetrieval, "failed to search documents").
 			WithComponent("rag_engine").
 			WithOperation("retrieve").
 			WithContext("query", query).
@@ -169,7 +169,7 @@ func (r *RAGRetriever) Clear() error {
 		return nil
 	}
 
-	return agentErrors.New(agentErrors.CodeNotImplemented, "clear operation not supported for this vector store type").
+	return agentErrors.New(agentErrors.CodeUnknown, "clear operation not supported for this vector store type").
 		WithComponent("rag_engine").
 		WithOperation("clear")
 }
@@ -253,7 +253,7 @@ func (c *RAGChain) Run(ctx context.Context, query string) (string, error) {
 	// 1. 检索相关文档
 	docs, err := c.retriever.Retrieve(ctx, query)
 	if err != nil {
-		return "", agentErrors.Wrap(err, agentErrors.CodeRetrievalSearch, "retrieval failed").
+		return "", agentErrors.Wrap(err, agentErrors.CodeRetrieval, "retrieval failed").
 			WithComponent("rag_chain").
 			WithOperation("run").
 			WithContext("query", query)
@@ -284,7 +284,7 @@ func (c *RAGChain) Run(ctx context.Context, query string) (string, error) {
 		},
 	})
 	if err != nil {
-		return "", agentErrors.Wrap(err, agentErrors.CodeLLMRequest, "LLM generation failed").
+		return "", agentErrors.Wrap(err, agentErrors.CodeExternalService, "LLM generation failed").
 			WithComponent("rag_chain").
 			WithOperation("run").
 			WithContext("query", query)
@@ -406,7 +406,7 @@ Please provide only the alternative queries, one per line, without numbering or 
 		Temperature: 0.7, // 适度的创造性
 	})
 	if err != nil {
-		return nil, agentErrors.Wrap(err, agentErrors.CodeLLMRequest, "failed to generate query variations").
+		return nil, agentErrors.Wrap(err, agentErrors.CodeExternalService, "failed to generate query variations").
 			WithComponent("rag_multi_query_retriever").
 			WithOperation("generate_queries").
 			WithContext("query", query)

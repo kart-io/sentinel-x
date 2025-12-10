@@ -164,11 +164,11 @@ func NewOptions() *Options {
 			BlockProfileRate:     0,
 			MutexProfileFraction: 0,
 		},
-		DisableCORS:    true, // CORS disabled by default
-		DisableTimeout: true, // Timeout disabled by default
-		DisablePprof:   true, // Pprof disabled by default (security)
-		DisableAuth:    true, // Auth disabled by default
-		DisableAuthz:   true, // Authz disabled by default
+		DisableCORS:    true,  // CORS disabled by default
+		DisableTimeout: true,  // Timeout disabled by default
+		DisablePprof:   true,  // Pprof disabled by default (security)
+		DisableAuth:    false, // Auth enabled by default (security)
+		DisableAuthz:   false, // Authz enabled by default (security)
 	}
 }
 

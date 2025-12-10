@@ -5,33 +5,47 @@ import (
 	"fmt"
 )
 
-// ToolBox MCP 工具箱接口
+// ToolRegistry 工具注册表接口
 //
-// ToolBox 管理所有可用的工具，提供工具的注册、发现、执行等功能。
-type ToolBox interface {
+// ToolRegistry 管理工具的注册、注销和查询。
+type ToolRegistry interface {
 	// Register 注册工具
-	Register(tool MCPTool) error
+	Register(tool Tool) error
 
 	// Unregister 注销工具
 	Unregister(name string) error
 
 	// Get 获取工具
-	Get(name string) (MCPTool, error)
+	Get(name string) (Tool, bool)
 
 	// List 列出所有工具
-	List() []MCPTool
+	List() []Tool
 
-	// ListByCategory 按分类列出工具
-	ListByCategory(category string) []MCPTool
+	// Has 检查工具是否存在
+	Has(name string) bool
+}
 
-	// Search 搜索工具（按名称或描述）
-	Search(query string) []MCPTool
+// ToolBox MCP 工具箱接口
+//
+// ToolBox 管理所有可用的工具，提供工具的注册、发现、执行等功能。
+// ToolBox 组合了 ToolRegistry 的功能，并提供执行和权限管理能力。
+type ToolBox interface {
+	ToolRegistry
 
 	// Execute 执行工具
 	Execute(ctx context.Context, call *ToolCall) (*ToolCallResult, error)
 
+	// ExecuteWithPermission 执行工具（带权限检查）
+	ExecuteWithPermission(ctx context.Context, call *ToolCall, permission *ToolPermission) (*ToolCallResult, error)
+
 	// ExecuteBatch 批量执行工具
 	ExecuteBatch(ctx context.Context, calls []*ToolCall) ([]*ToolCallResult, error)
+
+	// ListByCategory 按分类列出工具
+	ListByCategory(category string) []Tool
+
+	// Search 搜索工具（按名称或描述）
+	Search(query string) []Tool
 
 	// GetMetadata 获取工具元数据
 	GetMetadata(name string) (*ToolMetadata, error)
@@ -48,6 +62,7 @@ type ToolBox interface {
 	// Statistics 获取工具使用统计
 	Statistics() *ToolBoxStatistics
 }
+
 
 // ToolBoxStatistics 工具箱统计信息
 type ToolBoxStatistics struct {
@@ -92,66 +107,6 @@ type ToolPermission struct {
 
 	// Reason 权限原因
 	Reason string `json:"reason,omitempty"`
-}
-
-// ToolExecutor 工具执行器接口
-type ToolExecutor interface {
-	// Execute 执行工具
-	Execute(ctx context.Context, tool MCPTool, call *ToolCall) (*ToolResult, error)
-
-	// ExecuteWithRetry 执行工具（带重试）
-	ExecuteWithRetry(ctx context.Context, tool MCPTool, call *ToolCall, maxRetries int) (*ToolResult, error)
-
-	// ExecuteWithTimeout 执行工具（带超时）
-	ExecuteWithTimeout(ctx context.Context, tool MCPTool, call *ToolCall) (*ToolResult, error)
-}
-
-// ToolValidator 工具验证器接口
-type ToolValidator interface {
-	// ValidateSchema 验证 Schema
-	ValidateSchema(schema *ToolSchema) error
-
-	// ValidateInput 验证输入参数
-	ValidateInput(schema *ToolSchema, input map[string]interface{}) error
-
-	// ValidateOutput 验证输出结果
-	ValidateOutput(schema *ToolSchema, output interface{}) error
-}
-
-// ToolRegistry 工具注册表接口
-type ToolRegistry interface {
-	// Register 注册工具
-	Register(tool MCPTool) error
-
-	// Unregister 注销工具
-	Unregister(name string) error
-
-	// Get 获取工具
-	Get(name string) (MCPTool, bool)
-
-	// List 列出所有工具
-	List() []MCPTool
-
-	// Exists 检查工具是否存在
-	Exists(name string) bool
-
-	// Count 工具数量
-	Count() int
-}
-
-// ToolDiscovery 工具发现接口
-type ToolDiscovery interface {
-	// DiscoverLocal 发现本地工具
-	DiscoverLocal() ([]MCPTool, error)
-
-	// DiscoverRemote 发现远程工具
-	DiscoverRemote(endpoint string) ([]MCPTool, error)
-
-	// DiscoverByPattern 按模式发现工具
-	DiscoverByPattern(pattern string) ([]MCPTool, error)
-
-	// AutoRegister 自动注册发现的工具
-	AutoRegister(toolbox ToolBox) error
 }
 
 // ErrToolNotFound 工具未找到错误

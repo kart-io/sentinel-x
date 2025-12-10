@@ -496,7 +496,7 @@ func (s *SupervisorAgent) executeTask(ctx context.Context, task Task, originalIn
 	s.mu.RUnlock()
 
 	if !exists {
-		result.Error = agentErrors.New(agentErrors.CodeAgentNotFound, "agent not found").
+		result.Error = agentErrors.New(agentErrors.CodeNotFound, "agent not found").
 			WithComponent("supervisor_agent").
 			WithOperation("executeTask").
 			WithContext("agent_name", agentName)

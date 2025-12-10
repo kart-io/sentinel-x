@@ -24,10 +24,12 @@ import (
 // Generator defines the interface for ID generators.
 type Generator interface {
 	// Generate creates a new unique ID.
-	Generate() string
+	// Returns an error if ID generation fails.
+	Generate() (string, error)
 
 	// GenerateN creates n unique IDs.
-	GenerateN(n int) []string
+	// Returns an error if ID generation fails.
+	GenerateN(n int) ([]string, error)
 }
 
 // Type represents the type of ID generator.
@@ -61,21 +63,36 @@ func initDefaults() {
 }
 
 // NewUUID generates a new UUID v4 string.
+// Panics if random source fails.
 func NewUUID() string {
 	initDefaults()
-	return defaultUUID.Generate()
+	id, err := defaultUUID.Generate()
+	if err != nil {
+		panic(err)
+	}
+	return id
 }
 
 // NewSnowflake generates a new Snowflake ID string.
+// Panics if ID generation fails due to clock drift.
 func NewSnowflake() string {
 	initDefaults()
-	return defaultSnowflake.Generate()
+	id, err := defaultSnowflake.Generate()
+	if err != nil {
+		panic(err)
+	}
+	return id
 }
 
 // NewULID generates a new ULID string.
+// Panics if random source fails.
 func NewULID() string {
 	initDefaults()
-	return defaultULID.Generate()
+	id, err := defaultULID.Generate()
+	if err != nil {
+		panic(err)
+	}
+	return id
 }
 
 // New generates a new ID using the specified generator type.

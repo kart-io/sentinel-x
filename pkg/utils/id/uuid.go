@@ -37,18 +37,8 @@ func NewUUIDGenerator(opts ...UUIDOption) *UUIDGenerator {
 // Generate creates a new UUID v4 string.
 // Format: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
 // where x is any hexadecimal digit and y is one of 8, 9, A, or B.
-// Panics if the random source fails (should never happen with crypto/rand).
-func (g *UUIDGenerator) Generate() string {
-	uuid, err := g.GenerateE()
-	if err != nil {
-		panic("id: failed to generate UUID: " + err.Error())
-	}
-	return uuid
-}
-
-// GenerateE creates a new UUID v4 string, returning an error on failure.
-// Use this variant when you need explicit error handling.
-func (g *UUIDGenerator) GenerateE() (string, error) {
+// Returns an error if the random source fails (should never happen with crypto/rand).
+func (g *UUIDGenerator) Generate() (string, error) {
 	var uuid [16]byte
 
 	_, err := io.ReadFull(g.reader, uuid[:])
@@ -66,12 +56,17 @@ func (g *UUIDGenerator) GenerateE() (string, error) {
 }
 
 // GenerateN creates n UUID v4 strings.
-func (g *UUIDGenerator) GenerateN(n int) []string {
+// Returns an error if the random source fails.
+func (g *UUIDGenerator) GenerateN(n int) ([]string, error) {
 	ids := make([]string, n)
 	for i := 0; i < n; i++ {
-		ids[i] = g.Generate()
+		id, err := g.Generate()
+		if err != nil {
+			return nil, err
+		}
+		ids[i] = id
 	}
-	return ids
+	return ids, nil
 }
 
 // formatUUID formats a 16-byte array as a UUID string.

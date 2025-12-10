@@ -130,7 +130,7 @@ func (c *FastMiddlewareChain) Execute(ctx context.Context, request *MiddlewareRe
 		var err error
 		request, err = mw.OnBefore(ctx, request)
 		if err != nil {
-			return nil, agentErrors.Wrap(err, agentErrors.CodeMiddlewareExecution, "fast chain execution failed").
+			return nil, agentErrors.Wrap(err, agentErrors.CodeAgentExecution, "fast chain execution failed").
 				WithComponent("fast_middleware_chain").
 				WithOperation("execute")
 		}

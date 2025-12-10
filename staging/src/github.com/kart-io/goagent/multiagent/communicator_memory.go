@@ -55,7 +55,7 @@ func (c *MemoryCommunicator) Send(ctx context.Context, to string, message *Agent
 	c.closeMu.RLock()
 	if c.closed {
 		c.closeMu.RUnlock()
-		return agentErrors.New(agentErrors.CodeInvalidConfig, "communicator is closed").
+		return agentErrors.New(agentErrors.CodeAgentConfig, "communicator is closed").
 			WithComponent("memory_communicator").
 			WithOperation("send").
 			WithContext("to", to)
@@ -92,7 +92,7 @@ func (c *MemoryCommunicator) Broadcast(ctx context.Context, message *AgentMessag
 	c.closeMu.RLock()
 	if c.closed {
 		c.closeMu.RUnlock()
-		return agentErrors.New(agentErrors.CodeInvalidConfig, "communicator is closed").
+		return agentErrors.New(agentErrors.CodeAgentConfig, "communicator is closed").
 			WithComponent("memory_communicator").
 			WithOperation("broadcast")
 	}
@@ -124,7 +124,7 @@ func (c *MemoryCommunicator) Subscribe(ctx context.Context, topic string) (<-cha
 	c.closeMu.RLock()
 	if c.closed {
 		c.closeMu.RUnlock()
-		return nil, agentErrors.New(agentErrors.CodeInvalidConfig, "communicator is closed").
+		return nil, agentErrors.New(agentErrors.CodeAgentConfig, "communicator is closed").
 			WithComponent("memory_communicator").
 			WithOperation("subscribe").
 			WithContext("topic", topic)

@@ -10,7 +10,10 @@ func TestUUIDGenerator(t *testing.T) {
 	gen := NewUUIDGenerator()
 
 	t.Run("Generate", func(t *testing.T) {
-		id := gen.Generate()
+		id, err := gen.Generate()
+		if err != nil {
+			t.Fatalf("failed to generate UUID: %v", err)
+		}
 		if len(id) != 36 {
 			t.Errorf("expected UUID length 36, got %d", len(id))
 		}
@@ -34,7 +37,10 @@ func TestUUIDGenerator(t *testing.T) {
 	})
 
 	t.Run("GenerateN", func(t *testing.T) {
-		ids := gen.GenerateN(10)
+		ids, err := gen.GenerateN(10)
+		if err != nil {
+			t.Fatalf("failed to generate UUIDs: %v", err)
+		}
 		if len(ids) != 10 {
 			t.Errorf("expected 10 IDs, got %d", len(ids))
 		}
@@ -76,7 +82,10 @@ func TestSnowflakeGenerator(t *testing.T) {
 	}
 
 	t.Run("Generate", func(t *testing.T) {
-		id := gen.Generate()
+		id, err := gen.Generate()
+		if err != nil {
+			t.Fatalf("failed to generate ID: %v", err)
+		}
 		if id == "" {
 			t.Error("expected non-empty ID")
 		}
@@ -93,7 +102,10 @@ func TestSnowflakeGenerator(t *testing.T) {
 	})
 
 	t.Run("GenerateN", func(t *testing.T) {
-		ids := gen.GenerateN(100)
+		ids, err := gen.GenerateN(100)
+		if err != nil {
+			t.Fatalf("failed to generate IDs: %v", err)
+		}
 		if len(ids) != 100 {
 			t.Errorf("expected 100 IDs, got %d", len(ids))
 		}
@@ -116,7 +128,10 @@ func TestSnowflakeGenerator(t *testing.T) {
 	})
 
 	t.Run("ParseSnowflake", func(t *testing.T) {
-		id := gen.GenerateInt64()
+		id, err := gen.GenerateInt64()
+		if err != nil {
+			t.Fatalf("failed to generate ID: %v", err)
+		}
 		parsed := ParseSnowflake(id)
 
 		if parsed.NodeID != 1 {
@@ -135,7 +150,10 @@ func TestULIDGenerator(t *testing.T) {
 	gen := NewULIDGenerator()
 
 	t.Run("Generate", func(t *testing.T) {
-		id := gen.Generate()
+		id, err := gen.Generate()
+		if err != nil {
+			t.Fatalf("failed to generate ULID: %v", err)
+		}
 		if len(id) != 26 {
 			t.Errorf("expected ULID length 26, got %d", len(id))
 		}
@@ -147,7 +165,10 @@ func TestULIDGenerator(t *testing.T) {
 	})
 
 	t.Run("GenerateN", func(t *testing.T) {
-		ids := gen.GenerateN(100)
+		ids, err := gen.GenerateN(100)
+		if err != nil {
+			t.Fatalf("failed to generate ULIDs: %v", err)
+		}
 		if len(ids) != 100 {
 			t.Errorf("expected 100 IDs, got %d", len(ids))
 		}
@@ -164,7 +185,10 @@ func TestULIDGenerator(t *testing.T) {
 
 	t.Run("Monotonicity", func(t *testing.T) {
 		// Generate multiple IDs in quick succession
-		ids := gen.GenerateN(10)
+		ids, err := gen.GenerateN(10)
+		if err != nil {
+			t.Fatalf("failed to generate ULIDs: %v", err)
+		}
 
 		// They should be lexicographically sorted
 		for i := 1; i < len(ids); i++ {
@@ -175,7 +199,10 @@ func TestULIDGenerator(t *testing.T) {
 	})
 
 	t.Run("ParseULID", func(t *testing.T) {
-		id := gen.Generate()
+		id, err := gen.Generate()
+		if err != nil {
+			t.Fatalf("failed to generate ULID: %v", err)
+		}
 		parsed, err := ParseULID(id)
 		if err != nil {
 			t.Errorf("failed to parse: %v", err)
@@ -189,7 +216,10 @@ func TestULIDGenerator(t *testing.T) {
 	})
 
 	t.Run("IsValidULID", func(t *testing.T) {
-		valid := gen.Generate()
+		valid, err := gen.Generate()
+		if err != nil {
+			t.Fatalf("failed to generate ULID: %v", err)
+		}
 		if !IsValidULID(valid) {
 			t.Errorf("expected %s to be valid", valid)
 		}
@@ -251,7 +281,7 @@ func BenchmarkUUID(b *testing.B) {
 	gen := NewUUIDGenerator()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		gen.Generate()
+		_, _ = gen.Generate()
 	}
 }
 
@@ -259,7 +289,7 @@ func BenchmarkSnowflake(b *testing.B) {
 	gen, _ := NewSnowflakeGenerator()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		gen.Generate()
+		_, _ = gen.Generate()
 	}
 }
 
@@ -267,6 +297,6 @@ func BenchmarkULID(b *testing.B) {
 	gen := NewULIDGenerator()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		gen.Generate()
+		_, _ = gen.Generate()
 	}
 }

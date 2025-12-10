@@ -41,7 +41,9 @@ func TestExecuteWithRetry_SuccessAfterRetries(t *testing.T) {
 	execute := func(ctx context.Context) (string, error) {
 		callCount++
 		if callCount < 3 {
-			return "", agentErrors.NewLLMRateLimitError("test", "test-model", 60)
+			return "", agentErrors.NewError(agentErrors.CodeRateLimit, "rate limited").
+				WithComponent("test").
+				WithContext("model", "test-model")
 		}
 		return "success", nil
 	}
@@ -66,7 +68,9 @@ func TestExecuteWithRetry_MaxRetriesExceeded(t *testing.T) {
 	callCount := 0
 	execute := func(ctx context.Context) (string, error) {
 		callCount++
-		return "", agentErrors.NewLLMRateLimitError("test", "test-model", 60)
+		return "", agentErrors.NewError(agentErrors.CodeRateLimit, "rate limited").
+			WithComponent("test").
+			WithContext("model", "test-model")
 	}
 
 	cfg := common.RetryConfig{
@@ -94,7 +98,9 @@ func TestExecuteWithRetry_ContextCanceled(t *testing.T) {
 			// Cancel context after first failure
 			cancel()
 		}
-		return "", agentErrors.NewLLMRateLimitError("test", "test-model", 60)
+		return "", agentErrors.NewError(agentErrors.CodeRateLimit, "rate limited").
+			WithComponent("test").
+			WithContext("model", "test-model")
 	}
 
 	cfg := common.RetryConfig{
@@ -108,7 +114,7 @@ func TestExecuteWithRetry_ContextCanceled(t *testing.T) {
 	_, err := common.ExecuteWithRetry(ctx, cfg, "test-provider", execute)
 
 	require.Error(t, err)
-	assert.Equal(t, agentErrors.CodeContextCanceled, agentErrors.GetCode(err))
+	assert.Equal(t, agentErrors.CodeAgentTimeout, agentErrors.GetCode(err))
 }
 
 func TestExecuteWithRetry_NonRetryableError(t *testing.T) {
@@ -116,7 +122,8 @@ func TestExecuteWithRetry_NonRetryableError(t *testing.T) {
 	callCount := 0
 	execute := func(ctx context.Context) (string, error) {
 		callCount++
-		return "", agentErrors.NewInvalidInputError("test", "input", "invalid")
+		return "", agentErrors.NewError(agentErrors.CodeInvalidInput, "invalid input").
+			WithComponent("test")
 	}
 
 	cfg := common.DefaultRetryConfig()
@@ -135,7 +142,9 @@ func TestExecuteWithRetry_DefaultMaxAttempts(t *testing.T) {
 	execute := func(ctx context.Context) (string, error) {
 		callCount++
 		if callCount < 3 {
-			return "", agentErrors.NewLLMRateLimitError("test", "test-model", 60)
+			return "", agentErrors.NewError(agentErrors.CodeRateLimit, "rate limited").
+				WithComponent("test").
+				WithContext("model", "test-model")
 		}
 		return "success", nil
 	}
@@ -164,7 +173,9 @@ func TestExecuteWithRetry_ExponentialBackoff(t *testing.T) {
 		callCount++
 		timestamps = append(timestamps, time.Now())
 		if callCount < 3 {
-			return "", agentErrors.NewLLMRateLimitError("test", "test-model", 60)
+			return "", agentErrors.NewError(agentErrors.CodeRateLimit, "rate limited").
+				WithComponent("test").
+				WithContext("model", "test-model")
 		}
 		return "success", nil
 	}
@@ -202,7 +213,9 @@ func TestExecuteWithRetry_MaxDelayLimit(t *testing.T) {
 	callCount := 0
 	execute := func(ctx context.Context) (string, error) {
 		callCount++
-		return "", agentErrors.NewLLMRateLimitError("test", "test-model", 60)
+		return "", agentErrors.NewError(agentErrors.CodeRateLimit, "rate limited").
+			WithComponent("test").
+			WithContext("model", "test-model")
 	}
 
 	cfg := common.RetryConfig{
@@ -241,7 +254,9 @@ func TestExecuteWithRetry_TestModeEnvVar(t *testing.T) {
 		callCount++
 		timestamps = append(timestamps, time.Now())
 		if callCount < 2 {
-			return "", agentErrors.NewLLMRateLimitError("test", "test-model", 60)
+			return "", agentErrors.NewError(agentErrors.CodeRateLimit, "rate limited").
+				WithComponent("test").
+				WithContext("model", "test-model")
 		}
 		return "success", nil
 	}

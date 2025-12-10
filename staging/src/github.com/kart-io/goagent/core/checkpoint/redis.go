@@ -131,7 +131,10 @@ func NewRedisCheckpointer(config *RedisCheckpointerConfig) (*RedisCheckpointer, 
 	defer cancel()
 
 	if err := client.Ping(ctx).Err(); err != nil {
-		return nil, agentErrors.NewStoreConnectionError("redis", config.Addr, err)
+		return nil, agentErrors.NewErrorWithCause(agentErrors.CodeNetwork, "failed to connect to Redis", err).
+			WithComponent("redis_checkpointer").
+			WithOperation("new").
+			WithContext("addr", config.Addr)
 	}
 
 	return &RedisCheckpointer{
@@ -159,7 +162,7 @@ func (c *RedisCheckpointer) Save(ctx context.Context, threadID string, state age
 	// Acquire lock if enabled
 	if c.config.EnableLock {
 		if err := c.acquireLock(ctx, threadID); err != nil {
-			return agentErrors.Wrap(err, agentErrors.CodeDistributedCoordination, "failed to acquire lock").
+			return agentErrors.Wrap(err, agentErrors.CodeNetwork, "failed to acquire lock").
 				WithComponent("redis_checkpointer").
 				WithOperation("save").
 				WithContext("thread_id", threadID)
@@ -196,7 +199,7 @@ func (c *RedisCheckpointer) Save(ctx context.Context, threadID string, state age
 	// Serialize to JSON
 	jsonData, err := json.Marshal(data)
 	if err != nil {
-		return agentErrors.Wrap(err, agentErrors.CodeDistributedSerialization, "failed to serialize checkpoint").
+		return agentErrors.Wrap(err, agentErrors.CodeInvalidInput, "failed to serialize checkpoint").
 			WithComponent("redis_checkpointer").
 			WithOperation("save").
 			WithContext("thread_id", threadID)
@@ -210,7 +213,7 @@ func (c *RedisCheckpointer) Save(ctx context.Context, threadID string, state age
 	}
 
 	if err != nil {
-		return agentErrors.Wrap(err, agentErrors.CodeStateCheckpoint, "failed to save checkpoint to Redis").
+		return agentErrors.Wrap(err, agentErrors.CodeResource, "failed to save checkpoint to Redis").
 			WithComponent("redis_checkpointer").
 			WithOperation("save").
 			WithContext("thread_id", threadID)
@@ -227,12 +230,12 @@ func (c *RedisCheckpointer) Load(ctx context.Context, threadID string) (agentsta
 	jsonData, err := c.client.Get(ctx, key).Bytes()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
-			return nil, agentErrors.New(agentErrors.CodeStateLoad, "checkpoint not found").
+			return nil, agentErrors.New(agentErrors.CodeResource, "checkpoint not found").
 				WithComponent("redis_checkpointer").
 				WithOperation("load").
 				WithContext("thread_id", threadID)
 		}
-		return nil, agentErrors.Wrap(err, agentErrors.CodeStateLoad, "failed to load checkpoint from Redis").
+		return nil, agentErrors.Wrap(err, agentErrors.CodeResource, "failed to load checkpoint from Redis").
 			WithComponent("redis_checkpointer").
 			WithOperation("load").
 			WithContext("thread_id", threadID)
@@ -241,7 +244,7 @@ func (c *RedisCheckpointer) Load(ctx context.Context, threadID string) (agentsta
 	// Deserialize
 	var data checkpointData
 	if err := json.Unmarshal(jsonData, &data); err != nil {
-		return nil, agentErrors.Wrap(err, agentErrors.CodeDistributedSerialization, "failed to deserialize checkpoint").
+		return nil, agentErrors.Wrap(err, agentErrors.CodeInvalidInput, "failed to deserialize checkpoint").
 			WithComponent("redis_checkpointer").
 			WithOperation("load").
 			WithContext("thread_id", threadID)
@@ -285,7 +288,7 @@ func (c *RedisCheckpointer) Delete(ctx context.Context, threadID string) error {
 	// Acquire lock if enabled
 	if c.config.EnableLock {
 		if err := c.acquireLock(ctx, threadID); err != nil {
-			return agentErrors.Wrap(err, agentErrors.CodeDistributedCoordination, "failed to acquire lock").
+			return agentErrors.Wrap(err, agentErrors.CodeNetwork, "failed to acquire lock").
 				WithComponent("redis_checkpointer").
 				WithOperation("delete").
 				WithContext("thread_id", threadID)
@@ -295,7 +298,7 @@ func (c *RedisCheckpointer) Delete(ctx context.Context, threadID string) error {
 
 	err := c.client.Del(ctx, key).Err()
 	if err != nil {
-		return agentErrors.Wrap(err, agentErrors.CodeStateCheckpoint, "failed to delete checkpoint from Redis").
+		return agentErrors.Wrap(err, agentErrors.CodeResource, "failed to delete checkpoint from Redis").
 			WithComponent("redis_checkpointer").
 			WithOperation("delete").
 			WithContext("thread_id", threadID)
@@ -310,7 +313,7 @@ func (c *RedisCheckpointer) Exists(ctx context.Context, threadID string) (bool, 
 
 	count, err := c.client.Exists(ctx, key).Result()
 	if err != nil {
-		return false, agentErrors.Wrap(err, agentErrors.CodeStateLoad, "failed to check checkpoint existence").
+		return false, agentErrors.Wrap(err, agentErrors.CodeResource, "failed to check checkpoint existence").
 			WithComponent("redis_checkpointer").
 			WithOperation("exists").
 			WithContext("thread_id", threadID)
@@ -371,7 +374,7 @@ func (c *RedisCheckpointer) scanKeys(ctx context.Context, pattern string) ([]str
 
 		scanKeys, cursor, err = c.client.Scan(ctx, cursor, pattern, 100).Result()
 		if err != nil {
-			return nil, agentErrors.Wrap(err, agentErrors.CodeStateLoad, "failed to scan keys").
+			return nil, agentErrors.Wrap(err, agentErrors.CodeResource, "failed to scan keys").
 				WithComponent("redis_checkpointer").
 				WithOperation("scan").
 				WithContext("pattern", pattern)
@@ -397,7 +400,7 @@ func (c *RedisCheckpointer) acquireLock(ctx context.Context, threadID string) er
 	for time.Now().Before(deadline) {
 		ok, err := c.client.SetNX(ctx, lockKey, "locked", c.config.LockExpiry).Result()
 		if err != nil {
-			return agentErrors.Wrap(err, agentErrors.CodeDistributedCoordination, "failed to acquire lock").
+			return agentErrors.Wrap(err, agentErrors.CodeNetwork, "failed to acquire lock").
 				WithComponent("redis_checkpointer").
 				WithOperation("acquire_lock").
 				WithContext("thread_id", threadID)
@@ -411,7 +414,7 @@ func (c *RedisCheckpointer) acquireLock(ctx context.Context, threadID string) er
 		time.Sleep(100 * time.Millisecond)
 	}
 
-	return agentErrors.New(agentErrors.CodeDistributedCoordination, "lock timeout").
+	return agentErrors.New(agentErrors.CodeNetwork, "lock timeout").
 		WithComponent("redis_checkpointer").
 		WithOperation("acquire_lock").
 		WithContext("thread_id", threadID).

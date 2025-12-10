@@ -106,7 +106,7 @@ func (a *DataPipelineAgent) processDataPipeline(ctx context.Context, input *core
 	// 从输入获取数据源
 	dataSource, ok := input.Context["data_source"].([]interface{})
 	if !ok {
-		_ = writer.WriteError(agentErrors.New(agentErrors.CodeInvalidConfig, "invalid data source").
+		_ = writer.WriteError(agentErrors.New(agentErrors.CodeAgentConfig, "invalid data source").
 			WithComponent("data_pipeline_agent").
 			WithOperation("processDataPipeline"))
 		return

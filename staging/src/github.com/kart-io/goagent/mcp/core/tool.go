@@ -2,22 +2,18 @@ package core
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"github.com/kart-io/goagent/utils/json"
 )
 
-// ErrNotImplemented is returned when an abstract method is called on a base type
-var ErrNotImplemented = errors.New("method must be implemented by concrete tool")
-
-// MCPTool MCP 工具接口
+// Tool MCP 工具接口
 //
-// MCPTool 代表一个可以被 AI Agent 调用的工具，符合 MCP (Model Context Protocol) 规范。
+// Tool 代表一个可以被 AI Agent 调用的工具，符合 MCP (Model Context Protocol) 规范。
 // 每个工具都有明确的输入输出定义，支持 JSON Schema 验证。
 //
 // 注意：这个接口与 interfaces.Tool 不同，MCP工具有额外的元数据和安全检查方法。
-type MCPTool interface {
+type Tool interface {
 	// Name 返回工具名称（唯一标识符）
 	Name() string
 
@@ -223,80 +219,3 @@ func (t *ToolMetadata) ToJSON() (string, error) {
 	return string(data), nil
 }
 
-// BaseTool 提供 MCPTool 的基础实现
-type BaseTool struct {
-	name         string
-	description  string
-	category     string
-	schema       *ToolSchema
-	requiresAuth bool
-	isDangerous  bool
-}
-
-// NewBaseTool 创建基础工具
-func NewBaseTool(name, description, category string, schema *ToolSchema) *BaseTool {
-	return &BaseTool{
-		name:         name,
-		description:  description,
-		category:     category,
-		schema:       schema,
-		requiresAuth: false,
-		isDangerous:  false,
-	}
-}
-
-// Name 返回工具名称
-func (b *BaseTool) Name() string {
-	return b.name
-}
-
-// Description 返回工具描述
-func (b *BaseTool) Description() string {
-	return b.description
-}
-
-// Category 返回工具分类
-func (b *BaseTool) Category() string {
-	return b.category
-}
-
-// Schema 返回参数 Schema
-func (b *BaseTool) Schema() *ToolSchema {
-	return b.schema
-}
-
-// RequiresAuth 返回是否需要认证
-func (b *BaseTool) RequiresAuth() bool {
-	return b.requiresAuth
-}
-
-// IsDangerous 返回是否危险
-func (b *BaseTool) IsDangerous() bool {
-	return b.isDangerous
-}
-
-// SetRequiresAuth 设置是否需要认证
-func (b *BaseTool) SetRequiresAuth(requiresAuth bool) {
-	b.requiresAuth = requiresAuth
-}
-
-// SetIsDangerous 设置是否危险
-func (b *BaseTool) SetIsDangerous(isDangerous bool) {
-	b.isDangerous = isDangerous
-}
-
-// Execute returns ErrNotImplemented.
-//
-// Concrete tool implementations must override this method.
-// Using composition: embed BaseTool and implement Execute.
-func (b *BaseTool) Execute(ctx context.Context, input map[string]interface{}) (*ToolResult, error) {
-	return nil, ErrNotImplemented
-}
-
-// Validate returns ErrNotImplemented.
-//
-// Concrete tool implementations must override this method.
-// Using composition: embed BaseTool and implement Validate.
-func (b *BaseTool) Validate(input map[string]interface{}) error {
-	return ErrNotImplemented
-}

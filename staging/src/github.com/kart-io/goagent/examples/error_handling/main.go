@@ -13,24 +13,36 @@ import (
 func example1CreateErrors() {
 	fmt.Println("=== Example 1: Creating Different Types of Errors ===")
 
-	// LLM 请求错误
-	llmErr := errors.NewLLMRequestError("openai", "gpt-4", fmt.Errorf("API connection failed"))
+	// LLM 请求错误 (使用 CodeAgentExecution)
+	llmErr := errors.NewErrorWithCause(
+		errors.CodeAgentExecution,
+		"failed to call LLM API",
+		fmt.Errorf("API connection failed"),
+	).WithComponent("openai").WithContext("model", "gpt-4")
 	fmt.Printf("LLM Error: %v\n", llmErr)
 	fmt.Printf("Error Code: %s\n", llmErr.Code)
 	fmt.Printf("Component: %s\n\n", llmErr.Component)
 
 	// 工具执行错误
-	toolErr := errors.NewToolExecutionError("calculator", "compute", fmt.Errorf("division by zero"))
+	toolErr := errors.NewErrorWithCause(
+		errors.CodeToolExecution,
+		"tool execution failed",
+		fmt.Errorf("division by zero"),
+	).WithComponent("calculator").WithOperation("compute")
 	fmt.Printf("Tool Error: %v\n", toolErr)
 	fmt.Printf("Context: %+v\n\n", toolErr.Context)
 
 	// 文档未找到错误
-	docErr := errors.NewDocumentNotFoundError("doc-123")
+	docErr := errors.NewErrorf(errors.CodeNotFound, "document not found: doc-123")
 	fmt.Printf("Document Error: %v\n", docErr)
 	fmt.Printf("Error Code: %s\n\n", docErr.Code)
 
 	// 计划执行错误
-	planErr := errors.NewPlanExecutionError("plan-456", "step-3", fmt.Errorf("prerequisite failed"))
+	planErr := errors.NewErrorWithCause(
+		errors.CodeAgentExecution,
+		"plan execution failed at step-3",
+		fmt.Errorf("prerequisite failed"),
+	).WithContext("plan_id", "plan-456").WithContext("step", "step-3")
 	fmt.Printf("Planning Error: %v\n", planErr)
 	fmt.Printf("Context: %+v\n\n", planErr.Context)
 }
@@ -39,7 +51,7 @@ func example1CreateErrors() {
 func example2ChainedContext() {
 	fmt.Println("=== Example 2: Chained Context ===")
 
-	err := errors.New(errors.CodeLLMRateLimit, "rate limit exceeded").
+	err := errors.New(errors.CodeRateLimit, "rate limit exceeded").
 		WithComponent("llm_client").
 		WithOperation("request").
 		WithContext("provider", "openai").
@@ -59,7 +71,7 @@ func example3ErrorWrapping() {
 	originalErr := fmt.Errorf("network timeout")
 
 	// 包装第一层
-	wrappedErr1 := errors.Wrap(originalErr, errors.CodeLLMTimeout, "LLM request timed out").
+	wrappedErr1 := errors.Wrap(originalErr, errors.CodeAgentTimeout, "LLM request timed out").
 		WithContext("timeout_seconds", 30)
 
 	// 包装第二层
@@ -84,9 +96,13 @@ func example4ErrorChecking() {
 
 	// 模拟不同类型的错误
 	testErrors := []error{
-		errors.NewDocumentNotFoundError("doc-1"),
-		errors.NewLLMRateLimitError("openai", "gpt-4", 60),
-		errors.NewToolTimeoutError("web_scraper", 30),
+		errors.NewErrorf(errors.CodeNotFound, "document not found: doc-1"),
+		errors.NewError(errors.CodeRateLimit, "rate limit exceeded").
+			WithContext("model", "gpt-4").
+			WithContext("retry_after_seconds", 60),
+		errors.NewError(errors.CodeAgentTimeout, "tool execution timeout").
+			WithComponent("web_scraper").
+			WithContext("timeout_seconds", 30),
 		errors.New(errors.CodeInvalidInput, "invalid parameter"),
 	}
 
@@ -94,13 +110,13 @@ func example4ErrorChecking() {
 		fmt.Printf("Error %d: %v\n", i+1, err)
 
 		// 使用错误代码检查
-		if errors.IsCode(err, errors.CodeDocumentNotFound) {
+		if errors.IsCode(err, errors.CodeNotFound) {
 			fmt.Println("  → Handling: Return 404 Not Found")
-		} else if errors.IsCode(err, errors.CodeLLMRateLimit) {
+		} else if errors.IsCode(err, errors.CodeRateLimit) {
 			ctx := errors.GetContext(err)
 			retryAfter := ctx["retry_after_seconds"]
 			fmt.Printf("  → Handling: Wait %v seconds before retry\n", retryAfter)
-		} else if errors.IsCode(err, errors.CodeToolTimeout) {
+		} else if errors.IsCode(err, errors.CodeAgentTimeout) {
 			fmt.Println("  → Handling: Retry with increased timeout")
 		} else {
 			fmt.Println("  → Handling: Return 400 Bad Request")
@@ -118,7 +134,10 @@ func example5RetryLogic() {
 	failingOperation := func() error {
 		attemptCounter++
 		if attemptCounter < 3 {
-			return errors.NewLLMRateLimitError("openai", "gpt-4", 1)
+			return errors.NewError(errors.CodeRateLimit, "rate limit exceeded").
+				WithComponent("llm_client").
+				WithContext("model", "gpt-4").
+				WithContext("retry_after_seconds", 1)
 		}
 		return nil // 第三次成功
 	}
@@ -139,7 +158,7 @@ func example5RetryLogic() {
 		lastErr = err
 
 		// 检查是否需要重试
-		if errors.IsCode(err, errors.CodeLLMRateLimit) {
+		if errors.IsCode(err, errors.CodeRateLimit) {
 			ctx := errors.GetContext(err)
 			retryAfter := ctx["retry_after_seconds"].(int)
 			fmt.Printf("  Rate limited, waiting %d second(s)...\n", retryAfter)
@@ -153,7 +172,11 @@ func example5RetryLogic() {
 	}
 
 	// 重试耗尽
-	finalErr := errors.NewToolRetryExhaustedError("llm_client", maxAttempts, lastErr)
+	finalErr := errors.NewErrorWithCause(
+		errors.CodeToolExecution,
+		fmt.Sprintf("retry exhausted after %d attempts", maxAttempts),
+		lastErr,
+	).WithComponent("llm_client").WithContext("max_attempts", maxAttempts)
 	fmt.Printf("✗ %v\n\n", finalErr)
 }
 
@@ -169,7 +192,12 @@ type mockStore struct {
 
 func (s *mockStore) Get(ctx context.Context, key string) (string, error) {
 	if s.shouldFail {
-		return "", errors.NewStoreConnectionError(s.name, "localhost:6379", fmt.Errorf("connection refused"))
+		return "", errors.NewErrorWithCause(
+			errors.CodeNetwork,
+			"failed to connect to store",
+			fmt.Errorf("connection refused"),
+		).WithComponent(s.name).
+			WithContext("host", "localhost:6379")
 	}
 	return fmt.Sprintf("data from %s", s.name), nil
 }
@@ -190,7 +218,7 @@ func example6Fallback() {
 		fmt.Printf("  Primary store failed: %v\n", err)
 
 		// 检查是否是连接错误，尝试降级到备份
-		if errors.IsCode(err, errors.CodeStoreConnection) {
+		if errors.IsCode(err, errors.CodeNetwork) {
 			fmt.Println("  → Falling back to backup store...")
 
 			data, backupErr := backupStore.Get(ctx, key)
@@ -217,16 +245,14 @@ func example7ErrorConversion() {
 		code := errors.GetCode(err)
 
 		switch code {
-		case errors.CodeDocumentNotFound, errors.CodeAgentNotFound, errors.CodeToolNotFound:
+		case errors.CodeNotFound, errors.CodeToolNotFound:
 			return 404, "Not Found"
-		case errors.CodeInvalidInput, errors.CodeInvalidConfig:
+		case errors.CodeInvalidInput:
 			return 400, "Bad Request"
-		case errors.CodeLLMRateLimit:
+		case errors.CodeRateLimit:
 			return 429, "Too Many Requests"
-		case errors.CodeLLMTimeout, errors.CodeToolTimeout:
+		case errors.CodeAgentTimeout:
 			return 504, "Gateway Timeout"
-		case errors.CodeContextCanceled:
-			return 499, "Client Closed Request"
 		default:
 			return 500, "Internal Server Error"
 		}
@@ -234,10 +260,17 @@ func example7ErrorConversion() {
 
 	// 测试不同错误的转换
 	testErrors := []error{
-		errors.NewDocumentNotFoundError("doc-1"),
-		errors.NewInvalidInputError("api", "query", "query is required"),
-		errors.NewLLMRateLimitError("openai", "gpt-4", 60),
-		errors.NewToolTimeoutError("search", 30),
+		errors.NewErrorf(errors.CodeNotFound, "document not found: doc-1"),
+		errors.NewError(errors.CodeInvalidInput, "query is required").
+			WithComponent("api").
+			WithContext("field", "query"),
+		errors.NewError(errors.CodeRateLimit, "rate limit exceeded").
+			WithComponent("openai").
+			WithContext("model", "gpt-4").
+			WithContext("retry_after_seconds", 60),
+		errors.NewError(errors.CodeAgentTimeout, "operation timeout").
+			WithComponent("search").
+			WithContext("timeout_seconds", 30),
 		errors.New(errors.CodeInternal, "unexpected error"),
 	}
 
@@ -252,11 +285,16 @@ func example7ErrorConversion() {
 func example8Logging() {
 	fmt.Println("=== Example 8: Logging with Structured Errors ===")
 
-	err := errors.NewLLMRequestError("openai", "gpt-4", fmt.Errorf("connection refused")).
+	err := errors.NewErrorWithCause(
+		errors.CodeAgentExecution,
+		"failed to generate response",
+		fmt.Errorf("connection refused"),
+	).WithComponent("openai").
 		WithOperation("generate_response").
 		WithContext("prompt_length", 1500).
 		WithContext("temperature", 0.7).
-		WithContext("max_tokens", 500)
+		WithContext("max_tokens", 500).
+		WithContext("model", "gpt-4")
 
 	// 提取所有字段用于结构化日志
 	fmt.Println("Structured Log Entry:")
@@ -267,7 +305,7 @@ func example8Logging() {
 	fmt.Printf("  message: %s\n", err.Error())
 	fmt.Printf("  context: %+v\n", errors.GetContext(err))
 
-	// 获取堆栈跟踪 (err 已经是 *errors.AgentError 类型)
+	// 获取堆栈跟踪
 	fmt.Printf("  stack_trace:\n")
 	stackFrames := err.Stack
 	maxFrames := 3
@@ -300,8 +338,10 @@ func example9BatchErrors() {
 
 	processItem := func(item Item) error {
 		if item.Data == "" {
-			return errors.NewInvalidInputError("processor", "data", "data cannot be empty").
-				WithContext("item_id", item.ID)
+			return errors.NewError(errors.CodeInvalidInput, "data cannot be empty").
+				WithComponent("processor").
+				WithContext("item_id", item.ID).
+				WithContext("field", "data")
 		}
 		if item.Data == "invalid" {
 			return errors.New(errors.CodeInvalidInput, "data validation failed").
@@ -350,10 +390,10 @@ func example10ErrorChainAnalysis() {
 
 	// 构建多层错误链
 	err1 := fmt.Errorf("database connection timeout")
-	err2 := errors.Wrap(err1, errors.CodeStoreConnection, "failed to connect to PostgreSQL").
+	err2 := errors.Wrap(err1, errors.CodeNetwork, "failed to connect to PostgreSQL").
 		WithContext("host", "db.example.com").
 		WithContext("port", 5432)
-	err3 := errors.Wrap(err2, errors.CodeStateLoad, "failed to load session state").
+	err3 := errors.Wrap(err2, errors.CodeResource, "failed to load session state").
 		WithContext("session_id", "sess-123")
 	err4 := errors.Wrap(err3, errors.CodeAgentExecution, "agent execution failed").
 		WithContext("agent_name", "chat-agent")

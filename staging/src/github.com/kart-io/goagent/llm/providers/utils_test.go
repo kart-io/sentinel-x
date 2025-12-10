@@ -69,17 +69,23 @@ func TestGenerateCallID_Format(t *testing.T) {
 }
 
 func TestIsRetryable_RateLimitError(t *testing.T) {
-	err := agentErrors.NewLLMRateLimitError("test", "model", 60)
+	err := agentErrors.NewError(agentErrors.CodeRateLimit, "rate limited").
+		WithComponent("test").
+		WithContext("model", "test-model")
 	assert.True(t, common.IsRetryable(err))
 }
 
 func TestIsRetryable_TimeoutError(t *testing.T) {
-	err := agentErrors.NewLLMTimeoutError("test", "model", 30)
+	err := agentErrors.NewError(agentErrors.CodeAgentTimeout, "timeout").
+		WithComponent("test").
+		WithContext("model", "test-model")
 	assert.True(t, common.IsRetryable(err))
 }
 
 func TestIsRetryable_RequestError(t *testing.T) {
-	err := agentErrors.NewLLMRequestError("test", "model", assert.AnError)
+	err := agentErrors.NewErrorWithCause(agentErrors.CodeExternalService, "external service error", assert.AnError).
+		WithComponent("test").
+		WithContext("model", "test-model")
 	assert.True(t, common.IsRetryable(err))
 }
 
@@ -90,15 +96,13 @@ func TestIsRetryable_NonRetryableError(t *testing.T) {
 	}{
 		{
 			name: "InvalidInput",
-			err:  agentErrors.NewInvalidInputError("test", "input", "invalid"),
+			err: agentErrors.NewError(agentErrors.CodeInvalidInput, "invalid input").
+				WithComponent("test"),
 		},
 		{
 			name: "InvalidConfig",
-			err:  agentErrors.NewInvalidConfigError("test", "config", "invalid"),
-		},
-		{
-			name: "LLMResponse",
-			err:  agentErrors.NewLLMResponseError("test", "model", "error"),
+			err: agentErrors.NewError(agentErrors.CodeAgentConfig, "invalid config").
+				WithComponent("test"),
 		},
 	}
 
@@ -107,6 +111,14 @@ func TestIsRetryable_NonRetryableError(t *testing.T) {
 			assert.False(t, common.IsRetryable(tc.err))
 		})
 	}
+}
+
+func TestIsRetryable_ExternalServiceError(t *testing.T) {
+	// External service errors ARE retryable
+	err := agentErrors.NewError(agentErrors.CodeExternalService, "LLM error").
+		WithComponent("test").
+		WithContext("model", "test-model")
+	assert.True(t, common.IsRetryable(err))
 }
 
 func TestIsRetryable_NilError(t *testing.T) {

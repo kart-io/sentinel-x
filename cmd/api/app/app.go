@@ -5,8 +5,6 @@ import (
 	"context"
 	"fmt"
 
-	"gorm.io/gorm"
-
 	"github.com/kart-io/logger"
 	// Import bridges to register them
 	_ "github.com/kart-io/sentinel-x/pkg/infra/adapter/echo"
@@ -18,7 +16,6 @@ import (
 	"github.com/kart-io/sentinel-x/pkg/security/auth/jwt"
 	"github.com/kart-io/sentinel-x/pkg/security/authz"
 	"github.com/kart-io/sentinel-x/pkg/security/authz/rbac"
-	goredis "github.com/redis/go-redis/v9"
 )
 
 const (
@@ -73,155 +70,177 @@ func NewApp() *app.App {
 	)
 }
 
-// Run runs the API server with the given options.
-func Run(opts *Options) error {
-	// Initialize logger first
-	if err := opts.Log.Init(); err != nil {
+// Bootstrapper manages the initialization and lifecycle of the API server.
+type Bootstrapper struct {
+	opts    *Options
+	dsMgr   *datasource.Manager
+	srvMgr  *server.Manager
+	jwtAuth *jwt.JWT
+	rbac    *rbac.RBAC
+}
+
+// NewBootstrapper creates a new Bootstrapper instance.
+func NewBootstrapper(opts *Options) *Bootstrapper {
+	return &Bootstrapper{opts: opts}
+}
+
+// InitializeLogging initializes the logging system.
+func (b *Bootstrapper) InitializeLogging() error {
+	if err := b.opts.Log.Init(); err != nil {
 		return fmt.Errorf("failed to initialize logger: %w", err)
 	}
-	defer func() { _ = logger.Flush() }()
 
-	// Print startup banner
-	printBanner(opts)
+	printBanner(b.opts)
 
-	// Log server startup
 	logger.Infow("Starting Sentinel-X API server",
 		"app", appName,
 		"version", app.GetVersion(),
-		"mode", opts.Server.Mode.String(),
+		"mode", b.opts.Server.Mode.String(),
 	)
 
-	// Initialize datasource manager
-	dsMgr := datasource.NewManager()
-	datasource.SetGlobal(dsMgr) // Set as global if needed by other components
-	defer dsMgr.CloseAll()
+	return nil
+}
 
-	// Register datasources
-	if opts.MySQL.Host != "" {
-		if err := dsMgr.RegisterMySQL("primary", opts.MySQL); err != nil {
+// InitializeDatasources initializes all configured datasources.
+func (b *Bootstrapper) InitializeDatasources(ctx context.Context) error {
+	b.dsMgr = datasource.NewManager()
+	datasource.SetGlobal(b.dsMgr)
+
+	if b.opts.MySQL.Host != "" {
+		if err := b.dsMgr.RegisterMySQL("primary", b.opts.MySQL); err != nil {
 			return fmt.Errorf("failed to register mysql: %w", err)
 		}
 	}
 
-	if opts.Redis.Host != "" {
-		if err := dsMgr.RegisterRedis("cache", opts.Redis); err != nil {
+	if b.opts.Redis.Host != "" {
+		if err := b.dsMgr.RegisterRedis("cache", b.opts.Redis); err != nil {
 			return fmt.Errorf("failed to register redis: %w", err)
 		}
 	}
 
-	// Initialize all datasources
-	ctx := context.Background()
-	if err := dsMgr.InitAll(ctx); err != nil {
+	if err := b.dsMgr.InitAll(ctx); err != nil {
 		return fmt.Errorf("failed to initialize datasources: %w", err)
 	}
+
 	logger.Info("Datasources initialized successfully")
+	return nil
+}
 
-	// Get clients for dependency injection
-	var db *gorm.DB
-	if opts.MySQL.Host != "" {
-		mysqlClient, err := dsMgr.GetMySQL("primary")
-		if err != nil {
-			return fmt.Errorf("failed to get mysql client: %w", err)
-		}
-		db = mysqlClient.DB()
+// InitializeAuth initializes JWT authentication and RBAC authorization.
+func (b *Bootstrapper) InitializeAuth(ctx context.Context) error {
+	if b.opts.JWT.DisableAuth {
+		logger.Info("Authentication disabled")
+		return nil
 	}
 
-	var rdb *goredis.Client
-	if opts.Redis.Host != "" {
-		redisClient, err := dsMgr.GetRedis("cache")
-		if err != nil {
-			return fmt.Errorf("failed to get redis client: %w", err)
-		}
-		rdb = redisClient.Client()
-	}
-
-	// Prevent unused variable error until services are registered
-	_ = db
-	_ = rdb
-
-	// Configure health checks
-	configureHealth(opts, dsMgr)
-
-	// Initialize authentication and authorization
-	jwtAuth, rbacAuthz, err := initAuth(opts)
+	tokenStore := jwt.NewMemoryStore()
+	jwtAuth, err := jwt.New(
+		jwt.WithOptions(b.opts.JWT),
+		jwt.WithStore(tokenStore),
+	)
 	if err != nil {
-		return fmt.Errorf("failed to initialize auth: %w", err)
+		return fmt.Errorf("failed to create JWT authenticator: %w", err)
 	}
 
-	// Configure auth middleware if enabled
-	if jwtAuth != nil && rbacAuthz != nil {
-		configureAuthMiddleware(opts, jwtAuth, rbacAuthz)
+	rbacAuthz := rbac.New()
+
+	if err := rbacAuthz.AddRole("admin", authz.NewPermission("*", "*")); err != nil {
+		return fmt.Errorf("failed to add admin role: %w", err)
 	}
 
-	// Create server manager
-	mgr := server.NewManager(
-		server.WithMode(opts.Server.Mode),
-		server.WithHTTPOptions(opts.Server.HTTP),
-		server.WithGRPCOptions(opts.Server.GRPC),
-		server.WithShutdownTimeout(opts.Server.ShutdownTimeout),
+	if err := rbacAuthz.AddRole("user",
+		authz.NewPermission("user", "read"),
+		authz.NewPermission("user", "update"),
+	); err != nil {
+		return fmt.Errorf("failed to add user role: %w", err)
+	}
+
+	if err := rbacAuthz.AddRole("guest", authz.NewPermission("*", "read")); err != nil {
+		return fmt.Errorf("failed to add guest role: %w", err)
+	}
+
+	b.jwtAuth = jwtAuth
+	b.rbac = rbacAuthz
+
+	logger.Infow("Authentication and authorization initialized",
+		"jwt_issuer", b.opts.JWT.Issuer,
+		"jwt_expired", b.opts.JWT.Expired,
+		"roles", []string{"admin", "user", "guest"},
+	)
+
+	return nil
+}
+
+// ConfigureMiddleware configures all middleware components.
+func (b *Bootstrapper) ConfigureMiddleware() {
+	configureHealth(b.opts, b.dsMgr)
+
+	if b.jwtAuth != nil && b.rbac != nil {
+		configureAuthMiddleware(b.opts, b.jwtAuth, b.rbac)
+	}
+}
+
+// CreateServerManager creates and configures the server manager.
+func (b *Bootstrapper) CreateServerManager() error {
+	b.srvMgr = server.NewManager(
+		server.WithMode(b.opts.Server.Mode),
+		server.WithHTTPOptions(b.opts.Server.HTTP),
+		server.WithGRPCOptions(b.opts.Server.GRPC),
+		server.WithShutdownTimeout(b.opts.Server.ShutdownTimeout),
 	)
 
 	// TODO: Register your services here
 	// Example:
-	// userSvc := userservice.NewService(db, rdb)
+	// db, _ := b.dsMgr.GetMySQL("primary")
+	// rdb, _ := b.dsMgr.GetRedis("cache")
+	// userSvc := userservice.NewService(db.DB(), rdb.Client())
 	// userHTTPHandler := handler.NewUserHTTPHandler(userSvc)
 	// userGRPCHandler := handler.NewUserGRPCHandler(userSvc)
-	// _ = mgr.RegisterService(userSvc, userHTTPHandler, &transport.GRPCServiceDesc{
+	// _ = b.srvMgr.RegisterService(userSvc, userHTTPHandler, &transport.GRPCServiceDesc{
 	//     ServiceDesc: &apiv1.UserService_ServiceDesc,
 	//     ServiceImpl: userGRPCHandler,
 	// })
 
 	logger.Info("All services registered successfully")
-
-	// Run server with graceful shutdown
-	logger.Info("Starting server manager...")
-	return mgr.Run()
+	return nil
 }
 
-// initAuth initializes JWT authentication and RBAC authorization.
-func initAuth(opts *Options) (*jwt.JWT, *rbac.RBAC, error) {
-	if opts.JWT.DisableAuth {
-		logger.Info("Authentication disabled")
-		return nil, nil, nil
+// Shutdown gracefully shuts down all components.
+func (b *Bootstrapper) Shutdown(ctx context.Context) error {
+	if b.dsMgr != nil {
+		b.dsMgr.CloseAll()
+	}
+	return nil
+}
+
+// Run runs the API server with the given options.
+func Run(opts *Options) error {
+	b := NewBootstrapper(opts)
+
+	if err := b.InitializeLogging(); err != nil {
+		return err
+	}
+	defer func() { _ = logger.Flush() }()
+
+	ctx := context.Background()
+
+	if err := b.InitializeDatasources(ctx); err != nil {
+		return err
+	}
+	defer func() { _ = b.Shutdown(ctx) }()
+
+	if err := b.InitializeAuth(ctx); err != nil {
+		return err
 	}
 
-	// Create JWT authenticator
-	tokenStore := jwt.NewMemoryStore()
-	jwtAuth, err := jwt.New(
-		jwt.WithOptions(opts.JWT),
-		jwt.WithStore(tokenStore),
-	)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create JWT authenticator: %w", err)
+	b.ConfigureMiddleware()
+
+	if err := b.CreateServerManager(); err != nil {
+		return err
 	}
 
-	// Create RBAC authorizer
-	rbacAuthz := rbac.New()
-
-	// Define default roles with permissions
-	// Admin role - full access
-	_ = rbacAuthz.AddRole("admin",
-		authz.NewPermission("*", "*"),
-	)
-
-	// User role - basic access
-	_ = rbacAuthz.AddRole("user",
-		authz.NewPermission("user", "read"),
-		authz.NewPermission("user", "update"),
-	)
-
-	// Guest role - read-only access
-	_ = rbacAuthz.AddRole("guest",
-		authz.NewPermission("*", "read"),
-	)
-
-	logger.Infow("Authentication and authorization initialized",
-		"jwt_issuer", opts.JWT.Issuer,
-		"jwt_expired", opts.JWT.Expired,
-		"roles", []string{"admin", "user", "guest"},
-	)
-
-	return jwtAuth, rbacAuthz, nil
+	logger.Info("Starting server manager...")
+	return b.srvMgr.Run()
 }
 
 // configureAuthMiddleware configures authentication and authorization middleware.

@@ -7,31 +7,15 @@ import (
 	"time"
 )
 
-// HealthChecker implements health check functionality for PostgreSQL.
-type HealthChecker struct {
-	client *Client
-}
-
-// NewHealthChecker creates a new health checker for the given client.
-func NewHealthChecker(client *Client) *HealthChecker {
-	return &HealthChecker{
-		client: client,
-	}
-}
-
-// HealthCheck performs a health check on the PostgreSQL database.
+// CheckHealth performs a health check on the PostgreSQL database.
 // It verifies that the database is accessible and responsive.
-func (h *HealthChecker) HealthCheck(ctx context.Context) error {
-	if h.client == nil {
-		return fmt.Errorf("postgres client is nil")
-	}
-
-	if h.client.db == nil {
+func (c *Client) CheckHealth(ctx context.Context) error {
+	if c.db == nil {
 		return fmt.Errorf("postgres database connection is nil")
 	}
 
 	// Get the underlying sql.DB
-	sqlDB, err := h.client.SqlDB()
+	sqlDB, err := c.SqlDB()
 	if err != nil {
 		return fmt.Errorf("failed to get sql.DB: %w", err)
 	}
@@ -55,12 +39,12 @@ func (h *HealthChecker) HealthCheck(ctx context.Context) error {
 }
 
 // Stats returns database connection statistics.
-func (h *HealthChecker) Stats() (sql.DBStats, error) {
-	if h.client == nil {
+func (c *Client) Stats() (sql.DBStats, error) {
+	if c.db == nil {
 		return sql.DBStats{}, fmt.Errorf("postgres client is nil")
 	}
 
-	sqlDB, err := h.client.SqlDB()
+	sqlDB, err := c.SqlDB()
 	if err != nil {
 		return sql.DBStats{}, fmt.Errorf("failed to get sql.DB: %w", err)
 	}

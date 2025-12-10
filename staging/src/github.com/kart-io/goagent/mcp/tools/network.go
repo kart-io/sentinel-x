@@ -14,8 +14,13 @@ import (
 
 // HTTPRequestTool HTTP 请求工具
 type HTTPRequestTool struct {
-	*core.BaseTool
-	client *httpclient.Client
+	name         string
+	description  string
+	category     string
+	schema       *core.ToolSchema
+	requiresAuth bool
+	isDangerous  bool
+	client       *httpclient.Client
 }
 
 // NewHTTPRequestTool 创建 HTTP 请求工具
@@ -51,19 +56,47 @@ func NewHTTPRequestTool() *HTTPRequestTool {
 		Required: []string{"url"},
 	}
 
-	tool := &HTTPRequestTool{
-		BaseTool: core.NewBaseTool(
-			"http_request",
-			"发送 HTTP 请求",
-			"network",
-			schema,
-		),
+	return &HTTPRequestTool{
+		name:         "http_request",
+		description:  "发送 HTTP 请求",
+		category:     "network",
+		schema:       schema,
+		requiresAuth: false,
+		isDangerous:  false,
 		client: httpclient.NewClient(&httpclient.Config{
 			Timeout: 30 * time.Second,
 		}),
 	}
+}
 
-	return tool
+// Name 返回工具名称
+func (t *HTTPRequestTool) Name() string {
+	return t.name
+}
+
+// Description 返回工具描述
+func (t *HTTPRequestTool) Description() string {
+	return t.description
+}
+
+// Category 返回工具类别
+func (t *HTTPRequestTool) Category() string {
+	return t.category
+}
+
+// Schema 返回工具的 JSON Schema
+func (t *HTTPRequestTool) Schema() *core.ToolSchema {
+	return t.schema
+}
+
+// RequiresAuth 返回是否需要认证
+func (t *HTTPRequestTool) RequiresAuth() bool {
+	return t.requiresAuth
+}
+
+// IsDangerous 返回是否是危险操作
+func (t *HTTPRequestTool) IsDangerous() bool {
+	return t.isDangerous
 }
 
 // Execute 执行工具
@@ -184,7 +217,12 @@ func (t *HTTPRequestTool) Validate(input map[string]interface{}) error {
 
 // JSONParseTool JSON 解析工具
 type JSONParseTool struct {
-	*core.BaseTool
+	name         string
+	description  string
+	category     string
+	schema       *core.ToolSchema
+	requiresAuth bool
+	isDangerous  bool
 }
 
 // NewJSONParseTool 创建 JSON 解析工具
@@ -204,16 +242,44 @@ func NewJSONParseTool() *JSONParseTool {
 		Required: []string{"json"},
 	}
 
-	tool := &JSONParseTool{
-		BaseTool: core.NewBaseTool(
-			"json_parse",
-			"解析 JSON 数据",
-			"data",
-			schema,
-		),
+	return &JSONParseTool{
+		name:         "json_parse",
+		description:  "解析 JSON 数据",
+		category:     "data",
+		schema:       schema,
+		requiresAuth: false,
+		isDangerous:  false,
 	}
+}
 
-	return tool
+// Name 返回工具名称
+func (t *JSONParseTool) Name() string {
+	return t.name
+}
+
+// Description 返回工具描述
+func (t *JSONParseTool) Description() string {
+	return t.description
+}
+
+// Category 返回工具类别
+func (t *JSONParseTool) Category() string {
+	return t.category
+}
+
+// Schema 返回工具的 JSON Schema
+func (t *JSONParseTool) Schema() *core.ToolSchema {
+	return t.schema
+}
+
+// RequiresAuth 返回是否需要认证
+func (t *JSONParseTool) RequiresAuth() bool {
+	return t.requiresAuth
+}
+
+// IsDangerous 返回是否是危险操作
+func (t *JSONParseTool) IsDangerous() bool {
+	return t.isDangerous
 }
 
 // Execute 执行工具
@@ -257,7 +323,12 @@ func (t *JSONParseTool) Validate(input map[string]interface{}) error {
 
 // ShellExecuteTool Shell 命令执行工具
 type ShellExecuteTool struct {
-	*core.BaseTool
+	name         string
+	description  string
+	category     string
+	schema       *core.ToolSchema
+	requiresAuth bool
+	isDangerous  bool
 }
 
 // NewShellExecuteTool 创建 Shell 命令执行工具
@@ -285,19 +356,44 @@ func NewShellExecuteTool() *ShellExecuteTool {
 		Required: []string{"command"},
 	}
 
-	tool := &ShellExecuteTool{
-		BaseTool: core.NewBaseTool(
-			"shell_execute",
-			"执行 Shell 命令",
-			"system",
-			schema,
-		),
+	return &ShellExecuteTool{
+		name:         "shell_execute",
+		description:  "执行 Shell 命令",
+		category:     "system",
+		schema:       schema,
+		requiresAuth: true,
+		isDangerous:  true, // Shell 执行是危险操作
 	}
+}
 
-	tool.SetRequiresAuth(true)
-	tool.SetIsDangerous(true) // Shell 执行是危险操作
+// Name 返回工具名称
+func (t *ShellExecuteTool) Name() string {
+	return t.name
+}
 
-	return tool
+// Description 返回工具描述
+func (t *ShellExecuteTool) Description() string {
+	return t.description
+}
+
+// Category 返回工具类别
+func (t *ShellExecuteTool) Category() string {
+	return t.category
+}
+
+// Schema 返回工具的 JSON Schema
+func (t *ShellExecuteTool) Schema() *core.ToolSchema {
+	return t.schema
+}
+
+// RequiresAuth 返回是否需要认证
+func (t *ShellExecuteTool) RequiresAuth() bool {
+	return t.requiresAuth
+}
+
+// IsDangerous 返回是否是危险操作
+func (t *ShellExecuteTool) IsDangerous() bool {
+	return t.isDangerous
 }
 
 // Execute 执行工具

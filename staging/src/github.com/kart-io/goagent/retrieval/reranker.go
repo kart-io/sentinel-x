@@ -341,7 +341,7 @@ type CohereReranker struct {
 //   - error: 错误信息
 func NewCohereReranker(apiKey, model string, topN int) (*CohereReranker, error) {
 	if apiKey == "" {
-		return nil, agentErrors.New(agentErrors.CodeInvalidConfig, "Cohere API key is required").
+		return nil, agentErrors.New(agentErrors.CodeAgentConfig, "Cohere API key is required").
 			WithComponent("cohere_reranker").
 			WithOperation("create")
 	}
@@ -463,7 +463,7 @@ func (r *RerankingRetriever) GetRelevantDocuments(ctx context.Context, query str
 	// 1. 使用基础检索器获取候选文档
 	docs, err := r.Retriever.GetRelevantDocuments(ctx, query)
 	if err != nil {
-		return nil, agentErrors.Wrap(err, agentErrors.CodeRetrievalSearch, "base retrieval failed").
+		return nil, agentErrors.Wrap(err, agentErrors.CodeRetrieval, "base retrieval failed").
 			WithComponent("reranking_retriever").
 			WithOperation("get_relevant_documents").
 			WithContext("query", query)

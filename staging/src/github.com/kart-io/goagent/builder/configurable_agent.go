@@ -159,7 +159,7 @@ func (a *ConfigurableAgent[C, S]) ExecuteWithTools(ctx context.Context, input in
 		// 使用工具调用接口
 		response, err := toolCaller.GenerateWithTools(ctx, prompt, a.tools)
 		if err != nil {
-			return nil, agentErrors.Wrap(err, agentErrors.CodeLLMRequest, "tool-enabled LLM request failed")
+			return nil, agentErrors.Wrap(err, agentErrors.CodeExternalService, "tool-enabled LLM request failed")
 		}
 
 		// 累计 token 使用
@@ -440,7 +440,7 @@ func (a *ConfigurableAgent[C, S]) executeToolCall(ctx context.Context, call Tool
 			return output.Result, nil
 		}
 	}
-	return nil, agentErrors.NewToolNotFoundError(call.Name)
+	return nil, agentErrors.Newf(agentErrors.CodeToolNotFound, "tool not found: %s", call.Name)
 }
 
 // GetState 返回当前状态
@@ -471,7 +471,9 @@ func (a *ConfigurableAgent[C, S]) Shutdown(ctx context.Context) error {
 	// 保存最终状态
 	if a.runtime.Checkpointer != nil {
 		if err := a.runtime.SaveState(ctx); err != nil {
-			return agentErrors.NewStateCheckpointError(a.config.SessionID, "save_final", err)
+			return agentErrors.Wrap(err, agentErrors.CodeResource, "failed to save final state").
+				WithContext("session_id", a.config.SessionID).
+				WithOperation("save_final")
 		}
 	}
 

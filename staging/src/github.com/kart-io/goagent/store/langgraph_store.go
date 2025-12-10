@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"sync"
 	"time"
@@ -163,7 +164,7 @@ func (s *InMemoryLangGraphStore) Get(ctx context.Context, namespace []string, ke
 
 	ns := namespaceToString(namespace)
 	if s.data[ns] == nil {
-		return nil, agentErrors.New(agentErrors.CodeStoreNotFound, "namespace not found").
+		return nil, agentErrors.New(agentErrors.CodeNotFound, "namespace not found").
 			WithComponent("langgraph_store").
 			WithOperation("get").
 			WithContext("namespace", namespace)
@@ -171,12 +172,16 @@ func (s *InMemoryLangGraphStore) Get(ctx context.Context, namespace []string, ke
 
 	value, exists := s.data[ns][key]
 	if !exists {
-		return nil, agentErrors.NewStoreNotFoundError(namespace, key)
+		return nil, agentErrors.NewError(agentErrors.CodeNotFound, fmt.Sprintf("key not found: %s in namespace %v", key, namespace)).
+			WithComponent("langgraph_store").
+			WithOperation("get").
+			WithContext("namespace", namespace).
+			WithContext("key", key)
 	}
 
 	// Check expiration
 	if value.IsExpired() {
-		return nil, agentErrors.New(agentErrors.CodeStoreNotFound, "value has expired").
+		return nil, agentErrors.New(agentErrors.CodeNotFound, "value has expired").
 			WithComponent("langgraph_store").
 			WithOperation("get").
 			WithContext("namespace", namespace).
@@ -252,14 +257,18 @@ func (s *InMemoryLangGraphStore) Delete(ctx context.Context, namespace []string,
 
 	ns := namespaceToString(namespace)
 	if s.data[ns] == nil {
-		return agentErrors.New(agentErrors.CodeStoreNotFound, "namespace not found").
+		return agentErrors.New(agentErrors.CodeNotFound, "namespace not found").
 			WithComponent("langgraph_store").
 			WithOperation("delete").
 			WithContext("namespace", namespace)
 	}
 
 	if _, exists := s.data[ns][key]; !exists {
-		return agentErrors.NewStoreNotFoundError(namespace, key)
+		return agentErrors.NewError(agentErrors.CodeNotFound, fmt.Sprintf("key not found: %s in namespace %v", key, namespace)).
+			WithComponent("langgraph_store").
+			WithOperation("delete").
+			WithContext("namespace", namespace).
+			WithContext("key", key)
 	}
 
 	delete(s.data[ns], key)

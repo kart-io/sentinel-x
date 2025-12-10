@@ -72,25 +72,6 @@ func ExampleClient_CheckHealth() {
 	}
 }
 
-// ExampleClient_IsHealthy demonstrates simple boolean health check.
-func ExampleClient_IsHealthy() {
-	opts := etcd.NewOptions()
-	opts.Endpoints = []string{"localhost:2379"}
-
-	client, err := etcd.New(opts)
-	if err != nil {
-		log.Fatalf("failed to create client: %v", err)
-	}
-	defer client.Close()
-
-	ctx := context.Background()
-	if client.IsHealthy(ctx) {
-		fmt.Println("etcd cluster is healthy")
-	} else {
-		fmt.Println("etcd cluster is unhealthy")
-	}
-}
-
 // ExampleClient_Raw demonstrates using the raw etcd client.
 func ExampleClient_Raw() {
 	opts := etcd.NewOptions()
@@ -207,21 +188,6 @@ func ExampleNewFactory() {
 	defer client.Close()
 
 	fmt.Println("Client created via factory")
-}
-
-// ExampleFactory_MustCreate demonstrates using MustCreate for initialization.
-func ExampleFactory_MustCreate() {
-	opts := etcd.NewOptions()
-	opts.Endpoints = []string{"localhost:2379"}
-
-	factory := etcd.NewFactory(opts)
-
-	// MustCreate panics on error - suitable for initialization
-	ctx := context.Background()
-	client := factory.MustCreate(ctx)
-	defer client.Close()
-
-	fmt.Println("Client created successfully")
 }
 
 // ExampleClient_withAuthentication demonstrates creating an authenticated client.

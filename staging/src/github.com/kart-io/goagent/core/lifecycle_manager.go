@@ -141,7 +141,7 @@ func (m *DefaultLifecycleManager) Unregister(name string) error {
 
 	// Cannot unregister running components
 	if entry.state == interfaces.StateRunning {
-		return agentErrors.New(agentErrors.CodeAgentValidation, "cannot unregister running component").
+		return agentErrors.New(agentErrors.CodeAgentExecution, "cannot unregister running component").
 			WithComponent("lifecycle_manager").
 			WithOperation("unregister").
 			WithContext("name", name).
@@ -209,7 +209,7 @@ func (m *DefaultLifecycleManager) initComponent(ctx context.Context, entry *comp
 		entry.state = interfaces.StateFailed
 		m.mu.Unlock()
 
-		return agentErrors.Wrap(err, agentErrors.CodeAgentInitialization, "component initialization failed").
+		return agentErrors.Wrap(err, agentErrors.CodeAgentConfig, "component initialization failed").
 			WithComponent("lifecycle_manager").
 			WithOperation("init").
 			WithContext("name", name)
@@ -547,7 +547,7 @@ func (m *DefaultLifecycleManager) resolveDependencies(entries []*componentEntry)
 
 	// Check for cycles
 	if len(result) != len(entries) {
-		return nil, agentErrors.New(agentErrors.CodeAgentValidation, "circular dependency detected").
+		return nil, agentErrors.New(agentErrors.CodeAgentExecution, "circular dependency detected").
 			WithComponent("lifecycle_manager").
 			WithOperation("resolve_dependencies")
 	}

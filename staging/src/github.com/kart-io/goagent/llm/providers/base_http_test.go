@@ -47,7 +47,7 @@ func TestMapHTTPError_Unauthorized(t *testing.T) {
 	err := common.MapHTTPError(httpErr, "test-provider", "test-model", nil)
 
 	require.Error(t, err)
-	assert.Equal(t, agentErrors.CodeInvalidConfig, agentErrors.GetCode(err))
+	assert.Equal(t, agentErrors.CodeAgentConfig, agentErrors.GetCode(err))
 }
 
 func TestMapHTTPError_UnauthorizedWithMessage(t *testing.T) {
@@ -63,7 +63,7 @@ func TestMapHTTPError_UnauthorizedWithMessage(t *testing.T) {
 	err := common.MapHTTPError(httpErr, "test-provider", "test-model", parseError)
 
 	require.Error(t, err)
-	assert.Equal(t, agentErrors.CodeInvalidConfig, agentErrors.GetCode(err))
+	assert.Equal(t, agentErrors.CodeAgentConfig, agentErrors.GetCode(err))
 	assert.Contains(t, err.Error(), "invalid API key")
 }
 
@@ -76,7 +76,7 @@ func TestMapHTTPError_Forbidden(t *testing.T) {
 	err := common.MapHTTPError(httpErr, "test-provider", "test-model", nil)
 
 	require.Error(t, err)
-	assert.Equal(t, agentErrors.CodeInvalidConfig, agentErrors.GetCode(err))
+	assert.Equal(t, agentErrors.CodeAgentConfig, agentErrors.GetCode(err))
 }
 
 func TestMapHTTPError_ForbiddenWithMessage(t *testing.T) {
@@ -92,7 +92,7 @@ func TestMapHTTPError_ForbiddenWithMessage(t *testing.T) {
 	err := common.MapHTTPError(httpErr, "test-provider", "test-model", parseError)
 
 	require.Error(t, err)
-	assert.Equal(t, agentErrors.CodeInvalidConfig, agentErrors.GetCode(err))
+	assert.Equal(t, agentErrors.CodeAgentConfig, agentErrors.GetCode(err))
 	assert.Contains(t, err.Error(), "insufficient permissions")
 }
 
@@ -105,7 +105,7 @@ func TestMapHTTPError_NotFound(t *testing.T) {
 	err := common.MapHTTPError(httpErr, "test-provider", "test-model", nil)
 
 	require.Error(t, err)
-	assert.Equal(t, agentErrors.CodeLLMResponse, agentErrors.GetCode(err))
+	assert.Equal(t, agentErrors.CodeExternalService, agentErrors.GetCode(err))
 }
 
 func TestMapHTTPError_NotFoundWithMessage(t *testing.T) {
@@ -121,7 +121,7 @@ func TestMapHTTPError_NotFoundWithMessage(t *testing.T) {
 	err := common.MapHTTPError(httpErr, "test-provider", "test-model", parseError)
 
 	require.Error(t, err)
-	assert.Equal(t, agentErrors.CodeLLMResponse, agentErrors.GetCode(err))
+	assert.Equal(t, agentErrors.CodeExternalService, agentErrors.GetCode(err))
 	assert.Contains(t, err.Error(), "model not found")
 }
 
@@ -136,7 +136,7 @@ func TestMapHTTPError_RateLimitWithRetryAfter(t *testing.T) {
 	err := common.MapHTTPError(httpErr, "test-provider", "test-model", nil)
 
 	require.Error(t, err)
-	assert.Equal(t, agentErrors.CodeLLMRateLimit, agentErrors.GetCode(err))
+	assert.Equal(t, agentErrors.CodeRateLimit, agentErrors.GetCode(err))
 }
 
 func TestMapHTTPError_RateLimitNoRetryAfter(t *testing.T) {
@@ -148,7 +148,7 @@ func TestMapHTTPError_RateLimitNoRetryAfter(t *testing.T) {
 	err := common.MapHTTPError(httpErr, "test-provider", "test-model", nil)
 
 	require.Error(t, err)
-	assert.Equal(t, agentErrors.CodeLLMRateLimit, agentErrors.GetCode(err))
+	assert.Equal(t, agentErrors.CodeRateLimit, agentErrors.GetCode(err))
 }
 
 func TestMapHTTPError_InternalServerError(t *testing.T) {
@@ -200,7 +200,7 @@ func TestMapHTTPError_InternalServerError(t *testing.T) {
 			err := common.MapHTTPError(httpErr, "test-provider", "test-model", tc.parseError)
 
 			require.Error(t, err)
-			assert.Equal(t, agentErrors.CodeLLMRequest, agentErrors.GetCode(err))
+			assert.Equal(t, agentErrors.CodeExternalService, agentErrors.GetCode(err))
 		})
 	}
 }
@@ -214,7 +214,7 @@ func TestMapHTTPError_UnexpectedStatus(t *testing.T) {
 	err := common.MapHTTPError(httpErr, "test-provider", "test-model", nil)
 
 	require.Error(t, err)
-	assert.Equal(t, agentErrors.CodeLLMRequest, agentErrors.GetCode(err))
+	assert.Equal(t, agentErrors.CodeExternalService, agentErrors.GetCode(err))
 	assert.Contains(t, err.Error(), "418")
 }
 

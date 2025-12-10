@@ -356,7 +356,7 @@ func (p *PoTAgent) extractCode(response string, language string) string {
 func (p *PoTAgent) validateCode(code string, language string) error {
 	// Check for empty code
 	if strings.TrimSpace(code) == "" {
-		return agentErrors.New(agentErrors.CodeParserFailed, "generated code is empty").
+		return agentErrors.New(agentErrors.CodeInvalidInput, "generated code is empty").
 			WithComponent("pot_agent").
 			WithOperation("validateCode")
 	}

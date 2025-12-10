@@ -30,7 +30,7 @@ func NewStandardExecutor() *StandardExecutor {
 }
 
 // Execute 执行工具
-func (e *StandardExecutor) Execute(ctx context.Context, tool core.MCPTool, call *core.ToolCall) (*core.ToolResult, error) {
+func (e *StandardExecutor) Execute(ctx context.Context, tool core.Tool, call *core.ToolCall) (*core.ToolResult, error) {
 	startTime := time.Now()
 
 	// 验证输入
@@ -73,7 +73,7 @@ func (e *StandardExecutor) Execute(ctx context.Context, tool core.MCPTool, call 
 // - 指数增长：delay = baseDelay * 2^attempt
 // - 最大延迟：30s
 // - 抖动：±30% 随机偏移，防止惊群效应
-func (e *StandardExecutor) ExecuteWithRetry(ctx context.Context, tool core.MCPTool, call *core.ToolCall, maxRetries int) (*core.ToolResult, error) {
+func (e *StandardExecutor) ExecuteWithRetry(ctx context.Context, tool core.Tool, call *core.ToolCall, maxRetries int) (*core.ToolResult, error) {
 	var lastErr error
 	var result *core.ToolResult
 
@@ -135,7 +135,7 @@ func (e *StandardExecutor) calculateRetryDelay(attempt int) time.Duration {
 //
 // 修复说明：使用带缓冲的 channel 和 context 取消检测，
 // 确保 goroutine 在超时后能正确退出，避免资源泄漏。
-func (e *StandardExecutor) ExecuteWithTimeout(ctx context.Context, tool core.MCPTool, call *core.ToolCall) (*core.ToolResult, error) {
+func (e *StandardExecutor) ExecuteWithTimeout(ctx context.Context, tool core.Tool, call *core.ToolCall) (*core.ToolResult, error) {
 	// 创建带超时的上下文
 	timeout := e.defaultTimeout
 	if call.Context != nil {
@@ -174,7 +174,7 @@ func (e *StandardExecutor) ExecuteWithTimeout(ctx context.Context, tool core.MCP
 				Error:     "execution timeout",
 				ErrorCode: "TIMEOUT_ERROR",
 				Timestamp: time.Now(),
-			}, agentErrors.New(agentErrors.CodeContextTimeout, "execution timeout").
+			}, agentErrors.New(agentErrors.CodeAgentTimeout, "execution timeout").
 				WithComponent("standard_executor").
 				WithOperation("execute_with_timeout").
 				WithContext("timeout", timeout.String())

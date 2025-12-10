@@ -94,7 +94,9 @@ func NewAgentBuilder[C any, S core.State](llmClient llm.Client) *AgentBuilder[C,
 func (b *AgentBuilder[C, S]) Build() (*ConfigurableAgent[C, S], error) {
 	// 验证必需组件
 	if b.llmClient == nil {
-		return nil, agentErrors.NewInvalidConfigError("builder", "llm_client", "LLM client is required")
+		return nil, agentErrors.New(agentErrors.CodeAgentConfig, "LLM client is required").
+			WithComponent("builder").
+			WithContext("field", "llm_client")
 	}
 
 	// 如果未提供则设置默认值
@@ -104,7 +106,9 @@ func (b *AgentBuilder[C, S]) Build() (*ConfigurableAgent[C, S], error) {
 		if _, ok := any(zero).(*core.AgentState); ok {
 			b.state = any(core.NewAgentState()).(S)
 		} else {
-			return nil, agentErrors.NewInvalidConfigError("builder", "state", "state is required")
+			return nil, agentErrors.New(agentErrors.CodeAgentConfig, "state is required").
+				WithComponent("builder").
+				WithContext("field", "state")
 		}
 	}
 
@@ -154,7 +158,8 @@ func (b *AgentBuilder[C, S]) Build() (*ConfigurableAgent[C, S], error) {
 
 	// 如果需要则初始化
 	if err := agent.Initialize(context.Background()); err != nil {
-		return nil, agentErrors.NewAgentInitializationError("configurable_agent", err)
+		return nil, agentErrors.Wrap(err, agentErrors.CodeAgentConfig, "failed to initialize agent").
+			WithComponent("configurable_agent")
 	}
 
 	return agent, nil
@@ -245,7 +250,7 @@ func (b *AgentBuilder[C, S]) createHandler(runtime *execution.Runtime[C, S]) mid
 		// 调用 LLM
 		response, err := b.llmClient.Complete(ctx, llmReq)
 		if err != nil {
-			return nil, agentErrors.Wrap(err, agentErrors.CodeLLMRequest, "LLM completion error")
+			return nil, agentErrors.Wrap(err, agentErrors.CodeExternalService, "LLM completion error")
 		}
 
 		// 如果配置了 MemoryManager，保存对话到记忆

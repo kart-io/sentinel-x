@@ -122,7 +122,7 @@ func ExampleEnvironmentBasedStore() (store.Store, error) {
 
 		// Validate configuration
 		if err := storeOpts.Redis.Validate(); err != nil {
-			return nil, agentErrors.Wrap(err, agentErrors.CodeInvalidConfig, "invalid redis configuration").
+			return nil, agentErrors.Wrap(err, agentErrors.CodeAgentConfig, "invalid redis configuration").
 				WithComponent("store_adapter_examples").
 				WithOperation("example_production_setup")
 		}

@@ -55,7 +55,7 @@ func NewWriter(ctx context.Context, opts *core.StreamOptions) *Writer {
 // Write 实现 io.Writer 接口
 func (w *Writer) Write(p []byte) (n int, err error) {
 	if w.closed.Load() {
-		return 0, agentErrors.New(agentErrors.CodeStreamWrite, "writer is closed").
+		return 0, agentErrors.New(agentErrors.CodeNetwork, "writer is closed").
 			WithComponent("stream_writer").
 			WithOperation("Write")
 	}
@@ -71,7 +71,7 @@ func (w *Writer) Write(p []byte) (n int, err error) {
 // Write 写入数据块
 func (w *Writer) WriteChunk(chunk *core.LegacyStreamChunk) error {
 	if w.closed.Load() {
-		return agentErrors.New(agentErrors.CodeStreamWrite, "writer is closed").
+		return agentErrors.New(agentErrors.CodeNetwork, "writer is closed").
 			WithComponent("stream_writer").
 			WithOperation("WriteChunk")
 	}
@@ -87,7 +87,7 @@ func (w *Writer) WriteChunk(chunk *core.LegacyStreamChunk) error {
 			w.mu.Lock()
 			w.stats.ErrorCount++
 			w.mu.Unlock()
-			return agentErrors.Wrap(err, agentErrors.CodeStreamWrite, "transform error").
+			return agentErrors.Wrap(err, agentErrors.CodeNetwork, "transform error").
 				WithComponent("stream_writer").
 				WithOperation("WriteChunk").
 				WithContext("chunk_type", chunk.Type)
@@ -103,7 +103,7 @@ func (w *Writer) WriteChunk(chunk *core.LegacyStreamChunk) error {
 	case <-w.ctx.Done():
 		return w.ctx.Err()
 	case <-time.After(w.opts.ChunkTimeout):
-		return agentErrors.New(agentErrors.CodeContextTimeout, "write timeout").
+		return agentErrors.New(agentErrors.CodeAgentTimeout, "write timeout").
 			WithComponent("stream_writer").
 			WithOperation("WriteChunk").
 			WithContext("timeout", w.opts.ChunkTimeout.String())
@@ -154,7 +154,7 @@ func (w *Writer) WriteError(err error) error {
 // Close 关闭写入器
 func (w *Writer) Close() error {
 	if !w.closed.CompareAndSwap(false, true) {
-		return agentErrors.New(agentErrors.CodeStreamWrite, "writer already closed").
+		return agentErrors.New(agentErrors.CodeNetwork, "writer already closed").
 			WithComponent("stream_writer").
 			WithOperation("Close")
 	}

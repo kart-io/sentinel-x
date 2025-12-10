@@ -104,7 +104,7 @@ func (b *FunctionToolBuilder) WithFunction(
 // This replaces the previous panic behavior with proper error handling.
 func (b *FunctionToolBuilder) Build() (*FunctionTool, error) {
 	if b.fn == nil {
-		return nil, agentErrors.New(agentErrors.CodeInvalidConfig, "function is required").
+		return nil, agentErrors.New(agentErrors.CodeAgentConfig, "function is required").
 			WithComponent("function_tool_builder").
 			WithOperation("build")
 	}

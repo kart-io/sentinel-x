@@ -67,7 +67,7 @@ func NewCohereEmbedder(config CohereEmbedderConfig) (*CohereEmbedder, error) {
 		config.APIKey = os.Getenv("COHERE_API_KEY")
 	}
 	if config.APIKey == "" {
-		return nil, agentErrors.New(agentErrors.CodeInvalidConfig, "API key is required").
+		return nil, agentErrors.New(agentErrors.CodeAgentConfig, "API key is required").
 			WithComponent("cohere_embedder").
 			WithOperation("create")
 	}
@@ -140,7 +140,7 @@ func (e *CohereEmbedder) Embed(ctx context.Context, texts []string) ([][]float32
 	// 发送请求
 	resp, err := e.client.Do(req)
 	if err != nil {
-		return nil, agentErrors.Wrap(err, agentErrors.CodeRetrievalEmbedding, "failed to send request to Cohere").
+		return nil, agentErrors.Wrap(err, agentErrors.CodeEmbedding, "failed to send request to Cohere").
 			WithComponent("cohere_embedder").
 			WithOperation("embed")
 	}
@@ -160,12 +160,12 @@ func (e *CohereEmbedder) Embed(ctx context.Context, texts []string) ([][]float32
 	if resp.StatusCode != http.StatusOK {
 		var errResp cohereErrorResponse
 		if err := json.Unmarshal(body, &errResp); err == nil && errResp.Message != "" {
-			return nil, agentErrors.New(agentErrors.CodeRetrievalEmbedding, errResp.Message).
+			return nil, agentErrors.New(agentErrors.CodeEmbedding, errResp.Message).
 				WithComponent("cohere_embedder").
 				WithOperation("embed").
 				WithContext("status_code", resp.StatusCode)
 		}
-		return nil, agentErrors.New(agentErrors.CodeRetrievalEmbedding, "Cohere API error").
+		return nil, agentErrors.New(agentErrors.CodeEmbedding, "Cohere API error").
 			WithComponent("cohere_embedder").
 			WithOperation("embed").
 			WithContext("status_code", resp.StatusCode).

@@ -211,7 +211,10 @@ func (p *AnthropicProvider) execute(ctx context.Context, req *AnthropicRequest) 
 		SetBody(req).
 		Post(p.baseURL + constants.AnthropicMessagesPath)
 	if err != nil {
-		return nil, agentErrors.NewLLMRequestError(p.ProviderName(), req.Model, err)
+		return nil, agentErrors.NewErrorWithCause(agentErrors.CodeExternalService, "failed to send request", err).
+			WithComponent(p.ProviderName()).
+			WithOperation("generate").
+			WithContext("model", req.Model)
 	}
 
 	// Check status code using shared error handling
@@ -222,7 +225,10 @@ func (p *AnthropicProvider) execute(ctx context.Context, req *AnthropicRequest) 
 	// Deserialize response
 	var anthropicResp AnthropicResponse
 	if err := json.NewDecoder(strings.NewReader(resp.String())).Decode(&anthropicResp); err != nil {
-		return nil, agentErrors.NewLLMResponseError(p.ProviderName(), req.Model, constants.ErrFailedDecodeResponse)
+		return nil, agentErrors.NewError(agentErrors.CodeExternalService, constants.ErrFailedDecodeResponse).
+			WithComponent(p.ProviderName()).
+			WithOperation("generate").
+			WithContext("model", req.Model)
 	}
 
 	return &anthropicResp, nil
@@ -321,7 +327,10 @@ func (p *AnthropicProvider) Stream(ctx context.Context, prompt string) (<-chan s
 	// Execute streaming request
 	resp, err := streamClient.Post(p.baseURL + constants.AnthropicMessagesPath)
 	if err != nil {
-		return nil, agentErrors.NewLLMRequestError(p.ProviderName(), model, err)
+		return nil, agentErrors.NewErrorWithCause(agentErrors.CodeExternalService, "failed to send streaming request", err).
+			WithComponent(p.ProviderName()).
+			WithOperation("generate_stream").
+			WithContext("model", model)
 	}
 
 	if !resp.IsSuccess() {

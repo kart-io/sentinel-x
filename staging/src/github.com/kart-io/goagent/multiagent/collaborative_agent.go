@@ -104,7 +104,7 @@ func (a *BaseCollaborativeAgent) ReceiveMessage(ctx context.Context, message Mes
 	case <-ctx.Done():
 		return ctx.Err()
 	case <-time.After(timeout):
-		return agentErrors.New(agentErrors.CodeMultiAgentMessage, "timeout receiving message").
+		return agentErrors.New(agentErrors.CodeNetwork, "timeout receiving message").
 			WithComponent("collaborative_agent").
 			WithOperation("receive_message").
 			WithContext("agent_id", a.Name()).
@@ -117,7 +117,7 @@ func (a *BaseCollaborativeAgent) SendMessage(ctx context.Context, message Messag
 	if a.system != nil {
 		return a.system.SendMessage(message)
 	}
-	return agentErrors.New(agentErrors.CodeInvalidConfig, "agent not connected to system").
+	return agentErrors.New(agentErrors.CodeAgentConfig, "agent not connected to system").
 		WithComponent("collaborative_agent").
 		WithOperation("send_message").
 		WithContext("agent_id", a.Name())
@@ -402,7 +402,7 @@ func (a *NegotiatingAgent) Negotiate(ctx context.Context, proposal interface{}, 
 			}
 
 			if err := a.SendMessage(ctx, message); err != nil {
-				return nil, agentErrors.Wrap(err, agentErrors.CodeMultiAgentMessage, "failed to send negotiation").
+				return nil, agentErrors.Wrap(err, agentErrors.CodeNetwork, "failed to send negotiation").
 					WithComponent("negotiating_agent").
 					WithOperation("negotiate").
 					WithContext("agent_id", a.Name()).
@@ -427,7 +427,7 @@ func (a *NegotiatingAgent) Negotiate(ctx context.Context, proposal interface{}, 
 		a.negotiationHistory = append(a.negotiationHistory, negotiationRound)
 	}
 
-	return nil, agentErrors.Newf(agentErrors.CodeMultiAgentConsensus, "negotiation failed after %d rounds", maxRounds).
+	return nil, agentErrors.Newf(agentErrors.CodeAgentExecution, "negotiation failed after %d rounds", maxRounds).
 		WithComponent("negotiating_agent").
 		WithOperation("negotiate").
 		WithContext("agent_id", a.Name()).

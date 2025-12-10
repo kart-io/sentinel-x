@@ -48,7 +48,7 @@ func NewSSEStreamer(w http.ResponseWriter) (*SSEStreamer, error) {
 // WriteChunk 写入数据块
 func (s *SSEStreamer) WriteChunk(chunk *core.LegacyStreamChunk) error {
 	if s.closed {
-		return agentErrors.New(agentErrors.CodeStreamWrite, "streamer is closed").
+		return agentErrors.New(agentErrors.CodeNetwork, "streamer is closed").
 			WithComponent("sse_transport").
 			WithOperation("WriteChunk")
 	}
@@ -213,7 +213,7 @@ func NewChunkedTransferStreamer(w http.ResponseWriter) (*ChunkedTransferStreamer
 // WriteChunk 写入数据块
 func (c *ChunkedTransferStreamer) WriteChunk(chunk *core.LegacyStreamChunk) error {
 	if c.closed {
-		return agentErrors.New(agentErrors.CodeStreamWrite, "streamer is closed").
+		return agentErrors.New(agentErrors.CodeNetwork, "streamer is closed").
 			WithComponent("sse_transport").
 			WithOperation("WriteChunk")
 	}

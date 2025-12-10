@@ -154,25 +154,6 @@ if status.Healthy {
 }
 ```
 
-### Simple Boolean Check
-
-```go
-if client.IsHealthy(ctx) {
-    log.Println("etcd cluster is healthy")
-} else {
-    log.Println("etcd cluster is unhealthy")
-}
-```
-
-### Health Check with Timeout
-
-```go
-status := client.HealthWithTimeout(5 * time.Second)
-if !status.Healthy {
-    log.Printf("health check failed: %v", status.Error)
-}
-```
-
 ### Using Health Checker Interface
 
 ```go

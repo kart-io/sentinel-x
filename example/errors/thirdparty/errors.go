@@ -6,6 +6,7 @@ package thirdparty
 
 import (
 	"github.com/kart-io/sentinel-x/pkg/utils/errors"
+	"google.golang.org/grpc/codes"
 )
 
 // ============================================================================
@@ -55,14 +56,12 @@ var (
 		"Payment order not found", "支付订单不存在")
 
 	// ErrPaymentTimeout indicates payment timeout.
-	ErrPaymentTimeout = errors.NewTimeoutError(ServiceThirdPartyPayment, 1).
-				Message("Payment timeout", "支付超时").
-				MustBuild()
+	ErrPaymentTimeout = errors.NewTimeoutErr(ServiceThirdPartyPayment, 1,
+		"Payment timeout", "支付超时")
 
 	// ErrPaymentChannelUnavailable indicates payment channel unavailable.
-	ErrPaymentChannelUnavailable = errors.NewNetworkError(ServiceThirdPartyPayment, 1).
-					Message("Payment channel unavailable", "支付渠道不可用").
-					MustBuild()
+	ErrPaymentChannelUnavailable = errors.NewNetworkErr(ServiceThirdPartyPayment, 1,
+		"Payment channel unavailable", "支付渠道不可用")
 )
 
 // ============================================================================
@@ -75,14 +74,12 @@ var (
 		"SMS send failed", "短信发送失败")
 
 	// ErrSMSLimitExceeded indicates SMS limit exceeded.
-	ErrSMSLimitExceeded = errors.NewRateLimitError(ServiceThirdPartySMS, 1).
-				Message("SMS limit exceeded", "短信发送次数超限").
-				MustBuild()
+	ErrSMSLimitExceeded = errors.NewRateLimitErr(ServiceThirdPartySMS, 1,
+		"SMS limit exceeded", "短信发送次数超限")
 
 	// ErrSMSTimeout indicates SMS service timeout.
-	ErrSMSTimeout = errors.NewTimeoutError(ServiceThirdPartySMS, 1).
-			Message("SMS service timeout", "短信服务超时").
-			MustBuild()
+	ErrSMSTimeout = errors.NewTimeoutErr(ServiceThirdPartySMS, 1,
+		"SMS service timeout", "短信服务超时")
 
 	// ErrSMSInvalidPhone indicates invalid phone number for SMS.
 	ErrSMSInvalidPhone = errors.NewRequestErr(ServiceThirdPartySMS, 1,
@@ -93,9 +90,8 @@ var (
 		"SMS template not found", "短信模板不存在")
 
 	// ErrSMSChannelUnavailable indicates SMS channel unavailable.
-	ErrSMSChannelUnavailable = errors.NewNetworkError(ServiceThirdPartySMS, 1).
-					Message("SMS channel unavailable", "短信通道不可用").
-					MustBuild()
+	ErrSMSChannelUnavailable = errors.NewNetworkErr(ServiceThirdPartySMS, 1,
+		"SMS channel unavailable", "短信通道不可用")
 )
 
 // ============================================================================
@@ -108,9 +104,8 @@ var (
 		"Email send failed", "邮件发送失败")
 
 	// ErrEmailTimeout indicates email service timeout.
-	ErrEmailTimeout = errors.NewTimeoutError(ServiceThirdPartyEmail, 1).
-			Message("Email service timeout", "邮件服务超时").
-			MustBuild()
+	ErrEmailTimeout = errors.NewTimeoutErr(ServiceThirdPartyEmail, 1,
+		"Email service timeout", "邮件服务超时")
 
 	// ErrEmailInvalidAddress indicates invalid email address.
 	ErrEmailInvalidAddress = errors.NewRequestErr(ServiceThirdPartyEmail, 1,
@@ -121,14 +116,12 @@ var (
 		"Email template not found", "邮件模板不存在")
 
 	// ErrEmailLimitExceeded indicates email limit exceeded.
-	ErrEmailLimitExceeded = errors.NewRateLimitError(ServiceThirdPartyEmail, 1).
-				Message("Email limit exceeded", "邮件发送次数超限").
-				MustBuild()
+	ErrEmailLimitExceeded = errors.NewRateLimitErr(ServiceThirdPartyEmail, 1,
+		"Email limit exceeded", "邮件发送次数超限")
 
 	// ErrEmailServerUnavailable indicates email server unavailable.
-	ErrEmailServerUnavailable = errors.NewNetworkError(ServiceThirdPartyEmail, 1).
-					Message("Email server unavailable", "邮件服务器不可用").
-					MustBuild()
+	ErrEmailServerUnavailable = errors.NewNetworkErr(ServiceThirdPartyEmail, 1,
+		"Email server unavailable", "邮件服务器不可用")
 )
 
 // ============================================================================
@@ -153,27 +146,23 @@ var (
 		"File not found", "文件不存在")
 
 	// ErrStorageFileTooLarge indicates file too large.
-	ErrStorageFileTooLarge = errors.NewRequestError(ServiceThirdPartyStorage, 1).
-				HTTP(413).
-				Message("File too large", "文件过大").
-				MustBuild()
+	ErrStorageFileTooLarge = errors.NewError(ServiceThirdPartyStorage, errors.CategoryRequest, 1,
+		413, codes.InvalidArgument,
+		"File too large", "文件过大")
 
 	// ErrStorageInvalidFileType indicates invalid file type.
 	ErrStorageInvalidFileType = errors.NewRequestErr(ServiceThirdPartyStorage, 2,
 		"Invalid file type", "文件类型无效")
 
 	// ErrStorageQuotaExceeded indicates storage quota exceeded.
-	ErrStorageQuotaExceeded = errors.NewRateLimitError(ServiceThirdPartyStorage, 1).
-				Message("Storage quota exceeded", "存储配额已用尽").
-				MustBuild()
+	ErrStorageQuotaExceeded = errors.NewRateLimitErr(ServiceThirdPartyStorage, 1,
+		"Storage quota exceeded", "存储配额已用尽")
 
 	// ErrStorageTimeout indicates storage service timeout.
-	ErrStorageTimeout = errors.NewTimeoutError(ServiceThirdPartyStorage, 1).
-				Message("Storage service timeout", "存储服务超时").
-				MustBuild()
+	ErrStorageTimeout = errors.NewTimeoutErr(ServiceThirdPartyStorage, 1,
+		"Storage service timeout", "存储服务超时")
 
 	// ErrStorageUnavailable indicates storage service unavailable.
-	ErrStorageUnavailable = errors.NewNetworkError(ServiceThirdPartyStorage, 1).
-				Message("Storage service unavailable", "存储服务不可用").
-				MustBuild()
+	ErrStorageUnavailable = errors.NewNetworkErr(ServiceThirdPartyStorage, 1,
+		"Storage service unavailable", "存储服务不可用")
 )

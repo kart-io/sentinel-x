@@ -66,14 +66,14 @@ func (m *Multiplexer) AddConsumer(consumer core.StreamConsumer) (string, error) 
 	defer m.mu.Unlock()
 
 	if m.closed {
-		return "", agentErrors.New(agentErrors.CodeStreamWrite, "multiplexer is closed").
+		return "", agentErrors.New(agentErrors.CodeNetwork, "multiplexer is closed").
 			WithComponent("stream_multiplexer").
 			WithOperation("AddConsumer")
 	}
 
 	// 检查消费者数量限制
 	if m.opts.MaxConsumers > 0 && len(m.consumers) >= m.opts.MaxConsumers {
-		return "", agentErrors.New(agentErrors.CodeInvalidConfig, "max consumers limit reached").
+		return "", agentErrors.New(agentErrors.CodeAgentConfig, "max consumers limit reached").
 			WithComponent("stream_multiplexer").
 			WithOperation("AddConsumer").
 			WithContext("max_consumers", m.opts.MaxConsumers).
@@ -93,7 +93,7 @@ func (m *Multiplexer) AddConsumer(consumer core.StreamConsumer) (string, error) 
 	// 通知消费者开始
 	if err := consumer.OnStart(); err != nil {
 		delete(m.consumers, id)
-		return "", agentErrors.Wrap(err, agentErrors.CodeStreamWrite, "consumer OnStart failed").
+		return "", agentErrors.Wrap(err, agentErrors.CodeNetwork, "consumer OnStart failed").
 			WithComponent("stream_multiplexer").
 			WithOperation("AddConsumer").
 			WithContext("consumer_id", id)
@@ -109,7 +109,7 @@ func (m *Multiplexer) RemoveConsumer(id string) error {
 
 	state, exists := m.consumers[id]
 	if !exists {
-		return agentErrors.New(agentErrors.CodeStreamWrite, "consumer not found").
+		return agentErrors.New(agentErrors.CodeNetwork, "consumer not found").
 			WithComponent("stream_multiplexer").
 			WithOperation("RemoveConsumer").
 			WithContext("consumer_id", id)
@@ -140,7 +140,7 @@ func (m *Multiplexer) Start(ctx context.Context, source core.StreamOutput) error
 	m.mu.Lock()
 	if m.running {
 		m.mu.Unlock()
-		return agentErrors.New(agentErrors.CodeStreamWrite, "multiplexer already running").
+		return agentErrors.New(agentErrors.CodeNetwork, "multiplexer already running").
 			WithComponent("stream_multiplexer").
 			WithOperation("Start")
 	}
@@ -190,7 +190,7 @@ func (m *Multiplexer) Close() error {
 	m.mu.Lock()
 	if m.closed {
 		m.mu.Unlock()
-		return agentErrors.New(agentErrors.CodeStreamWrite, "multiplexer already closed").
+		return agentErrors.New(agentErrors.CodeNetwork, "multiplexer already closed").
 			WithComponent("stream_multiplexer").
 			WithOperation("Close")
 	}

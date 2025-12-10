@@ -7,101 +7,43 @@ import (
 	"strings"
 )
 
-// ErrorCode defines different error categories for agent operations
+// ErrorCode 定义 agent 操作的错误类别
 type ErrorCode string
 
 const (
-	// Agent execution errors
-	CodeAgentExecution      ErrorCode = "AGENT_EXECUTION"
-	CodeAgentValidation     ErrorCode = "AGENT_VALIDATION"
-	CodeAgentNotFound       ErrorCode = "AGENT_NOT_FOUND"
-	CodeAgentInitialization ErrorCode = "AGENT_INITIALIZATION"
+	// 通用错误 (1-5)
+	CodeUnknown          ErrorCode = "UNKNOWN"           // 未知错误
+	CodeInvalidInput     ErrorCode = "INVALID_INPUT"     // 无效输入
+	CodeNotFound         ErrorCode = "NOT_FOUND"         // 资源未找到
+	CodeAlreadyExists    ErrorCode = "ALREADY_EXISTS"    // 资源已存在
+	CodePermissionDenied ErrorCode = "PERMISSION_DENIED" // 权限拒绝
 
-	// Tool errors
-	CodeToolExecution      ErrorCode = "TOOL_EXECUTION"
-	CodeToolNotFound       ErrorCode = "TOOL_NOT_FOUND"
-	CodeToolValidation     ErrorCode = "TOOL_VALIDATION"
-	CodeToolTimeout        ErrorCode = "TOOL_TIMEOUT"
-	CodeToolRetryExhausted ErrorCode = "TOOL_RETRY_EXHAUSTED"
+	// Agent 错误 (10-15)
+	CodeAgentExecution ErrorCode = "AGENT_EXECUTION" // Agent 执行失败
+	CodeAgentTimeout   ErrorCode = "AGENT_TIMEOUT"   // Agent 超时
+	CodeAgentConfig    ErrorCode = "AGENT_CONFIG"    // Agent 配置错误
 
-	// Middleware errors
-	CodeMiddlewareExecution  ErrorCode = "MIDDLEWARE_EXECUTION"
-	CodeMiddlewareChain      ErrorCode = "MIDDLEWARE_CHAIN"
-	CodeMiddlewareValidation ErrorCode = "MIDDLEWARE_VALIDATION"
+	// 工具错误 (20-25)
+	CodeToolExecution  ErrorCode = "TOOL_EXECUTION"  // 工具执行失败
+	CodeToolNotFound   ErrorCode = "TOOL_NOT_FOUND"  // 工具未找到
+	CodeToolValidation ErrorCode = "TOOL_VALIDATION" // 工具验证失败
 
-	// State management errors
-	CodeStateLoad       ErrorCode = "STATE_LOAD"
-	CodeStateSave       ErrorCode = "STATE_SAVE"
-	CodeStateValidation ErrorCode = "STATE_VALIDATION"
-	CodeStateCheckpoint ErrorCode = "STATE_CHECKPOINT"
+	// 检索/RAG 错误 (30-35)
+	CodeRetrieval  ErrorCode = "RETRIEVAL"   // 检索失败
+	CodeEmbedding  ErrorCode = "EMBEDDING"   // 嵌入生成失败
+	CodeVectorStore ErrorCode = "VECTOR_STORE" // 向量存储错误
 
-	// Stream processing errors
-	CodeStreamRead    ErrorCode = "STREAM_READ"
-	CodeStreamWrite   ErrorCode = "STREAM_WRITE"
-	CodeStreamTimeout ErrorCode = "STREAM_TIMEOUT"
-	CodeStreamClosed  ErrorCode = "STREAM_CLOSED"
+	// 网络/外部服务错误 (40-45)
+	CodeNetwork         ErrorCode = "NETWORK"          // 网络错误
+	CodeExternalService ErrorCode = "EXTERNAL_SERVICE" // 外部服务错误
+	CodeRateLimit       ErrorCode = "RATE_LIMIT"       // 速率限制
 
-	// LLM errors
-	CodeLLMRequest   ErrorCode = "LLM_REQUEST"
-	CodeLLMResponse  ErrorCode = "LLM_RESPONSE"
-	CodeLLMTimeout   ErrorCode = "LLM_TIMEOUT"
-	CodeLLMRateLimit ErrorCode = "LLM_RATE_LIMIT"
+	// 资源错误 (50-55)
+	CodeResource      ErrorCode = "RESOURCE"       // 资源错误
+	CodeResourceLimit ErrorCode = "RESOURCE_LIMIT" // 资源限制
 
-	// Context errors
-	CodeContextCanceled ErrorCode = "CONTEXT_CANCELED"
-	CodeContextTimeout  ErrorCode = "CONTEXT_TIMEOUT"
-
-	// General errors
-	CodeInvalidInput   ErrorCode = "INVALID_INPUT"
-	CodeInvalidConfig  ErrorCode = "INVALID_CONFIG"
-	CodeNotImplemented ErrorCode = "NOT_IMPLEMENTED"
-	CodeInternal       ErrorCode = "INTERNAL_ERROR"
-
-	// Distributed/Network errors
-	CodeDistributedConnection    ErrorCode = "DISTRIBUTED_CONNECTION"
-	CodeDistributedSerialization ErrorCode = "DISTRIBUTED_SERIALIZATION"
-	CodeDistributedCoordination  ErrorCode = "DISTRIBUTED_COORDINATION"
-	CodeDistributedScheduling    ErrorCode = "DISTRIBUTED_SCHEDULING"
-	CodeDistributedHeartbeat     ErrorCode = "DISTRIBUTED_HEARTBEAT"
-	CodeDistributedRegistry      ErrorCode = "DISTRIBUTED_REGISTRY"
-
-	// Retrieval/RAG errors
-	CodeRetrievalSearch    ErrorCode = "RETRIEVAL_SEARCH"
-	CodeRetrievalEmbedding ErrorCode = "RETRIEVAL_EMBEDDING"
-	CodeDocumentNotFound   ErrorCode = "DOCUMENT_NOT_FOUND"
-	CodeVectorDimMismatch  ErrorCode = "VECTOR_DIM_MISMATCH"
-
-	// Planning errors
-	CodePlanningFailed      ErrorCode = "PLANNING_FAILED"
-	CodePlanValidation      ErrorCode = "PLAN_VALIDATION"
-	CodePlanExecutionFailed ErrorCode = "PLAN_EXECUTION_FAILED"
-	CodePlanNotFound        ErrorCode = "PLAN_NOT_FOUND"
-
-	// Parser errors
-	CodeParserFailed       ErrorCode = "PARSER_FAILED"
-	CodeParserInvalidJSON  ErrorCode = "PARSER_INVALID_JSON"
-	CodeParserMissingField ErrorCode = "PARSER_MISSING_FIELD"
-
-	// MultiAgent errors
-	CodeMultiAgentRegistration ErrorCode = "MULTIAGENT_REGISTRATION"
-	CodeMultiAgentConsensus    ErrorCode = "MULTIAGENT_CONSENSUS"
-	CodeMultiAgentMessage      ErrorCode = "MULTIAGENT_MESSAGE"
-
-	// Store errors (supplemental)
-	CodeStoreConnection    ErrorCode = "STORE_CONNECTION"
-	CodeStoreSerialization ErrorCode = "STORE_SERIALIZATION"
-	CodeStoreNotFound      ErrorCode = "STORE_NOT_FOUND"
-
-	// Router errors
-	CodeRouterNoMatch  ErrorCode = "ROUTER_NO_MATCH"
-	CodeRouterFailed   ErrorCode = "ROUTER_FAILED"
-	CodeRouterOverload ErrorCode = "ROUTER_OVERLOAD"
-
-	// Plugin/Type system errors
-	CodeTypeMismatch  ErrorCode = "TYPE_MISMATCH"
-	CodeAlreadyExists ErrorCode = "ALREADY_EXISTS"
-	CodeNotFound      ErrorCode = "NOT_FOUND"
-	CodeInvalidOutput ErrorCode = "INVALID_OUTPUT"
+	// 内部错误 (99)
+	CodeInternal ErrorCode = "INTERNAL" // 内部错误
 )
 
 // AgentError is the structured error type for all agent operations

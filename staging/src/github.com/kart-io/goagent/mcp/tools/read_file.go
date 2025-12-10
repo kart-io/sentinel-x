@@ -12,7 +12,12 @@ import (
 
 // ReadFileTool 读取文件工具
 type ReadFileTool struct {
-	*core.BaseTool
+	name         string
+	description  string
+	category     string
+	schema       *core.ToolSchema
+	requiresAuth bool
+	isDangerous  bool
 }
 
 // NewReadFileTool 创建读取文件工具
@@ -34,19 +39,44 @@ func NewReadFileTool() *ReadFileTool {
 		Required: []string{"path"},
 	}
 
-	tool := &ReadFileTool{
-		BaseTool: core.NewBaseTool(
-			"read_file",
-			"读取文件内容",
-			"filesystem",
-			schema,
-		),
+	return &ReadFileTool{
+		name:         "read_file",
+		description:  "读取文件内容",
+		category:     "filesystem",
+		schema:       schema,
+		requiresAuth: false,
+		isDangerous:  false,
 	}
+}
 
-	tool.SetRequiresAuth(false)
-	tool.SetIsDangerous(false)
+// Name 返回工具名称
+func (t *ReadFileTool) Name() string {
+	return t.name
+}
 
-	return tool
+// Description 返回工具描述
+func (t *ReadFileTool) Description() string {
+	return t.description
+}
+
+// Category 返回工具类别
+func (t *ReadFileTool) Category() string {
+	return t.category
+}
+
+// Schema 返回工具的 JSON Schema
+func (t *ReadFileTool) Schema() *core.ToolSchema {
+	return t.schema
+}
+
+// RequiresAuth 返回是否需要认证
+func (t *ReadFileTool) RequiresAuth() bool {
+	return t.requiresAuth
+}
+
+// IsDangerous 返回是否是危险操作
+func (t *ReadFileTool) IsDangerous() bool {
+	return t.isDangerous
 }
 
 // Execute 执行工具

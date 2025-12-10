@@ -145,7 +145,7 @@ func (e *AgentExecutor) Execute(ctx context.Context, input *agentcore.AgentInput
 
 	// 检查是否超时
 	if ctx.Err() == context.DeadlineExceeded {
-		return nil, agentErrors.New(agentErrors.CodeContextTimeout, "execution timeout").
+		return nil, agentErrors.New(agentErrors.CodeAgentTimeout, "execution timeout").
 			WithComponent("executor_agent").
 			WithOperation("Execute").
 			WithContext("timeout", e.maxExecutionTime)
@@ -333,7 +333,7 @@ func (e *AgentExecutor) RunGenerator(ctx context.Context, input *agentcore.Agent
 					}
 				}
 				timeoutOutput.Message = "Execution timeout"
-				yield(timeoutOutput, agentErrors.New(agentErrors.CodeContextTimeout, "execution timeout").
+				yield(timeoutOutput, agentErrors.New(agentErrors.CodeAgentTimeout, "execution timeout").
 					WithComponent("executor_agent").
 					WithOperation("RunGenerator").
 					WithContext("timeout", e.maxExecutionTime))

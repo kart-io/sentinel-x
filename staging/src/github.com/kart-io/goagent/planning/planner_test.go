@@ -96,7 +96,7 @@ func TestSmartPlanner_CreatePlan(t *testing.T) {
 			llmClient := &MockLLMClient{}
 			if tt.wantErr {
 				llmClient.CompleteFn = func(ctx context.Context, req *llm.CompletionRequest) (*llm.CompletionResponse, error) {
-					return nil, agentErrors.New(agentErrors.CodeLLMRequest, "LLM error")
+					return nil, agentErrors.New(agentErrors.CodeExternalService, "LLM error")
 				}
 			} else {
 				llmClient.CompleteFn = func(ctx context.Context, req *llm.CompletionRequest) (*llm.CompletionResponse, error) {

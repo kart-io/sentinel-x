@@ -70,7 +70,7 @@ func (p *BaseOutputParser[T]) ParseWithPrompt(ctx context.Context, text, prompt 
 // Parse 需要由子类实现
 func (p *BaseOutputParser[T]) Parse(ctx context.Context, text string) (T, error) {
 	var zero T
-	return zero, agentErrors.New(agentErrors.CodeNotImplemented, "Parse method must be implemented").
+	return zero, agentErrors.New(agentErrors.CodeUnknown, "Parse method must be implemented").
 		WithComponent("base_output_parser").
 		WithOperation("parse")
 }
@@ -103,7 +103,7 @@ func (p *JSONOutputParser[T]) Parse(ctx context.Context, text string) (T, error)
 	// 提取 JSON（支持 markdown 代码块）
 	jsonStr := p.extractJSON(text)
 	if jsonStr == "" {
-		return result, agentErrors.Wrap(ErrParseFailed, agentErrors.CodeParserInvalidJSON, "no JSON found in output").
+		return result, agentErrors.Wrap(ErrParseFailed, agentErrors.CodeInvalidInput, "no JSON found in output").
 			WithComponent("json_parser").
 			WithOperation("parse").
 			WithContext("text_length", len(text))
@@ -111,7 +111,7 @@ func (p *JSONOutputParser[T]) Parse(ctx context.Context, text string) (T, error)
 
 	// 解析 JSON
 	if err := json.Unmarshal([]byte(jsonStr), &result); err != nil {
-		return result, agentErrors.Wrap(err, agentErrors.CodeParserInvalidJSON, "failed to unmarshal JSON").
+		return result, agentErrors.Wrap(err, agentErrors.CodeInvalidInput, "failed to unmarshal JSON").
 			WithComponent("json_parser").
 			WithOperation("parse").
 			WithContext("json_snippet", jsonStr[:min(100, len(jsonStr))])
@@ -283,7 +283,7 @@ func (p *StructuredOutputParser[T]) Parse(ctx context.Context, text string) (T, 
 	// 检查必需字段
 	for fieldName, schema := range p.schema {
 		if schema.Required && fields[fieldName] == "" {
-			return result, agentErrors.Wrap(ErrMissingField, agentErrors.CodeParserMissingField, "required field not found").
+			return result, agentErrors.Wrap(ErrMissingField, agentErrors.CodeInvalidInput, "required field not found").
 				WithComponent("structured_parser").
 				WithOperation("parse").
 				WithContext("field", fieldName).
@@ -294,14 +294,14 @@ func (p *StructuredOutputParser[T]) Parse(ctx context.Context, text string) (T, 
 	// 构造 JSON 并解析
 	jsonData, err := json.Marshal(fields)
 	if err != nil {
-		return result, agentErrors.Wrap(err, agentErrors.CodeParserFailed, "failed to marshal fields to JSON").
+		return result, agentErrors.Wrap(err, agentErrors.CodeInvalidInput, "failed to marshal fields to JSON").
 			WithComponent("structured_parser").
 			WithOperation("parse").
 			WithContext("fields_count", len(fields))
 	}
 
 	if err := json.Unmarshal(jsonData, &result); err != nil {
-		return result, agentErrors.Wrap(err, agentErrors.CodeParserFailed, "failed to unmarshal to result type").
+		return result, agentErrors.Wrap(err, agentErrors.CodeInvalidInput, "failed to unmarshal to result type").
 			WithComponent("structured_parser").
 			WithOperation("parse").
 			WithContext("fields_count", len(fields))
@@ -450,7 +450,7 @@ func (p *EnumOutputParser) Parse(ctx context.Context, text string) (string, erro
 		}
 	}
 
-	return "", agentErrors.Wrap(ErrInvalidFormat, agentErrors.CodeParserFailed, "value is not in allowed enum values").
+	return "", agentErrors.Wrap(ErrInvalidFormat, agentErrors.CodeInvalidInput, "value is not in allowed enum values").
 		WithComponent("enum_parser").
 		WithOperation("parse").
 		WithContext("value", text).
@@ -497,7 +497,7 @@ func (p *BooleanOutputParser) Parse(ctx context.Context, text string) (bool, err
 		}
 	}
 
-	return false, agentErrors.Wrap(ErrParseFailed, agentErrors.CodeParserFailed, "cannot determine boolean value from text").
+	return false, agentErrors.Wrap(ErrParseFailed, agentErrors.CodeInvalidInput, "cannot determine boolean value from text").
 		WithComponent("boolean_parser").
 		WithOperation("parse").
 		WithContext("text", text).
@@ -584,7 +584,7 @@ func (p *ChainOutputParser[T]) Parse(ctx context.Context, text string) (T, error
 	}
 
 	var zero T
-	return zero, agentErrors.Wrap(lastErr, agentErrors.CodeParserFailed, "all parsers in chain failed").
+	return zero, agentErrors.Wrap(lastErr, agentErrors.CodeInvalidInput, "all parsers in chain failed").
 		WithComponent("chain_parser").
 		WithOperation("parse").
 		WithContext("parsers_count", len(p.parsers))
@@ -602,7 +602,7 @@ func (p *ChainOutputParser[T]) ParseWithPrompt(ctx context.Context, text, prompt
 	}
 
 	var zero T
-	return zero, agentErrors.Wrap(lastErr, agentErrors.CodeParserFailed, "all parsers in chain failed with prompt").
+	return zero, agentErrors.Wrap(lastErr, agentErrors.CodeInvalidInput, "all parsers in chain failed with prompt").
 		WithComponent("chain_parser").
 		WithOperation("parse_with_prompt").
 		WithContext("parsers_count", len(p.parsers)).

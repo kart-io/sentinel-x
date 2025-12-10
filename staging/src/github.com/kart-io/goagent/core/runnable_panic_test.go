@@ -270,7 +270,7 @@ func TestPanicToError(t *testing.T) {
 	})
 
 	t.Run("Error panic value", func(t *testing.T) {
-		originalErr := agentErrors.New(agentErrors.CodeAgentValidation, "original error")
+		originalErr := agentErrors.New(agentErrors.CodeAgentExecution, "original error")
 		err := panicToError(ctx, "comp", "op", originalErr)
 
 		require.Error(t, err)
@@ -317,7 +317,7 @@ func TestSafeInvoke(t *testing.T) {
 
 	t.Run("Function returns error", func(t *testing.T) {
 		fn := func(ctx context.Context, input string) (string, error) {
-			return "", agentErrors.New(agentErrors.CodeAgentValidation, "validation failed")
+			return "", agentErrors.New(agentErrors.CodeAgentExecution, "validation failed")
 		}
 
 		output, err := safeInvoke(fn, context.Background(), "test")

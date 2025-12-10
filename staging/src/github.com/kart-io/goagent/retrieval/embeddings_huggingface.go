@@ -57,7 +57,7 @@ func NewHuggingFaceEmbedder(config HuggingFaceEmbedderConfig) (*HuggingFaceEmbed
 		}
 	}
 	if config.APIKey == "" {
-		return nil, agentErrors.New(agentErrors.CodeInvalidConfig, "API key is required").
+		return nil, agentErrors.New(agentErrors.CodeAgentConfig, "API key is required").
 			WithComponent("huggingface_embedder").
 			WithOperation("create")
 	}
@@ -132,7 +132,7 @@ func (e *HuggingFaceEmbedder) Embed(ctx context.Context, texts []string) ([][]fl
 	// 发送请求
 	resp, err := e.client.Do(req)
 	if err != nil {
-		return nil, agentErrors.Wrap(err, agentErrors.CodeRetrievalEmbedding, "failed to send request to Hugging Face").
+		return nil, agentErrors.Wrap(err, agentErrors.CodeEmbedding, "failed to send request to Hugging Face").
 			WithComponent("huggingface_embedder").
 			WithOperation("embed")
 	}
@@ -152,12 +152,12 @@ func (e *HuggingFaceEmbedder) Embed(ctx context.Context, texts []string) ([][]fl
 	if resp.StatusCode != http.StatusOK {
 		var errResp hfErrorResponse
 		if err := json.Unmarshal(body, &errResp); err == nil && errResp.Error != "" {
-			return nil, agentErrors.New(agentErrors.CodeRetrievalEmbedding, errResp.Error).
+			return nil, agentErrors.New(agentErrors.CodeEmbedding, errResp.Error).
 				WithComponent("huggingface_embedder").
 				WithOperation("embed").
 				WithContext("status_code", resp.StatusCode)
 		}
-		return nil, agentErrors.New(agentErrors.CodeRetrievalEmbedding, "Hugging Face API error").
+		return nil, agentErrors.New(agentErrors.CodeEmbedding, "Hugging Face API error").
 			WithComponent("huggingface_embedder").
 			WithOperation("embed").
 			WithContext("status_code", resp.StatusCode).

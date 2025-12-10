@@ -101,7 +101,9 @@ func WorkflowAgent(llmClient llm.Client, workflows map[string]interface{}) (*Sim
 			middleware.NewValidationMiddleware(func(req *middleware.MiddlewareRequest) error {
 				// 基本验证
 				if req.Input == nil {
-					return agentErrors.NewInvalidInputError("workflow", "input", "workflow input cannot be nil")
+					return agentErrors.New(agentErrors.CodeInvalidInput, "workflow input cannot be nil").
+						WithComponent("workflow").
+						WithContext("field", "input")
 				}
 				return nil
 			}),

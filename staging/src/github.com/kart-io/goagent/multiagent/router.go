@@ -72,7 +72,7 @@ func (r *MessageRouter) Route(ctx context.Context, message *AgentMessage) (*Agen
 		}
 	}
 
-	return nil, agentErrors.Newf(agentErrors.CodeRouterNoMatch, "no route found for topic: %s", message.Topic).
+	return nil, agentErrors.Newf(agentErrors.CodeNotFound, "no route found for topic: %s", message.Topic).
 		WithComponent("agent_router").
 		WithOperation("route").
 		WithContext("topic", message.Topic)
@@ -135,7 +135,7 @@ func (m *SessionManager) GetSession(sessionID string) (*AgentSession, error) {
 
 	session, exists := m.sessions[sessionID]
 	if !exists {
-		return nil, agentErrors.Newf(agentErrors.CodeStoreNotFound, "session not found: %s", sessionID).
+		return nil, agentErrors.Newf(agentErrors.CodeNotFound, "session not found: %s", sessionID).
 			WithComponent("session_manager").
 			WithOperation("get_session").
 			WithContext("session_id", sessionID)
@@ -151,7 +151,7 @@ func (m *SessionManager) AddMessage(sessionID string, message *AgentMessage) err
 
 	session, exists := m.sessions[sessionID]
 	if !exists {
-		return agentErrors.Newf(agentErrors.CodeStoreNotFound, "session not found: %s", sessionID).
+		return agentErrors.Newf(agentErrors.CodeNotFound, "session not found: %s", sessionID).
 			WithComponent("session_manager").
 			WithOperation("add_message").
 			WithContext("session_id", sessionID)

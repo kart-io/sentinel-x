@@ -246,7 +246,7 @@ func NewEmbedder(ctx context.Context, opts ...EmbedderOption) (Embedder, error) 
 		if options.CustomEmbedder != nil {
 			return options.CustomEmbedder, nil
 		}
-		return nil, agentErrors.New(agentErrors.CodeInvalidConfig, "custom embedder not provided").
+		return nil, agentErrors.New(agentErrors.CodeAgentConfig, "custom embedder not provided").
 			WithComponent("embedder_factory").
 			WithOperation("create")
 	default:
@@ -254,7 +254,7 @@ func NewEmbedder(ctx context.Context, opts ...EmbedderOption) (Embedder, error) 
 		if factory, ok := getCustomProvider(options.Provider); ok {
 			return factory(ctx, options)
 		}
-		return nil, agentErrors.New(agentErrors.CodeInvalidConfig, "unsupported embedder provider").
+		return nil, agentErrors.New(agentErrors.CodeAgentConfig, "unsupported embedder provider").
 			WithComponent("embedder_factory").
 			WithOperation("create").
 			WithContext("provider", string(options.Provider))

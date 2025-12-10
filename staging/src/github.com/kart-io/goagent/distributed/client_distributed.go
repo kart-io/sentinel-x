@@ -73,7 +73,7 @@ func (c *Client) ExecuteAgent(ctx context.Context, endpoint, agentName string, i
 	if err != nil {
 		// If circuit is open, wrap the error with context
 		if err == ErrCircuitOpen {
-			return nil, agentErrors.Wrap(err, agentErrors.CodeDistributedConnection, "circuit breaker is open").
+			return nil, agentErrors.Wrap(err, agentErrors.CodeNetwork, "circuit breaker is open").
 				WithComponent("distributed_client").
 				WithOperation("execute_agent").
 				WithContext(interfaces.FieldEndpoint, endpoint).
@@ -103,7 +103,7 @@ func (c *Client) executeAgentInternal(ctx context.Context, endpoint, agentName s
 		SetBody(input).
 		Post(url)
 	if err != nil {
-		return nil, agentErrors.Wrap(err, agentErrors.CodeDistributedConnection, "failed to send request").
+		return nil, agentErrors.Wrap(err, agentErrors.CodeNetwork, "failed to send request").
 			WithComponent("distributed_client").
 			WithOperation("execute_agent").
 			WithContext(interfaces.FieldEndpoint, endpoint).
@@ -123,7 +123,7 @@ func (c *Client) executeAgentInternal(ctx context.Context, endpoint, agentName s
 	// 解析响应
 	var output agentcore.AgentOutput
 	if err := json.Unmarshal(resp.Body(), &output); err != nil {
-		return nil, agentErrors.Wrap(err, agentErrors.CodeDistributedSerialization, "failed to unmarshal response").
+		return nil, agentErrors.Wrap(err, agentErrors.CodeInvalidInput, "failed to unmarshal response").
 			WithComponent("distributed_client").
 			WithOperation("execute_agent").
 			WithContext(interfaces.FieldAgentName, agentName)
@@ -143,7 +143,7 @@ func (c *Client) ExecuteAgentAsync(ctx context.Context, endpoint, agentName stri
 		SetBody(input).
 		Post(url)
 	if err != nil {
-		return "", agentErrors.Wrap(err, agentErrors.CodeDistributedConnection, "failed to send request").
+		return "", agentErrors.Wrap(err, agentErrors.CodeNetwork, "failed to send request").
 			WithComponent("distributed_client").
 			WithOperation("execute_agent_async").
 			WithContext(interfaces.FieldEndpoint, endpoint).
@@ -165,7 +165,7 @@ func (c *Client) ExecuteAgentAsync(ctx context.Context, endpoint, agentName stri
 		TaskID string `json:"task_id"`
 	}
 	if err := json.Unmarshal(resp.Body(), &result); err != nil {
-		return "", agentErrors.Wrap(err, agentErrors.CodeDistributedSerialization, "failed to unmarshal response").
+		return "", agentErrors.Wrap(err, agentErrors.CodeInvalidInput, "failed to unmarshal response").
 			WithComponent("distributed_client").
 			WithOperation("execute_agent_async").
 			WithContext(interfaces.FieldAgentName, agentName)
@@ -184,7 +184,7 @@ func (c *Client) GetAsyncResult(ctx context.Context, endpoint, taskID string) (*
 		SetContext(ctx).
 		Get(url)
 	if err != nil {
-		return nil, false, agentErrors.Wrap(err, agentErrors.CodeDistributedConnection, "failed to send request").
+		return nil, false, agentErrors.Wrap(err, agentErrors.CodeNetwork, "failed to send request").
 			WithComponent("distributed_client").
 			WithOperation("get_async_result").
 			WithContext(interfaces.FieldEndpoint, endpoint).
@@ -209,7 +209,7 @@ func (c *Client) GetAsyncResult(ctx context.Context, endpoint, taskID string) (*
 	// 解析响应
 	var output agentcore.AgentOutput
 	if err := json.Unmarshal(resp.Body(), &output); err != nil {
-		return nil, false, agentErrors.Wrap(err, agentErrors.CodeDistributedSerialization, "failed to unmarshal response").
+		return nil, false, agentErrors.Wrap(err, agentErrors.CodeInvalidInput, "failed to unmarshal response").
 			WithComponent("distributed_client").
 			WithOperation("get_async_result").
 			WithContext("task_id", taskID)
@@ -250,14 +250,14 @@ func (c *Client) Ping(ctx context.Context, endpoint string) error {
 		SetContext(ctx).
 		Get(url)
 	if err != nil {
-		return agentErrors.Wrap(err, agentErrors.CodeDistributedConnection, "failed to send request").
+		return agentErrors.Wrap(err, agentErrors.CodeNetwork, "failed to send request").
 			WithComponent("distributed_client").
 			WithOperation("ping").
 			WithContext(interfaces.FieldEndpoint, endpoint)
 	}
 
 	if resp.StatusCode() != 200 {
-		return agentErrors.New(agentErrors.CodeDistributedHeartbeat, "health check failed").
+		return agentErrors.New(agentErrors.CodeNetwork, "health check failed").
 			WithComponent("distributed_client").
 			WithOperation("ping").
 			WithContext(interfaces.FieldStatusCode, resp.StatusCode()).
@@ -275,7 +275,7 @@ func (c *Client) ListAgents(ctx context.Context, endpoint string) ([]string, err
 		SetContext(ctx).
 		Get(url)
 	if err != nil {
-		return nil, agentErrors.Wrap(err, agentErrors.CodeDistributedConnection, "failed to send request").
+		return nil, agentErrors.Wrap(err, agentErrors.CodeNetwork, "failed to send request").
 			WithComponent("distributed_client").
 			WithOperation("list_agents").
 			WithContext("endpoint", endpoint)
@@ -293,7 +293,7 @@ func (c *Client) ListAgents(ctx context.Context, endpoint string) ([]string, err
 		Agents []string `json:"agents"`
 	}
 	if err := json.Unmarshal(resp.Body(), &result); err != nil {
-		return nil, agentErrors.Wrap(err, agentErrors.CodeDistributedSerialization, "failed to unmarshal response").
+		return nil, agentErrors.Wrap(err, agentErrors.CodeInvalidInput, "failed to unmarshal response").
 			WithComponent("distributed_client").
 			WithOperation("list_agents")
 	}

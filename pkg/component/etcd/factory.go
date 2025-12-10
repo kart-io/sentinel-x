@@ -49,37 +49,6 @@ func (f *Factory) Create(ctx context.Context) (storage.Client, error) {
 	return client, nil
 }
 
-// CreateWithOptions creates a new etcd client with specific options.
-// This allows creating clients with different configurations from the same factory.
-//
-// Example usage:
-//
-//	factory := NewFactory(defaultOpts)
-//
-//	// Create a client with custom options
-//	customOpts := NewOptions()
-//	customOpts.Endpoints = []string{"etcd-prod:2379"}
-//	client, err := factory.CreateWithOptions(ctx, customOpts)
-func (f *Factory) CreateWithOptions(ctx context.Context, opts *Options) (*Client, error) {
-	return NewWithContext(ctx, opts)
-}
-
-// MustCreate creates a new etcd client and panics if creation fails.
-// This is useful for initialization code where failure should stop the program.
-//
-// Example usage:
-//
-//	factory := NewFactory(opts)
-//	client := factory.MustCreate(context.Background())
-//	defer client.Close()
-func (f *Factory) MustCreate(ctx context.Context) *Client {
-	client, err := NewWithContext(ctx, f.opts)
-	if err != nil {
-		panic(fmt.Sprintf("failed to create etcd client: %v", err))
-	}
-	return client
-}
-
 // Options returns the etcd options used by this factory.
 // This is useful for inspecting or cloning the configuration.
 func (f *Factory) Options() *Options {

@@ -130,7 +130,7 @@ func (s *InMemorySaver) Load(ctx context.Context, threadID string) (agentstate.S
 
 	cp, ok := s.checkpoints[threadID]
 	if !ok {
-		return nil, agentErrors.New(agentErrors.CodeStateLoad, "checkpoint not found").
+		return nil, agentErrors.New(agentErrors.CodeResource, "checkpoint not found").
 			WithComponent("checkpointer").
 			WithOperation("load").
 			WithContext("thread_id", threadID)
@@ -185,7 +185,7 @@ func (s *InMemorySaver) GetHistory(ctx context.Context, threadID string) ([]agen
 
 	cp, ok := s.checkpoints[threadID]
 	if !ok {
-		return nil, agentErrors.New(agentErrors.CodeStateLoad, "checkpoint not found").
+		return nil, agentErrors.New(agentErrors.CodeResource, "checkpoint not found").
 			WithComponent("checkpointer").
 			WithOperation("get_history").
 			WithContext("thread_id", threadID)

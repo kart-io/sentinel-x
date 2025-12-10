@@ -135,7 +135,7 @@ func (r *Reader) Next() (*core.LegacyStreamChunk, error) {
 
 	case <-timeout:
 		r.state.Store(core.StreamStateError)
-		return nil, agentErrors.New(agentErrors.CodeContextTimeout, "read timeout").
+		return nil, agentErrors.New(agentErrors.CodeAgentTimeout, "read timeout").
 			WithComponent("stream_reader").
 			WithOperation("Next").
 			WithContext("timeout", r.opts.ChunkTimeout.String())
@@ -150,7 +150,7 @@ func (r *Reader) Next() (*core.LegacyStreamChunk, error) {
 // Close 关闭读取器
 func (r *Reader) Close() error {
 	if !r.closed.CompareAndSwap(false, true) {
-		return agentErrors.New(agentErrors.CodeStreamRead, "reader already closed").
+		return agentErrors.New(agentErrors.CodeNetwork, "reader already closed").
 			WithComponent("stream_reader").
 			WithOperation("Close")
 	}
@@ -300,7 +300,7 @@ func (r *Reader) Collect() ([]*core.LegacyStreamChunk, error) {
 		// 估算并检查大小限制
 		chunkSize := estimateChunkSize(chunk)
 		if totalBytes+chunkSize > maxSize {
-			return chunks, agentErrors.New(agentErrors.CodeStreamRead, "collect size limit exceeded").
+			return chunks, agentErrors.New(agentErrors.CodeNetwork, "collect size limit exceeded").
 				WithComponent("stream_reader").
 				WithOperation("Collect").
 				WithContext("max_size", maxSize).
@@ -354,7 +354,7 @@ func (r *Reader) CollectText() (string, error) {
 		if chunk.Type == core.ChunkTypeText && chunk.Text != "" {
 			textSize := int64(len(chunk.Text))
 			if totalBytes+textSize > maxSize {
-				return builder.String(), agentErrors.New(agentErrors.CodeStreamRead, "collect text size limit exceeded").
+				return builder.String(), agentErrors.New(agentErrors.CodeNetwork, "collect text size limit exceeded").
 					WithComponent("stream_reader").
 					WithOperation("CollectText").
 					WithContext("max_size", maxSize).

@@ -258,7 +258,7 @@ func (a *DynamicToTypedAdapter[I, O]) Invoke(ctx context.Context, input I) (O, e
 	// 类型转换
 	typedOutput, err := convertToType[O](output)
 	if err != nil {
-		return zero, agentErrors.Wrap(err, agentErrors.CodeInvalidOutput, "output type conversion failed").
+		return zero, agentErrors.Wrap(err, agentErrors.CodeInvalidInput, "output type conversion failed").
 			WithComponent("dynamic_to_typed_adapter").
 			WithOperation("invoke")
 	}
@@ -285,7 +285,7 @@ func (a *DynamicToTypedAdapter[I, O]) Stream(ctx context.Context, input I) (<-ch
 				typedData, convErr = convertToType[O](chunk.Data)
 				if convErr != nil {
 					typedStream <- StreamChunk[O]{
-						Error: agentErrors.Wrap(convErr, agentErrors.CodeInvalidOutput, "stream chunk type conversion failed"),
+						Error: agentErrors.Wrap(convErr, agentErrors.CodeInvalidInput, "stream chunk type conversion failed"),
 						Done:  true,
 					}
 					return
@@ -321,7 +321,7 @@ func (a *DynamicToTypedAdapter[I, O]) Batch(ctx context.Context, inputs []I) ([]
 	for i, output := range outputs {
 		typed, err := convertToType[O](output)
 		if err != nil {
-			return nil, agentErrors.Wrap(err, agentErrors.CodeInvalidOutput, "output type conversion failed").
+			return nil, agentErrors.Wrap(err, agentErrors.CodeInvalidInput, "output type conversion failed").
 				WithComponent("dynamic_to_typed_adapter").
 				WithOperation("batch").
 				WithContext("index", i)
@@ -447,7 +447,7 @@ func GetTyped[I, O any](r *PluginRegistry, name string) (Runnable[I, O], error) 
 
 	if typeInfo.InputType != nil && expectedInputType != nil {
 		if typeInfo.InputType != expectedInputType {
-			return nil, agentErrors.New(agentErrors.CodeTypeMismatch, "input type mismatch").
+			return nil, agentErrors.New(agentErrors.CodeInvalidInput, "input type mismatch").
 				WithComponent("plugin_registry").
 				WithOperation("get_typed").
 				WithContext("expected", expectedInputType.String()).
@@ -457,7 +457,7 @@ func GetTyped[I, O any](r *PluginRegistry, name string) (Runnable[I, O], error) 
 
 	if typeInfo.OutputType != nil && expectedOutputType != nil {
 		if typeInfo.OutputType != expectedOutputType {
-			return nil, agentErrors.New(agentErrors.CodeTypeMismatch, "output type mismatch").
+			return nil, agentErrors.New(agentErrors.CodeInvalidInput, "output type mismatch").
 				WithComponent("plugin_registry").
 				WithOperation("get_typed").
 				WithContext("expected", expectedOutputType.String()).

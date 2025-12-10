@@ -239,7 +239,7 @@ func (m *HierarchicalMemory) Get(ctx context.Context, key string) (interface{}, 
 		return entry.Content, nil
 	}
 
-	return nil, agentErrors.New(agentErrors.CodeStoreNotFound, "memory not found").
+	return nil, agentErrors.New(agentErrors.CodeNotFound, "memory not found").
 		WithComponent("hierarchical_memory").
 		WithOperation("get").
 		WithContext("key", key)
@@ -271,7 +271,7 @@ func (m *HierarchicalMemory) Search(ctx context.Context, query string, limit int
 // VectorSearch searches memories using vector similarity
 func (m *HierarchicalMemory) VectorSearch(ctx context.Context, embedding []float32, limit int, threshold float64) ([]*MemoryEntry, error) {
 	if m.vectorStore == nil {
-		return nil, agentErrors.New(agentErrors.CodeInvalidConfig, "vector store not configured").
+		return nil, agentErrors.New(agentErrors.CodeAgentConfig, "vector store not configured").
 			WithComponent("hierarchical_memory").
 			WithOperation("vector_search")
 	}
@@ -288,7 +288,7 @@ func (m *HierarchicalMemory) VectorSearch(ctx context.Context, embedding []float
 
 	results, err := m.vectorStore.Search(ctx, embedding64, limit*2)
 	if err != nil {
-		return nil, agentErrors.Wrap(err, agentErrors.CodeRetrievalSearch, "vector search failed").
+		return nil, agentErrors.Wrap(err, agentErrors.CodeRetrieval, "vector search failed").
 			WithComponent("hierarchical_memory").
 			WithOperation("vector_search")
 	}
@@ -357,7 +357,7 @@ func (m *HierarchicalMemory) Consolidate(ctx context.Context) error {
 
 		// Store in long-term
 		if err := m.longTerm.Store(ctx, entry); err != nil {
-			return agentErrors.Wrap(err, agentErrors.CodeStateSave, "failed to consolidate memory").
+			return agentErrors.Wrap(err, agentErrors.CodeResource, "failed to consolidate memory").
 				WithComponent("hierarchical_memory").
 				WithOperation("consolidate").
 				WithContext("entry_id", entry.ID)
@@ -435,7 +435,7 @@ func (m *HierarchicalMemory) Associate(ctx context.Context, id1, id2 string, str
 	}
 
 	if entry1 == nil || entry2 == nil {
-		return agentErrors.New(agentErrors.CodeStoreNotFound, "one or both memories not found").
+		return agentErrors.New(agentErrors.CodeNotFound, "one or both memories not found").
 			WithComponent("hierarchical_memory").
 			WithOperation("associate")
 	}
@@ -479,7 +479,7 @@ func (m *HierarchicalMemory) GetAssociated(ctx context.Context, id string, limit
 	}
 
 	if source == nil {
-		return nil, agentErrors.New(agentErrors.CodeStoreNotFound, "memory not found").
+		return nil, agentErrors.New(agentErrors.CodeNotFound, "memory not found").
 			WithComponent("hierarchical_memory").
 			WithOperation("get_associated").
 			WithContext("id", id)

@@ -81,7 +81,7 @@ func (v *VectorStoreRetriever) GetRelevantDocuments(ctx context.Context, query s
 	}
 
 	if err != nil {
-		return nil, agentErrors.Wrap(err, agentErrors.CodeRetrievalSearch, "vector store search failed").
+		return nil, agentErrors.Wrap(err, agentErrors.CodeRetrieval, "vector store search failed").
 			WithComponent("vector_store_retriever").
 			WithOperation("get_relevant_documents").
 			WithContext("query", query).

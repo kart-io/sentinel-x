@@ -72,12 +72,12 @@ func getAPIKeyFromEnv(provider constants.Provider) string {
 // validateConfig 验证配置的有效性
 func validateConfig(opts *LLMOptions) error {
 	if opts == nil {
-		return agentErrors.NewInvalidConfigError("", "config", "config is nil")
+		return agentErrors.NewError(agentErrors.CodeAgentConfig, "config is nil").WithComponent("llm_factory").WithContext("field", "config")
 	}
 
 	// 验证提供商
 	if opts.Provider == "" {
-		return agentErrors.NewInvalidConfigError("", "provider", "provider is required")
+		return agentErrors.NewError(agentErrors.CodeAgentConfig, "provider is required").WithComponent("llm_factory").WithContext("field", "provider")
 	}
 
 	// 某些提供商需要 API 密钥
@@ -95,11 +95,9 @@ func validateConfig(opts *LLMOptions) error {
 
 	if requiresKey, ok := requiresAPIKey[opts.Provider]; ok && requiresKey {
 		if opts.APIKey == "" {
-			return agentErrors.NewInvalidConfigError(
-				string(opts.Provider),
-				"api_key",
-				fmt.Sprintf("%s requires API key", opts.Provider),
-			)
+			return agentErrors.NewError(agentErrors.CodeAgentConfig, fmt.Sprintf("API key is required for provider: %s", opts.Provider)).
+				WithComponent("llm_factory").
+				WithContext("provider", string(opts.Provider))
 		}
 	}
 

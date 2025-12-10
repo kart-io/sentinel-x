@@ -93,13 +93,13 @@ func (h *HybridRetriever) GetRelevantDocuments(ctx context.Context, query string
 	keywordResult := <-keywordChan
 
 	if vectorResult.err != nil {
-		return nil, agentErrors.Wrap(vectorResult.err, agentErrors.CodeRetrievalSearch, "vector retrieval failed").
+		return nil, agentErrors.Wrap(vectorResult.err, agentErrors.CodeRetrieval, "vector retrieval failed").
 			WithComponent("hybrid_retriever").
 			WithOperation("get_relevant_documents").
 			WithContext("query", query)
 	}
 	if keywordResult.err != nil {
-		return nil, agentErrors.Wrap(keywordResult.err, agentErrors.CodeRetrievalSearch, "keyword retrieval failed").
+		return nil, agentErrors.Wrap(keywordResult.err, agentErrors.CodeRetrieval, "keyword retrieval failed").
 			WithComponent("hybrid_retriever").
 			WithOperation("get_relevant_documents").
 			WithContext("query", query)
@@ -115,7 +115,7 @@ func (h *HybridRetriever) GetRelevantDocuments(ctx context.Context, query string
 	case FusionStrategyCombSum:
 		fused = h.combSumFusion(vectorResult.docs, keywordResult.docs)
 	default:
-		return nil, agentErrors.New(agentErrors.CodeInvalidConfig, "unknown fusion strategy").
+		return nil, agentErrors.New(agentErrors.CodeAgentConfig, "unknown fusion strategy").
 			WithComponent("hybrid_retriever").
 			WithOperation("get_relevant_documents").
 			WithContext("strategy", string(h.FusionStrategy))

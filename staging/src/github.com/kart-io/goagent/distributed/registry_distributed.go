@@ -93,7 +93,7 @@ func (r *Registry) Deregister(instanceID string) error {
 
 	instance, ok := r.instances[instanceID]
 	if !ok {
-		return agentErrors.New(agentErrors.CodeAgentNotFound, "instance not found").
+		return agentErrors.New(agentErrors.CodeNotFound, "instance not found").
 			WithComponent("distributed_registry").
 			WithOperation("deregister").
 			WithContext("instance_id", instanceID)
@@ -126,7 +126,7 @@ func (r *Registry) Heartbeat(instanceID string) error {
 
 	instance, ok := r.instances[instanceID]
 	if !ok {
-		return agentErrors.New(agentErrors.CodeAgentNotFound, "instance not found").
+		return agentErrors.New(agentErrors.CodeNotFound, "instance not found").
 			WithComponent("distributed_registry").
 			WithOperation("heartbeat").
 			WithContext("instance_id", instanceID)
@@ -145,7 +145,7 @@ func (r *Registry) GetInstance(instanceID string) (*ServiceInstance, error) {
 
 	instance, ok := r.instances[instanceID]
 	if !ok {
-		return nil, agentErrors.New(agentErrors.CodeAgentNotFound, "instance not found").
+		return nil, agentErrors.New(agentErrors.CodeNotFound, "instance not found").
 			WithComponent("distributed_registry").
 			WithOperation("get_instance").
 			WithContext("instance_id", instanceID)
@@ -161,7 +161,7 @@ func (r *Registry) GetHealthyInstances(serviceName string) ([]*ServiceInstance, 
 
 	instances, ok := r.services[serviceName]
 	if !ok {
-		return nil, agentErrors.New(agentErrors.CodeAgentNotFound, "service not found").
+		return nil, agentErrors.New(agentErrors.CodeNotFound, "service not found").
 			WithComponent("distributed_registry").
 			WithOperation("get_healthy_instances").
 			WithContext("service_name", serviceName)
@@ -184,7 +184,7 @@ func (r *Registry) GetAllInstances(serviceName string) ([]*ServiceInstance, erro
 
 	instances, ok := r.services[serviceName]
 	if !ok {
-		return nil, agentErrors.New(agentErrors.CodeAgentNotFound, "service not found").
+		return nil, agentErrors.New(agentErrors.CodeNotFound, "service not found").
 			WithComponent("distributed_registry").
 			WithOperation("get_all_instances").
 			WithContext("service_name", serviceName)

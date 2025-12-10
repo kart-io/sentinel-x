@@ -52,7 +52,8 @@ func NewULIDGenerator(opts ...ULIDOption) *ULIDGenerator {
 }
 
 // Generate creates a new ULID string.
-func (g *ULIDGenerator) Generate() string {
+// Returns an error if random source fails.
+func (g *ULIDGenerator) Generate() (string, error) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
@@ -65,19 +66,27 @@ func (g *ULIDGenerator) Generate() string {
 	} else {
 		// New timestamp, generate new random
 		g.lastTime = now
-		_, _ = io.ReadFull(g.reader, g.lastRand[:])
+		_, err := io.ReadFull(g.reader, g.lastRand[:])
+		if err != nil {
+			return "", err
+		}
 	}
 
-	return g.encode(now, g.lastRand)
+	return g.encode(now, g.lastRand), nil
 }
 
 // GenerateN creates n ULID strings.
-func (g *ULIDGenerator) GenerateN(n int) []string {
+// Returns an error if random source fails.
+func (g *ULIDGenerator) GenerateN(n int) ([]string, error) {
 	ids := make([]string, n)
 	for i := 0; i < n; i++ {
-		ids[i] = g.Generate()
+		id, err := g.Generate()
+		if err != nil {
+			return nil, err
+		}
+		ids[i] = id
 	}
-	return ids
+	return ids, nil
 }
 
 // incrementRandom increments the random part to maintain monotonicity.

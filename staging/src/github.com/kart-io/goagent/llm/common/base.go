@@ -104,7 +104,11 @@ func (b *BaseProvider) EnsureAPIKey(envVar string, providerName constants.Provid
 		b.Config.APIKey = os.Getenv(envVar)
 	}
 	if b.Config.APIKey == "" {
-		return agentErrors.NewInvalidConfigError(string(providerName), constants.ErrorFieldAPIKey, fmt.Sprintf(constants.ErrAPIKeyMissing, string(providerName)))
+		return agentErrors.NewErrorf(agentErrors.CodeAgentConfig, "%s API key is missing", string(providerName)).
+			WithComponent("base_provider").
+			WithOperation("ensure_api_key").
+			WithContext("provider", string(providerName)).
+			WithContext("env_var", envVar)
 	}
 	return nil
 }
@@ -302,13 +306,18 @@ func ExecuteWithRetry[T any](ctx context.Context, cfg RetryConfig, providerName 
 
 		select {
 		case <-ctx.Done():
-			return zero, agentErrors.NewContextCanceledError("llm_request")
+			return zero, agentErrors.NewError(agentErrors.CodeAgentTimeout, "llm request timeout").
+				WithComponent("base_provider").
+				WithOperation("execute_with_retry")
 		case <-time.After(delay + jitter):
 			// Continue to next attempt
 		}
 	}
 
-	return zero, agentErrors.NewInternalError(providerName, "execute_with_retry", fmt.Errorf("%s", constants.ErrMaxRetriesExceeded))
+	return zero, agentErrors.NewErrorWithCause(agentErrors.CodeInternal, "max retries exceeded", fmt.Errorf("provider: %s", providerName)).
+		WithComponent("base_provider").
+		WithOperation("execute_with_retry").
+		WithContext("max_attempts", maxAttempts)
 }
 
 // HTTPError represents an HTTP error with status code and response body.
@@ -373,34 +382,74 @@ func MapHTTPError(err HTTPError, providerName, model string, parseError func(bod
 	switch err.StatusCode {
 	case 400:
 		if errorMsg != "" {
-			return agentErrors.NewInvalidInputError(providerName, "request", errorMsg)
+			return agentErrors.NewErrorf(agentErrors.CodeInvalidInput, "bad request: %s", errorMsg).
+				WithComponent(providerName).
+				WithOperation("http_request").
+				WithContext("model", model)
 		}
-		return agentErrors.NewInvalidInputError(providerName, "request", constants.StatusBadRequest)
+		return agentErrors.NewError(agentErrors.CodeInvalidInput, constants.StatusBadRequest).
+			WithComponent(providerName).
+			WithOperation("http_request").
+			WithContext("model", model)
 	case 401:
 		if errorMsg != "" {
-			return agentErrors.NewInvalidConfigError(providerName, constants.ErrorFieldAPIKey, errorMsg)
+			return agentErrors.NewErrorf(agentErrors.CodeAgentConfig, "authentication failed: %s", errorMsg).
+				WithComponent(providerName).
+				WithOperation("http_request").
+				WithContext("field", constants.ErrorFieldAPIKey)
 		}
-		return agentErrors.NewInvalidConfigError(providerName, constants.ErrorFieldAPIKey, constants.StatusInvalidAPIKey)
+		return agentErrors.NewError(agentErrors.CodeAgentConfig, constants.StatusInvalidAPIKey).
+			WithComponent(providerName).
+			WithOperation("http_request").
+			WithContext("field", constants.ErrorFieldAPIKey)
 	case 403:
 		if errorMsg != "" {
-			return agentErrors.NewInvalidConfigError(providerName, constants.ErrorFieldAPIKey, errorMsg)
+			return agentErrors.NewErrorf(agentErrors.CodeAgentConfig, "permission denied: %s", errorMsg).
+				WithComponent(providerName).
+				WithOperation("http_request").
+				WithContext("field", constants.ErrorFieldAPIKey)
 		}
-		return agentErrors.NewInvalidConfigError(providerName, constants.ErrorFieldAPIKey, constants.StatusAPIKeyLacksPermissions)
+		return agentErrors.NewError(agentErrors.CodeAgentConfig, constants.StatusAPIKeyLacksPermissions).
+			WithComponent(providerName).
+			WithOperation("http_request").
+			WithContext("field", constants.ErrorFieldAPIKey)
 	case 404:
 		if errorMsg != "" {
-			return agentErrors.NewLLMResponseError(providerName, model, errorMsg)
+			return agentErrors.NewErrorf(agentErrors.CodeExternalService, "resource not found: %s", errorMsg).
+				WithComponent(providerName).
+				WithOperation("http_request").
+				WithContext("model", model)
 		}
-		return agentErrors.NewLLMResponseError(providerName, model, constants.StatusModelNotFound)
+		return agentErrors.NewError(agentErrors.CodeExternalService, constants.StatusModelNotFound).
+			WithComponent(providerName).
+			WithOperation("http_request").
+			WithContext("model", model)
 	case 429:
 		retryAfter := ParseRetryAfter(err.Headers["Retry-After"])
-		return agentErrors.NewLLMRateLimitError(providerName, model, retryAfter)
+		return agentErrors.NewErrorf(agentErrors.CodeRateLimit, "rate limit exceeded, retry after: %s", retryAfter).
+			WithComponent(providerName).
+			WithOperation("http_request").
+			WithContext("model", model).
+			WithContext("retry_after", retryAfter)
 	case 500, 502, 503, 504:
 		if errorMsg != "" {
-			return agentErrors.NewLLMRequestError(providerName, model, fmt.Errorf("server error: %s", errorMsg))
+			return agentErrors.NewErrorWithCause(agentErrors.CodeExternalService, "server error", fmt.Errorf("%s", errorMsg)).
+				WithComponent(providerName).
+				WithOperation("http_request").
+				WithContext("model", model).
+				WithContext("status_code", err.StatusCode)
 		}
-		return agentErrors.NewLLMRequestError(providerName, model, fmt.Errorf("server error: %d", err.StatusCode))
+		return agentErrors.NewErrorWithCause(agentErrors.CodeExternalService, "server error", fmt.Errorf("status code: %d", err.StatusCode)).
+			WithComponent(providerName).
+			WithOperation("http_request").
+			WithContext("model", model).
+			WithContext("status_code", err.StatusCode)
 	default:
-		return agentErrors.NewLLMRequestError(providerName, model, fmt.Errorf("unexpected status: %d", err.StatusCode))
+		return agentErrors.NewErrorWithCause(agentErrors.CodeExternalService, "unexpected status code", fmt.Errorf("status: %d", err.StatusCode)).
+			WithComponent(providerName).
+			WithOperation("http_request").
+			WithContext("model", model).
+			WithContext("status_code", err.StatusCode)
 	}
 }
 

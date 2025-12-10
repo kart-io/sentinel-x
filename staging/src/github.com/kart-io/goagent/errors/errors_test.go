@@ -147,7 +147,7 @@ func TestIsCode(t *testing.T) {
 func TestHelpers_AgentErrors(t *testing.T) {
 	t.Run("NewAgentExecutionError", func(t *testing.T) {
 		cause := fmt.Errorf("underlying error")
-		err := NewAgentExecutionError("test-agent", "run", cause)
+		err := NewErrorWithCause(CodeAgentExecution, "test-agent", "run", cause)
 
 		if err.Code != CodeAgentExecution {
 			t.Errorf("Code = %v, want %v", err.Code, CodeAgentExecution)
@@ -167,18 +167,18 @@ func TestHelpers_AgentErrors(t *testing.T) {
 	})
 
 	t.Run("NewAgentValidationError", func(t *testing.T) {
-		err := NewAgentValidationError("test-agent", "invalid input")
+		err := NewError(CodeAgentExecution, "test-agent", "invalid input")
 
-		if err.Code != CodeAgentValidation {
-			t.Errorf("Code = %v, want %v", err.Code, CodeAgentValidation)
+		if err.Code != CodeAgentExecution {
+			t.Errorf("Code = %v, want %v", err.Code, CodeAgentExecution)
 		}
 	})
 
 	t.Run("NewAgentNotFoundError", func(t *testing.T) {
-		err := NewAgentNotFoundError("test-agent")
+		err := NewError(CodeNotFound, "test-agent")
 
-		if err.Code != CodeAgentNotFound {
-			t.Errorf("Code = %v, want %v", err.Code, CodeAgentNotFound)
+		if err.Code != CodeNotFound {
+			t.Errorf("Code = %v, want %v", err.Code, CodeNotFound)
 		}
 	})
 }
@@ -186,7 +186,7 @@ func TestHelpers_AgentErrors(t *testing.T) {
 func TestHelpers_ToolErrors(t *testing.T) {
 	t.Run("NewToolExecutionError", func(t *testing.T) {
 		cause := fmt.Errorf("tool failed")
-		err := NewToolExecutionError("test-tool", "execute", cause)
+		err := NewErrorWithCause(CodeToolExecution, "test-tool", "execute", cause)
 
 		if err.Code != CodeToolExecution {
 			t.Errorf("Code = %v, want %v", err.Code, CodeToolExecution)
@@ -197,10 +197,10 @@ func TestHelpers_ToolErrors(t *testing.T) {
 	})
 
 	t.Run("NewToolTimeoutError", func(t *testing.T) {
-		err := NewToolTimeoutError("test-tool", 30)
+		err := NewError(CodeAgentTimeout, "test-tool", 30)
 
-		if err.Code != CodeToolTimeout {
-			t.Errorf("Code = %v, want %v", err.Code, CodeToolTimeout)
+		if err.Code != CodeAgentTimeout {
+			t.Errorf("Code = %v, want %v", err.Code, CodeAgentTimeout)
 		}
 		if err.Context["timeout_seconds"] != 30 {
 			t.Errorf("Context[timeout_seconds] = %v, want 30", err.Context["timeout_seconds"])
@@ -209,10 +209,10 @@ func TestHelpers_ToolErrors(t *testing.T) {
 
 	t.Run("NewToolRetryExhaustedError", func(t *testing.T) {
 		lastErr := fmt.Errorf("last attempt failed")
-		err := NewToolRetryExhaustedError("test-tool", 3, lastErr)
+		err := NewErrorWithCause(CodeToolExecution, "test-tool", 3, lastErr)
 
-		if err.Code != CodeToolRetryExhausted {
-			t.Errorf("Code = %v, want %v", err.Code, CodeToolRetryExhausted)
+		if err.Code != CodeToolExecution {
+			t.Errorf("Code = %v, want %v", err.Code, CodeToolExecution)
 		}
 		if err.Context["attempts"] != 3 {
 			t.Errorf("Context[attempts] = %v, want 3", err.Context["attempts"])
@@ -223,10 +223,10 @@ func TestHelpers_ToolErrors(t *testing.T) {
 func TestHelpers_MiddlewareErrors(t *testing.T) {
 	t.Run("NewMiddlewareExecutionError", func(t *testing.T) {
 		cause := fmt.Errorf("middleware failed")
-		err := NewMiddlewareExecutionError("test-middleware", "before", cause)
+		err := NewErrorWithCause(CodeAgentExecution, "test-middleware", "before", cause)
 
-		if err.Code != CodeMiddlewareExecution {
-			t.Errorf("Code = %v, want %v", err.Code, CodeMiddlewareExecution)
+		if err.Code != CodeAgentExecution {
+			t.Errorf("Code = %v, want %v", err.Code, CodeAgentExecution)
 		}
 		if err.Context["phase"] != "before" {
 			t.Errorf("Context[phase] = %v, want before", err.Context["phase"])
@@ -235,10 +235,10 @@ func TestHelpers_MiddlewareErrors(t *testing.T) {
 
 	t.Run("NewMiddlewareChainError", func(t *testing.T) {
 		cause := fmt.Errorf("chain failed")
-		err := NewMiddlewareChainError(2, cause)
+		err := NewErrorWithCause(CodeAgentExecution, 2, cause)
 
-		if err.Code != CodeMiddlewareChain {
-			t.Errorf("Code = %v, want %v", err.Code, CodeMiddlewareChain)
+		if err.Code != CodeAgentExecution {
+			t.Errorf("Code = %v, want %v", err.Code, CodeAgentExecution)
 		}
 		if err.Context["position"] != 2 {
 			t.Errorf("Context[position] = %v, want 2", err.Context["position"])
@@ -249,10 +249,10 @@ func TestHelpers_MiddlewareErrors(t *testing.T) {
 func TestHelpers_StateErrors(t *testing.T) {
 	t.Run("NewStateLoadError", func(t *testing.T) {
 		cause := fmt.Errorf("load failed")
-		err := NewStateLoadError("session-123", cause)
+		err := NewErrorWithCause(CodeResource, "session-123", cause)
 
-		if err.Code != CodeStateLoad {
-			t.Errorf("Code = %v, want %v", err.Code, CodeStateLoad)
+		if err.Code != CodeResource {
+			t.Errorf("Code = %v, want %v", err.Code, CodeResource)
 		}
 		if err.Context["session_id"] != "session-123" {
 			t.Errorf("Context[session_id] = %v, want session-123", err.Context["session_id"])
@@ -261,10 +261,10 @@ func TestHelpers_StateErrors(t *testing.T) {
 
 	t.Run("NewStateSaveError", func(t *testing.T) {
 		cause := fmt.Errorf("save failed")
-		err := NewStateSaveError("session-123", cause)
+		err := NewErrorWithCause(CodeResource, "session-123", cause)
 
-		if err.Code != CodeStateSave {
-			t.Errorf("Code = %v, want %v", err.Code, CodeStateSave)
+		if err.Code != CodeResource {
+			t.Errorf("Code = %v, want %v", err.Code, CodeResource)
 		}
 	})
 }
@@ -272,18 +272,18 @@ func TestHelpers_StateErrors(t *testing.T) {
 func TestHelpers_StreamErrors(t *testing.T) {
 	t.Run("NewStreamReadError", func(t *testing.T) {
 		cause := fmt.Errorf("read failed")
-		err := NewStreamReadError(cause)
+		err := NewErrorWithCause(CodeNetwork, cause)
 
-		if err.Code != CodeStreamRead {
-			t.Errorf("Code = %v, want %v", err.Code, CodeStreamRead)
+		if err.Code != CodeNetwork {
+			t.Errorf("Code = %v, want %v", err.Code, CodeNetwork)
 		}
 	})
 
 	t.Run("NewStreamClosedError", func(t *testing.T) {
-		err := NewStreamClosedError("read")
+		err := NewError(CodeResource, "read")
 
-		if err.Code != CodeStreamClosed {
-			t.Errorf("Code = %v, want %v", err.Code, CodeStreamClosed)
+		if err.Code != CodeResource {
+			t.Errorf("Code = %v, want %v", err.Code, CodeResource)
 		}
 	})
 }
@@ -291,10 +291,10 @@ func TestHelpers_StreamErrors(t *testing.T) {
 func TestHelpers_LLMErrors(t *testing.T) {
 	t.Run("NewLLMRequestError", func(t *testing.T) {
 		cause := fmt.Errorf("request failed")
-		err := NewLLMRequestError("openai", "gpt-4", cause)
+		err := NewErrorWithCause(CodeExternalService, "openai", "gpt-4", cause)
 
-		if err.Code != CodeLLMRequest {
-			t.Errorf("Code = %v, want %v", err.Code, CodeLLMRequest)
+		if err.Code != CodeExternalService {
+			t.Errorf("Code = %v, want %v", err.Code, CodeExternalService)
 		}
 		if err.Context["provider"] != "openai" {
 			t.Errorf("Context[provider] = %v, want openai", err.Context["provider"])
@@ -305,10 +305,10 @@ func TestHelpers_LLMErrors(t *testing.T) {
 	})
 
 	t.Run("NewLLMRateLimitError", func(t *testing.T) {
-		err := NewLLMRateLimitError("openai", "gpt-4", 60)
+		err := NewError(CodeRateLimit, "openai", "gpt-4", 60)
 
-		if err.Code != CodeLLMRateLimit {
-			t.Errorf("Code = %v, want %v", err.Code, CodeLLMRateLimit)
+		if err.Code != CodeRateLimit {
+			t.Errorf("Code = %v, want %v", err.Code, CodeRateLimit)
 		}
 		if err.Context["retry_after_seconds"] != 60 {
 			t.Errorf("Context[retry_after_seconds] = %v, want 60", err.Context["retry_after_seconds"])
@@ -318,10 +318,10 @@ func TestHelpers_LLMErrors(t *testing.T) {
 
 func TestHelpers_ContextErrors(t *testing.T) {
 	t.Run("NewContextCanceledError", func(t *testing.T) {
-		err := NewContextCanceledError("run_agent")
+		err := NewError(CodeAgentTimeout, "run_agent")
 
-		if err.Code != CodeContextCanceled {
-			t.Errorf("Code = %v, want %v", err.Code, CodeContextCanceled)
+		if err.Code != CodeAgentTimeout {
+			t.Errorf("Code = %v, want %v", err.Code, CodeAgentTimeout)
 		}
 		if !errors.Is(err, context.Canceled) {
 			t.Error("should wrap context.Canceled")
@@ -329,10 +329,10 @@ func TestHelpers_ContextErrors(t *testing.T) {
 	})
 
 	t.Run("NewContextTimeoutError", func(t *testing.T) {
-		err := NewContextTimeoutError("run_agent", 30)
+		err := NewError(CodeAgentTimeout, "run_agent", 30)
 
-		if err.Code != CodeContextTimeout {
-			t.Errorf("Code = %v, want %v", err.Code, CodeContextTimeout)
+		if err.Code != CodeAgentTimeout {
+			t.Errorf("Code = %v, want %v", err.Code, CodeAgentTimeout)
 		}
 		if !errors.Is(err, context.DeadlineExceeded) {
 			t.Error("should wrap context.DeadlineExceeded")
@@ -416,10 +416,10 @@ func findSubstring(s, substr string) bool {
 func TestHelpers_DistributedErrors(t *testing.T) {
 	t.Run("NewDistributedConnectionError", func(t *testing.T) {
 		cause := fmt.Errorf("connection refused")
-		err := NewDistributedConnectionError("http://localhost:8080", cause)
+		err := NewErrorWithCause(CodeNetwork, "http://localhost:8080", cause)
 
-		if err.Code != CodeDistributedConnection {
-			t.Errorf("Code = %v, want %v", err.Code, CodeDistributedConnection)
+		if err.Code != CodeNetwork {
+			t.Errorf("Code = %v, want %v", err.Code, CodeNetwork)
 		}
 		if err.Component != "distributed" {
 			t.Errorf("Component = %v, want distributed", err.Component)
@@ -431,10 +431,10 @@ func TestHelpers_DistributedErrors(t *testing.T) {
 
 	t.Run("NewDistributedSerializationError", func(t *testing.T) {
 		cause := fmt.Errorf("invalid json")
-		err := NewDistributedSerializationError("AgentInput", cause)
+		err := NewErrorWithCause(CodeInvalidInput, "AgentInput", cause)
 
-		if err.Code != CodeDistributedSerialization {
-			t.Errorf("Code = %v, want %v", err.Code, CodeDistributedSerialization)
+		if err.Code != CodeInvalidInput {
+			t.Errorf("Code = %v, want %v", err.Code, CodeInvalidInput)
 		}
 		if err.Context["data_type"] != "AgentInput" {
 			t.Errorf("Context[data_type] = %v, want AgentInput", err.Context["data_type"])
@@ -443,10 +443,10 @@ func TestHelpers_DistributedErrors(t *testing.T) {
 
 	t.Run("NewDistributedCoordinationError", func(t *testing.T) {
 		cause := fmt.Errorf("leader election failed")
-		err := NewDistributedCoordinationError("elect_leader", cause)
+		err := NewErrorWithCause(CodeNetwork, "elect_leader", cause)
 
-		if err.Code != CodeDistributedCoordination {
-			t.Errorf("Code = %v, want %v", err.Code, CodeDistributedCoordination)
+		if err.Code != CodeNetwork {
+			t.Errorf("Code = %v, want %v", err.Code, CodeNetwork)
 		}
 		if err.Operation != "elect_leader" {
 			t.Errorf("Operation = %v, want elect_leader", err.Operation)
@@ -457,10 +457,10 @@ func TestHelpers_DistributedErrors(t *testing.T) {
 func TestHelpers_RetrievalErrors(t *testing.T) {
 	t.Run("NewRetrievalSearchError", func(t *testing.T) {
 		cause := fmt.Errorf("search failed")
-		err := NewRetrievalSearchError("test query", cause)
+		err := NewErrorWithCause(CodeRetrieval, "test query", cause)
 
-		if err.Code != CodeRetrievalSearch {
-			t.Errorf("Code = %v, want %v", err.Code, CodeRetrievalSearch)
+		if err.Code != CodeRetrieval {
+			t.Errorf("Code = %v, want %v", err.Code, CodeRetrieval)
 		}
 		if err.Context["query"] != "test query" {
 			t.Errorf("Context[query] = %v, want test query", err.Context["query"])
@@ -470,10 +470,10 @@ func TestHelpers_RetrievalErrors(t *testing.T) {
 	t.Run("NewRetrievalEmbeddingError", func(t *testing.T) {
 		cause := fmt.Errorf("embedding failed")
 		longText := string(make([]byte, 200)) // text longer than 100 chars
-		err := NewRetrievalEmbeddingError(longText, cause)
+		err := NewErrorWithCause(CodeEmbedding, longText, cause)
 
-		if err.Code != CodeRetrievalEmbedding {
-			t.Errorf("Code = %v, want %v", err.Code, CodeRetrievalEmbedding)
+		if err.Code != CodeEmbedding {
+			t.Errorf("Code = %v, want %v", err.Code, CodeEmbedding)
 		}
 		preview := err.Context["text_preview"].(string)
 		if len(preview) > 103 { // 100 chars + "..."
@@ -482,10 +482,10 @@ func TestHelpers_RetrievalErrors(t *testing.T) {
 	})
 
 	t.Run("NewDocumentNotFoundError", func(t *testing.T) {
-		err := NewDocumentNotFoundError("doc-123")
+		err := NewError(CodeNotFound, "doc-123")
 
-		if err.Code != CodeDocumentNotFound {
-			t.Errorf("Code = %v, want %v", err.Code, CodeDocumentNotFound)
+		if err.Code != CodeNotFound {
+			t.Errorf("Code = %v, want %v", err.Code, CodeNotFound)
 		}
 		if err.Context["document_id"] != "doc-123" {
 			t.Errorf("Context[document_id] = %v, want doc-123", err.Context["document_id"])
@@ -493,10 +493,10 @@ func TestHelpers_RetrievalErrors(t *testing.T) {
 	})
 
 	t.Run("NewVectorDimMismatchError", func(t *testing.T) {
-		err := NewVectorDimMismatchError(512, 768)
+		err := NewError(CodeInvalidInput, 512, 768)
 
-		if err.Code != CodeVectorDimMismatch {
-			t.Errorf("Code = %v, want %v", err.Code, CodeVectorDimMismatch)
+		if err.Code != CodeInvalidInput {
+			t.Errorf("Code = %v, want %v", err.Code, CodeInvalidInput)
 		}
 		if err.Context["expected_dim"] != 512 {
 			t.Errorf("Context[expected_dim] = %v, want 512", err.Context["expected_dim"])
@@ -510,10 +510,10 @@ func TestHelpers_RetrievalErrors(t *testing.T) {
 func TestHelpers_PlanningErrors(t *testing.T) {
 	t.Run("NewPlanningError", func(t *testing.T) {
 		cause := fmt.Errorf("planning failed")
-		err := NewPlanningError("solve complex problem", cause)
+		err := NewErrorWithCause(CodeAgentExecution, "solve complex problem", cause)
 
-		if err.Code != CodePlanningFailed {
-			t.Errorf("Code = %v, want %v", err.Code, CodePlanningFailed)
+		if err.Code != CodeAgentExecution {
+			t.Errorf("Code = %v, want %v", err.Code, CodeAgentExecution)
 		}
 		if err.Context["goal"] != "solve complex problem" {
 			t.Errorf("Context[goal] = %v, want solve complex problem", err.Context["goal"])
@@ -521,10 +521,10 @@ func TestHelpers_PlanningErrors(t *testing.T) {
 	})
 
 	t.Run("NewPlanValidationError", func(t *testing.T) {
-		err := NewPlanValidationError("plan-123", "missing required step")
+		err := NewError(CodeInvalidInput, "plan-123", "missing required step")
 
-		if err.Code != CodePlanValidation {
-			t.Errorf("Code = %v, want %v", err.Code, CodePlanValidation)
+		if err.Code != CodeInvalidInput {
+			t.Errorf("Code = %v, want %v", err.Code, CodeInvalidInput)
 		}
 		if err.Context["plan_id"] != "plan-123" {
 			t.Errorf("Context[plan_id] = %v, want plan-123", err.Context["plan_id"])
@@ -533,10 +533,10 @@ func TestHelpers_PlanningErrors(t *testing.T) {
 
 	t.Run("NewPlanExecutionError", func(t *testing.T) {
 		cause := fmt.Errorf("step failed")
-		err := NewPlanExecutionError("plan-123", "step-5", cause)
+		err := NewErrorWithCause(CodeAgentExecution, "plan-123", "step-5", cause)
 
-		if err.Code != CodePlanExecutionFailed {
-			t.Errorf("Code = %v, want %v", err.Code, CodePlanExecutionFailed)
+		if err.Code != CodeAgentExecution {
+			t.Errorf("Code = %v, want %v", err.Code, CodeAgentExecution)
 		}
 		if err.Context["plan_id"] != "plan-123" {
 			t.Errorf("Context[plan_id] = %v, want plan-123", err.Context["plan_id"])
@@ -547,10 +547,10 @@ func TestHelpers_PlanningErrors(t *testing.T) {
 	})
 
 	t.Run("NewPlanNotFoundError", func(t *testing.T) {
-		err := NewPlanNotFoundError("plan-123")
+		err := NewError(CodeNotFound, "plan-123")
 
-		if err.Code != CodePlanNotFound {
-			t.Errorf("Code = %v, want %v", err.Code, CodePlanNotFound)
+		if err.Code != CodeNotFound {
+			t.Errorf("Code = %v, want %v", err.Code, CodeNotFound)
 		}
 		if err.Context["plan_id"] != "plan-123" {
 			t.Errorf("Context[plan_id] = %v, want plan-123", err.Context["plan_id"])
@@ -562,10 +562,10 @@ func TestHelpers_ParserErrors(t *testing.T) {
 	t.Run("NewParserError", func(t *testing.T) {
 		cause := fmt.Errorf("parse failed")
 		longContent := string(make([]byte, 300)) // content longer than 200 chars
-		err := NewParserError("json", longContent, cause)
+		err := NewErrorWithCause(CodeInvalidInput, "json", longContent, cause)
 
-		if err.Code != CodeParserFailed {
-			t.Errorf("Code = %v, want %v", err.Code, CodeParserFailed)
+		if err.Code != CodeInvalidInput {
+			t.Errorf("Code = %v, want %v", err.Code, CodeInvalidInput)
 		}
 		if err.Context["parser_type"] != "json" {
 			t.Errorf("Context[parser_type] = %v, want json", err.Context["parser_type"])
@@ -578,18 +578,18 @@ func TestHelpers_ParserErrors(t *testing.T) {
 
 	t.Run("NewParserInvalidJSONError", func(t *testing.T) {
 		cause := fmt.Errorf("invalid json")
-		err := NewParserInvalidJSONError(`{"invalid": json}`, cause)
+		err := NewErrorWithCause(CodeInvalidInput, `{"invalid": json}`, cause)
 
-		if err.Code != CodeParserInvalidJSON {
-			t.Errorf("Code = %v, want %v", err.Code, CodeParserInvalidJSON)
+		if err.Code != CodeInvalidInput {
+			t.Errorf("Code = %v, want %v", err.Code, CodeInvalidInput)
 		}
 	})
 
 	t.Run("NewParserMissingFieldError", func(t *testing.T) {
-		err := NewParserMissingFieldError("action")
+		err := NewError(CodeInvalidInput, "action")
 
-		if err.Code != CodeParserMissingField {
-			t.Errorf("Code = %v, want %v", err.Code, CodeParserMissingField)
+		if err.Code != CodeInvalidInput {
+			t.Errorf("Code = %v, want %v", err.Code, CodeInvalidInput)
 		}
 		if err.Context["missing_field"] != "action" {
 			t.Errorf("Context[missing_field] = %v, want action", err.Context["missing_field"])
@@ -600,10 +600,10 @@ func TestHelpers_ParserErrors(t *testing.T) {
 func TestHelpers_MultiAgentErrors(t *testing.T) {
 	t.Run("NewMultiAgentRegistrationError", func(t *testing.T) {
 		cause := fmt.Errorf("registration failed")
-		err := NewMultiAgentRegistrationError("agent-123", cause)
+		err := NewErrorWithCause(CodeAgentConfig, "agent-123", cause)
 
-		if err.Code != CodeMultiAgentRegistration {
-			t.Errorf("Code = %v, want %v", err.Code, CodeMultiAgentRegistration)
+		if err.Code != CodeAgentConfig {
+			t.Errorf("Code = %v, want %v", err.Code, CodeAgentConfig)
 		}
 		if err.Context["agent_id"] != "agent-123" {
 			t.Errorf("Context[agent_id] = %v, want agent-123", err.Context["agent_id"])
@@ -616,10 +616,10 @@ func TestHelpers_MultiAgentErrors(t *testing.T) {
 			"agent-2": false,
 			"agent-3": true,
 		}
-		err := NewMultiAgentConsensusError(votes)
+		err := NewError(CodeAgentExecution, votes)
 
-		if err.Code != CodeMultiAgentConsensus {
-			t.Errorf("Code = %v, want %v", err.Code, CodeMultiAgentConsensus)
+		if err.Code != CodeAgentExecution {
+			t.Errorf("Code = %v, want %v", err.Code, CodeAgentExecution)
 		}
 		if err.Context["yes_votes"] != 2 {
 			t.Errorf("Context[yes_votes] = %v, want 2", err.Context["yes_votes"])
@@ -634,10 +634,10 @@ func TestHelpers_MultiAgentErrors(t *testing.T) {
 
 	t.Run("NewMultiAgentMessageError", func(t *testing.T) {
 		cause := fmt.Errorf("message send failed")
-		err := NewMultiAgentMessageError("agent.task", cause)
+		err := NewErrorWithCause(CodeNetwork, "agent.task", cause)
 
-		if err.Code != CodeMultiAgentMessage {
-			t.Errorf("Code = %v, want %v", err.Code, CodeMultiAgentMessage)
+		if err.Code != CodeNetwork {
+			t.Errorf("Code = %v, want %v", err.Code, CodeNetwork)
 		}
 		if err.Context["topic"] != "agent.task" {
 			t.Errorf("Context[topic] = %v, want agent.task", err.Context["topic"])
@@ -648,10 +648,10 @@ func TestHelpers_MultiAgentErrors(t *testing.T) {
 func TestHelpers_StoreErrors(t *testing.T) {
 	t.Run("NewStoreConnectionError", func(t *testing.T) {
 		cause := fmt.Errorf("connection failed")
-		err := NewStoreConnectionError("redis", "localhost:6379", cause)
+		err := NewErrorWithCause(CodeNetwork, "redis", "localhost:6379", cause)
 
-		if err.Code != CodeStoreConnection {
-			t.Errorf("Code = %v, want %v", err.Code, CodeStoreConnection)
+		if err.Code != CodeNetwork {
+			t.Errorf("Code = %v, want %v", err.Code, CodeNetwork)
 		}
 		if err.Context["store_type"] != "redis" {
 			t.Errorf("Context[store_type] = %v, want redis", err.Context["store_type"])
@@ -663,10 +663,10 @@ func TestHelpers_StoreErrors(t *testing.T) {
 
 	t.Run("NewStoreSerializationError", func(t *testing.T) {
 		cause := fmt.Errorf("serialization failed")
-		err := NewStoreSerializationError("session:123", cause)
+		err := NewErrorWithCause(CodeInvalidInput, "session:123", cause)
 
-		if err.Code != CodeStoreSerialization {
-			t.Errorf("Code = %v, want %v", err.Code, CodeStoreSerialization)
+		if err.Code != CodeInvalidInput {
+			t.Errorf("Code = %v, want %v", err.Code, CodeInvalidInput)
 		}
 		if err.Context["key"] != "session:123" {
 			t.Errorf("Context[key] = %v, want session:123", err.Context["key"])
@@ -675,10 +675,10 @@ func TestHelpers_StoreErrors(t *testing.T) {
 
 	t.Run("NewStoreNotFoundError", func(t *testing.T) {
 		namespace := []string{"memory", "session"}
-		err := NewStoreNotFoundError(namespace, "key-123")
+		err := NewError(CodeNotFound, namespace, "key-123")
 
-		if err.Code != CodeStoreNotFound {
-			t.Errorf("Code = %v, want %v", err.Code, CodeStoreNotFound)
+		if err.Code != CodeNotFound {
+			t.Errorf("Code = %v, want %v", err.Code, CodeNotFound)
 		}
 		if err.Context["key"] != "key-123" {
 			t.Errorf("Context[key] = %v, want key-123", err.Context["key"])
@@ -688,10 +688,10 @@ func TestHelpers_StoreErrors(t *testing.T) {
 
 func TestHelpers_RouterErrors(t *testing.T) {
 	t.Run("NewRouterNoMatchError", func(t *testing.T) {
-		err := NewRouterNoMatchError("user.login", "/api/*")
+		err := NewError(CodeNotFound, "user.login", "/api/*")
 
-		if err.Code != CodeRouterNoMatch {
-			t.Errorf("Code = %v, want %v", err.Code, CodeRouterNoMatch)
+		if err.Code != CodeNotFound {
+			t.Errorf("Code = %v, want %v", err.Code, CodeNotFound)
 		}
 		if err.Context["topic"] != "user.login" {
 			t.Errorf("Context[topic] = %v, want user.login", err.Context["topic"])
@@ -703,10 +703,10 @@ func TestHelpers_RouterErrors(t *testing.T) {
 
 	t.Run("NewRouterFailedError", func(t *testing.T) {
 		cause := fmt.Errorf("routing failed")
-		err := NewRouterFailedError("semantic", cause)
+		err := NewErrorWithCause(CodeAgentExecution, "semantic", cause)
 
-		if err.Code != CodeRouterFailed {
-			t.Errorf("Code = %v, want %v", err.Code, CodeRouterFailed)
+		if err.Code != CodeAgentExecution {
+			t.Errorf("Code = %v, want %v", err.Code, CodeAgentExecution)
 		}
 		if err.Context["router_type"] != "semantic" {
 			t.Errorf("Context[router_type] = %v, want semantic", err.Context["router_type"])
@@ -714,10 +714,10 @@ func TestHelpers_RouterErrors(t *testing.T) {
 	})
 
 	t.Run("NewRouterOverloadError", func(t *testing.T) {
-		err := NewRouterOverloadError(100, 150)
+		err := NewError(CodeResourceLimit, 100, 150)
 
-		if err.Code != CodeRouterOverload {
-			t.Errorf("Code = %v, want %v", err.Code, CodeRouterOverload)
+		if err.Code != CodeResourceLimit {
+			t.Errorf("Code = %v, want %v", err.Code, CodeResourceLimit)
 		}
 		if err.Context["capacity"] != 100 {
 			t.Errorf("Context[capacity] = %v, want 100", err.Context["capacity"])

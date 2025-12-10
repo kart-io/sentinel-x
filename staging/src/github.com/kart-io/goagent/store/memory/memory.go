@@ -119,7 +119,7 @@ func (s *Store) Get(ctx context.Context, namespace []string, key string) (*store
 
 	nsKey := namespaceToKey(namespace)
 	if s.data[nsKey] == nil {
-		return nil, agentErrors.New(agentErrors.CodeStoreNotFound, "namespace not found").
+		return nil, agentErrors.New(agentErrors.CodeNotFound, "namespace not found").
 			WithComponent("store").
 			WithOperation("get").
 			WithContext("namespace", fmt.Sprintf("%v", namespace))
@@ -127,7 +127,7 @@ func (s *Store) Get(ctx context.Context, namespace []string, key string) (*store
 
 	value, ok := s.data[nsKey][key]
 	if !ok {
-		return nil, agentErrors.NewStoreNotFoundError(namespace, key)
+		return nil, agentErrors.NewErrorf(agentErrors.CodeNotFound, "key '%s' not found in namespace %v", key, namespace)
 	}
 
 	return value, nil

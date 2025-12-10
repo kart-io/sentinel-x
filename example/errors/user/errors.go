@@ -65,9 +65,8 @@ var (
 		"Account locked", "账号已锁定")
 
 	// ErrUserTooManyLoginAttempts indicates too many login attempts.
-	ErrUserTooManyLoginAttempts = errors.NewRateLimitError(ServiceUser, 4).
-					Message("Too many login attempts", "登录尝试次数过多").
-					MustBuild()
+	ErrUserTooManyLoginAttempts = errors.NewRateLimitErr(ServiceUser, 4,
+		"Too many login attempts", "登录尝试次数过多")
 
 	// ErrUserVerificationCodeExpired indicates verification code expired.
 	ErrUserVerificationCodeExpired = errors.NewAuthErr(ServiceUser, 5,

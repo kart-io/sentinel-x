@@ -117,7 +117,7 @@ func (r *ToolRuntime) GetState(key string) (interface{}, error) {
 // SetState updates a value in agent state
 func (r *ToolRuntime) SetState(key string, value interface{}) error {
 	if !r.Config.EnableStateAccess {
-		return agentErrors.New(agentErrors.CodeStateValidation, "state access is disabled").
+		return agentErrors.New(agentErrors.CodeInvalidInput, "state access is disabled").
 			WithComponent("tool_runtime").
 			WithOperation("set_state")
 	}
@@ -162,7 +162,7 @@ func (r *ToolRuntime) GetFromStore(namespace []string, key string) (interface{},
 // PutToStore saves data to long-term store
 func (r *ToolRuntime) PutToStore(namespace []string, key string, value interface{}) error {
 	if !r.Config.EnableStoreAccess {
-		return agentErrors.New(agentErrors.CodeStateValidation, "store access is disabled").
+		return agentErrors.New(agentErrors.CodeInvalidInput, "store access is disabled").
 			WithComponent("tool_runtime").
 			WithOperation("put_to_store")
 	}
@@ -190,13 +190,13 @@ func (r *ToolRuntime) PutToStore(namespace []string, key string, value interface
 // Stream sends data to the stream writer
 func (r *ToolRuntime) Stream(data interface{}) error {
 	if !r.Config.EnableStreaming {
-		return agentErrors.New(agentErrors.CodeStreamWrite, "streaming is disabled").
+		return agentErrors.New(agentErrors.CodeNetwork, "streaming is disabled").
 			WithComponent("tool_runtime").
 			WithOperation("stream")
 	}
 
 	if r.StreamWriter == nil {
-		return agentErrors.New(agentErrors.CodeInvalidConfig, "no stream writer configured").
+		return agentErrors.New(agentErrors.CodeAgentConfig, "no stream writer configured").
 			WithComponent("tool_runtime").
 			WithOperation("stream")
 	}
@@ -319,7 +319,7 @@ func (t *UserInfoTool) ExecuteWithRuntime(ctx context.Context, input *interfaces
 		"status": "Looking up user information",
 		"tool":   t.Name(),
 	}); err != nil {
-		return nil, agentErrors.Wrap(err, agentErrors.CodeStreamWrite, "failed to stream progress").
+		return nil, agentErrors.Wrap(err, agentErrors.CodeNetwork, "failed to stream progress").
 			WithComponent("user_info_tool").
 			WithOperation("stream_progress")
 	}
@@ -327,7 +327,7 @@ func (t *UserInfoTool) ExecuteWithRuntime(ctx context.Context, input *interfaces
 	// Get user ID from state
 	userID, err := runtime.GetState("user_id")
 	if err != nil {
-		return nil, agentErrors.Wrap(err, agentErrors.CodeStateLoad, "failed to get user ID").
+		return nil, agentErrors.Wrap(err, agentErrors.CodeResource, "failed to get user ID").
 			WithComponent("user_info_tool").
 			WithOperation("get_state")
 	}
@@ -341,7 +341,7 @@ func (t *UserInfoTool) ExecuteWithRuntime(ctx context.Context, input *interfaces
 	// Retrieve from store
 	userInfo, err := runtime.GetFromStore([]string{"users"}, userID.(string))
 	if err != nil {
-		return nil, agentErrors.Wrap(err, agentErrors.CodeStoreNotFound, "failed to retrieve user info").
+		return nil, agentErrors.Wrap(err, agentErrors.CodeNotFound, "failed to retrieve user info").
 			WithComponent("user_info_tool").
 			WithOperation("get_from_store").
 			WithContext("user_id", userID)
@@ -352,7 +352,7 @@ func (t *UserInfoTool) ExecuteWithRuntime(ctx context.Context, input *interfaces
 		"status":  "User information retrieved",
 		"user_id": userID,
 	}); err != nil {
-		return nil, agentErrors.Wrap(err, agentErrors.CodeStreamWrite, "failed to stream completion").
+		return nil, agentErrors.Wrap(err, agentErrors.CodeNetwork, "failed to stream completion").
 			WithComponent("user_info_tool").
 			WithOperation("stream_completion")
 	}
@@ -402,7 +402,7 @@ func (t *SavePreferenceTool) ExecuteWithRuntime(ctx context.Context, input *inte
 	// Get user ID from state
 	userID, err := runtime.GetState("user_id")
 	if err != nil {
-		return nil, agentErrors.Wrap(err, agentErrors.CodeStateLoad, "failed to get user ID").
+		return nil, agentErrors.Wrap(err, agentErrors.CodeResource, "failed to get user ID").
 			WithComponent("save_preference_tool").
 			WithOperation("get_state")
 	}
@@ -427,7 +427,7 @@ func (t *SavePreferenceTool) ExecuteWithRuntime(ctx context.Context, input *inte
 	// Save back to store
 	err = runtime.PutToStore([]string{"preferences"}, userID.(string), prefs)
 	if err != nil {
-		return nil, agentErrors.Wrap(err, agentErrors.CodeStoreSerialization, "failed to save preference").
+		return nil, agentErrors.Wrap(err, agentErrors.CodeInvalidInput, "failed to save preference").
 			WithComponent("save_preference_tool").
 			WithOperation("put_to_store").
 			WithContext("user_id", userID)
@@ -435,7 +435,7 @@ func (t *SavePreferenceTool) ExecuteWithRuntime(ctx context.Context, input *inte
 
 	// Update state with the new preference
 	if err := runtime.SetState(fmt.Sprintf("pref_%s", key), value); err != nil {
-		return nil, agentErrors.Wrap(err, agentErrors.CodeStateSave, "failed to update state").
+		return nil, agentErrors.Wrap(err, agentErrors.CodeResource, "failed to update state").
 			WithComponent("save_preference_tool").
 			WithOperation("set_state").
 			WithContext("key", key)
@@ -476,7 +476,7 @@ func (t *UpdateStateTool) ExecuteWithRuntime(ctx context.Context, input *interfa
 	for key, value := range input.Args {
 		err := runtime.SetState(key, value)
 		if err != nil {
-			return nil, agentErrors.Wrap(err, agentErrors.CodeStateSave, "failed to update state key").
+			return nil, agentErrors.Wrap(err, agentErrors.CodeResource, "failed to update state key").
 				WithComponent("update_state_tool").
 				WithOperation("set_state").
 				WithContext("key", key)
@@ -488,7 +488,7 @@ func (t *UpdateStateTool) ExecuteWithRuntime(ctx context.Context, input *interfa
 		"status":  "State updated",
 		"updates": input.Args,
 	}); err != nil {
-		return nil, agentErrors.Wrap(err, agentErrors.CodeStreamWrite, "failed to stream updates").
+		return nil, agentErrors.Wrap(err, agentErrors.CodeNetwork, "failed to stream updates").
 			WithComponent("update_state_tool").
 			WithOperation("stream_updates")
 	}

@@ -227,7 +227,7 @@ func (r *ReActAgent) executeCore(ctx context.Context, input *agentcore.AgentInpu
 		actionInput := parsed.ActionInput
 
 		if action == "" {
-			return r.handleErrorFast(output, step, "No action specified", agentErrors.New(agentErrors.CodeParserFailed, "empty action").
+			return r.handleErrorFast(output, step, "No action specified", agentErrors.New(agentErrors.CodeInvalidInput, "empty action").
 				WithComponent("react_agent").
 				WithOperation("executeCore"), startTime)
 		}
@@ -477,7 +477,7 @@ func (r *ReActAgent) RunGenerator(ctx context.Context, input *agentcore.AgentInp
 			if action == "" {
 				stepOutput := r.createStepOutput(accumulatedOutput, step, "No action specified", startTime)
 				stepOutput.Status = interfaces.StatusFailed
-				err := agentErrors.New(agentErrors.CodeParserFailed, "empty action").
+				err := agentErrors.New(agentErrors.CodeInvalidInput, "empty action").
 					WithComponent("react_agent").
 					WithOperation("RunGenerator")
 				if !yield(stepOutput, err) {

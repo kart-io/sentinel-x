@@ -609,8 +609,8 @@ func (m *Manager) closeClient(client interface{}) error {
 // =============================================================================
 
 var (
-	globalManager   *Manager
-	globalManagerMu sync.RWMutex
+	globalManager    *Manager
+	globalManagerMu  sync.RWMutex
 	globalManagerSet bool
 )
 

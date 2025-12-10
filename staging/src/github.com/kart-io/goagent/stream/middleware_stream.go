@@ -184,7 +184,7 @@ func (m *TransformMiddleware) Apply(ctx context.Context, source execution.Stream
 			// 应用转换
 			transformed, err := m.transformFunc(chunk)
 			if err != nil {
-				_ = writer.WriteError(agentErrors.Wrap(err, agentErrors.CodeStreamWrite, "transform error").
+				_ = writer.WriteError(agentErrors.Wrap(err, agentErrors.CodeNetwork, "transform error").
 					WithComponent("stream_middleware").
 					WithOperation("TransformMiddleware"))
 				return
@@ -227,7 +227,7 @@ func (m *TeeMiddleware) Apply(ctx context.Context, source execution.StreamOutput
 	// 添加所有输出消费者
 	for _, output := range m.outputs {
 		if _, err := multiplexer.AddConsumer(output); err != nil {
-			return nil, agentErrors.Wrap(err, agentErrors.CodeStreamWrite, "failed to add consumer").
+			return nil, agentErrors.Wrap(err, agentErrors.CodeNetwork, "failed to add consumer").
 				WithComponent("stream_middleware").
 				WithOperation("TeeMiddleware")
 		}

@@ -107,7 +107,7 @@ func (s *StateSchema) Validate(data map[string]interface{}) error {
 		value, exists := data[name]
 
 		if field.Required && !exists {
-			return agentErrors.New(agentErrors.CodeStateValidation, "missing required field").
+			return agentErrors.New(agentErrors.CodeInvalidInput, "missing required field").
 				WithComponent("state_schema").
 				WithOperation("validate").
 				WithContext("field", name).
@@ -125,7 +125,7 @@ func (s *StateSchema) Validate(data map[string]interface{}) error {
 	if s.StrictMode {
 		for key := range data {
 			if _, defined := s.Fields[key]; !defined {
-				return agentErrors.New(agentErrors.CodeStateValidation, "undefined field in strict mode").
+				return agentErrors.New(agentErrors.CodeInvalidInput, "undefined field in strict mode").
 					WithComponent("state_schema").
 					WithOperation("validate").
 					WithContext("field", key).
@@ -145,7 +145,7 @@ func (s *StateSchema) validateField(field *FieldSchema, value interface{}) error
 
 	// 类型检查
 	if err := validateType(field.Type, value); err != nil {
-		return agentErrors.Wrap(err, agentErrors.CodeStateValidation, "type validation failed").
+		return agentErrors.Wrap(err, agentErrors.CodeInvalidInput, "type validation failed").
 			WithComponent("state_schema").
 			WithOperation("validate_field").
 			WithContext("field", field.Name).
@@ -155,7 +155,7 @@ func (s *StateSchema) validateField(field *FieldSchema, value interface{}) error
 	// 自定义验证
 	if field.Validator != nil {
 		if err := field.Validator(value); err != nil {
-			return agentErrors.Wrap(err, agentErrors.CodeStateValidation, "custom validation failed").
+			return agentErrors.Wrap(err, agentErrors.CodeInvalidInput, "custom validation failed").
 				WithComponent("state_schema").
 				WithOperation("validate_field").
 				WithContext("field", field.Name)
@@ -265,7 +265,7 @@ func (ts *TypedState) GetString(key string) (string, error) {
 		return str, nil
 	}
 
-	return "", agentErrors.New(agentErrors.CodeTypeMismatch, "field is not a string").
+	return "", agentErrors.New(agentErrors.CodeInvalidInput, "field is not a string").
 		WithContext("field", key)
 }
 
@@ -284,7 +284,7 @@ func (ts *TypedState) GetInt(key string) (int64, error) {
 	case float64:
 		return int64(v), nil
 	default:
-		return 0, agentErrors.New(agentErrors.CodeTypeMismatch, "field is not an int").
+		return 0, agentErrors.New(agentErrors.CodeInvalidInput, "field is not an int").
 			WithContext("field", key)
 	}
 }
@@ -300,7 +300,7 @@ func (ts *TypedState) GetFloat(key string) (float64, error) {
 		return f, nil
 	}
 
-	return 0, agentErrors.New(agentErrors.CodeTypeMismatch, "field is not a float").
+	return 0, agentErrors.New(agentErrors.CodeInvalidInput, "field is not a float").
 		WithContext("field", key)
 }
 
@@ -315,7 +315,7 @@ func (ts *TypedState) GetBool(key string) (bool, error) {
 		return b, nil
 	}
 
-	return false, agentErrors.New(agentErrors.CodeTypeMismatch, "field is not a bool").
+	return false, agentErrors.New(agentErrors.CodeInvalidInput, "field is not a bool").
 		WithContext("field", key)
 }
 
@@ -328,7 +328,7 @@ func (ts *TypedState) Set(key string, value interface{}) error {
 	if ts.schema != nil {
 		field, defined := ts.schema.Fields[key]
 		if !defined && ts.schema.StrictMode {
-			return agentErrors.New(agentErrors.CodeStateValidation, "undefined field in strict mode").
+			return agentErrors.New(agentErrors.CodeInvalidInput, "undefined field in strict mode").
 				WithContext("field", key)
 		}
 
@@ -371,7 +371,7 @@ func (ts *TypedState) Delete(key string) error {
 	// 检查是否为必需字段
 	if ts.schema != nil {
 		if field, exists := ts.schema.Fields[key]; exists && field.Required {
-			return agentErrors.New(agentErrors.CodeStateValidation, "cannot delete required field").
+			return agentErrors.New(agentErrors.CodeInvalidInput, "cannot delete required field").
 				WithContext("field", key)
 		}
 	}
@@ -504,7 +504,7 @@ func (ts *TypedState) MarshalJSON() ([]byte, error) {
 func (ts *TypedState) UnmarshalJSON(data []byte) error {
 	var envelope StateEnvelope
 	if err := json.Unmarshal(data, &envelope); err != nil {
-		return agentErrors.Wrap(err, agentErrors.CodeStoreSerialization, "failed to unmarshal state").
+		return agentErrors.Wrap(err, agentErrors.CodeInvalidInput, "failed to unmarshal state").
 			WithComponent("typed_state").
 			WithOperation("unmarshal")
 	}
@@ -512,7 +512,7 @@ func (ts *TypedState) UnmarshalJSON(data []byte) error {
 	// Schema 版本检查
 	if ts.schema != nil && envelope.SchemaVersion != "" {
 		if envelope.SchemaVersion != ts.schema.Version {
-			return agentErrors.New(agentErrors.CodeStateValidation, "schema version mismatch").
+			return agentErrors.New(agentErrors.CodeInvalidInput, "schema version mismatch").
 				WithComponent("typed_state").
 				WithOperation("unmarshal").
 				WithContext("expected_version", ts.schema.Version).

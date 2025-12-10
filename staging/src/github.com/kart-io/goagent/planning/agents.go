@@ -50,7 +50,7 @@ func (a *PlanningAgent) Execute(ctx context.Context, input *core.AgentInput) (*c
 			// Execute existing plan
 			result, err := a.executor.Execute(ctx, plan)
 			if err != nil {
-				return nil, agentErrors.Wrap(err, agentErrors.CodePlanExecutionFailed, "failed to execute plan").
+				return nil, agentErrors.Wrap(err, agentErrors.CodeAgentExecution, "failed to execute plan").
 					WithComponent("planning_agent").
 					WithOperation("execute").
 					WithContext("plan_id", plan.ID)
@@ -69,7 +69,7 @@ func (a *PlanningAgent) Execute(ctx context.Context, input *core.AgentInput) (*c
 	// Create a new plan
 	plan, err := a.planner.CreatePlan(ctx, goal, constraints)
 	if err != nil {
-		return nil, agentErrors.Wrap(err, agentErrors.CodePlanningFailed, "failed to create plan").
+		return nil, agentErrors.Wrap(err, agentErrors.CodeAgentExecution, "failed to create plan").
 			WithComponent("planning_agent").
 			WithOperation("create_plan").
 			WithContext("goal", goal)
@@ -79,7 +79,7 @@ func (a *PlanningAgent) Execute(ctx context.Context, input *core.AgentInput) (*c
 	if execute, ok := input.Context["execute"].(bool); ok && execute {
 		result, err := a.executor.Execute(ctx, plan)
 		if err != nil {
-			return nil, agentErrors.Wrap(err, agentErrors.CodePlanExecutionFailed, "failed to execute plan").
+			return nil, agentErrors.Wrap(err, agentErrors.CodeAgentExecution, "failed to execute plan").
 				WithComponent("planning_agent").
 				WithOperation("execute_created_plan").
 				WithContext("plan_id", plan.ID)
@@ -136,7 +136,7 @@ func (a *TaskDecompositionAgent) Execute(ctx context.Context, input *core.AgentI
 		MaxSteps: 10, // Reasonable limit for decomposition
 	})
 	if err != nil {
-		return nil, agentErrors.Wrap(err, agentErrors.CodePlanningFailed, "failed to decompose task").
+		return nil, agentErrors.Wrap(err, agentErrors.CodeAgentExecution, "failed to decompose task").
 			WithComponent("task_decomposition_agent").
 			WithOperation("decompose").
 			WithContext("task", task)
@@ -206,12 +206,12 @@ func (a *StrategyAgent) Execute(ctx context.Context, input *core.AgentInput) (*c
 		if planBytes, err := json.Marshal(planData); err == nil {
 			plan = &Plan{}
 			if err := json.Unmarshal(planBytes, plan); err != nil {
-				return nil, agentErrors.Wrap(err, agentErrors.CodeParserFailed, "invalid plan data").
+				return nil, agentErrors.Wrap(err, agentErrors.CodeInvalidInput, "invalid plan data").
 					WithComponent("strategy_agent").
 					WithOperation("parse_plan")
 			}
 		} else {
-			return nil, agentErrors.Wrap(err, agentErrors.CodeParserFailed, "invalid plan data").
+			return nil, agentErrors.Wrap(err, agentErrors.CodeInvalidInput, "invalid plan data").
 				WithComponent("strategy_agent").
 				WithOperation("marshal_plan")
 		}
@@ -226,7 +226,7 @@ func (a *StrategyAgent) Execute(ctx context.Context, input *core.AgentInput) (*c
 	// Get strategy
 	strategy, exists := a.strategies[strategyName]
 	if !exists {
-		return nil, agentErrors.New(agentErrors.CodeAgentNotFound, "strategy not found").
+		return nil, agentErrors.New(agentErrors.CodeNotFound, "strategy not found").
 			WithComponent("strategy_agent").
 			WithOperation("get_strategy").
 			WithContext("strategy_name", strategyName)
@@ -291,12 +291,12 @@ func (a *OptimizationAgent) Execute(ctx context.Context, input *core.AgentInput)
 		if planBytes, err := json.Marshal(planData); err == nil {
 			plan = &Plan{}
 			if err := json.Unmarshal(planBytes, plan); err != nil {
-				return nil, agentErrors.Wrap(err, agentErrors.CodeParserFailed, "invalid plan data").
+				return nil, agentErrors.Wrap(err, agentErrors.CodeInvalidInput, "invalid plan data").
 					WithComponent("optimization_agent").
 					WithOperation("parse_plan")
 			}
 		} else {
-			return nil, agentErrors.Wrap(err, agentErrors.CodeParserFailed, "invalid plan data").
+			return nil, agentErrors.Wrap(err, agentErrors.CodeInvalidInput, "invalid plan data").
 				WithComponent("optimization_agent").
 				WithOperation("marshal_plan")
 		}
@@ -377,12 +377,12 @@ func (a *ValidationAgent) Execute(ctx context.Context, input *core.AgentInput) (
 		if planBytes, err := json.Marshal(planData); err == nil {
 			plan = &Plan{}
 			if err := json.Unmarshal(planBytes, plan); err != nil {
-				return nil, agentErrors.Wrap(err, agentErrors.CodeParserFailed, "invalid plan data").
+				return nil, agentErrors.Wrap(err, agentErrors.CodeInvalidInput, "invalid plan data").
 					WithComponent("validation_agent").
 					WithOperation("parse_plan")
 			}
 		} else {
-			return nil, agentErrors.Wrap(err, agentErrors.CodeParserFailed, "invalid plan data").
+			return nil, agentErrors.Wrap(err, agentErrors.CodeInvalidInput, "invalid plan data").
 				WithComponent("validation_agent").
 				WithOperation("marshal_plan")
 		}
@@ -395,7 +395,7 @@ func (a *ValidationAgent) Execute(ctx context.Context, input *core.AgentInput) (
 	for _, validator := range a.validators {
 		v, issues, err := validator.Validate(ctx, plan)
 		if err != nil {
-			return nil, agentErrors.Wrap(err, agentErrors.CodePlanValidation, "validator failed").
+			return nil, agentErrors.Wrap(err, agentErrors.CodeInvalidInput, "validator failed").
 				WithComponent("validation_agent").
 				WithOperation("validate").
 				WithContext("validator_type", fmt.Sprintf("%T", validator))
