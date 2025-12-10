@@ -159,54 +159,128 @@ func TestExtractClientIP(t *testing.T) {
 	tests := []struct {
 		name       string
 		setupCtx   func() *mockRateLimitContext
+		config     RateLimitConfig
 		expectedIP string
 	}{
 		{
-			name: "extract from X-Forwarded-For",
+			name: "extracts from RemoteAddr when proxy headers not trusted",
 			setupCtx: func() *mockRateLimitContext {
 				ctx := newMockRateLimitContext("/test")
 				ctx.SetTestHeader("X-Forwarded-For", "203.0.113.1, 198.51.100.1")
-				ctx.SetRemoteAddr("192.168.1.1:12345")
-				return ctx
-			},
-			expectedIP: "203.0.113.1",
-		},
-		{
-			name: "extract from X-Real-IP",
-			setupCtx: func() *mockRateLimitContext {
-				ctx := newMockRateLimitContext("/test")
 				ctx.SetTestHeader("X-Real-IP", "203.0.113.2")
 				ctx.SetRemoteAddr("192.168.1.1:12345")
 				return ctx
 			},
+			config: RateLimitConfig{
+				TrustProxyHeaders: false,
+				TrustedProxies:    []string{},
+			},
+			expectedIP: "192.168.1.1", // Should use RemoteAddr, not proxy headers
+		},
+		{
+			name: "extracts from X-Forwarded-For when request from trusted proxy",
+			setupCtx: func() *mockRateLimitContext {
+				ctx := newMockRateLimitContext("/test")
+				ctx.SetTestHeader("X-Forwarded-For", "203.0.113.1, 198.51.100.1")
+				ctx.SetRemoteAddr("127.0.0.1:12345")
+				return ctx
+			},
+			config: RateLimitConfig{
+				TrustProxyHeaders: true,
+				TrustedProxies:    []string{"127.0.0.1"},
+			},
+			expectedIP: "203.0.113.1",
+		},
+		{
+			name: "extracts from X-Real-IP when request from trusted proxy",
+			setupCtx: func() *mockRateLimitContext {
+				ctx := newMockRateLimitContext("/test")
+				ctx.SetTestHeader("X-Real-IP", "203.0.113.2")
+				ctx.SetRemoteAddr("127.0.0.1:12345")
+				return ctx
+			},
+			config: RateLimitConfig{
+				TrustProxyHeaders: true,
+				TrustedProxies:    []string{"127.0.0.1"},
+			},
 			expectedIP: "203.0.113.2",
 		},
 		{
-			name: "extract from RemoteAddr",
+			name: "ignores proxy headers when not from trusted proxy",
+			setupCtx: func() *mockRateLimitContext {
+				ctx := newMockRateLimitContext("/test")
+				ctx.SetTestHeader("X-Forwarded-For", "203.0.113.1")
+				ctx.SetRemoteAddr("192.168.1.100:12345")
+				return ctx
+			},
+			config: RateLimitConfig{
+				TrustProxyHeaders: true,
+				TrustedProxies:    []string{"127.0.0.1"}, // Only trust localhost
+			},
+			expectedIP: "192.168.1.100", // Should use RemoteAddr
+		},
+		{
+			name: "supports CIDR ranges for trusted proxies",
+			setupCtx: func() *mockRateLimitContext {
+				ctx := newMockRateLimitContext("/test")
+				ctx.SetTestHeader("X-Forwarded-For", "203.0.113.1")
+				ctx.SetRemoteAddr("10.0.1.50:12345")
+				return ctx
+			},
+			config: RateLimitConfig{
+				TrustProxyHeaders: true,
+				TrustedProxies:    []string{"10.0.0.0/8"},
+			},
+			expectedIP: "203.0.113.1",
+		},
+		{
+			name: "validates IP format from proxy headers",
+			setupCtx: func() *mockRateLimitContext {
+				ctx := newMockRateLimitContext("/test")
+				ctx.SetTestHeader("X-Forwarded-For", "invalid-ip, 203.0.113.1")
+				ctx.SetRemoteAddr("127.0.0.1:12345")
+				return ctx
+			},
+			config: RateLimitConfig{
+				TrustProxyHeaders: true,
+				TrustedProxies:    []string{"127.0.0.1"},
+			},
+			expectedIP: "127.0.0.1", // Falls back to RemoteAddr due to invalid IP
+		},
+		{
+			name: "X-Forwarded-For takes precedence over X-Real-IP",
+			setupCtx: func() *mockRateLimitContext {
+				ctx := newMockRateLimitContext("/test")
+				ctx.SetTestHeader("X-Forwarded-For", "203.0.113.10")
+				ctx.SetTestHeader("X-Real-IP", "203.0.113.20")
+				ctx.SetRemoteAddr("127.0.0.1:12345")
+				return ctx
+			},
+			config: RateLimitConfig{
+				TrustProxyHeaders: true,
+				TrustedProxies:    []string{"127.0.0.1"},
+			},
+			expectedIP: "203.0.113.10",
+		},
+		{
+			name: "extracts from RemoteAddr when no proxy headers",
 			setupCtx: func() *mockRateLimitContext {
 				ctx := newMockRateLimitContext("/test")
 				ctx.SetRemoteAddr("203.0.113.3:54321")
 				return ctx
 			},
-			expectedIP: "203.0.113.3",
-		},
-		{
-			name: "X-Forwarded-For takes precedence",
-			setupCtx: func() *mockRateLimitContext {
-				ctx := newMockRateLimitContext("/test")
-				ctx.SetTestHeader("X-Forwarded-For", "203.0.113.10")
-				ctx.SetTestHeader("X-Real-IP", "203.0.113.20")
-				ctx.SetRemoteAddr("203.0.113.30:12345")
-				return ctx
+			config: RateLimitConfig{
+				TrustProxyHeaders: true,
+				TrustedProxies:    []string{"127.0.0.1"},
 			},
-			expectedIP: "203.0.113.10",
+			expectedIP: "203.0.113.3",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := tt.setupCtx()
-			ip := extractClientIP(ctx)
+			ip := extractClientIP(ctx, tt.config)
 			if ip != tt.expectedIP {
 				t.Errorf("Expected IP %s, got %s", tt.expectedIP, ip)
 			}
@@ -214,13 +288,131 @@ func TestExtractClientIP(t *testing.T) {
 	}
 }
 
-func TestDefaultKeyFunc(t *testing.T) {
-	ctx := newMockRateLimitContext("/test")
-	ctx.SetRemoteAddr("192.168.1.100:12345")
+func TestIsTrustedProxy(t *testing.T) {
+	tests := []struct {
+		name           string
+		ip             string
+		trustedProxies []string
+		expected       bool
+	}{
+		{
+			name:           "empty trusted proxies returns false",
+			ip:             "127.0.0.1",
+			trustedProxies: []string{},
+			expected:       false,
+		},
+		{
+			name:           "exact IP match",
+			ip:             "127.0.0.1",
+			trustedProxies: []string{"127.0.0.1", "192.168.1.1"},
+			expected:       true,
+		},
+		{
+			name:           "IP not in list",
+			ip:             "10.0.0.1",
+			trustedProxies: []string{"127.0.0.1", "192.168.1.1"},
+			expected:       false,
+		},
+		{
+			name:           "IP in CIDR range",
+			ip:             "10.0.5.100",
+			trustedProxies: []string{"10.0.0.0/8"},
+			expected:       true,
+		},
+		{
+			name:           "IP not in CIDR range",
+			ip:             "192.168.1.1",
+			trustedProxies: []string{"10.0.0.0/8"},
+			expected:       false,
+		},
+		{
+			name:           "multiple CIDR ranges",
+			ip:             "172.16.5.10",
+			trustedProxies: []string{"10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"},
+			expected:       true,
+		},
+		{
+			name:           "invalid IP returns false",
+			ip:             "invalid-ip",
+			trustedProxies: []string{"10.0.0.0/8"},
+			expected:       false,
+		},
+		{
+			name:           "invalid CIDR is skipped",
+			ip:             "127.0.0.1",
+			trustedProxies: []string{"invalid/cidr", "127.0.0.1"},
+			expected:       true,
+		},
+	}
 
-	key := defaultKeyFunc(ctx)
-	if key != "192.168.1.100" {
-		t.Errorf("Expected key '192.168.1.100', got '%s'", key)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := isTrustedProxy(tt.ip, tt.trustedProxies)
+			if result != tt.expected {
+				t.Errorf("Expected %v for IP %s, got %v", tt.expected, tt.ip, result)
+			}
+		})
+	}
+}
+
+func TestIsValidIP(t *testing.T) {
+	tests := []struct {
+		ip       string
+		expected bool
+	}{
+		{"192.168.1.1", true},
+		{"127.0.0.1", true},
+		{"10.0.0.1", true},
+		{"2001:0db8:85a3:0000:0000:8a2e:0370:7334", true},
+		{"::1", true},
+		{"invalid-ip", false},
+		{"", false},
+		{"999.999.999.999", false},
+		{"192.168.1", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.ip, func(t *testing.T) {
+			result := isValidIP(tt.ip)
+			if result != tt.expected {
+				t.Errorf("Expected %v for IP %s, got %v", tt.expected, tt.ip, result)
+			}
+		})
+	}
+}
+
+func TestGetRemoteIP(t *testing.T) {
+	tests := []struct {
+		name       string
+		remoteAddr string
+		expectedIP string
+	}{
+		{
+			name:       "standard IP:port format",
+			remoteAddr: "192.168.1.1:12345",
+			expectedIP: "192.168.1.1",
+		},
+		{
+			name:       "IPv6 with port",
+			remoteAddr: "[2001:db8::1]:8080",
+			expectedIP: "2001:db8::1",
+		},
+		{
+			name:       "IP without port",
+			remoteAddr: "192.168.1.1",
+			expectedIP: "192.168.1.1",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, "/test", nil)
+			req.RemoteAddr = tt.remoteAddr
+			ip := getRemoteIP(req)
+			if ip != tt.expectedIP {
+				t.Errorf("Expected IP %s, got %s", tt.expectedIP, ip)
+			}
+		})
 	}
 }
 
@@ -228,6 +420,7 @@ func TestExtractKey(t *testing.T) {
 	tests := []struct {
 		name        string
 		keyFunc     func(c transport.Context) string
+		config      RateLimitConfig
 		expectedKey string
 	}{
 		{
@@ -235,13 +428,15 @@ func TestExtractKey(t *testing.T) {
 			keyFunc: func(c transport.Context) string {
 				return "custom-key"
 			},
+			config:      RateLimitConfig{},
 			expectedKey: "custom-key",
 		},
 		{
-			name: "empty key falls back to IP",
+			name: "empty key falls back to RemoteAddr",
 			keyFunc: func(c transport.Context) string {
 				return ""
 			},
+			config:      RateLimitConfig{},
 			expectedKey: "192.168.1.1",
 		},
 	}
@@ -251,7 +446,7 @@ func TestExtractKey(t *testing.T) {
 			ctx := newMockRateLimitContext("/test")
 			ctx.SetRemoteAddr("192.168.1.1:12345")
 
-			key := extractKey(ctx, tt.keyFunc)
+			key := extractKey(ctx, tt.keyFunc, tt.config)
 			if key != tt.expectedKey {
 				t.Errorf("Expected key '%s', got '%s'", tt.expectedKey, key)
 			}

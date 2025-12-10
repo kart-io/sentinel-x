@@ -74,20 +74,22 @@ func NewWithContext(ctx context.Context, opts *Options) (*Client, error) {
 	// Build DSN
 	dsn := BuildDSN(opts)
 
-	// Configure GORM logger based on LogLevel
-	gormLogger := logger.Default
+	// Configure logger
+	var logLevel logger.LogLevel
 	switch opts.LogLevel {
 	case 1: // Silent
-		gormLogger = logger.Default.LogMode(logger.Silent)
+		logLevel = logger.Silent
 	case 2: // Error
-		gormLogger = logger.Default.LogMode(logger.Error)
+		logLevel = logger.Error
 	case 3: // Warn
-		gormLogger = logger.Default.LogMode(logger.Warn)
+		logLevel = logger.Warn
 	case 4: // Info
-		gormLogger = logger.Default.LogMode(logger.Info)
+		logLevel = logger.Info
 	default:
-		gormLogger = logger.Default.LogMode(logger.Silent)
+		logLevel = logger.Silent
 	}
+
+	gormLogger := NewGormLogger(logLevel, 200*time.Millisecond, true)
 
 	// Open database connection
 	db, err := gorm.Open(mysqldriver.Open(dsn), &gorm.Config{

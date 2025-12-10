@@ -133,10 +133,11 @@ func (a *App) buildCommand() {
 		Long:  a.description,
 		RunE:  a.runCommand,
 		Args:  a.args,
+		// Always silence usage on errors - users can use --help to see usage
+		SilenceUsage: true,
 	}
 
 	if a.silence {
-		cmd.SilenceUsage = true
 		cmd.SilenceErrors = true
 	}
 

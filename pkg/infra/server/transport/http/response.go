@@ -1,14 +1,15 @@
 package http
 
 import (
-	"encoding/json"
 	"net/http"
 	"strings"
 
+	"github.com/kart-io/sentinel-x/pkg/utils/json"
 	"github.com/kart-io/sentinel-x/pkg/utils/validator"
 )
 
 // JSON sends a JSON response.
+// Uses high-performance sonic JSON encoder when available.
 func (c *RequestContext) JSON(code int, v interface{}) {
 	c.SetHeader("Content-Type", "application/json; charset=utf-8")
 	c.writer.WriteHeader(code)
@@ -61,7 +62,7 @@ func (c *RequestContext) Redirect(code int, url string) {
 }
 
 // Bind binds the request body to the given struct.
-// Supports JSON content type.
+// Supports JSON content type. Uses high-performance sonic JSON decoder when available.
 func (c *RequestContext) Bind(v interface{}) error {
 	contentType := c.Header("Content-Type")
 

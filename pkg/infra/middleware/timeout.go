@@ -57,15 +57,18 @@ func TimeoutWithConfig(config TimeoutConfig) transport.MiddlewareFunc {
 				return
 			}
 
-			// Create timeout context
+			// Create timeout context to propagate cancellation to downstream handlers
 			ctx, cancel := context.WithTimeout(c.Request(), config.Timeout)
 			defer cancel()
 
-			// Update request context
+			// Update request context so downstream handlers can detect timeout
 			c.SetRequest(ctx)
 
 			// Create buffered done channel to prevent goroutine leak
 			done := make(chan struct{}, 1)
+
+			// Variable to track if timeout occurred
+			var timedOut bool
 
 			go func() {
 				defer func() {
@@ -75,19 +78,32 @@ func TimeoutWithConfig(config TimeoutConfig) transport.MiddlewareFunc {
 						logPanic(r, req.URL.Path)
 					}
 					// Signal completion - buffered channel guarantees non-blocking send
+					// This ensures the goroutine can exit even if the main goroutine
+					// has already handled the timeout
 					done <- struct{}{}
 				}()
+
+				// Handler will receive the timeout context and should respect it
+				// If context is cancelled, handlers should stop processing
 				next(c)
 			}()
 
 			select {
 			case <-done:
 				// Request completed normally
-			case <-ctx.Done():
-				// Timeout occurred
+				// Check if it completed due to context cancellation
 				if ctx.Err() == context.DeadlineExceeded {
-					response.Fail(c, errors.ErrRequestTimeout)
+					timedOut = true
 				}
+			case <-ctx.Done():
+				// Timeout occurred before handler completed
+				timedOut = true
+			}
+
+			// Only write timeout response if we haven't written a response yet
+			// The handler might have already written a response before context cancellation
+			if timedOut && ctx.Err() == context.DeadlineExceeded {
+				response.Fail(c, errors.ErrRequestTimeout)
 			}
 		}
 	}

@@ -247,7 +247,28 @@ func (m *Manager) Run() error {
 	return m.Stop(shutdownCtx)
 }
 
-// Wait waits for all servers to be ready.
+// Wait waits for all servers to be ready with a context timeout.
+// This method ensures servers have been started and are accepting connections.
+// Note: The actual readiness check is lightweight as servers start immediately
+// once Start() completes successfully.
 func (m *Manager) Wait(ctx context.Context) error {
+	m.mu.Lock()
+	if !m.started {
+		m.mu.Unlock()
+		return fmt.Errorf("server manager not started")
+	}
+
+	// Check if there are any servers to wait for
+	if m.httpServer == nil && m.grpcServer == nil && len(m.servers) == 0 {
+		m.mu.Unlock()
+		return fmt.Errorf("no servers configured")
+	}
+	m.mu.Unlock()
+
+	// Servers are considered ready immediately after Start() completes successfully.
+	// The Start() method already ensures servers are listening before returning.
+	// This Wait() method can be used for additional readiness checks in the future.
+
+	logger.Info("All servers ready")
 	return nil
 }

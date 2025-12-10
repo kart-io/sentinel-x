@@ -3,6 +3,7 @@ GO_MOD_DOMAIN := $(shell echo $(GO_MOD_NAME) | awk -F '/' '{print $$1}')
 
 # Binary names
 API_BINARY=sentinel-api
+USER_CENTER_BINARY=sentinel-user-center
 
 # Go commands
 GOCMD=go
@@ -104,7 +105,23 @@ run-dev:
 .PHONY: run-config
 run-config: build
 	@echo "Starting $(API_BINARY) with config file..."
-	./$(OUTPUT_DIR)/$(API_BINARY) -c configs/sentinel-api.yaml
+	@./$(OUTPUT_DIR)/$(API_BINARY) -c configs/sentinel-api.yaml
+
+# =============================================================================
+# User Center Build Commands
+# =============================================================================
+
+.PHONY: build-user-center
+build-user-center:
+	@echo "Building $(USER_CENTER_BINARY)..."
+	@mkdir -p $(OUTPUT_DIR)
+	$(GOBUILD) $(LDFLAGS) -o $(OUTPUT_DIR)/$(USER_CENTER_BINARY) ./cmd/user-center
+	@echo "Build complete: $(OUTPUT_DIR)/$(USER_CENTER_BINARY)"
+
+.PHONY: run-user-center
+run-user-center: build-user-center
+	@echo "Starting $(USER_CENTER_BINARY)..."
+	@./$(OUTPUT_DIR)/$(USER_CENTER_BINARY) -c configs/user-center.yaml
 
 .PHONY: version
 version: build
@@ -166,6 +183,10 @@ help:
 	@echo "    run-config        - Run with production config (requires DB/Redis)"
 	@echo "    clean             - Clean build artifacts"
 	@echo "    version           - Display version information"
+	@echo ""
+	@echo "  User Center:"
+	@echo "    build-user-center - Build User Center service"
+	@echo "    run-user-center   - Run User Center service"
 	@echo ""
 	@echo "  Testing:"
 	@echo "    test              - Run all tests"

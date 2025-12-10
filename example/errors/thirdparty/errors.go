@@ -5,8 +5,9 @@
 package thirdparty
 
 import (
-	"github.com/kart-io/sentinel-x/pkg/utils/errors"
 	"google.golang.org/grpc/codes"
+
+	"github.com/kart-io/sentinel-x/pkg/utils/errors"
 )
 
 // ============================================================================

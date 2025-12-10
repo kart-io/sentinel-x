@@ -67,6 +67,9 @@ func NewServer(opts ...httpopts.Option) *Server {
 		adapter = GetAdapter(httpopts.AdapterGin)
 	}
 
+	// Note: adapter may still be nil if no adapters are registered
+	// This will be checked in Start()
+
 	return &Server{
 		opts:     options,
 		adapter:  adapter,
@@ -76,6 +79,9 @@ func NewServer(opts ...httpopts.Option) *Server {
 
 // Name returns the server name.
 func (s *Server) Name() string {
+	if s.adapter == nil {
+		return "http[uninitialized]"
+	}
 	return fmt.Sprintf("http[%s]", s.adapter.Name())
 }
 
@@ -93,6 +99,9 @@ func (s *Server) RegisterHTTPHandler(svc service.Service, handler transport.HTTP
 
 // Router returns the HTTP router.
 func (s *Server) Router() transport.Router {
+	if s.adapter == nil {
+		return nil
+	}
 	return s.adapter.Router()
 }
 
@@ -103,6 +112,12 @@ func (s *Server) Adapter() Adapter {
 
 // Start starts the HTTP server.
 func (s *Server) Start(ctx context.Context) error {
+	// Check if adapter is initialized
+	if s.adapter == nil {
+		return errors.New("HTTP server adapter not initialized: no adapter registered for the configured type. " +
+			"Make sure to import the adapter package (e.g., _ \"github.com/kart-io/sentinel-x/pkg/infra/server/transport/http/gin\")")
+	}
+
 	// Set default 404 handler with JSON response
 	s.adapter.SetNotFoundHandler(func(c transport.Context) {
 		response.Fail(c, apierrors.ErrRouteNotFound)

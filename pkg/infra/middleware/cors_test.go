@@ -22,6 +22,20 @@ func TestCORSConfigValidate(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "valid config with port",
+			config: CORSConfig{
+				AllowOrigins: []string{"https://example.com:8080"},
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid config with localhost",
+			config: CORSConfig{
+				AllowOrigins: []string{"http://localhost:3000"},
+			},
+			wantErr: false,
+		},
+		{
 			name: "empty origins should fail",
 			config: CORSConfig{
 				AllowOrigins: []string{},
@@ -50,6 +64,34 @@ func TestCORSConfigValidate(t *testing.T) {
 				AllowOrigins: []string{"https://example.com", "https://api.example.com"},
 			},
 			wantErr: false,
+		},
+		{
+			name: "origin without scheme should fail",
+			config: CORSConfig{
+				AllowOrigins: []string{"example.com"},
+			},
+			wantErr: true,
+		},
+		{
+			name: "origin with path should fail",
+			config: CORSConfig{
+				AllowOrigins: []string{"https://example.com/api"},
+			},
+			wantErr: true,
+		},
+		{
+			name: "origin with query should fail",
+			config: CORSConfig{
+				AllowOrigins: []string{"https://example.com?param=value"},
+			},
+			wantErr: true,
+		},
+		{
+			name: "empty origin string should fail",
+			config: CORSConfig{
+				AllowOrigins: []string{""},
+			},
+			wantErr: true,
 		},
 	}
 
@@ -226,14 +268,33 @@ func TestCORSWithConfig_NoOriginHeader(t *testing.T) {
 }
 
 func TestCORS_DefaultConfig(t *testing.T) {
-	// Default config has empty AllowOrigins which should panic
-	defer func() {
-		if r := recover(); r == nil {
-			t.Error("Expected CORS() to panic with default empty config")
-		}
-	}()
+	// Default config now has localhost defaults which should not panic
+	middleware := CORS()
+	if middleware == nil {
+		t.Error("Expected CORS() to return a valid middleware")
+	}
 
-	_ = CORS()
+	// Test that default config works
+	handlerCalled := false
+	handler := middleware(func(ctx transport.Context) {
+		handlerCalled = true
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req.Header.Set("Origin", "http://localhost:3000")
+	w := httptest.NewRecorder()
+
+	mockCtx := newMockContext(req, w)
+	handler(mockCtx)
+
+	if !handlerCalled {
+		t.Error("Expected handler to be called")
+	}
+
+	// Check that CORS headers are set for allowed origin
+	if got := mockCtx.headers["Access-Control-Allow-Origin"]; got != "http://localhost:3000" {
+		t.Errorf("Access-Control-Allow-Origin = %v, want %v", got, "http://localhost:3000")
+	}
 }
 
 func TestCORSWithConfig_Panic(t *testing.T) {

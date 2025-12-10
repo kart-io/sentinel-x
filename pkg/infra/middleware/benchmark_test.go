@@ -177,7 +177,6 @@ func BenchmarkRateLimitMiddleware(b *testing.B) {
 	middleware := RateLimitWithConfig(RateLimitConfig{
 		Limit:   1000,
 		Window:  1 * time.Minute,
-		KeyFunc: defaultKeyFunc,
 		Limiter: limiter,
 	})
 

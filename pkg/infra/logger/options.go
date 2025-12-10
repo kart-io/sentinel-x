@@ -11,12 +11,65 @@ import (
 // Options wraps the logger option.LogOption with sentinel-x specific additions.
 type Options struct {
 	*option.LogOption
+	// Enhanced holds enhanced logging configuration for middleware.
+	Enhanced *EnhancedLoggerConfig
+}
+
+// EnhancedLoggerConfig provides enhanced logging features for HTTP middleware.
+type EnhancedLoggerConfig struct {
+	// EnableTraceCorrelation enables automatic extraction and logging of OpenTelemetry trace/span IDs.
+	EnableTraceCorrelation bool
+
+	// EnableResponseLogging enables logging of response status, size, and latency.
+	EnableResponseLogging bool
+
+	// EnableRequestLogging enables logging of request method, path, and headers.
+	EnableRequestLogging bool
+
+	// SensitiveHeaders is a list of header names to redact from logs (e.g., "Authorization", "Cookie").
+	SensitiveHeaders []string
+
+	// MaxBodyLogSize is the maximum size in bytes of request/response body to log.
+	// Set to 0 to disable body logging, -1 for unlimited.
+	MaxBodyLogSize int
+
+	// CaptureStackTrace enables stack trace capture for error responses (5xx).
+	CaptureStackTrace bool
+
+	// ErrorStackTraceMinStatus is the minimum HTTP status code to capture stack traces (default: 500).
+	ErrorStackTraceMinStatus int
+
+	// SkipPaths is a list of paths to skip enhanced logging (e.g., "/health", "/metrics").
+	SkipPaths []string
+
+	// LogRequestBody enables logging of request body for debugging.
+	LogRequestBody bool
+
+	// LogResponseBody enables logging of response body for debugging.
+	LogResponseBody bool
+}
+
+// DefaultEnhancedLoggerConfig returns default enhanced logger configuration.
+func DefaultEnhancedLoggerConfig() *EnhancedLoggerConfig {
+	return &EnhancedLoggerConfig{
+		EnableTraceCorrelation:   true,
+		EnableResponseLogging:    true,
+		EnableRequestLogging:     true,
+		SensitiveHeaders:         []string{"Authorization", "Cookie", "X-Api-Key", "X-Auth-Token"},
+		MaxBodyLogSize:           1024, // 1KB default
+		CaptureStackTrace:        false,
+		ErrorStackTraceMinStatus: 500,
+		SkipPaths:                []string{"/health", "/ready", "/metrics"},
+		LogRequestBody:           false,
+		LogResponseBody:          false,
+	}
 }
 
 // NewOptions creates new Options with defaults.
 func NewOptions() *Options {
 	return &Options{
 		LogOption: option.DefaultLogOption(),
+		Enhanced:  DefaultEnhancedLoggerConfig(),
 	}
 }
 
@@ -45,6 +98,19 @@ func (o *Options) AddFlags(fs *pflag.FlagSet) {
 	fs.IntVar(&o.Rotation.MaxAge, "log.rotation.max-age", 15, "Maximum number of days to retain old log files")
 	fs.IntVar(&o.Rotation.MaxBackups, "log.rotation.max-backups", 30, "Maximum number of old log files to retain")
 	fs.BoolVar(&o.Rotation.Compress, "log.rotation.compress", true, "Compress rotated log files using gzip")
+
+	// Enhanced logging options
+	if o.Enhanced == nil {
+		o.Enhanced = DefaultEnhancedLoggerConfig()
+	}
+	fs.BoolVar(&o.Enhanced.EnableTraceCorrelation, "log.enhanced.trace-correlation", o.Enhanced.EnableTraceCorrelation, "Enable OpenTelemetry trace/span ID correlation")
+	fs.BoolVar(&o.Enhanced.EnableResponseLogging, "log.enhanced.response-logging", o.Enhanced.EnableResponseLogging, "Enable response status, size, and latency logging")
+	fs.BoolVar(&o.Enhanced.EnableRequestLogging, "log.enhanced.request-logging", o.Enhanced.EnableRequestLogging, "Enable request method, path, and headers logging")
+	fs.IntVar(&o.Enhanced.MaxBodyLogSize, "log.enhanced.max-body-size", o.Enhanced.MaxBodyLogSize, "Maximum request/response body size to log in bytes")
+	fs.BoolVar(&o.Enhanced.CaptureStackTrace, "log.enhanced.capture-stack", o.Enhanced.CaptureStackTrace, "Capture stack traces for error responses")
+	fs.IntVar(&o.Enhanced.ErrorStackTraceMinStatus, "log.enhanced.stack-min-status", o.Enhanced.ErrorStackTraceMinStatus, "Minimum HTTP status code to capture stack traces")
+	fs.BoolVar(&o.Enhanced.LogRequestBody, "log.enhanced.log-request-body", o.Enhanced.LogRequestBody, "Enable request body logging")
+	fs.BoolVar(&o.Enhanced.LogResponseBody, "log.enhanced.log-response-body", o.Enhanced.LogResponseBody, "Enable response body logging")
 }
 
 // Validate validates the logger options.

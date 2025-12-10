@@ -6,7 +6,7 @@
 // Configuration Example (YAML):
 //
 //	jwt:
-//	  key: "your-secret-key-min-32-chars-long"
+//	  key: "your-secret-key-must-be-at-least-64-chars-long-for-security-purposes!!"
 //	  signing-method: "HS256"
 //	  expired: "2h"
 //	  max-refresh: "24h"
@@ -44,13 +44,17 @@ const (
 	DefaultIssuer = "sentinel-x"
 
 	// MinKeyLength is the minimum required key length for security.
-	MinKeyLength = 32
+	// Increased to 64 characters (512 bits) to provide adequate security
+	// against brute force attacks for HMAC-based JWT signing.
+	MinKeyLength = 64
 
 	// RecommendedKeyLength is the recommended key length for enhanced security.
-	RecommendedKeyLength = 64
+	// 128 characters (1024 bits) provides additional security margin.
+	RecommendedKeyLength = 128
 
 	// MaxKeyLength is the maximum allowed key length.
-	MaxKeyLength = 256
+	// Prevents excessively large keys that could impact performance.
+	MaxKeyLength = 512
 )
 
 // SupportedSigningMethods contains all supported JWT signing algorithms.
@@ -76,7 +80,8 @@ type Options struct {
 	// Key is the secret key used to sign tokens.
 	// For HMAC algorithms (HS256/HS384/HS512), this should be a secure random string.
 	// For RSA/ECDSA algorithms, this should be the private key in PEM format.
-	// Minimum length: 32 characters for HMAC algorithms.
+	// Minimum length: 64 characters for HMAC algorithms (512 bits).
+	// Recommended length: 128 characters (1024 bits) for enhanced security.
 	Key string `json:"key" mapstructure:"key"`
 
 	// SigningMethod is the JWT signing algorithm.
@@ -223,7 +228,7 @@ func (o *Options) AddFlags(fs *pflag.FlagSet) {
 	fs.BoolVar(&o.DisableAuth, "jwt.disable-auth", o.DisableAuth,
 		"Disable JWT authentication")
 	fs.StringVar(&o.Key, "jwt.key", o.Key,
-		"JWT signing key (min 32 chars for HMAC algorithms)")
+		"JWT signing key (min 64 chars for HMAC algorithms, 128 chars recommended)")
 	fs.StringVar(&o.SigningMethod, "jwt.signing-method", o.SigningMethod,
 		"JWT signing algorithm (HS256, HS384, HS512, RS256, RS384, RS512, ES256, ES384, ES512)")
 	fs.DurationVar(&o.Expired, "jwt.expired", o.Expired,

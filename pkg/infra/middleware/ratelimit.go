@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"net/http"
 	"strings"
 	"sync"
 	"time"
@@ -49,16 +50,29 @@ type RateLimitConfig struct {
 	// Limiter is the rate limiter implementation to use.
 	// If nil, a memory-based limiter will be created.
 	Limiter RateLimiter
+
+	// TrustedProxies is a list of trusted proxy IP addresses or CIDR ranges.
+	// When empty, proxy headers (X-Forwarded-For, X-Real-IP) are not trusted.
+	// Example: []string{"127.0.0.1", "10.0.0.0/8", "172.16.0.0/12"}
+	// Default: empty (do not trust proxy headers)
+	TrustedProxies []string
+
+	// TrustProxyHeaders controls whether to trust proxy headers for IP extraction.
+	// Even if true, headers are only trusted when requests come from TrustedProxies.
+	// Default: false (do not trust proxy headers)
+	TrustProxyHeaders bool
 }
 
 // DefaultRateLimitConfig is the default rate limit configuration.
 var DefaultRateLimitConfig = RateLimitConfig{
-	Limit:          100,
-	Window:         1 * time.Minute,
-	KeyFunc:        nil, // Will use defaultKeyFunc
-	SkipPaths:      []string{},
-	OnLimitReached: nil,
-	Limiter:        nil, // Will create memory limiter
+	Limit:             100,
+	Window:            1 * time.Minute,
+	KeyFunc:           nil, // Will use defaultKeyFunc
+	SkipPaths:         []string{},
+	OnLimitReached:    nil,
+	Limiter:           nil,        // Will create memory limiter
+	TrustedProxies:    []string{}, // Empty by default - do not trust proxy headers
+	TrustProxyHeaders: false,      // Do not trust proxy headers by default
 }
 
 // RateLimit returns a rate limiting middleware with default configuration.
@@ -85,7 +99,7 @@ func RateLimitWithConfig(config RateLimitConfig) transport.MiddlewareFunc {
 			}
 
 			// Extract rate limit key
-			key := extractKey(c, config.KeyFunc)
+			key := extractKey(c, config.KeyFunc, config)
 
 			// Check rate limit
 			allowed, err := checkRateLimit(c.Request(), config.Limiter, key)
@@ -123,7 +137,10 @@ func validateConfig(config RateLimitConfig) RateLimitConfig {
 	}
 
 	if config.KeyFunc == nil {
-		config.KeyFunc = defaultKeyFunc
+		// Use closure to capture config for IP extraction
+		config.KeyFunc = func(c transport.Context) string {
+			return extractClientIP(c, config)
+		}
 	}
 
 	if config.SkipPaths == nil {
@@ -141,49 +158,114 @@ func validateConfig(config RateLimitConfig) RateLimitConfig {
 // Key Extraction
 // ============================================================================
 
-// defaultKeyFunc extracts the client IP address as the rate limit key.
-func defaultKeyFunc(c transport.Context) string {
-	return extractClientIP(c)
-}
-
 // extractKey extracts the rate limit key using the configured KeyFunc.
-func extractKey(c transport.Context, keyFunc func(c transport.Context) string) string {
+// Falls back to RemoteAddr if the key function returns empty string.
+func extractKey(c transport.Context, keyFunc func(c transport.Context) string, config RateLimitConfig) string {
 	key := keyFunc(c)
 	if key == "" {
-		// Fallback to IP if key function returns empty string
-		key = extractClientIP(c)
+		// Fallback to remote IP if key function returns empty string
+		req := c.HTTPRequest()
+		key = getRemoteIP(req)
 	}
 	return key
 }
 
 // extractClientIP extracts the real client IP from the request.
-// It checks X-Forwarded-For, X-Real-IP, and RemoteAddr in order.
-func extractClientIP(c transport.Context) string {
+// It only trusts proxy headers (X-Forwarded-For, X-Real-IP) when:
+// 1. TrustProxyHeaders is enabled in config
+// 2. The request comes from a trusted proxy IP/CIDR
+// This prevents IP spoofing attacks via forged headers.
+func extractClientIP(c transport.Context, config RateLimitConfig) string {
 	req := c.HTTPRequest()
+	remoteIP := getRemoteIP(req)
 
-	// Check X-Forwarded-For header
-	if xff := req.Header.Get("X-Forwarded-For"); xff != "" {
-		// X-Forwarded-For can contain multiple IPs, use the first one
-		ips := strings.Split(xff, ",")
-		if len(ips) > 0 {
-			ip := strings.TrimSpace(ips[0])
-			if ip != "" {
-				return ip
+	// Only trust proxy headers if configured and request is from trusted proxy
+	if config.TrustProxyHeaders && isTrustedProxy(remoteIP, config.TrustedProxies) {
+		// Check X-Forwarded-For header (most common)
+		if xff := req.Header.Get("X-Forwarded-For"); xff != "" {
+			// X-Forwarded-For can contain multiple IPs (client, proxy1, proxy2, ...)
+			// Use the first IP which should be the original client
+			ips := strings.Split(xff, ",")
+			if len(ips) > 0 {
+				ip := strings.TrimSpace(ips[0])
+				if isValidIP(ip) {
+					return ip
+				}
+			}
+		}
+
+		// Check X-Real-IP header (alternative to X-Forwarded-For)
+		if xri := req.Header.Get("X-Real-IP"); xri != "" {
+			xri = strings.TrimSpace(xri)
+			if isValidIP(xri) {
+				return xri
 			}
 		}
 	}
 
-	// Check X-Real-IP header
-	if xri := req.Header.Get("X-Real-IP"); xri != "" {
-		return xri
-	}
+	// Fall back to remote address (directly connected IP)
+	// This is always safe as it cannot be spoofed
+	return remoteIP
+}
 
-	// Fall back to RemoteAddr
+// getRemoteIP extracts the IP address from http.Request.RemoteAddr.
+// RemoteAddr is in the form "IP:port", so we need to split it.
+func getRemoteIP(req *http.Request) string {
 	ip, _, err := net.SplitHostPort(req.RemoteAddr)
 	if err != nil {
+		// If split fails, return the whole RemoteAddr
 		return req.RemoteAddr
 	}
 	return ip
+}
+
+// isTrustedProxy checks if the given IP is in the list of trusted proxies.
+// Supports both individual IPs and CIDR ranges.
+func isTrustedProxy(ip string, trustedCIDRs []string) bool {
+	// If no trusted proxies configured, don't trust any proxy
+	if len(trustedCIDRs) == 0 {
+		return false
+	}
+
+	parsedIP := net.ParseIP(ip)
+	if parsedIP == nil {
+		// Invalid IP, don't trust it
+		return false
+	}
+
+	for _, cidr := range trustedCIDRs {
+		// Support both single IP addresses and CIDR notation
+		if !strings.Contains(cidr, "/") {
+			// Single IP address - add /32 or /128 for exact match
+			if cidr == ip {
+				return true
+			}
+			continue
+		}
+
+		// CIDR range - parse and check if IP is in range
+		_, network, err := net.ParseCIDR(cidr)
+		if err != nil {
+			// Invalid CIDR, skip it
+			logger.Warnw("invalid CIDR in trusted proxies",
+				"cidr", cidr,
+				"error", err.Error(),
+			)
+			continue
+		}
+
+		if network.Contains(parsedIP) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// isValidIP validates that the given string is a valid IP address.
+// This prevents injection of invalid data into rate limiting keys.
+func isValidIP(ip string) bool {
+	return net.ParseIP(ip) != nil
 }
 
 // ============================================================================

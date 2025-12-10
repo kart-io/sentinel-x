@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	// Import gin adapter to register it
+	_ "github.com/kart-io/sentinel-x/pkg/infra/adapter/gin"
 	"github.com/kart-io/sentinel-x/pkg/infra/middleware"
 	httpopts "github.com/kart-io/sentinel-x/pkg/infra/server/http"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/service"
@@ -527,12 +529,192 @@ func TestManagerCustomServerErrors(t *testing.T) {
 	}
 }
 
-func TestManagerWait(t *testing.T) {
+func TestManagerWait_NotStarted(t *testing.T) {
 	mgr := NewManager()
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
 
 	err := mgr.Wait(ctx)
+	if err == nil {
+		t.Error("Wait() should return error when manager is not started")
+	}
+	if err.Error() != "server manager not started" {
+		t.Errorf("Expected 'server manager not started' error, got: %v", err)
+	}
+}
+
+func TestManagerWait_NoServers(t *testing.T) {
+	// Create manager with servers explicitly disabled
+	mgr := NewManager(WithMode(ModeHTTPOnly))
+
+	// Manually set started flag and clear servers for this test
+	mgr.mu.Lock()
+	mgr.started = true
+	mgr.httpServer = nil
+	mgr.mu.Unlock()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	err := mgr.Wait(ctx)
+	if err == nil {
+		t.Error("Wait() should return error when no servers are configured")
+	}
+	if err.Error() != "no servers configured" {
+		t.Errorf("Expected 'no servers configured' error, got: %v", err)
+	}
+}
+
+func TestManagerWait_HTTPServerReady(t *testing.T) {
+	// Create manager with HTTP server
+	mgr := NewManager(
+		WithMode(ModeHTTPOnly),
+		WithHTTPOptions(&httpopts.Options{
+			Addr:         ":0", // Random port
+			ReadTimeout:  10 * time.Second,
+			WriteTimeout: 10 * time.Second,
+			IdleTimeout:  10 * time.Second,
+			Adapter:      httpopts.AdapterGin,
+			Middleware:   middleware.NewOptions(),
+		}),
+	)
+
+	// Start the server
+	ctx := context.Background()
+	if err := mgr.Start(ctx); err != nil {
+		t.Fatalf("Failed to start server: %v", err)
+	}
+	defer func() {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = mgr.Stop(shutdownCtx)
+	}()
+
+	// Wait for server to be ready
+	waitCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	err := mgr.Wait(waitCtx)
 	if err != nil {
-		t.Errorf("Wait() error = %v, want nil", err)
+		t.Errorf("Wait() should succeed when server is ready, got error: %v", err)
+	}
+}
+
+func TestManagerWait_GRPCServerReady(t *testing.T) {
+	// Create manager with gRPC server
+	mgr := NewManager(WithMode(ModeGRPCOnly))
+
+	// Start the server
+	ctx := context.Background()
+	if err := mgr.Start(ctx); err != nil {
+		t.Fatalf("Failed to start server: %v", err)
+	}
+	defer func() {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = mgr.Stop(shutdownCtx)
+	}()
+
+	// Wait for server to be ready
+	waitCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	err := mgr.Wait(waitCtx)
+	if err != nil {
+		t.Errorf("Wait() should succeed when gRPC server is ready, got error: %v", err)
+	}
+}
+
+func TestManagerWait_BothServersReady(t *testing.T) {
+	// Create manager with both HTTP and gRPC servers
+	mgr := NewManager(WithMode(ModeBoth))
+
+	// Start the servers
+	ctx := context.Background()
+	if err := mgr.Start(ctx); err != nil {
+		t.Fatalf("Failed to start servers: %v", err)
+	}
+	defer func() {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = mgr.Stop(shutdownCtx)
+	}()
+
+	// Wait for servers to be ready
+	waitCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	err := mgr.Wait(waitCtx)
+	if err != nil {
+		t.Errorf("Wait() should succeed when both servers are ready, got error: %v", err)
+	}
+}
+
+func TestManagerWait_CalledMultipleTimes(t *testing.T) {
+	// Create manager with HTTP server
+	mgr := NewManager(
+		WithMode(ModeHTTPOnly),
+		WithHTTPOptions(&httpopts.Options{
+			Addr:         ":0",
+			ReadTimeout:  10 * time.Second,
+			WriteTimeout: 10 * time.Second,
+			IdleTimeout:  10 * time.Second,
+			Adapter:      httpopts.AdapterGin,
+			Middleware:   middleware.NewOptions(),
+		}),
+	)
+
+	// Start the server
+	ctx := context.Background()
+	if err := mgr.Start(ctx); err != nil {
+		t.Fatalf("Failed to start server: %v", err)
+	}
+	defer func() {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = mgr.Stop(shutdownCtx)
+	}()
+
+	// Call Wait multiple times
+	for i := 0; i < 3; i++ {
+		waitCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		err := mgr.Wait(waitCtx)
+		cancel()
+
+		if err != nil {
+			t.Errorf("Wait() call %d should succeed, got error: %v", i+1, err)
+		}
+	}
+}
+
+// Benchmark Wait method
+func BenchmarkManagerWait(b *testing.B) {
+	mgr := NewManager(
+		WithMode(ModeHTTPOnly),
+		WithHTTPOptions(&httpopts.Options{
+			Addr:         ":0",
+			ReadTimeout:  10 * time.Second,
+			WriteTimeout: 10 * time.Second,
+			IdleTimeout:  10 * time.Second,
+			Adapter:      httpopts.AdapterGin,
+			Middleware:   middleware.NewOptions(),
+		}),
+	)
+
+	ctx := context.Background()
+	if err := mgr.Start(ctx); err != nil {
+		b.Fatalf("Failed to start server: %v", err)
+	}
+	defer func() {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = mgr.Stop(shutdownCtx)
+	}()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		waitCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		_ = mgr.Wait(waitCtx)
+		cancel()
 	}
 }

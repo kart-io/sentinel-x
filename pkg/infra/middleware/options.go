@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"log"
 	"time"
 
@@ -164,6 +165,19 @@ func NewOptions() *Options {
 			BlockProfileRate:     0,
 			MutexProfileFraction: 0,
 		},
+		Auth: AuthOptions{
+			TokenLookup:      "header:Authorization",
+			AuthScheme:       "Bearer",
+			SkipPaths:        []string{},
+			SkipPathPrefixes: []string{},
+			// Authenticator will be set via dependency injection
+		},
+		Authz: AuthzOptions{
+			SkipPaths:        []string{},
+			SkipPathPrefixes: []string{},
+			// Authorizer and extractors will be set via dependency injection
+			// Default extractors are provided in authz.go
+		},
 		DisableCORS:    true,  // CORS disabled by default
 		DisableTimeout: true,  // Timeout disabled by default
 		DisablePprof:   true,  // Pprof disabled by default (security)
@@ -221,7 +235,88 @@ func (o *Options) AddFlags(fs *pflag.FlagSet) {
 }
 
 // Validate validates the middleware options.
+// Note: This performs basic structural validation. Runtime validation
+// (e.g., checking if authenticator is set) happens in the middleware itself.
 func (o *Options) Validate() error {
+	var errs []error
+
+	// Validate timeout configuration
+	if !o.DisableTimeout {
+		if o.Timeout.Timeout <= 0 {
+			errs = append(errs, fmt.Errorf("timeout must be positive when timeout middleware is enabled"))
+		}
+	}
+
+	// Validate CORS configuration
+	if !o.DisableCORS {
+		if len(o.CORS.AllowOrigins) == 0 {
+			errs = append(errs, fmt.Errorf("cors: at least one allowed origin must be specified when CORS is enabled"))
+		}
+		if len(o.CORS.AllowMethods) == 0 {
+			errs = append(errs, fmt.Errorf("cors: at least one allowed method must be specified when CORS is enabled"))
+		}
+		if o.CORS.MaxAge < 0 {
+			errs = append(errs, fmt.Errorf("cors: max age cannot be negative"))
+		}
+	}
+
+	// Validate authentication configuration
+	// Only validate configuration fields, not the authenticator itself
+	// (authenticator may be set later via dependency injection)
+	if !o.DisableAuth {
+		if o.Auth.TokenLookup == "" {
+			errs = append(errs, fmt.Errorf("auth: token lookup configuration is required"))
+		}
+		if o.Auth.AuthScheme == "" {
+			errs = append(errs, fmt.Errorf("auth: auth scheme is required"))
+		}
+	}
+
+	// Validate authorization configuration
+	// Only validate extractors if they've been explicitly set to nil
+	// (default extractors are set in NewAuthzOptions)
+	if !o.DisableAuthz {
+		// Authz validation is runtime-based, defaults are set in NewAuthzOptions
+		// No structural validation needed here
+	}
+
+	// Validate health check paths
+	if !o.DisableHealth {
+		if o.Health.Path == "" && o.Health.LivenessPath == "" && o.Health.ReadinessPath == "" {
+			errs = append(errs, fmt.Errorf("health: at least one health check path must be configured"))
+		}
+	}
+
+	// Validate metrics configuration
+	if !o.DisableMetrics {
+		if o.Metrics.Path == "" {
+			errs = append(errs, fmt.Errorf("metrics: metrics path must be configured"))
+		}
+	}
+
+	// Validate pprof configuration
+	if !o.DisablePprof {
+		if o.Pprof.Prefix == "" {
+			errs = append(errs, fmt.Errorf("pprof: pprof prefix must be configured"))
+		}
+		if o.Pprof.BlockProfileRate < 0 {
+			errs = append(errs, fmt.Errorf("pprof: block profile rate cannot be negative"))
+		}
+		if o.Pprof.MutexProfileFraction < 0 {
+			errs = append(errs, fmt.Errorf("pprof: mutex profile fraction cannot be negative"))
+		}
+	}
+
+	// Validate request ID configuration
+	if !o.DisableRequestID {
+		if o.RequestID.Header == "" {
+			errs = append(errs, fmt.Errorf("request-id: header name must be configured"))
+		}
+	}
+
+	if len(errs) > 0 {
+		return fmt.Errorf("middleware validation errors: %v", errs)
+	}
 	return nil
 }
 

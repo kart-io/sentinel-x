@@ -5,6 +5,7 @@ package response
 
 import (
 	"net/http"
+	"sync"
 
 	"github.com/kart-io/sentinel-x/pkg/utils/errors"
 )
@@ -31,6 +32,36 @@ type Response struct {
 	Timestamp int64 `json:"timestamp,omitempty"`
 }
 
+// responsePool is a sync.Pool for Response objects to reduce memory allocations.
+// This significantly reduces GC pressure in high-throughput scenarios (10K+ RPS).
+var responsePool = sync.Pool{
+	New: func() interface{} {
+		return &Response{}
+	},
+}
+
+// Acquire retrieves a Response object from the pool.
+// The returned Response should be released back to the pool using Release() after use.
+func Acquire() *Response {
+	return responsePool.Get().(*Response)
+}
+
+// Release returns a Response object to the pool after resetting its fields.
+// This prevents data leakage between requests.
+func Release(r *Response) {
+	if r == nil {
+		return
+	}
+	// Reset all fields to zero values
+	r.Code = 0
+	r.HTTPCode = 0
+	r.Message = ""
+	r.Data = nil
+	r.RequestID = ""
+	r.Timestamp = 0
+	responsePool.Put(r)
+}
+
 // PageData represents paginated data.
 type PageData struct {
 	// List contains the data items
@@ -50,68 +81,78 @@ type PageData struct {
 }
 
 // Success creates a successful response with data.
+// Note: The returned Response uses object pooling. It should be released
+// using Release() after the response is written to avoid memory leaks.
 func Success(data interface{}) *Response {
-	return &Response{
-		Code:     0,
-		HTTPCode: http.StatusOK,
-		Message:  "success",
-		Data:     data,
-	}
+	resp := Acquire()
+	resp.Code = 0
+	resp.HTTPCode = http.StatusOK
+	resp.Message = "success"
+	resp.Data = data
+	return resp
 }
 
 // SuccessWithMessage creates a successful response with custom message.
+// Note: The returned Response uses object pooling. It should be released
+// using Release() after the response is written to avoid memory leaks.
 func SuccessWithMessage(message string, data interface{}) *Response {
-	return &Response{
-		Code:     0,
-		HTTPCode: http.StatusOK,
-		Message:  message,
-		Data:     data,
-	}
+	resp := Acquire()
+	resp.Code = 0
+	resp.HTTPCode = http.StatusOK
+	resp.Message = message
+	resp.Data = data
+	return resp
 }
 
 // Err creates an error response from an Errno type.
+// Note: The returned Response uses object pooling. It should be released
+// using Release() after the response is written to avoid memory leaks.
 func Err(e *errors.Errno) *Response {
 	if e == nil {
 		return Success(nil)
 	}
-	return &Response{
-		Code:     e.Code,
-		HTTPCode: e.HTTPStatus(),
-		Message:  e.MessageEN,
-	}
+	resp := Acquire()
+	resp.Code = e.Code
+	resp.HTTPCode = e.HTTPStatus()
+	resp.Message = e.MessageEN
+	return resp
 }
 
 // ErrWithLang creates an error response with language-specific message.
+// Note: The returned Response uses object pooling. It should be released
+// using Release() after the response is written to avoid memory leaks.
 func ErrWithLang(e *errors.Errno, lang string) *Response {
 	if e == nil {
 		return Success(nil)
 	}
-	return &Response{
-		Code:     e.Code,
-		HTTPCode: e.HTTPStatus(),
-		Message:  e.Message(lang),
-	}
+	resp := Acquire()
+	resp.Code = e.Code
+	resp.HTTPCode = e.HTTPStatus()
+	resp.Message = e.Message(lang)
+	return resp
 }
 
 // ErrorWithCode creates an error response with code and message.
+// Note: The returned Response uses object pooling. It should be released
+// using Release() after the response is written to avoid memory leaks.
 func ErrorWithCode(code int, message string) *Response {
-	r := &Response{
-		Code:    code,
-		Message: message,
-	}
-	r.HTTPCode = r.HTTPStatus()
-	return r
+	resp := Acquire()
+	resp.Code = code
+	resp.Message = message
+	resp.HTTPCode = resp.HTTPStatus()
+	return resp
 }
 
 // ErrorWithData creates an error response with additional data.
+// Note: The returned Response uses object pooling. It should be released
+// using Release() after the response is written to avoid memory leaks.
 func ErrorWithData(code int, message string, data interface{}) *Response {
-	r := &Response{
-		Code:    code,
-		Message: message,
-		Data:    data,
-	}
-	r.HTTPCode = r.HTTPStatus()
-	return r
+	resp := Acquire()
+	resp.Code = code
+	resp.Message = message
+	resp.Data = data
+	resp.HTTPCode = resp.HTTPStatus()
+	return resp
 }
 
 // Page creates a paginated response.

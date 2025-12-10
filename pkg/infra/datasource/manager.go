@@ -35,6 +35,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/kart-io/sentinel-x/pkg/component/etcd"
@@ -236,143 +237,120 @@ func (m *Manager) initByType(ctx context.Context, storageType StorageType, name 
 }
 
 // =============================================================================
-// Getter Methods (with lazy initialization)
+// Generic Typed Getters
 // =============================================================================
+
+// MySQL returns a type-safe getter for MySQL clients.
+// This eliminates boilerplate code by using generics.
+//
+// Example:
+//
+//	client, err := mgr.MySQL().Get("primary")
+//	client := mgr.MySQL().MustGet("primary")
+func (m *Manager) MySQL() *TypedGetter[*mysql.Client] {
+	return NewTypedGetter[*mysql.Client](m, TypeMySQL)
+}
+
+// Postgres returns a type-safe getter for PostgreSQL clients.
+func (m *Manager) Postgres() *TypedGetter[*postgres.Client] {
+	return NewTypedGetter[*postgres.Client](m, TypePostgres)
+}
+
+// Redis returns a type-safe getter for Redis clients.
+func (m *Manager) Redis() *TypedGetter[*redis.Client] {
+	return NewTypedGetter[*redis.Client](m, TypeRedis)
+}
+
+// MongoDB returns a type-safe getter for MongoDB clients.
+func (m *Manager) MongoDB() *TypedGetter[*mongodb.Client] {
+	return NewTypedGetter[*mongodb.Client](m, TypeMongoDB)
+}
+
+// Etcd returns a type-safe getter for Etcd clients.
+func (m *Manager) Etcd() *TypedGetter[*etcd.Client] {
+	return NewTypedGetter[*etcd.Client](m, TypeEtcd)
+}
+
+// =============================================================================
+// Backward Compatible Getter Methods
+// =============================================================================
+// These methods maintain backward compatibility with existing code.
+// They delegate to the generic TypedGetter implementation.
 
 // GetMySQL returns the MySQL client by name.
 // If not initialized, it will be initialized lazily.
 func (m *Manager) GetMySQL(name string) (*mysql.Client, error) {
-	client, err := m.getClient(TypeMySQL, name)
-	if err != nil {
-		return nil, err
-	}
-	return client.(*mysql.Client), nil
+	return m.MySQL().Get(name)
 }
 
 // GetPostgres returns the PostgreSQL client by name.
 func (m *Manager) GetPostgres(name string) (*postgres.Client, error) {
-	client, err := m.getClient(TypePostgres, name)
-	if err != nil {
-		return nil, err
-	}
-	return client.(*postgres.Client), nil
+	return m.Postgres().Get(name)
 }
 
 // GetRedis returns the Redis client by name.
 func (m *Manager) GetRedis(name string) (*redis.Client, error) {
-	client, err := m.getClient(TypeRedis, name)
-	if err != nil {
-		return nil, err
-	}
-	return client.(*redis.Client), nil
+	return m.Redis().Get(name)
 }
 
 // GetMongoDB returns the MongoDB client by name.
 func (m *Manager) GetMongoDB(name string) (*mongodb.Client, error) {
-	client, err := m.getClient(TypeMongoDB, name)
-	if err != nil {
-		return nil, err
-	}
-	return client.(*mongodb.Client), nil
+	return m.MongoDB().Get(name)
 }
 
 // GetEtcd returns the Etcd client by name.
 func (m *Manager) GetEtcd(name string) (*etcd.Client, error) {
-	client, err := m.getClient(TypeEtcd, name)
-	if err != nil {
-		return nil, err
-	}
-	return client.(*etcd.Client), nil
+	return m.Etcd().Get(name)
 }
 
 // GetMySQLWithContext returns the MySQL client by name with context support.
 func (m *Manager) GetMySQLWithContext(ctx context.Context, name string) (*mysql.Client, error) {
-	client, err := m.getClientWithContext(ctx, TypeMySQL, name)
-	if err != nil {
-		return nil, err
-	}
-	return client.(*mysql.Client), nil
+	return m.MySQL().GetWithContext(ctx, name)
 }
 
 // GetPostgresWithContext returns the PostgreSQL client by name with context support.
 func (m *Manager) GetPostgresWithContext(ctx context.Context, name string) (*postgres.Client, error) {
-	client, err := m.getClientWithContext(ctx, TypePostgres, name)
-	if err != nil {
-		return nil, err
-	}
-	return client.(*postgres.Client), nil
+	return m.Postgres().GetWithContext(ctx, name)
 }
 
 // GetRedisWithContext returns the Redis client by name with context support.
 func (m *Manager) GetRedisWithContext(ctx context.Context, name string) (*redis.Client, error) {
-	client, err := m.getClientWithContext(ctx, TypeRedis, name)
-	if err != nil {
-		return nil, err
-	}
-	return client.(*redis.Client), nil
+	return m.Redis().GetWithContext(ctx, name)
 }
 
 // GetMongoDBWithContext returns the MongoDB client by name with context support.
 func (m *Manager) GetMongoDBWithContext(ctx context.Context, name string) (*mongodb.Client, error) {
-	client, err := m.getClientWithContext(ctx, TypeMongoDB, name)
-	if err != nil {
-		return nil, err
-	}
-	return client.(*mongodb.Client), nil
+	return m.MongoDB().GetWithContext(ctx, name)
 }
 
 // GetEtcdWithContext returns the Etcd client by name with context support.
 func (m *Manager) GetEtcdWithContext(ctx context.Context, name string) (*etcd.Client, error) {
-	client, err := m.getClientWithContext(ctx, TypeEtcd, name)
-	if err != nil {
-		return nil, err
-	}
-	return client.(*etcd.Client), nil
+	return m.Etcd().GetWithContext(ctx, name)
 }
 
 // MustGetMySQL returns the MySQL client or panics if not available.
 func (m *Manager) MustGetMySQL(name string) *mysql.Client {
-	client, err := m.GetMySQL(name)
-	if err != nil {
-		panic(fmt.Sprintf("mysql instance '%s' not available: %v", name, err))
-	}
-	return client
+	return m.MySQL().MustGet(name)
 }
 
 // MustGetPostgres returns the PostgreSQL client or panics if not available.
 func (m *Manager) MustGetPostgres(name string) *postgres.Client {
-	client, err := m.GetPostgres(name)
-	if err != nil {
-		panic(fmt.Sprintf("postgres instance '%s' not available: %v", name, err))
-	}
-	return client
+	return m.Postgres().MustGet(name)
 }
 
 // MustGetRedis returns the Redis client or panics if not available.
 func (m *Manager) MustGetRedis(name string) *redis.Client {
-	client, err := m.GetRedis(name)
-	if err != nil {
-		panic(fmt.Sprintf("redis instance '%s' not available: %v", name, err))
-	}
-	return client
+	return m.Redis().MustGet(name)
 }
 
 // MustGetMongoDB returns the MongoDB client or panics if not available.
 func (m *Manager) MustGetMongoDB(name string) *mongodb.Client {
-	client, err := m.GetMongoDB(name)
-	if err != nil {
-		panic(fmt.Sprintf("mongodb instance '%s' not available: %v", name, err))
-	}
-	return client
+	return m.MongoDB().MustGet(name)
 }
 
 // MustGetEtcd returns the Etcd client or panics if not available.
 func (m *Manager) MustGetEtcd(name string) *etcd.Client {
-	client, err := m.GetEtcd(name)
-	if err != nil {
-		panic(fmt.Sprintf("etcd instance '%s' not available: %v", name, err))
-	}
-	return client
+	return m.Etcd().MustGet(name)
 }
 
 // getClient returns a client with lazy initialization using background context.
@@ -609,36 +587,35 @@ func (m *Manager) closeClient(client interface{}) error {
 // =============================================================================
 
 var (
-	globalManager    *Manager
-	globalManagerMu  sync.RWMutex
-	globalManagerSet bool
+	globalManager            *Manager
+	globalManagerMu          sync.Mutex
+	globalManagerInitialized uint32 // Use atomic operations for the fast path
 )
 
 // GetGlobal returns the global singleton manager instance.
-// If not set via SetGlobal, it creates a default manager instance.
-// This function is thread-safe.
+// If not set via SetGlobal, it creates a default manager instance on first call.
+// This function is thread-safe and uses atomic operations for optimal performance.
 func GetGlobal() *Manager {
-	globalManagerMu.RLock()
-	if globalManager != nil {
-		defer globalManagerMu.RUnlock()
+	// Fast path: check if already initialized (atomic read)
+	if atomic.LoadUint32(&globalManagerInitialized) == 1 {
 		return globalManager
 	}
-	globalManagerMu.RUnlock()
 
-	// Double-check pattern for initialization
+	// Slow path: acquire lock and initialize
 	globalManagerMu.Lock()
 	defer globalManagerMu.Unlock()
 
-	if globalManager == nil {
+	// Double-check after acquiring lock
+	if globalManagerInitialized == 0 {
 		globalManager = NewManager()
-		globalManagerSet = true
+		atomic.StoreUint32(&globalManagerInitialized, 1)
 	}
 	return globalManager
 }
 
 // SetGlobal sets the global manager instance.
 // This should be called early in application initialization before any calls to GetGlobal.
-// Returns an error if a global manager has already been set or initialized.
+// Returns an error if a global manager has already been initialized.
 // This function is thread-safe.
 func SetGlobal(mgr *Manager) error {
 	if mgr == nil {
@@ -648,12 +625,12 @@ func SetGlobal(mgr *Manager) error {
 	globalManagerMu.Lock()
 	defer globalManagerMu.Unlock()
 
-	if globalManagerSet {
-		return fmt.Errorf("global manager already set, cannot override existing instance")
+	if globalManagerInitialized == 1 {
+		return fmt.Errorf("global manager already initialized, cannot override existing instance")
 	}
 
 	globalManager = mgr
-	globalManagerSet = true
+	atomic.StoreUint32(&globalManagerInitialized, 1)
 	return nil
 }
 
@@ -674,6 +651,6 @@ func ResetGlobal() *Manager {
 
 	prev := globalManager
 	globalManager = nil
-	globalManagerSet = false
+	atomic.StoreUint32(&globalManagerInitialized, 0)
 	return prev
 }

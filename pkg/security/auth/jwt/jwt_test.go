@@ -10,8 +10,8 @@ import (
 	"github.com/kart-io/sentinel-x/pkg/utils/errors"
 )
 
-// testKey 是一个至少32字符的测试密钥
-const testKey = "test-secret-key-at-least-32-chars-long!!"
+// testKey is a secure test key that meets the minimum 64 character requirement
+const testKey = "test-secret-key-at-least-64-chars-long-for-security-purposes!!!!"
 
 // createTestJWT 创建一个用于测试的JWT实例
 func createTestJWT(t *testing.T, opts ...Option) *JWT {
@@ -313,7 +313,7 @@ func TestJWT_Verify_InvalidSignature(t *testing.T) {
 	j1 := createTestJWT(t, WithKey(testKey))
 
 	// 使用不同密钥创建另一个JWT
-	j2 := createTestJWT(t, WithKey("different-key-at-least-32-chars-long!!"))
+	j2 := createTestJWT(t, WithKey("different-secret-key-64-chars-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"))
 
 	// 使用j2签名
 	token, err := j2.Sign(ctx, "user-123")

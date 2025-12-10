@@ -55,12 +55,14 @@ func (w *Writer) prepare(r *Response) *Response {
 func (w *Writer) OK(data interface{}) {
 	resp := w.prepare(Success(data))
 	w.ctx.JSON(resp.HTTPStatus(), resp)
+	Release(resp)
 }
 
 // OKWithMessage sends a successful response with custom message.
 func (w *Writer) OKWithMessage(message string, data interface{}) {
 	resp := w.prepare(SuccessWithMessage(message, data))
 	w.ctx.JSON(resp.HTTPStatus(), resp)
+	Release(resp)
 }
 
 // Fail sends an error response using Errno.
@@ -72,18 +74,21 @@ func (w *Writer) Fail(e *errors.Errno) {
 		resp = w.prepare(Err(e))
 	}
 	w.ctx.JSON(e.HTTPStatus(), resp)
+	Release(resp)
 }
 
 // FailWithLang sends an error response with language-specific message.
 func (w *Writer) FailWithLang(e *errors.Errno, lang string) {
 	resp := w.prepare(ErrWithLang(e, lang))
 	w.ctx.JSON(e.HTTPStatus(), resp)
+	Release(resp)
 }
 
 // FailWithCode sends an error response with code and message.
 func (w *Writer) FailWithCode(code int, message string) {
 	resp := w.prepare(ErrorWithCode(code, message))
 	w.ctx.JSON(resp.HTTPStatus(), resp)
+	Release(resp)
 }
 
 // FailWithError converts a standard error and sends it.
@@ -104,6 +109,7 @@ func (w *Writer) FailWithValidation(verr *validator.ValidationErrors) {
 		Data:     verr.ToMap(),
 	})
 	w.ctx.JSON(http.StatusBadRequest, resp)
+	Release(resp)
 }
 
 // FailWithBindOrValidation handles binding or validation errors appropriately.
@@ -121,12 +127,14 @@ func (w *Writer) FailWithBindOrValidation(err error) {
 func (w *Writer) PageOK(list interface{}, total int64, page, pageSize int) {
 	resp := w.prepare(Page(list, total, page, pageSize))
 	w.ctx.JSON(resp.HTTPStatus(), resp)
+	Release(resp)
 }
 
 // Send sends a custom response.
 func (w *Writer) Send(r *Response) {
 	resp := w.prepare(r)
 	w.ctx.JSON(resp.HTTPStatus(), resp)
+	Release(resp)
 }
 
 // ============================================================================

@@ -37,10 +37,15 @@ type CORSConfig struct {
 }
 
 // DefaultCORSConfig is the default CORS middleware config.
-// NOTE: AllowOrigins is empty by default and must be explicitly configured.
-// This forces developers to consciously configure allowed origins for security.
+// Provides secure defaults for local development environments.
+// IMPORTANT: For production, explicitly configure AllowOrigins with your actual domains.
 var DefaultCORSConfig = CORSConfig{
-	AllowOrigins: []string{}, // 强制显式配置，不允许空配置运行
+	AllowOrigins: []string{
+		"http://localhost:3000",
+		"http://localhost:8080",
+		"http://127.0.0.1:3000",
+		"http://127.0.0.1:8080",
+	},
 	AllowMethods: []string{
 		http.MethodGet,
 		http.MethodPost,
@@ -73,16 +78,48 @@ func (c CORSConfig) Validate() error {
 		return fmt.Errorf("CORS: AllowOrigins must be explicitly configured, empty list not allowed")
 	}
 
-	// 禁止 * 与 credentials 同时使用
+	// Check for wildcard and credentials conflict
 	hasWildcard := false
 	for _, origin := range c.AllowOrigins {
 		if origin == "*" {
 			hasWildcard = true
-			break
+		}
+
+		// Validate origin format (if not wildcard)
+		if origin != "*" {
+			if err := validateOriginFormat(origin); err != nil {
+				return fmt.Errorf("CORS: invalid origin format '%s': %w", origin, err)
+			}
 		}
 	}
+
+	// Wildcard cannot be used with credentials
 	if hasWildcard && c.AllowCredentials {
-		return fmt.Errorf("CORS: cannot use wildcard origin '*' with AllowCredentials=true")
+		return fmt.Errorf("CORS: cannot use wildcard origin '*' with AllowCredentials=true (RFC6454 security requirement)")
+	}
+
+	return nil
+}
+
+// validateOriginFormat validates that an origin follows the correct URL format.
+// Origins must be in the format: scheme://host[:port]
+func validateOriginFormat(origin string) error {
+	if origin == "" {
+		return fmt.Errorf("origin cannot be empty")
+	}
+
+	// Check for scheme
+	if !strings.Contains(origin, "://") {
+		return fmt.Errorf("origin must include scheme (http:// or https://)")
+	}
+
+	// Check for path, query, or fragment (origins should not include these)
+	schemeEnd := strings.Index(origin, "://") + 3
+	if schemeEnd < len(origin) {
+		remainder := origin[schemeEnd:]
+		if strings.ContainsAny(remainder, "/?#") {
+			return fmt.Errorf("origin should not include path, query, or fragment")
+		}
 	}
 
 	return nil

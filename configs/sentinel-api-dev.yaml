@@ -55,7 +55,7 @@ log:
 # JWT configuration (disabled for development)
 jwt:
   disable-auth: true
-  key: "development-key-not-for-production-use-32ch"
+  key: "development-only-key-not-for-production-use-minimum-64-characters-here"
   signing-method: "HS256"
   issuer: "sentinel-x-dev"
   expired: 24h
