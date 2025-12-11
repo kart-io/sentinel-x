@@ -31,15 +31,15 @@ func newMockRateLimitContext(path string) *mockRateLimitContext {
 }
 
 func (m *mockRateLimitContext) SetTestHeader(key, value string) {
-	m.mockContext.req.Header.Set(key, value)
+	m.req.Header.Set(key, value)
 }
 
 func (m *mockRateLimitContext) SetRemoteAddr(addr string) {
-	m.mockContext.req.RemoteAddr = addr
+	m.req.RemoteAddr = addr
 }
 
 func (m *mockRateLimitContext) GetStatusCode() int {
-	return m.mockContext.jsonCode
+	return m.jsonCode
 }
 
 // ============================================================================

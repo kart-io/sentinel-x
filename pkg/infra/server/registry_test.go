@@ -246,7 +246,7 @@ func TestRegistryConcurrentRegister(t *testing.T) {
 			defer wg.Done()
 			svc := &mockService{name: "service"}
 			handler := &mockHTTPHandler{}
-			registry.RegisterService(svc, handler, nil)
+			_ = registry.RegisterService(svc, handler, nil)
 		}(i)
 	}
 
@@ -265,7 +265,7 @@ func TestRegistryConcurrentRead(t *testing.T) {
 	// Pre-register some services
 	for i := 0; i < 10; i++ {
 		svc := &mockService{name: "service"}
-		registry.RegisterService(svc, nil, nil)
+		_ = registry.RegisterService(svc, nil, nil)
 	}
 
 	var wg sync.WaitGroup
@@ -295,7 +295,7 @@ func TestRegistryConcurrentReadWrite(t *testing.T) {
 		go func(id int) {
 			defer wg.Done()
 			svc := &mockService{name: "service"}
-			registry.RegisterService(svc, nil, nil)
+			_ = registry.RegisterService(svc, nil, nil)
 		}(i)
 
 		// Reader

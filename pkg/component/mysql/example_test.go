@@ -90,7 +90,7 @@ func Example_factory() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	fmt.Printf("Client created via factory: %s\n", client.Name())
 }
@@ -111,7 +111,7 @@ func Example_gormUsage() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	// Get GORM DB
 	db := client.DB()
@@ -144,7 +144,7 @@ func Example_connectionPool() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	// Get connection pool statistics
 	sqlDB, err := client.SqlDB()
@@ -170,7 +170,7 @@ func Example_errorHandling() {
 		fmt.Printf("Error creating client: %v\n", err)
 		return
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 }
 
 // Example_multipleClients demonstrates creating multiple clients with different configurations.

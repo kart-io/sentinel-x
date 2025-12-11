@@ -3,6 +3,7 @@ package json
 import (
 	"bytes"
 	stdjson "encoding/json"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -460,7 +461,7 @@ func TestConcurrentMarshalUnmarshal(t *testing.T) {
 
 				// 验证结果
 				if result.ID != data.ID || result.Name != data.Name {
-					errChan <- stdjson.Unmarshal(nil, nil) // 触发一个错误
+					errChan <- fmt.Errorf("result mismatch: got %v", result)
 					return
 				}
 			}
@@ -554,7 +555,7 @@ func TestConcurrentEncoderDecoder(t *testing.T) {
 				}
 
 				if result.ID != data.ID {
-					errChan <- stdjson.Unmarshal(nil, nil)
+					errChan <- fmt.Errorf("result mismatch: got %v", result)
 					return
 				}
 			}

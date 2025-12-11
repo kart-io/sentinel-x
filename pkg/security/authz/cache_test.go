@@ -62,7 +62,7 @@ func TestCachedAuthorizer(t *testing.T) {
 		WithCacheTTL(time.Minute),
 		WithCacheMaxSize(100),
 	)
-	defer cached.Close()
+	defer func() { _ = cached.Close() }()
 
 	ctx := context.Background()
 
@@ -114,7 +114,7 @@ func TestCacheExpiration(t *testing.T) {
 		WithCacheTTL(100*time.Millisecond),
 		WithCacheMaxSize(100),
 	)
-	defer cached.Close()
+	defer func() { _ = cached.Close() }()
 
 	ctx := context.Background()
 
@@ -173,7 +173,7 @@ func TestCacheEviction(t *testing.T) {
 		WithCacheTTL(time.Minute),
 		WithCacheMaxSize(100),
 	)
-	defer cached.Close()
+	defer func() { _ = cached.Close() }()
 
 	ctx := context.Background()
 
@@ -208,7 +208,7 @@ func TestCacheInvalidate(t *testing.T) {
 		WithCacheTTL(time.Minute),
 		WithCacheMaxSize(100),
 	)
-	defer cached.Close()
+	defer func() { _ = cached.Close() }()
 
 	ctx := context.Background()
 
@@ -255,7 +255,7 @@ func TestCacheInvalidateSubject(t *testing.T) {
 		WithCacheTTL(time.Minute),
 		WithCacheMaxSize(100),
 	)
-	defer cached.Close()
+	defer func() { _ = cached.Close() }()
 
 	ctx := context.Background()
 
@@ -303,7 +303,7 @@ func TestCacheClear(t *testing.T) {
 		WithCacheTTL(time.Minute),
 		WithCacheMaxSize(100),
 	)
-	defer cached.Close()
+	defer func() { _ = cached.Close() }()
 
 	ctx := context.Background()
 
@@ -334,7 +334,7 @@ func TestCacheAuthorizeWithContext(t *testing.T) {
 		WithCacheTTL(time.Minute),
 		WithCacheMaxSize(100),
 	)
-	defer cached.Close()
+	defer func() { _ = cached.Close() }()
 
 	ctx := context.Background()
 
@@ -371,7 +371,7 @@ func TestCacheConcurrency(t *testing.T) {
 		WithCacheTTL(time.Minute),
 		WithCacheMaxSize(100),
 	)
-	defer cached.Close()
+	defer func() { _ = cached.Close() }()
 
 	ctx := context.Background()
 	var wg sync.WaitGroup
@@ -408,7 +408,7 @@ func TestCacheCleanup(t *testing.T) {
 		WithCacheMaxSize(100),
 		WithCacheCleanupInterval(50*time.Millisecond),
 	)
-	defer cached.Close()
+	defer func() { _ = cached.Close() }()
 
 	ctx := context.Background()
 
@@ -486,7 +486,7 @@ func TestCacheOptions(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cached := NewCachedAuthorizer(mockAuth, tt.opts...)
-			defer cached.Close()
+			defer func() { _ = cached.Close() }()
 			tt.verify(t, cached)
 		})
 	}
@@ -504,7 +504,7 @@ func TestCacheSize(t *testing.T) {
 		WithCacheTTL(time.Minute),
 		WithCacheMaxSize(100),
 	)
-	defer cached.Close()
+	defer func() { _ = cached.Close() }()
 
 	ctx := context.Background()
 
@@ -548,7 +548,7 @@ func TestCacheDifferentDecisions(t *testing.T) {
 		WithCacheTTL(time.Minute),
 		WithCacheMaxSize(100),
 	)
-	defer cached.Close()
+	defer func() { _ = cached.Close() }()
 
 	ctx := context.Background()
 

@@ -20,7 +20,7 @@ func ExampleNew() {
 	if err != nil {
 		log.Fatalf("failed to create etcd client: %v", err)
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	// Verify connectivity
 	ctx := context.Background()
@@ -45,7 +45,7 @@ func ExampleNewWithContext() {
 	if err != nil {
 		log.Fatalf("failed to create etcd client: %v", err)
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	fmt.Println("Client created successfully")
 }
@@ -59,7 +59,7 @@ func ExampleClient_CheckHealth() {
 	if err != nil {
 		log.Fatalf("failed to create client: %v", err)
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	// Perform comprehensive health check
 	ctx := context.Background()
@@ -81,7 +81,7 @@ func ExampleClient_Raw() {
 	if err != nil {
 		log.Fatalf("failed to create client: %v", err)
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	// Get the raw etcd client for advanced operations
 	rawClient := client.Raw()
@@ -115,7 +115,7 @@ func ExampleClient_KV() {
 	if err != nil {
 		log.Fatalf("failed to create client: %v", err)
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	ctx := context.Background()
 	kv := client.KV()
@@ -148,7 +148,7 @@ func ExampleClient_Lease() {
 	if err != nil {
 		log.Fatalf("failed to create client: %v", err)
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	ctx := context.Background()
 	lease := client.Lease()
@@ -185,7 +185,7 @@ func ExampleNewFactory() {
 	if err != nil {
 		log.Fatalf("failed to create client: %v", err)
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	fmt.Println("Client created via factory")
 }
@@ -201,7 +201,7 @@ func ExampleClient_withAuthentication() {
 	if err != nil {
 		log.Fatalf("failed to create authenticated client: %v", err)
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	fmt.Println("Authenticated client created")
 }

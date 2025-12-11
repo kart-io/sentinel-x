@@ -223,9 +223,5 @@ func isHTTPSConnection(c transport.Context) bool {
 
 	// Check X-Forwarded-Proto header (for reverse proxy scenarios)
 	proto := req.Header.Get("X-Forwarded-Proto")
-	if strings.ToLower(proto) == "https" {
-		return true
-	}
-
-	return false
+	return strings.ToLower(proto) == "https"
 }

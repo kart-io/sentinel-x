@@ -74,12 +74,12 @@ func (rl *ReloadableLogger) OnConfigChange(newConfig interface{}) error {
 	if rl.opts.LogOption == nil {
 		rl.opts.LogOption = option.DefaultLogOption()
 	}
-	rl.opts.LogOption.Level = newOpts.Level
-	rl.opts.LogOption.Format = newOpts.Format
-	rl.opts.LogOption.Development = newOpts.Development
-	rl.opts.LogOption.DisableCaller = newOpts.DisableCaller
-	rl.opts.LogOption.DisableStacktrace = newOpts.DisableStacktrace
-	rl.opts.LogOption.OutputPaths = newOpts.OutputPaths
+	rl.opts.Level = newOpts.Level
+	rl.opts.Format = newOpts.Format
+	rl.opts.Development = newOpts.Development
+	rl.opts.DisableCaller = newOpts.DisableCaller
+	rl.opts.DisableStacktrace = newOpts.DisableStacktrace
+	rl.opts.OutputPaths = newOpts.OutputPaths
 
 	// Try to reinitialize the logger with new settings
 	if err := rl.opts.Init(); err != nil {
@@ -91,13 +91,15 @@ func (rl *ReloadableLogger) OnConfigChange(newConfig interface{}) error {
 		rl.opts.DisableStacktrace = oldDisableStacktrace
 		rl.opts.OutputPaths = oldOutputPaths
 
+		// 由于 Options 嵌入了 LogOption，回滚时也要更新嵌入字段
+		// 移除冗余的 LogOption. 选择器
 		if rl.opts.LogOption != nil {
-			rl.opts.LogOption.Level = oldLevel
-			rl.opts.LogOption.Format = oldFormat
-			rl.opts.LogOption.Development = oldDevelopment
-			rl.opts.LogOption.DisableCaller = oldDisableCaller
-			rl.opts.LogOption.DisableStacktrace = oldDisableStacktrace
-			rl.opts.LogOption.OutputPaths = oldOutputPaths
+			rl.opts.Level = oldLevel
+			rl.opts.Format = oldFormat
+			rl.opts.Development = oldDevelopment
+			rl.opts.DisableCaller = oldDisableCaller
+			rl.opts.DisableStacktrace = oldDisableStacktrace
+			rl.opts.OutputPaths = oldOutputPaths
 		}
 
 		return fmt.Errorf("failed to apply logger config: %w", err)

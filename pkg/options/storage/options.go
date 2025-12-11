@@ -100,7 +100,7 @@ func (o *CommonOptions) Validate() error {
 	}
 
 	if o.Timeout < 0 {
-		return fmt.Errorf("Timeout must be non-negative")
+		return fmt.Errorf("timeout must be non-negative")
 	}
 
 	if o.PoolSize < 0 {

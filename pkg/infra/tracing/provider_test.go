@@ -399,7 +399,7 @@ func TestMustNewProvider_Success(t *testing.T) {
 	if provider == nil {
 		t.Fatal("Expected provider to be non-nil")
 	}
-	defer provider.Shutdown(context.Background())
+	defer func() { _ = provider.Shutdown(context.Background()) }()
 }
 
 func TestMustNewProvider_Panic(t *testing.T) {
@@ -453,7 +453,7 @@ func BenchmarkNewProvider(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-		provider.Shutdown(context.Background())
+		_ = provider.Shutdown(context.Background())
 	}
 }
 
@@ -473,7 +473,7 @@ func BenchmarkTracer_StartSpan(b *testing.B) {
 	if err != nil {
 		b.Fatal(err)
 	}
-	defer provider.Shutdown(context.Background())
+	defer func() { _ = provider.Shutdown(context.Background()) }()
 
 	tracer := provider.Tracer("benchmark")
 	ctx := context.Background()

@@ -175,7 +175,7 @@ func MixedAPIExample() error {
 	defer func() { _ = mgr.CloseAll() }()
 
 	// Mix old and new APIs freely
-	db, err := mgr.GetMySQL("primary")     // Old API
+	db, _ := mgr.GetMySQL("primary")       // Old API
 	cache, err := mgr.Redis().Get("cache") // New API
 	if err != nil {
 		return err
@@ -234,6 +234,7 @@ func ComparisonExample() {
 	db1, _ = mysqlGetter.Get("primary")
 	db2, _ = mysqlGetter.Get("replica")
 	db3, _ = mysqlGetter.Get("analytics")
+	_, _, _ = db1, db2, db3
 
 	// OLD WAY: With context (verbose)
 	ctx := context.Background()
@@ -244,6 +245,7 @@ func ComparisonExample() {
 	// NEW WAY: With context (cleaner)
 	db4, _ = mysqlGetter.GetWithContext(ctx, "primary")
 	db5, _ = mysqlGetter.GetWithContext(ctx, "replica")
+	_, _ = db4, db5
 
 	// OLD WAY: MustGet (explicit for each storage type)
 	primaryDB := mgr.MustGetMySQL("primary")
@@ -253,4 +255,5 @@ func ComparisonExample() {
 	// NEW WAY: MustGet (unified interface)
 	primaryDB = mgr.MySQL().MustGet("primary")
 	cacheDB = mgr.Redis().MustGet("cache")
+	_, _ = primaryDB, cacheDB
 }
