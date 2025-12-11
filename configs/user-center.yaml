@@ -143,8 +143,9 @@ jwt:
   # Disable authentication (set to true for development without auth)
   disable-auth: false
   # Secret key for signing tokens (min 64 characters for HMAC algorithms)
-  # WARNING: Change this in production!
-  key: "your-super-secret-key-change-in-production-minimum-64-characters-required-here"
+  # 必须通过环境变量设置: USER_CENTER_JWT_KEY
+  # 不要在配置文件中硬编码密钥！
+  key: ""
   # Signing algorithm
   signing-method: "HS256"
   # Token issuer
@@ -157,15 +158,20 @@ jwt:
 # MySQL database configuration
 mysql:
   # Database host
+  # 通过环境变量设置: USER_CENTER_MYSQL_HOST
   host: "localhost"
   # Database port
   port: 3306
   # Database username
-  username: "root"
+  # 通过环境变量设置: USER_CENTER_MYSQL_USERNAME
+  username: ""
   # Database password
-  password: "root123"
+  # 必须通过环境变量设置: USER_CENTER_MYSQL_PASSWORD
+  # 不要在配置文件中硬编码密码！
+  password: ""
   # Database name
-  database: "user_auth"
+  # 通过环境变量设置: USER_CENTER_MYSQL_DATABASE
+  database: ""
   # Maximum idle connections
   max-idle-connections: 10
   # Maximum open connections
@@ -176,11 +182,14 @@ mysql:
 # Redis configuration
 redis:
   # Redis host
+  # 通过环境变量设置: USER_CENTER_REDIS_HOST
   host: "localhost"
   # Redis port
   port: 6379
   # Redis password (leave empty if no password)
-  password: "redis_pass"
+  # 必须通过环境变量设置: USER_CENTER_REDIS_PASSWORD
+  # 不要在配置文件中硬编码密码！
+  password: ""
   # Redis database number
   database: 0
   # Maximum retries

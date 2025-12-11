@@ -337,14 +337,14 @@ type MemoryRateLimiter struct {
 	cleanupOnce sync.Once
 }
 
-// rateLimitEntry stores rate limit data for a single key.
+// rateLimitEntry 存储单个键的限流数据（固定窗口计数器方案）
 type rateLimitEntry struct {
-	requests  []time.Time
-	mu        sync.Mutex
-	lastCheck time.Time
+	count       int        // 当前窗口内的请求计数
+	windowStart time.Time  // 窗口起始时间
+	mu          sync.Mutex // 保护并发访问
 }
 
-// NewMemoryRateLimiter creates a new memory-based rate limiter.
+// NewMemoryRateLimiter 创建基于内存的限流器
 func NewMemoryRateLimiter(limit int, window time.Duration) *MemoryRateLimiter {
 	limiter := &MemoryRateLimiter{
 		limit:       limit,
@@ -353,40 +353,39 @@ func NewMemoryRateLimiter(limit int, window time.Duration) *MemoryRateLimiter {
 		stopCleanup: make(chan struct{}),
 	}
 
-	// Start cleanup goroutine
+	// 启动清理协程
 	go limiter.cleanupExpiredEntries()
 
 	return limiter
 }
 
-// Allow checks if a request with the given key is allowed.
+// Allow 检查给定键的请求是否被允许（固定窗口计数器方案）
 func (m *MemoryRateLimiter) Allow(ctx context.Context, key string) (bool, error) {
 	now := time.Now()
 
-	// Get or create entry
+	// 获取或创建限流条目
 	value, _ := m.store.LoadOrStore(key, &rateLimitEntry{
-		requests:  make([]time.Time, 0, m.limit),
-		lastCheck: now,
+		count:       0,
+		windowStart: now,
 	})
 
 	entry := value.(*rateLimitEntry)
 	entry.mu.Lock()
 	defer entry.mu.Unlock()
 
-	// Update last check time
-	entry.lastCheck = now
+	// 检查窗口是否已过期，如果过期则重置计数器
+	if now.Sub(entry.windowStart) >= m.window {
+		entry.windowStart = now
+		entry.count = 0
+	}
 
-	// Remove expired requests (outside the window)
-	cutoff := now.Add(-m.window)
-	entry.requests = filterExpiredRequests(entry.requests, cutoff)
-
-	// Check if limit is exceeded
-	if len(entry.requests) >= m.limit {
+	// 检查是否超过限制
+	if entry.count >= m.limit {
 		return false, nil
 	}
 
-	// Add current request
-	entry.requests = append(entry.requests, now)
+	// 计数器加一
+	entry.count++
 
 	return true, nil
 }
@@ -419,40 +418,22 @@ func (m *MemoryRateLimiter) cleanupExpiredEntries() {
 	}
 }
 
-// performCleanup removes entries that haven't been accessed recently.
+// performCleanup 清理过期的限流条目
 func (m *MemoryRateLimiter) performCleanup() {
 	now := time.Now()
-	threshold := now.Add(-m.window * 2) // Keep entries for 2x window duration
 
 	m.store.Range(func(key, value interface{}) bool {
 		entry := value.(*rateLimitEntry)
 		entry.mu.Lock()
-		lastCheck := entry.lastCheck
+		windowStart := entry.windowStart
 		entry.mu.Unlock()
 
-		if lastCheck.Before(threshold) {
+		// 删除超过两个窗口周期未活动的条目
+		if now.Sub(windowStart) > m.window*2 {
 			m.store.Delete(key)
 		}
 		return true
 	})
-}
-
-// filterExpiredRequests removes timestamps that are outside the time window.
-func filterExpiredRequests(requests []time.Time, cutoff time.Time) []time.Time {
-	// Find the first non-expired request
-	validIdx := 0
-	for i, t := range requests {
-		if t.After(cutoff) {
-			validIdx = i
-			break
-		}
-	}
-
-	// Return slice starting from first valid request
-	if validIdx > 0 {
-		return requests[validIdx:]
-	}
-	return requests
 }
 
 // ============================================================================

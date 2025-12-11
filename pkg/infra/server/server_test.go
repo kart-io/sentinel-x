@@ -10,6 +10,7 @@ import (
 	// Import gin adapter to register it
 	_ "github.com/kart-io/sentinel-x/pkg/infra/adapter/gin"
 	"github.com/kart-io/sentinel-x/pkg/infra/middleware"
+	grpcopts "github.com/kart-io/sentinel-x/pkg/infra/server/grpc"
 	httpopts "github.com/kart-io/sentinel-x/pkg/infra/server/http"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/service"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
@@ -602,7 +603,16 @@ func TestManagerWait_HTTPServerReady(t *testing.T) {
 
 func TestManagerWait_GRPCServerReady(t *testing.T) {
 	// Create manager with gRPC server
-	mgr := NewManager(WithMode(ModeGRPCOnly))
+	mgr := NewManager(
+		WithMode(ModeGRPCOnly),
+		WithGRPCOptions(&grpcopts.Options{
+			Addr:             ":0", // Use random port
+			Timeout:          10 * time.Second,
+			MaxRecvMsgSize:   16 * 1024 * 1024,
+			MaxSendMsgSize:   16 * 1024 * 1024,
+			EnableReflection: true,
+		}),
+	)
 
 	// Start the server
 	ctx := context.Background()
@@ -627,7 +637,24 @@ func TestManagerWait_GRPCServerReady(t *testing.T) {
 
 func TestManagerWait_BothServersReady(t *testing.T) {
 	// Create manager with both HTTP and gRPC servers
-	mgr := NewManager(WithMode(ModeBoth))
+	mgr := NewManager(
+		WithMode(ModeBoth),
+		WithHTTPOptions(&httpopts.Options{
+			Addr:         ":0", // Use random port
+			ReadTimeout:  10 * time.Second,
+			WriteTimeout: 10 * time.Second,
+			IdleTimeout:  10 * time.Second,
+			Adapter:      httpopts.AdapterGin,
+			Middleware:   middleware.NewOptions(),
+		}),
+		WithGRPCOptions(&grpcopts.Options{
+			Addr:             ":0", // Use random port
+			Timeout:          10 * time.Second,
+			MaxRecvMsgSize:   16 * 1024 * 1024,
+			MaxSendMsgSize:   16 * 1024 * 1024,
+			EnableReflection: true,
+		}),
+	)
 
 	// Start the servers
 	ctx := context.Background()

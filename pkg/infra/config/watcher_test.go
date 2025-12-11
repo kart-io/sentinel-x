@@ -459,15 +459,16 @@ server:
 	// Track handler calls
 	var handlerCalls int
 	var mu sync.Mutex
+	var closeOnce sync.Once
 	done := make(chan struct{})
 
 	handler := func(v *viper.Viper) error {
 		mu.Lock()
-		defer mu.Unlock()
 		handlerCalls++
-		if handlerCalls >= 1 {
+		mu.Unlock()
+		closeOnce.Do(func() {
 			close(done)
-		}
+		})
 		return nil
 	}
 

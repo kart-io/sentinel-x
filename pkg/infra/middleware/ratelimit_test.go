@@ -897,31 +897,6 @@ func TestMemoryRateLimiterConcurrency(t *testing.T) {
 	}
 }
 
-func TestFilterExpiredRequests(t *testing.T) {
-	now := time.Now()
-	requests := []time.Time{
-		now.Add(-5 * time.Second),
-		now.Add(-3 * time.Second),
-		now.Add(-1 * time.Second),
-		now,
-	}
-
-	cutoff := now.Add(-2 * time.Second)
-	filtered := filterExpiredRequests(requests, cutoff)
-
-	// Should keep last 2 requests
-	if len(filtered) != 2 {
-		t.Errorf("Expected 2 filtered requests, got %d", len(filtered))
-	}
-
-	// All filtered requests should be after cutoff
-	for _, req := range filtered {
-		if req.Before(cutoff) {
-			t.Error("Filtered request is before cutoff")
-		}
-	}
-}
-
 // ============================================================================
 // Error Handling Tests
 // ============================================================================
