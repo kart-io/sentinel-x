@@ -18,12 +18,13 @@
 package jitdec
 
 import (
+	"strconv"
+	"unsafe"
+
 	"github.com/bytedance/sonic/internal/jit"
 	"github.com/bytedance/sonic/internal/rt"
 	"github.com/twitchyliquid64/golang-asm/obj"
 	"github.com/twitchyliquid64/golang-asm/obj/x86"
-	"strconv"
-	"unsafe"
 )
 
 // Notice: gcWriteBarrier must use R11 register!!

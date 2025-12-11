@@ -20,9 +20,10 @@ import (
 	"encoding"
 	"encoding/base64"
 	"encoding/json"
-	"github.com/bytedance/sonic/internal/rt"
 	"reflect"
 	"unsafe"
+
+	"github.com/bytedance/sonic/internal/rt"
 )
 
 var (

@@ -21,6 +21,7 @@ package encoder
 
 import (
 	"encoding/json"
+
 	"github.com/bytedance/sonic/internal/rt"
 )
 

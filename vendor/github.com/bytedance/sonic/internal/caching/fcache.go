@@ -17,9 +17,10 @@
 package caching
 
 import (
-	"github.com/bytedance/sonic/internal/rt"
 	"strings"
 	"unsafe"
+
+	"github.com/bytedance/sonic/internal/rt"
 )
 
 type FieldMap struct {

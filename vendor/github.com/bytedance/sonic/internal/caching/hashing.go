@@ -17,8 +17,9 @@
 package caching
 
 import (
-	"github.com/bytedance/sonic/internal/rt"
 	"unsafe"
+
+	"github.com/bytedance/sonic/internal/rt"
 )
 
 var (

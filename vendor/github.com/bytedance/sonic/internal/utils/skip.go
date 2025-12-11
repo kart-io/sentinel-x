@@ -1,10 +1,11 @@
 package utils
 
 import (
-	"github.com/bytedance/sonic/internal/native/types"
-	"github.com/bytedance/sonic/internal/rt"
 	"runtime"
 	"unsafe"
+
+	"github.com/bytedance/sonic/internal/native/types"
+	"github.com/bytedance/sonic/internal/rt"
 )
 
 func isDigit(c byte) bool {

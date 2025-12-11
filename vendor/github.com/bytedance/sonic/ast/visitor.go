@@ -19,6 +19,7 @@ package ast
 import (
 	"encoding/json"
 	"errors"
+
 	"github.com/bytedance/sonic/internal/native/types"
 	"github.com/bytedance/sonic/unquote"
 )

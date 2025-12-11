@@ -17,8 +17,9 @@
 package abi
 
 import (
-	"github.com/bytedance/sonic/loader/internal/rt"
 	_ "unsafe"
+
+	"github.com/bytedance/sonic/loader/internal/rt"
 )
 
 const (

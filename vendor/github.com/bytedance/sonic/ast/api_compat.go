@@ -21,9 +21,10 @@ package ast
 
 import (
 	"encoding/json"
+	"unicode/utf8"
+
 	"github.com/bytedance/sonic/internal/compat"
 	"github.com/bytedance/sonic/internal/native/types"
-	"unicode/utf8"
 )
 
 func init() {
