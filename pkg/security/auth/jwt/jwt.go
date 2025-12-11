@@ -159,6 +159,11 @@ func (j *JWT) Type() string {
 	return "jwt"
 }
 
+// IsDisabled returns true if authentication is disabled.
+func (j *JWT) IsDisabled() bool {
+	return j.opts.DisableAuth
+}
+
 // Sign creates a new token for the given subject.
 func (j *JWT) Sign(ctx context.Context, subject string, opts ...auth.SignOption) (auth.Token, error) {
 	signOpts := &auth.SignOptions{}

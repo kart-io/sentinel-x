@@ -33,6 +33,10 @@ func (li *LoggingInitializer) Name() string {
 
 // Initialize initializes the logging system.
 func (li *LoggingInitializer) Initialize(ctx context.Context) error {
+	// Inject service metadata into logger options
+	li.opts.AddInitialField("service.name", li.appName)
+	li.opts.AddInitialField("service.version", li.appVersion)
+
 	if err := li.opts.Init(); err != nil {
 		return fmt.Errorf("failed to initialize logger: %w", err)
 	}

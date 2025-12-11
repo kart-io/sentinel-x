@@ -35,8 +35,7 @@ func (ai *AuthInitializer) Name() string {
 // Initialize initializes JWT authentication and RBAC authorization.
 func (ai *AuthInitializer) Initialize(ctx context.Context) error {
 	if ai.jwtOpts.DisableAuth {
-		logger.Info("Authentication disabled")
-		return nil
+		logger.Warn("Authentication disabled - tokens will be issued but not verified by middleware")
 	}
 
 	// Initialize JWT authenticator
