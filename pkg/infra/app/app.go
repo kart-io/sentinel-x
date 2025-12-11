@@ -22,6 +22,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	options "github.com/kart-io/sentinel-x/pkg/options/app"
 	"github.com/kart-io/version"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -33,7 +34,7 @@ type App struct {
 	name        string
 	shortDesc   string
 	description string
-	options     CliOptions
+	options     options.CliOptions
 	runFunc     RunFunc
 	cmd         *cobra.Command
 	args        cobra.PositionalArgs
@@ -70,7 +71,7 @@ func WithDescription(desc string) Option {
 }
 
 // WithOptions sets the CLI options.
-func WithOptions(opts CliOptions) Option {
+func WithOptions(opts options.CliOptions) Option {
 	return func(a *App) {
 		a.options = opts
 	}

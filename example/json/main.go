@@ -83,7 +83,7 @@ func HandleCustomJSON(ctx transport.Context) {
 	}
 
 	ctx.SetHeader("Content-Type", "application/json")
-	ctx.ResponseWriter().Write(jsonBytes)
+	_, _ = ctx.ResponseWriter().Write(jsonBytes)
 }
 
 // Example 5: Check if sonic is active (for logging/monitoring)
@@ -147,7 +147,7 @@ func HandleStreamJSON(ctx transport.Context) {
 			"id":   i,
 			"data": "item data",
 		}
-		encoder.Encode(item)
+		_ = encoder.Encode(item)
 	}
 }
 

@@ -7,7 +7,8 @@ import (
 	"github.com/kart-io/logger"
 	"github.com/kart-io/sentinel-x/pkg/infra/datasource"
 	"github.com/kart-io/sentinel-x/pkg/infra/middleware"
-	serveropts "github.com/kart-io/sentinel-x/pkg/infra/server"
+	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
+	serveropts "github.com/kart-io/sentinel-x/pkg/options/server"
 )
 
 // MiddlewareInitializer handles middleware configuration.
@@ -36,6 +37,12 @@ func NewMiddlewareInitializer(
 // Name returns the name of the initializer.
 func (mi *MiddlewareInitializer) Name() string {
 	return "middleware"
+}
+
+// Dependencies returns the names of initializers this one depends on.
+// Middleware depends on auth (for auth middleware config) and datasources (for health checks).
+func (mi *MiddlewareInitializer) Dependencies() []string {
+	return []string{"logging", "datasources", "auth"}
 }
 
 // Initialize configures all middleware components.
@@ -77,7 +84,7 @@ func (mi *MiddlewareInitializer) configureAuth() {
 	}
 
 	// Configure JWT authentication middleware
-	mi.serverOpts.HTTP.Middleware.Auth = middleware.AuthOptions{
+	mi.serverOpts.HTTP.Middleware.Auth = mwopts.AuthOptions{
 		Authenticator: jwtAuth,
 		TokenLookup:   "header:Authorization",
 		AuthScheme:    "Bearer",
@@ -90,7 +97,7 @@ func (mi *MiddlewareInitializer) configureAuth() {
 	mi.serverOpts.HTTP.Middleware.DisableAuth = false
 
 	// Configure RBAC authorization middleware
-	mi.serverOpts.HTTP.Middleware.Authz = middleware.AuthzOptions{
+	mi.serverOpts.HTTP.Middleware.Authz = mwopts.AuthzOptions{
 		Authorizer: rbacAuthz,
 		SkipPaths: []string{
 			"/api/v1/auth/login",

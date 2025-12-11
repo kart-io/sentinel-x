@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/kart-io/sentinel-x/pkg/component/storage"
+	options "github.com/kart-io/sentinel-x/pkg/options/redis"
 	goredis "github.com/redis/go-redis/v9"
 )
 
@@ -15,7 +16,7 @@ import (
 //
 // Example usage:
 //
-//	opts := NewOptions()
+//	opts := options.NewOptions()
 //	opts.Host = "localhost"
 //	opts.Port = 6379
 //
@@ -30,7 +31,7 @@ import (
 //	err = rdb.Set(ctx, "key", "value", 0).Err()
 type Client struct {
 	client *goredis.Client
-	opts   *Options
+	opts   *options.Options
 }
 
 // Compile-time check that Client implements storage.Client.
@@ -43,7 +44,7 @@ var _ storage.Client = (*Client)(nil)
 // - Options validation fails
 // - Connection to Redis server fails
 // - Initial ping fails
-func New(opts *Options) (*Client, error) {
+func New(opts *options.Options) (*Client, error) {
 	return NewWithContext(context.Background(), opts)
 }
 
@@ -57,7 +58,7 @@ func New(opts *Options) (*Client, error) {
 // - Options are nil
 // - Options validation fails
 // - Initial ping fails
-func NewWithContext(ctx context.Context, opts *Options) (*Client, error) {
+func NewWithContext(ctx context.Context, opts *options.Options) (*Client, error) {
 	if opts == nil {
 		return nil, fmt.Errorf("redis options cannot be nil")
 	}
@@ -142,7 +143,7 @@ func (c *Client) Client() *goredis.Client {
 }
 
 // Options returns the Redis options used by this client.
-func (c *Client) Options() *Options {
+func (c *Client) Options() *options.Options {
 	return c.opts
 }
 

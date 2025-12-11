@@ -1,24 +1,12 @@
 package middleware
 
 import (
-	"context"
-	"crypto/rand"
-	"encoding/hex"
-	"fmt"
-	"sync/atomic"
-	"time"
-
+	"github.com/kart-io/sentinel-x/pkg/infra/middleware/common"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 )
 
-// RequestID header names.
-const (
-	HeaderXRequestID = "X-Request-ID"
-)
-
-// requestIDCounter is the atomic counter for fallback request ID generation.
-// It is used when cryptographic random number generation fails.
-var requestIDCounter uint64
+// HeaderXRequestID is re-exported from common for backward compatibility.
+const HeaderXRequestID = common.HeaderXRequestID
 
 // RequestIDConfig defines the config for RequestID middleware.
 type RequestIDConfig struct {
@@ -38,12 +26,9 @@ type RequestIDConfig struct {
 // DefaultRequestIDConfig is the default RequestID middleware config.
 var DefaultRequestIDConfig = RequestIDConfig{
 	Header:     HeaderXRequestID,
-	Generator:  generateRequestID,
+	Generator:  common.GenerateRequestID,
 	ContextKey: "request_id",
 }
-
-// requestIDKey is the context key for request ID.
-type requestIDKey struct{}
 
 // RequestID returns a middleware that adds a unique request ID to each request.
 // The request ID is added to:
@@ -60,7 +45,7 @@ func RequestIDWithConfig(config RequestIDConfig) transport.MiddlewareFunc {
 		config.Header = HeaderXRequestID
 	}
 	if config.Generator == nil {
-		config.Generator = generateRequestID
+		config.Generator = common.GenerateRequestID
 	}
 	if config.ContextKey == "" {
 		config.ContextKey = "request_id"
@@ -77,8 +62,8 @@ func RequestIDWithConfig(config RequestIDConfig) transport.MiddlewareFunc {
 			// Set request ID in response header
 			c.SetHeader(config.Header, requestID)
 
-			// Store request ID in context
-			ctx := context.WithValue(c.Request(), requestIDKey{}, requestID)
+			// Store request ID in context using common package
+			ctx := common.WithRequestID(c.Request(), requestID)
 			c.SetRequest(ctx)
 
 			next(c)
@@ -88,29 +73,5 @@ func RequestIDWithConfig(config RequestIDConfig) transport.MiddlewareFunc {
 
 // GetRequestID returns the request ID from the context.
 // Returns empty string if not found.
-func GetRequestID(ctx context.Context) string {
-	if id, ok := ctx.Value(requestIDKey{}).(string); ok {
-		return id
-	}
-	return ""
-}
-
-// generateRequestID generates a random request ID using cryptographic random bytes.
-// If random generation fails, it falls back to generateFallbackRequestID.
-func generateRequestID() string {
-	b := make([]byte, 16)
-	n, err := rand.Read(b)
-	if err != nil || n != 16 {
-		return generateFallbackRequestID()
-	}
-	return hex.EncodeToString(b)
-}
-
-// generateFallbackRequestID generates a deterministic request ID when random generation fails.
-// It uses the current Unix timestamp combined with an atomic counter to ensure uniqueness.
-// Format: timestamp(hex)-counter(hex)
-func generateFallbackRequestID() string {
-	timestamp := time.Now().Unix()
-	counter := atomic.AddUint64(&requestIDCounter, 1)
-	return fmt.Sprintf("%x-%x", timestamp, counter)
-}
+// This is re-exported from common for backward compatibility.
+var GetRequestID = common.GetRequestID

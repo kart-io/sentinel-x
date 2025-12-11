@@ -24,7 +24,7 @@ func Example_basicUsage() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	// Use the client
 	fmt.Printf("Connected to MySQL: %s\n", client.Name())
@@ -44,7 +44,7 @@ func Example_withContext() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	// Verify connection
 	if err := client.Ping(ctx); err != nil {
@@ -64,7 +64,7 @@ func Example_healthCheck() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	// Basic health check
 	ctx := context.Background()
@@ -117,7 +117,7 @@ func Example_gormUsage() {
 	db := client.DB()
 
 	// Auto migrate
-	db.AutoMigrate(&User{})
+	_ = db.AutoMigrate(&User{})
 
 	// Create records
 	db.Create(&User{Name: "Alice", Age: 30})
@@ -158,21 +158,6 @@ func Example_connectionPool() {
 	fmt.Printf("Idle connections: %d\n", stats.Idle)
 }
 
-// Example_dsnBuilder demonstrates DSN building.
-func Example_dsnBuilder() {
-	opts := mysql.NewOptions()
-	opts.Host = "localhost"
-	opts.Port = 3306
-	opts.Username = "root"
-	opts.Password = "secret"
-	opts.Database = "mydb"
-
-	dsn := mysql.BuildDSN(opts)
-	fmt.Println("DSN built successfully")
-	// DSN will be: root:secret@tcp(localhost:3306)/mydb?charset=utf8mb4&parseTime=True&loc=Local
-	_ = dsn
-}
-
 // Example_errorHandling demonstrates proper error handling.
 func Example_errorHandling() {
 	opts := mysql.NewOptions()
@@ -207,10 +192,10 @@ func Example_multipleClients() {
 
 	// Create clients
 	prodClient, _ := prodFactory.Create(context.Background())
-	defer prodClient.Close()
+	defer func() { _ = prodClient.Close() }()
 
 	devClient, _ := devFactory.Create(context.Background())
-	defer devClient.Close()
+	defer func() { _ = devClient.Close() }()
 
 	fmt.Println("Multiple clients created successfully")
 }

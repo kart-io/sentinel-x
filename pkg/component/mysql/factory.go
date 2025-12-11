@@ -5,7 +5,14 @@ import (
 	"fmt"
 
 	"github.com/kart-io/sentinel-x/pkg/component/storage"
+	options "github.com/kart-io/sentinel-x/pkg/options/mysql"
 )
+
+// Options is re-exported from pkg/options/mysql for convenience.
+type Options = options.Options
+
+// NewOptions is re-exported from pkg/options/mysql for convenience.
+var NewOptions = options.NewOptions
 
 // Factory implements the storage.Factory interface for creating MySQL clients.
 // It encapsulates the MySQL client creation logic and configuration,

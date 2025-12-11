@@ -33,8 +33,8 @@ func TestGlobal(t *testing.T) {
 
 // TestSetGlobal tests setting a custom global validator.
 func TestSetGlobal(t *testing.T) {
-	// Save original
-	original := globalValidator
+	// Save original (通过 Global() 获取当前实例)
+	original := Global()
 
 	// Set custom validator
 	custom := New()
@@ -592,5 +592,50 @@ func TestConcurrentValidation(t *testing.T) {
 	// Wait for all goroutines to complete
 	for i := 0; i < 10; i++ {
 		<-done
+	}
+}
+
+// TestConcurrentGlobalSetGlobal 测试 Global 和 SetGlobal 的并发安全性
+func TestConcurrentGlobalSetGlobal(t *testing.T) {
+	const goroutines = 50
+	const iterations = 100
+
+	type TestStruct struct {
+		Name string `validate:"required"`
+	}
+
+	errChan := make(chan error, goroutines)
+
+	for i := 0; i < goroutines; i++ {
+		go func(id int) {
+			for j := 0; j < iterations; j++ {
+				// 一半的 goroutine 调用 SetGlobal
+				if id%2 == 0 {
+					SetGlobal(New())
+				}
+
+				// 所有 goroutine 都调用 Global
+				v := Global()
+				if v == nil {
+					errChan <- nil // 不应该发生，但用 nil 表示无错误
+					return
+				}
+
+				// 使用获取到的验证器
+				testStruct := TestStruct{Name: "test"}
+				if err := v.Validate(testStruct); err != nil {
+					errChan <- err
+					return
+				}
+			}
+			errChan <- nil
+		}(i)
+	}
+
+	// 等待所有 goroutine 完成
+	for i := 0; i < goroutines; i++ {
+		if err := <-errChan; err != nil {
+			t.Errorf("并发 Global/SetGlobal 测试失败: %v", err)
+		}
 	}
 }

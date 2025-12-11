@@ -12,8 +12,10 @@ import (
 
 	"github.com/kart-io/logger"
 	"github.com/kart-io/sentinel-x/pkg/infra/config"
-	logopts "github.com/kart-io/sentinel-x/pkg/infra/logger"
+	infralog "github.com/kart-io/sentinel-x/pkg/infra/logger"
 	"github.com/kart-io/sentinel-x/pkg/infra/middleware"
+	logopts "github.com/kart-io/sentinel-x/pkg/options/logger"
+	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 	"github.com/spf13/viper"
 )
 
@@ -25,10 +27,10 @@ func ExampleBootstrapWithConfigReload(
 	ctx context.Context,
 	v *viper.Viper,
 	logOpts *logopts.Options,
-	mwOpts *middleware.Options,
+	mwOpts *mwopts.Options,
 ) (*config.Watcher, error) {
 	// 1. Create reloadable wrappers for components
-	reloadableLogger := logopts.NewReloadableLogger(logOpts)
+	reloadableLogger := infralog.NewReloadableLogger(logOpts)
 	reloadableMiddleware := middleware.NewReloadableMiddleware(mwOpts)
 
 	// 2. Create config watcher
@@ -119,7 +121,7 @@ func ExampleIntegrationWithApp() {
 		logger.Fatalf("Failed to unmarshal log config: %v", err)
 	}
 
-	mwOpts := middleware.NewOptions()
+	mwOpts := mwopts.NewOptions()
 	if err := v.UnmarshalKey("server.http.middleware", mwOpts); err != nil {
 		logger.Fatalf("Failed to unmarshal middleware config: %v", err)
 	}
@@ -157,7 +159,7 @@ func ExampleMiddlewareCallbacks(rm *middleware.ReloadableMiddleware) {
 	})
 
 	// Set CORS change callback
-	rm.SetCORSChangeCallback(func(corsOpts *middleware.CORSOptions) error {
+	rm.SetCORSChangeCallback(func(corsOpts *mwopts.CORSOptions) error {
 		logger.Infof("CORS configuration updated: %d origins", len(corsOpts.AllowOrigins))
 		// Update your CORS middleware here
 		return nil

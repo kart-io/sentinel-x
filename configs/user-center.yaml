@@ -46,8 +46,15 @@ server:
       # CORS middleware
       disable-cors: false
       cors:
+        # ⚠️ 安全警告：生产环境必须配置具体域名！
+        # 当前配置使用通配符仅适用于开发/测试环境
+        # 生产环境示例：
+        #   allow-origins:
+        #     - "https://example.com"
+        #     - "https://admin.example.com"
+        #     - "https://api.example.com"
         allow-origins:
-          - "*"
+          - "*"  # TODO: 生产环境替换为具体域名
         allow-methods:
           - GET
           - POST

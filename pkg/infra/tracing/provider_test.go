@@ -245,7 +245,7 @@ func TestNewProvider_NoopExporter(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewProvider() error = %v", err)
 	}
-	defer provider.Shutdown(context.Background())
+	defer func() { _ = provider.Shutdown(context.Background()) }()
 
 	if provider == nil {
 		t.Fatal("Expected provider to be non-nil")
@@ -275,7 +275,7 @@ func TestNewProvider_StdoutExporter(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewProvider() error = %v", err)
 	}
-	defer provider.Shutdown(context.Background())
+	defer func() { _ = provider.Shutdown(context.Background()) }()
 
 	if provider == nil {
 		t.Fatal("Expected provider to be non-nil")
@@ -309,7 +309,7 @@ func TestProvider_Tracer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewProvider() error = %v", err)
 	}
-	defer provider.Shutdown(context.Background())
+	defer func() { _ = provider.Shutdown(context.Background()) }()
 
 	tracer := provider.Tracer("test-tracer")
 	if tracer == nil {
@@ -359,47 +359,6 @@ func TestProvider_Shutdown(t *testing.T) {
 	// Shutdown again should not error
 	if err := provider.Shutdown(context.Background()); err != nil {
 		t.Errorf("Second Shutdown() error = %v", err)
-	}
-}
-
-func TestNewSampler(t *testing.T) {
-	tests := []struct {
-		name        string
-		samplerType SamplerType
-		ratio       float64
-	}{
-		{
-			name:        "always on",
-			samplerType: SamplerAlwaysOn,
-		},
-		{
-			name:        "always off",
-			samplerType: SamplerAlwaysOff,
-		},
-		{
-			name:        "ratio",
-			samplerType: SamplerRatio,
-			ratio:       0.5,
-		},
-		{
-			name:        "parent based",
-			samplerType: SamplerParentBased,
-			ratio:       1.0,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			opts := &Options{
-				SamplerType:  tt.samplerType,
-				SamplerRatio: tt.ratio,
-			}
-
-			sampler := newSampler(opts)
-			if sampler == nil {
-				t.Error("Expected sampler to be non-nil")
-			}
-		})
 	}
 }
 

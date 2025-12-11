@@ -44,6 +44,11 @@ import (
 	"github.com/kart-io/sentinel-x/pkg/component/postgres"
 	"github.com/kart-io/sentinel-x/pkg/component/redis"
 	"github.com/kart-io/sentinel-x/pkg/component/storage"
+	etcdopts "github.com/kart-io/sentinel-x/pkg/options/etcd"
+	mongoopts "github.com/kart-io/sentinel-x/pkg/options/mongodb"
+	mysqlopts "github.com/kart-io/sentinel-x/pkg/options/mysql"
+	pgopts "github.com/kart-io/sentinel-x/pkg/options/postgres"
+	redisopts "github.com/kart-io/sentinel-x/pkg/options/redis"
 )
 
 // StorageType represents the type of storage backend.
@@ -94,31 +99,31 @@ func NewManager() *Manager {
 
 // RegisterMySQL registers a MySQL instance with the given name and options.
 // The actual connection is established lazily when GetMySQL is called or during InitAll.
-func (m *Manager) RegisterMySQL(name string, opts *mysql.Options) error {
+func (m *Manager) RegisterMySQL(name string, opts *mysqlopts.Options) error {
 	optsCopy := *opts
 	return m.register(TypeMySQL, name, &optsCopy)
 }
 
 // RegisterPostgres registers a PostgreSQL instance with the given name and options.
-func (m *Manager) RegisterPostgres(name string, opts *postgres.Options) error {
+func (m *Manager) RegisterPostgres(name string, opts *pgopts.Options) error {
 	optsCopy := *opts
 	return m.register(TypePostgres, name, &optsCopy)
 }
 
 // RegisterRedis registers a Redis instance with the given name and options.
-func (m *Manager) RegisterRedis(name string, opts *redis.Options) error {
+func (m *Manager) RegisterRedis(name string, opts *redisopts.Options) error {
 	optsCopy := *opts
 	return m.register(TypeRedis, name, &optsCopy)
 }
 
 // RegisterMongoDB registers a MongoDB instance with the given name and options.
-func (m *Manager) RegisterMongoDB(name string, opts *mongodb.Options) error {
+func (m *Manager) RegisterMongoDB(name string, opts *mongoopts.Options) error {
 	optsCopy := *opts
 	return m.register(TypeMongoDB, name, &optsCopy)
 }
 
 // RegisterEtcd registers an Etcd instance with the given name and options.
-func (m *Manager) RegisterEtcd(name string, opts *etcd.Options) error {
+func (m *Manager) RegisterEtcd(name string, opts *etcdopts.Options) error {
 	optsCopy := *opts
 	return m.register(TypeEtcd, name, &optsCopy)
 }
@@ -156,7 +161,7 @@ func (m *Manager) InitAll(ctx context.Context) error {
 		// Clear clients from entries
 		for _, key := range initialized {
 			if entry := m.entries[key]; entry != nil {
-				m.closeClient(entry.client)
+				_ = m.closeClient(entry.client)
 				entry.client = nil
 			}
 		}
@@ -532,15 +537,15 @@ func parseKey(key string) (StorageType, string) {
 func (m *Manager) createClient(ctx context.Context, storageType StorageType, opts interface{}) (interface{}, error) {
 	switch storageType {
 	case TypeMySQL:
-		return mysql.NewWithContext(ctx, opts.(*mysql.Options))
+		return mysql.NewWithContext(ctx, opts.(*mysqlopts.Options))
 	case TypePostgres:
-		return postgres.NewWithContext(ctx, opts.(*postgres.Options))
+		return postgres.NewWithContext(ctx, opts.(*pgopts.Options))
 	case TypeRedis:
-		return redis.NewWithContext(ctx, opts.(*redis.Options))
+		return redis.NewWithContext(ctx, opts.(*redisopts.Options))
 	case TypeMongoDB:
-		return mongodb.NewWithContext(ctx, opts.(*mongodb.Options))
+		return mongodb.NewWithContext(ctx, opts.(*mongoopts.Options))
 	case TypeEtcd:
-		return etcd.NewWithContext(ctx, opts.(*etcd.Options))
+		return etcd.NewWithContext(ctx, opts.(*etcdopts.Options))
 	default:
 		return nil, fmt.Errorf("unsupported storage type: %s", storageType)
 	}

@@ -1,9 +1,9 @@
 package app
 
 import (
-	logopts "github.com/kart-io/sentinel-x/pkg/infra/logger"
-	serveropts "github.com/kart-io/sentinel-x/pkg/infra/server"
-	jwtopts "github.com/kart-io/sentinel-x/pkg/security/auth/jwt"
+	jwtopts "github.com/kart-io/sentinel-x/pkg/options/auth/jwt"
+	logopts "github.com/kart-io/sentinel-x/pkg/options/logger"
+	serveropts "github.com/kart-io/sentinel-x/pkg/options/server"
 	"github.com/spf13/pflag"
 )
 

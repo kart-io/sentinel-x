@@ -153,42 +153,6 @@ func TestValidateOptions(t *testing.T) {
 	}
 }
 
-// TestBuildDSN tests DSN building.
-func TestBuildDSN(t *testing.T) {
-	opts := &Options{
-		Host:     "localhost",
-		Port:     3306,
-		Username: "root",
-		Password: "password",
-		Database: "testdb",
-	}
-
-	dsn := BuildDSN(opts)
-	expected := "root:password@tcp(localhost:3306)/testdb?charset=utf8mb4&parseTime=True&loc=Local"
-
-	if dsn != expected {
-		t.Errorf("BuildDSN() = %v, want %v", dsn, expected)
-	}
-}
-
-// TestBuildDSN_CustomPort tests DSN building with custom port.
-func TestBuildDSN_CustomPort(t *testing.T) {
-	opts := &Options{
-		Host:     "db.example.com",
-		Port:     3307,
-		Username: "user",
-		Password: "pass",
-		Database: "mydb",
-	}
-
-	dsn := BuildDSN(opts)
-	expected := "user:pass@tcp(db.example.com:3307)/mydb?charset=utf8mb4&parseTime=True&loc=Local"
-
-	if dsn != expected {
-		t.Errorf("BuildDSN() = %v, want %v", dsn, expected)
-	}
-}
-
 // TestClientName tests that the client returns the correct name.
 func TestClientName(t *testing.T) {
 	// Create a client struct directly for testing

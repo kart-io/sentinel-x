@@ -7,7 +7,14 @@ import (
 	"github.com/kart-io/logger"
 	"github.com/kart-io/logger/option"
 	configpkg "github.com/kart-io/sentinel-x/pkg/infra/config"
+	options "github.com/kart-io/sentinel-x/pkg/options/logger"
 )
+
+// Options is re-exported from pkg/options/logger for convenience.
+type Options = options.Options
+
+// NewOptions is re-exported from pkg/options/logger for convenience.
+var NewOptions = options.NewOptions
 
 // ReloadableLogger wraps logger options with hot reload capability.
 // It maintains thread-safe access to logger configuration and can apply

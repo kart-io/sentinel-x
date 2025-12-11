@@ -7,8 +7,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
-	grpcopts "github.com/kart-io/sentinel-x/pkg/infra/server/grpc"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	grpcopts "github.com/kart-io/sentinel-x/pkg/options/server/grpc"
 )
 
 // Re-export types from options package for convenience

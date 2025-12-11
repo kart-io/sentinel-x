@@ -6,8 +6,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	httpopts "github.com/kart-io/sentinel-x/pkg/infra/server/http"
 	httpserver "github.com/kart-io/sentinel-x/pkg/infra/server/transport/http"
+	httpopts "github.com/kart-io/sentinel-x/pkg/options/server/http"
 )
 
 func init() {

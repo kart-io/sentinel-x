@@ -324,7 +324,7 @@ func TestAllStorageTypes_BackwardCompatibleMethods(t *testing.T) {
 			"MySQL",
 			func(n string) (interface{}, error) { return mgr.GetMySQL(n) },
 			func(n string) interface{} {
-				defer func() { recover() }()
+				defer func() { _ = recover() }()
 				return mgr.MustGetMySQL(n)
 			},
 		},
@@ -332,7 +332,7 @@ func TestAllStorageTypes_BackwardCompatibleMethods(t *testing.T) {
 			"Postgres",
 			func(n string) (interface{}, error) { return mgr.GetPostgres(n) },
 			func(n string) interface{} {
-				defer func() { recover() }()
+				defer func() { _ = recover() }()
 				return mgr.MustGetPostgres(n)
 			},
 		},
@@ -340,7 +340,7 @@ func TestAllStorageTypes_BackwardCompatibleMethods(t *testing.T) {
 			"Redis",
 			func(n string) (interface{}, error) { return mgr.GetRedis(n) },
 			func(n string) interface{} {
-				defer func() { recover() }()
+				defer func() { _ = recover() }()
 				return mgr.MustGetRedis(n)
 			},
 		},
@@ -348,7 +348,7 @@ func TestAllStorageTypes_BackwardCompatibleMethods(t *testing.T) {
 			"MongoDB",
 			func(n string) (interface{}, error) { return mgr.GetMongoDB(n) },
 			func(n string) interface{} {
-				defer func() { recover() }()
+				defer func() { _ = recover() }()
 				return mgr.MustGetMongoDB(n)
 			},
 		},
@@ -356,7 +356,7 @@ func TestAllStorageTypes_BackwardCompatibleMethods(t *testing.T) {
 			"Etcd",
 			func(n string) (interface{}, error) { return mgr.GetEtcd(n) },
 			func(n string) interface{} {
-				defer func() { recover() }()
+				defer func() { _ = recover() }()
 				return mgr.MustGetEtcd(n)
 			},
 		},

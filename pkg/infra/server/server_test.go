@@ -9,11 +9,11 @@ import (
 
 	// Import gin adapter to register it
 	_ "github.com/kart-io/sentinel-x/pkg/infra/adapter/gin"
-	"github.com/kart-io/sentinel-x/pkg/infra/middleware"
 	grpcopts "github.com/kart-io/sentinel-x/pkg/infra/server/grpc"
 	httpopts "github.com/kart-io/sentinel-x/pkg/infra/server/http"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/service"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 )
 
 // mockService implements service.Service for testing.
@@ -362,7 +362,7 @@ func TestManagerStartStop(t *testing.T) {
 			WriteTimeout: 10 * time.Second,
 			IdleTimeout:  10 * time.Second,
 			Adapter:      httpopts.AdapterGin,
-			Middleware:   middleware.NewOptions(), // Use default middleware options
+			Middleware:   mwopts.NewOptions(), // Use default middleware options
 		}),
 	)
 
@@ -576,7 +576,7 @@ func TestManagerWait_HTTPServerReady(t *testing.T) {
 			WriteTimeout: 10 * time.Second,
 			IdleTimeout:  10 * time.Second,
 			Adapter:      httpopts.AdapterGin,
-			Middleware:   middleware.NewOptions(),
+			Middleware:   mwopts.NewOptions(),
 		}),
 	)
 
@@ -645,7 +645,7 @@ func TestManagerWait_BothServersReady(t *testing.T) {
 			WriteTimeout: 10 * time.Second,
 			IdleTimeout:  10 * time.Second,
 			Adapter:      httpopts.AdapterGin,
-			Middleware:   middleware.NewOptions(),
+			Middleware:   mwopts.NewOptions(),
 		}),
 		WithGRPCOptions(&grpcopts.Options{
 			Addr:             ":0", // Use random port
@@ -687,7 +687,7 @@ func TestManagerWait_CalledMultipleTimes(t *testing.T) {
 			WriteTimeout: 10 * time.Second,
 			IdleTimeout:  10 * time.Second,
 			Adapter:      httpopts.AdapterGin,
-			Middleware:   middleware.NewOptions(),
+			Middleware:   mwopts.NewOptions(),
 		}),
 	)
 
@@ -724,7 +724,7 @@ func BenchmarkManagerWait(b *testing.B) {
 			WriteTimeout: 10 * time.Second,
 			IdleTimeout:  10 * time.Second,
 			Adapter:      httpopts.AdapterGin,
-			Middleware:   middleware.NewOptions(),
+			Middleware:   mwopts.NewOptions(),
 		}),
 	)
 

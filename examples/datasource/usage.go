@@ -39,7 +39,7 @@ func OldAPIExample() error {
 	if err := mgr.InitAll(ctx); err != nil {
 		return err
 	}
-	defer mgr.CloseAll()
+	defer func() { _ = mgr.CloseAll() }()
 
 	// OLD API: Get clients using traditional methods
 	db, err := mgr.GetMySQL("primary")
@@ -69,18 +69,18 @@ func NewGenericAPIExample() error {
 	mysqlOpts.Host = "localhost"
 	mysqlOpts.Database = "myapp"
 	mysqlOpts.Username = "root"
-	mgr.RegisterMySQL("primary", mysqlOpts)
-	mgr.RegisterMySQL("replica", mysqlOpts)
+	_ = mgr.RegisterMySQL("primary", mysqlOpts)
+	_ = mgr.RegisterMySQL("replica", mysqlOpts)
 
 	redisOpts := redis.NewOptions()
 	redisOpts.Host = "localhost"
-	mgr.RegisterRedis("cache", redisOpts)
+	_ = mgr.RegisterRedis("cache", redisOpts)
 
 	ctx := context.Background()
 	if err := mgr.InitAll(ctx); err != nil {
 		return err
 	}
-	defer mgr.CloseAll()
+	defer func() { _ = mgr.CloseAll() }()
 
 	// NEW API: Get typed getters
 	mysqlGetter := mgr.MySQL()
@@ -116,8 +116,8 @@ func AdvancedGenericAPIExample() error {
 
 	// Setup (omitted for brevity)
 	mysqlOpts := mysql.NewOptions()
-	mgr.RegisterMySQL("primary", mysqlOpts)
-	mgr.RegisterMySQL("replica", mysqlOpts)
+	_ = mgr.RegisterMySQL("primary", mysqlOpts)
+	_ = mgr.RegisterMySQL("replica", mysqlOpts)
 
 	ctx := context.Background()
 
@@ -163,14 +163,16 @@ func MixedAPIExample() error {
 	mgr := datasource.NewManager()
 
 	mysqlOpts := mysql.NewOptions()
-	mgr.RegisterMySQL("primary", mysqlOpts)
+	_ = mgr.RegisterMySQL("primary", mysqlOpts)
 
 	redisOpts := redis.NewOptions()
-	mgr.RegisterRedis("cache", redisOpts)
+	_ = mgr.RegisterRedis("cache", redisOpts)
 
 	ctx := context.Background()
-	mgr.InitAll(ctx)
-	defer mgr.CloseAll()
+	if err := mgr.InitAll(ctx); err != nil {
+		return err
+	}
+	defer func() { _ = mgr.CloseAll() }()
 
 	// Mix old and new APIs freely
 	db, err := mgr.GetMySQL("primary")     // Old API

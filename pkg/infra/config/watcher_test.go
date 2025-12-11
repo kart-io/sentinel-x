@@ -49,12 +49,6 @@ func (m *mockReloadable) getCallCount() int {
 	return m.callCount
 }
 
-func (m *mockReloadable) getLastConfig() interface{} {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	return m.lastConfig
-}
-
 // ConfigError represents a configuration error.
 type ConfigError struct {
 	Message string
@@ -236,7 +230,7 @@ func TestStartIdempotent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	configFile := filepath.Join(tmpDir, "config.yaml")
 	if err := os.WriteFile(configFile, []byte("test: value\n"), 0o644); err != nil {
@@ -431,7 +425,7 @@ func TestConfigFileChange(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	configFile := filepath.Join(tmpDir, "config.yaml")
 	initialConfig := []byte(`

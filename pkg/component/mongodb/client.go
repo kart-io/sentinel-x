@@ -9,6 +9,7 @@ import (
 	mongoopts "go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/kart-io/sentinel-x/pkg/component/storage"
+	options "github.com/kart-io/sentinel-x/pkg/options/mongodb"
 )
 
 // Client wraps mongo.Client with storage.Client interface implementation.
@@ -17,7 +18,7 @@ import (
 //
 // Example usage:
 //
-//	opts := NewOptions()
+//	opts := options.NewOptions()
 //	opts.Host = "localhost"
 //	opts.Database = "mydb"
 //
@@ -33,7 +34,7 @@ import (
 type Client struct {
 	client   *mongo.Client
 	database *mongo.Database
-	opts     *Options
+	opts     *options.Options
 }
 
 // New creates a new MongoDB client from the provided options.
@@ -44,7 +45,7 @@ type Client struct {
 // - Options validation fails
 // - Connection to MongoDB server fails
 // - Connection pool configuration fails
-func New(opts *Options) (*Client, error) {
+func New(opts *options.Options) (*Client, error) {
 	return NewWithContext(context.Background(), opts)
 }
 
@@ -60,7 +61,7 @@ func New(opts *Options) (*Client, error) {
 // - Connection to MongoDB server fails
 // - Initial ping fails
 // - Connection pool configuration fails
-func NewWithContext(ctx context.Context, opts *Options) (*Client, error) {
+func NewWithContext(ctx context.Context, opts *options.Options) (*Client, error) {
 	if opts == nil {
 		return nil, fmt.Errorf("mongodb options cannot be nil")
 	}
@@ -71,7 +72,7 @@ func NewWithContext(ctx context.Context, opts *Options) (*Client, error) {
 	}
 
 	// Build URI
-	uri := BuildURI(opts)
+	uri := options.BuildURI(opts)
 
 	// Create client options
 	clientOpts := mongoopts.Client().ApplyURI(uri)
@@ -235,7 +236,7 @@ func (c *Client) Raw() *mongo.Client {
 
 // validateOptions validates MongoDB options before creating the client.
 // It ensures that required fields are set and values are reasonable.
-func validateOptions(opts *Options) error {
+func validateOptions(opts *options.Options) error {
 	// If URI is provided, minimal validation needed
 	if opts.URI != "" {
 		return nil

@@ -13,13 +13,14 @@ import (
 	_ "github.com/kart-io/sentinel-x/pkg/infra/adapter/echo"
 	_ "github.com/kart-io/sentinel-x/pkg/infra/adapter/gin"
 	"github.com/kart-io/sentinel-x/pkg/infra/app"
-	logopts "github.com/kart-io/sentinel-x/pkg/infra/logger"
 	"github.com/kart-io/sentinel-x/pkg/infra/middleware"
 	"github.com/kart-io/sentinel-x/pkg/infra/server"
-	serveropts "github.com/kart-io/sentinel-x/pkg/infra/server"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	jwtopts "github.com/kart-io/sentinel-x/pkg/options/auth/jwt"
+	logopts "github.com/kart-io/sentinel-x/pkg/options/logger"
+	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
+	serveropts "github.com/kart-io/sentinel-x/pkg/options/server"
 	"github.com/kart-io/sentinel-x/pkg/security/auth/jwt"
-	jwtopts "github.com/kart-io/sentinel-x/pkg/security/auth/jwt"
 	"github.com/kart-io/sentinel-x/pkg/security/authz"
 	"github.com/kart-io/sentinel-x/pkg/security/authz/rbac"
 	"github.com/spf13/pflag"
@@ -167,7 +168,7 @@ func Run(opts *Options) error {
 		}
 
 		// Configure auth middleware
-		opts.Server.HTTP.Middleware.Auth = middleware.AuthOptions{
+		opts.Server.HTTP.Middleware.Auth = mwopts.AuthOptions{
 			Authenticator: jwtAuth,
 			TokenLookup:   "header:Authorization",
 			AuthScheme:    "Bearer",
@@ -179,7 +180,7 @@ func Run(opts *Options) error {
 		opts.Server.HTTP.Middleware.DisableAuth = false
 
 		// Configure authz middleware
-		opts.Server.HTTP.Middleware.Authz = middleware.AuthzOptions{
+		opts.Server.HTTP.Middleware.Authz = mwopts.AuthzOptions{
 			Authorizer: rbacAuthz,
 			SkipPaths: []string{
 				"/api/v1/auth/login",

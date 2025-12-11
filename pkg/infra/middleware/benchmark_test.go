@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/kart-io/sentinel-x/pkg/infra/middleware/common"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 )
 
@@ -160,7 +161,7 @@ func BenchmarkGenerateRequestID(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		_ = generateRequestID()
+		_ = common.GenerateRequestID()
 	}
 }
 

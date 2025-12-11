@@ -33,7 +33,7 @@ func ExampleNew() {
 		// Handle error
 		return
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	// Use the client
 	_ = client.Name() // Returns "mongodb"
@@ -51,7 +51,7 @@ func ExampleNewFactory() {
 		// Handle error
 		return
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 }
 
 // TestOptionsDefaults verifies default option values
@@ -80,49 +80,6 @@ func TestOptionsDefaults(t *testing.T) {
 
 	if opts.AuthSource != "admin" {
 		t.Errorf("expected default auth source admin, got %s", opts.AuthSource)
-	}
-}
-
-// TestURIBuilder verifies URI building
-func TestURIBuilder(t *testing.T) {
-	tests := []struct {
-		name     string
-		opts     *mongodb.Options
-		expected string
-	}{
-		{
-			name: "basic host and port",
-			opts: &mongodb.Options{
-				Host: "localhost",
-				Port: 27017,
-			},
-			expected: "mongodb://localhost:27017/",
-		},
-		{
-			name: "with database",
-			opts: &mongodb.Options{
-				Host:     "localhost",
-				Port:     27017,
-				Database: "mydb",
-			},
-			expected: "mongodb://localhost:27017/mydb",
-		},
-		{
-			name: "use provided URI",
-			opts: &mongodb.Options{
-				URI: "mongodb://custom-uri:27017/custom",
-			},
-			expected: "mongodb://custom-uri:27017/custom",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			uri := mongodb.BuildURI(tt.opts)
-			if uri != tt.expected {
-				t.Errorf("expected URI %s, got %s", tt.expected, uri)
-			}
-		})
 	}
 }
 

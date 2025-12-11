@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/kart-io/logger"
-	logopts "github.com/kart-io/sentinel-x/pkg/infra/logger"
+	logopts "github.com/kart-io/sentinel-x/pkg/options/logger"
 )
 
 // LoggingInitializer handles logging system initialization.
@@ -29,6 +29,12 @@ func NewLoggingInitializer(opts *logopts.Options, appName, appVersion, serverMod
 // Name returns the name of the initializer.
 func (li *LoggingInitializer) Name() string {
 	return "logging"
+}
+
+// Dependencies returns the names of initializers this one depends on.
+// Logging has no dependencies - it should be initialized first.
+func (li *LoggingInitializer) Dependencies() []string {
+	return nil
 }
 
 // Initialize initializes the logging system.

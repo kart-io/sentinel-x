@@ -43,9 +43,9 @@ import (
 
 	"github.com/kart-io/sentinel-x/pkg/infra/middleware"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	jwtopts "github.com/kart-io/sentinel-x/pkg/options/auth/jwt"
 	"github.com/kart-io/sentinel-x/pkg/security/auth"
 	"github.com/kart-io/sentinel-x/pkg/security/auth/jwt"
-	jwtopts "github.com/kart-io/sentinel-x/pkg/security/auth/jwt"
 	"github.com/kart-io/sentinel-x/pkg/security/authz"
 	"github.com/kart-io/sentinel-x/pkg/security/authz/rbac"
 	"github.com/kart-io/sentinel-x/pkg/utils/errors"

@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	"github.com/kart-io/logger"
-	mysqlopts "github.com/kart-io/sentinel-x/pkg/component/mysql"
-	redisopts "github.com/kart-io/sentinel-x/pkg/component/redis"
 	"github.com/kart-io/sentinel-x/pkg/infra/datasource"
+	mysqlopts "github.com/kart-io/sentinel-x/pkg/options/mysql"
+	redisopts "github.com/kart-io/sentinel-x/pkg/options/redis"
 )
 
 // DatasourceInitializer handles datasource initialization.
@@ -30,10 +30,16 @@ func (di *DatasourceInitializer) Name() string {
 	return "datasources"
 }
 
+// Dependencies returns the names of initializers this one depends on.
+// Datasources depends on logging for proper error reporting.
+func (di *DatasourceInitializer) Dependencies() []string {
+	return []string{"logging"}
+}
+
 // Initialize initializes all configured datasources.
 func (di *DatasourceInitializer) Initialize(ctx context.Context) error {
 	di.manager = datasource.NewManager()
-	datasource.SetGlobal(di.manager)
+	_ = datasource.SetGlobal(di.manager)
 
 	if di.mysqlOpts.Host != "" {
 		if err := di.manager.RegisterMySQL("primary", di.mysqlOpts); err != nil {

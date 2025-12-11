@@ -3,8 +3,8 @@ package datasource
 import (
 	"testing"
 
-	mysqlOpts "github.com/kart-io/sentinel-x/pkg/component/mysql"
-	redisOpts "github.com/kart-io/sentinel-x/pkg/component/redis"
+	mysqlOpts "github.com/kart-io/sentinel-x/pkg/options/mysql"
+	redisOpts "github.com/kart-io/sentinel-x/pkg/options/redis"
 )
 
 func TestNewManager(t *testing.T) {

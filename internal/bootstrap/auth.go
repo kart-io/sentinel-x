@@ -6,8 +6,8 @@ import (
 
 	"github.com/kart-io/logger"
 	"github.com/kart-io/sentinel-x/pkg/infra/datasource"
-	"github.com/kart-io/sentinel-x/pkg/security/auth/jwt"
-	jwtopts "github.com/kart-io/sentinel-x/pkg/security/auth/jwt"
+	jwtopts "github.com/kart-io/sentinel-x/pkg/options/auth/jwt"
+	jwt "github.com/kart-io/sentinel-x/pkg/security/auth/jwt"
 	"github.com/kart-io/sentinel-x/pkg/security/authz"
 	"github.com/kart-io/sentinel-x/pkg/security/authz/rbac"
 )
@@ -30,6 +30,12 @@ func NewAuthInitializer(jwtOpts *jwtopts.Options) *AuthInitializer {
 // Name returns the name of the initializer.
 func (ai *AuthInitializer) Name() string {
 	return "auth"
+}
+
+// Dependencies returns the names of initializers this one depends on.
+// Auth depends on logging and datasources (for Redis token store).
+func (ai *AuthInitializer) Dependencies() []string {
+	return []string{"logging", "datasources"}
 }
 
 // Initialize initializes JWT authentication and RBAC authorization.

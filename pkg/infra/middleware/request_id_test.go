@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/kart-io/sentinel-x/pkg/infra/middleware/common"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 )
 
@@ -137,7 +138,7 @@ func TestGetRequestID_NotFound(t *testing.T) {
 }
 
 func TestGetRequestID_WrongType(t *testing.T) {
-	ctx := context.WithValue(context.Background(), requestIDKey{}, 12345) // Wrong type
+	ctx := context.WithValue(context.Background(), common.RequestIDKey{}, 12345) // Wrong type
 	requestID := GetRequestID(ctx)
 
 	if requestID != "" {
@@ -176,7 +177,7 @@ func TestGenerateRequestID_Uniqueness(t *testing.T) {
 	iterations := 100
 
 	for i := 0; i < iterations; i++ {
-		id := generateRequestID()
+		id := common.GenerateRequestID()
 		if ids[id] {
 			t.Errorf("Generated duplicate request ID: %s", id)
 		}
