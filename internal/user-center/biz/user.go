@@ -44,6 +44,10 @@ func (s *UserService) Get(ctx context.Context, username string) (*model.User, er
 	return s.store.Users().Get(ctx, username)
 }
 
+func (s *UserService) GetByUserId(ctx context.Context, userId uint64) (*model.User, error) {
+	return s.store.Users().GetByUserId(ctx, userId)
+}
+
 // List lists users.
 func (s *UserService) List(ctx context.Context, offset, limit int) (int64, []*model.User, error) {
 	return s.store.Users().List(ctx, offset, limit)

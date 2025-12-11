@@ -113,6 +113,11 @@ type Options struct {
 	// KeyID is an optional key identifier (kid header).
 	// Useful for key rotation scenarios.
 	KeyID string `json:"key-id" mapstructure:"key-id"`
+
+	// IdentityKey is the claim key used to identify the user.
+	// Default: "sub" (which usually maps to username)
+	// Can be set to "id", "user_id", etc. to use a different claim as the subject.
+	IdentityKey string `json:"identity-key" mapstructure:"identity-key"`
 }
 
 // NewOptions creates a new Options with default values.
@@ -124,6 +129,7 @@ func NewOptions() *Options {
 		MaxRefresh:    DefaultMaxRefresh,
 		Issuer:        DefaultIssuer,
 		Audience:      []string{},
+		IdentityKey:   "sub",
 	}
 }
 
@@ -220,6 +226,9 @@ func (o *Options) Complete() error {
 	if o.Issuer == "" {
 		o.Issuer = DefaultIssuer
 	}
+	if o.IdentityKey == "" {
+		o.IdentityKey = "sub"
+	}
 	return nil
 }
 
@@ -243,4 +252,6 @@ func (o *Options) AddFlags(fs *pflag.FlagSet) {
 		"JWT public key for RSA/ECDSA algorithms")
 	fs.StringVar(&o.KeyID, "jwt.key-id", o.KeyID,
 		"JWT key identifier (kid header)")
+	fs.StringVar(&o.IdentityKey, "jwt.identity-key", o.IdentityKey,
+		"Claim key used to identify the user (default: sub)")
 }

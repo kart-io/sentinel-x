@@ -8,6 +8,9 @@ import (
 	"github.com/kart-io/sentinel-x/internal/model"
 	"github.com/kart-io/sentinel-x/internal/user-center/biz"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	"github.com/kart-io/sentinel-x/pkg/security/auth"
+	"github.com/kart-io/sentinel-x/pkg/utils/errors"
+	"github.com/kart-io/sentinel-x/pkg/utils/response"
 )
 
 // UserHandler handles user-related HTTP requests.
@@ -26,8 +29,10 @@ func (h *UserHandler) Create(c transport.Context) {
 		model.User
 		Password string `json:"password"`
 	}
-	if err := c.Bind(&req); err != nil {
-		c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+	if err := c.ShouldBindAndValidate(&req); err != nil {
+		resp := response.Err(errors.ErrBadRequest.WithMessage(err.Error()))
+		defer response.Release(resp)
+		c.JSON(resp.HTTPStatus(), resp)
 		return
 	}
 
@@ -36,36 +41,41 @@ func (h *UserHandler) Create(c transport.Context) {
 
 	if err := h.svc.Create(c.Request(), &user); err != nil {
 		logger.Errorf("failed to create user: %v", err)
-		c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		resp := response.Err(errors.ErrInternal.WithMessage(err.Error()))
+		defer response.Release(resp)
+		c.JSON(resp.HTTPStatus(), resp)
 		return
 	}
 
-	c.JSON(http.StatusCreated, user)
+	resp := response.Success(user)
+	defer response.Release(resp)
+	c.JSON(http.StatusCreated, resp)
 }
 
 // Update handles user updates.
 func (h *UserHandler) Update(c transport.Context) {
 	username := c.Param("username")
 	if username == "" {
-		c.JSON(http.StatusBadRequest, map[string]string{"error": "username is required"})
+		resp := response.Err(errors.ErrBadRequest.WithMessage("username is required"))
+		defer response.Release(resp)
+		c.JSON(resp.HTTPStatus(), resp)
 		return
 	}
-
-	// Existing user passed in specific fields via JSON?
-	// Bind to struct with pointers to tell difference between missing and empty?
-	// Or use anonymous struct again.
-	// But to preserve password, we must fetch -> copy.
 
 	// Fetch existing user to ensure we don't overwrite password with empty string
 	existingUser, err := h.svc.Get(c.Request(), username)
 	if err != nil {
-		c.JSON(http.StatusNotFound, map[string]string{"error": "user not found"})
+		resp := response.Err(errors.ErrUserNotFound)
+		defer response.Release(resp)
+		c.JSON(resp.HTTPStatus(), resp)
 		return
 	}
 
 	// Bind new values directly to existing user struct
-	if err := c.Bind(existingUser); err != nil {
-		c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+	if err := c.ShouldBindAndValidate(existingUser); err != nil {
+		resp := response.Err(errors.ErrBadRequest.WithMessage(err.Error()))
+		defer response.Release(resp)
+		c.JSON(resp.HTTPStatus(), resp)
 		return
 	}
 
@@ -73,45 +83,61 @@ func (h *UserHandler) Update(c transport.Context) {
 
 	if err := h.svc.Update(c.Request(), existingUser); err != nil {
 		logger.Errorf("failed to update user: %v", err)
-		c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		resp := response.Err(errors.ErrInternal.WithMessage(err.Error()))
+		defer response.Release(resp)
+		c.JSON(resp.HTTPStatus(), resp)
 		return
 	}
 
-	c.JSON(http.StatusOK, existingUser)
+	resp := response.Success(existingUser)
+	defer response.Release(resp)
+	c.JSON(http.StatusOK, resp)
 }
 
 // Delete handles user deletion.
 func (h *UserHandler) Delete(c transport.Context) {
 	username := c.Param("username")
 	if username == "" {
-		c.JSON(http.StatusBadRequest, map[string]string{"error": "username is required"})
+		resp := response.Err(errors.ErrBadRequest.WithMessage("username is required"))
+		defer response.Release(resp)
+		c.JSON(resp.HTTPStatus(), resp)
 		return
 	}
 
 	if err := h.svc.Delete(c.Request(), username); err != nil {
 		logger.Errorf("failed to delete user: %v", err)
-		c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		resp := response.Err(errors.ErrInternal.WithMessage(err.Error()))
+		defer response.Release(resp)
+		c.JSON(resp.HTTPStatus(), resp)
 		return
 	}
 
-	c.JSON(http.StatusOK, map[string]string{"message": "user deleted"})
+	resp := response.SuccessWithMessage("user deleted", nil)
+	defer response.Release(resp)
+	c.JSON(http.StatusOK, resp)
 }
 
 // Get handles retrieving a single user.
 func (h *UserHandler) Get(c transport.Context) {
 	username := c.Param("username")
 	if username == "" {
-		c.JSON(http.StatusBadRequest, map[string]string{"error": "username is required"})
+		resp := response.Err(errors.ErrBadRequest.WithMessage("username is required"))
+		defer response.Release(resp)
+		c.JSON(resp.HTTPStatus(), resp)
 		return
 	}
 
 	user, err := h.svc.Get(c.Request(), username)
 	if err != nil {
-		c.JSON(http.StatusNotFound, map[string]string{"error": "user not found"})
+		resp := response.Err(errors.ErrUserNotFound)
+		defer response.Release(resp)
+		c.JSON(resp.HTTPStatus(), resp)
 		return
 	}
 
-	c.JSON(http.StatusOK, user)
+	resp := response.Success(user)
+	defer response.Release(resp)
+	c.JSON(http.StatusOK, resp)
 }
 
 // List handles listing users.
@@ -132,21 +158,24 @@ func (h *UserHandler) List(c transport.Context) {
 	count, users, err := h.svc.List(c.Request(), offset, limit)
 	if err != nil {
 		logger.Errorf("failed to list users: %v", err)
-		c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		resp := response.Err(errors.ErrInternal.WithMessage(err.Error()))
+		defer response.Release(resp)
+		c.JSON(resp.HTTPStatus(), resp)
 		return
 	}
 
-	c.JSON(http.StatusOK, model.UserList{
-		TotalCount: count,
-		Items:      users,
-	})
+	resp := response.Page(users, count, offset/limit+1, limit)
+	defer response.Release(resp)
+	c.JSON(http.StatusOK, resp)
 }
 
 // ChangePassword handles password change.
 func (h *UserHandler) ChangePassword(c transport.Context) {
 	username := c.Param("username")
 	if username == "" {
-		c.JSON(http.StatusBadRequest, map[string]string{"error": "username is required"})
+		resp := response.Err(errors.ErrBadRequest.WithMessage("username is required"))
+		defer response.Release(resp)
+		c.JSON(resp.HTTPStatus(), resp)
 		return
 	}
 
@@ -154,15 +183,38 @@ func (h *UserHandler) ChangePassword(c transport.Context) {
 		NewPassword string `json:"newPassword"`
 	}
 	if err := c.Bind(&req); err != nil {
-		c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+		resp := response.Err(errors.ErrBadRequest.WithMessage(err.Error()))
+		defer response.Release(resp)
+		c.JSON(resp.HTTPStatus(), resp)
 		return
 	}
 
 	if err := h.svc.ChangePassword(c.Request(), username, req.NewPassword); err != nil {
 		logger.Errorf("failed to change password: %v", err)
-		c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		resp := response.Err(errors.ErrInternal.WithMessage(err.Error()))
+		defer response.Release(resp)
+		c.JSON(resp.HTTPStatus(), resp)
 		return
 	}
 
-	c.JSON(http.StatusOK, map[string]string{"message": "password changed"})
+	resp := response.SuccessWithMessage("password changed", nil)
+	defer response.Release(resp)
+	c.JSON(http.StatusOK, resp)
+}
+
+// GetProfile handles retrieving the current user's profile.
+func (h *UserHandler) GetProfile(c transport.Context) {
+	username := auth.UserIDFromContext(c.Request())
+
+	user, err := h.svc.Get(c.Request(), username)
+	if err != nil {
+		resp := response.Err(errors.ErrUserNotFound)
+		defer response.Release(resp)
+		c.JSON(resp.HTTPStatus(), resp)
+		return
+	}
+
+	resp := response.Success(user)
+	defer response.Release(resp)
+	c.JSON(http.StatusOK, resp)
 }

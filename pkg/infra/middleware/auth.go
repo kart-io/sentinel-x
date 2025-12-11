@@ -189,7 +189,14 @@ func extractToken(ctx transport.Context, lookup tokenLookup, scheme string) stri
 		}
 	}
 
-	return strings.TrimSpace(token)
+	// Sanitize token
+	token = strings.TrimSpace(token)
+	token = strings.ReplaceAll(token, " ", "")  // Remove internal spaces
+	token = strings.ReplaceAll(token, "+", "-") // Standard base64 to URL-safe
+	token = strings.ReplaceAll(token, "/", "_") // Standard base64 to URL-safe
+	token = strings.TrimRight(token, "=")       // Remove padding
+
+	return token
 }
 
 // shouldSkipAuth checks if the path should skip authentication.

@@ -20,13 +20,12 @@
 package sonic
 
 import (
-	"io"
-	"reflect"
-
 	"github.com/bytedance/sonic/decoder"
 	"github.com/bytedance/sonic/encoder"
 	"github.com/bytedance/sonic/internal/rt"
 	"github.com/bytedance/sonic/option"
+	"io"
+	"reflect"
 )
 
 const apiKind = UseSonicJSON

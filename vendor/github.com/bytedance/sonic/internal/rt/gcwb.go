@@ -20,10 +20,9 @@
 package rt
 
 import (
+	"golang.org/x/arch/x86/x86asm"
 	"sync/atomic"
 	"unsafe"
-
-	"golang.org/x/arch/x86/x86asm"
 )
 
 //go:linkname GcWriteBarrier2 runtime.gcWriteBarrier2

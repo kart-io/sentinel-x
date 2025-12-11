@@ -2,10 +2,9 @@ package ast
 
 import (
 	"fmt"
+	"github.com/bytedance/sonic/internal/native/types"
 	"strings"
 	"unsafe"
-
-	"github.com/bytedance/sonic/internal/native/types"
 )
 
 func newError(err types.ParsingError, msg string) *Node {

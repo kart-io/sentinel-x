@@ -40,6 +40,15 @@ func (u *users) Get(ctx context.Context, username string) (*model.User, error) {
 	return &user, nil
 }
 
+// Get retrieves a user by id.
+func (u *users) GetByUserId(ctx context.Context, userID uint64) (*model.User, error) {
+	var user model.User
+	if err := u.db.WithContext(ctx).Where("id = ?", userID).First(&user).Error; err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
 // List lists users with pagination.
 func (u *users) List(ctx context.Context, offset, limit int) (int64, []*model.User, error) {
 	var count int64

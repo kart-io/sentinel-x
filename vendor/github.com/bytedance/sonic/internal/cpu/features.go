@@ -18,9 +18,8 @@ package cpu
 
 import (
 	"fmt"
-	"os"
-
 	"github.com/klauspost/cpuid/v2"
+	"os"
 )
 
 var (

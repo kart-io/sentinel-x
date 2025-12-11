@@ -20,11 +20,10 @@
 package loader
 
 import (
+	"github.com/bytedance/sonic/loader/internal/rt"
 	"os"
 	"sort"
 	"unsafe"
-
-	"github.com/bytedance/sonic/loader/internal/rt"
 )
 
 const (

@@ -269,8 +269,21 @@ func (j *JWT) Verify(ctx context.Context, tokenString string) (*auth.Claims, err
 		}
 	}
 
+	// Determine subject based on IdentityKey
+	subject := claims.Subject
+	if j.opts.IdentityKey != "" && j.opts.IdentityKey != "sub" {
+		if val, ok := claims.Extra[j.opts.IdentityKey]; ok {
+			if s, ok := val.(string); ok && s != "" {
+				subject = s
+			} else {
+				// Handle non-string claims (e.g. numeric ID)
+				subject = fmt.Sprintf("%v", val)
+			}
+		}
+	}
+
 	return &auth.Claims{
-		Subject:   claims.Subject,
+		Subject:   subject,
 		Issuer:    claims.Issuer,
 		Audience:  claims.Audience,
 		ExpiresAt: claims.ExpiresAt.Unix(),
@@ -397,8 +410,20 @@ func (j *JWT) verifyForRefresh(ctx context.Context, tokenString string) (*auth.C
 		}
 	}
 
+	// Determine subject based on IdentityKey
+	subject := claims.Subject
+	if j.opts.IdentityKey != "" && j.opts.IdentityKey != "sub" {
+		if val, ok := claims.Extra[j.opts.IdentityKey]; ok {
+			if s, ok := val.(string); ok && s != "" {
+				subject = s
+			} else {
+				subject = fmt.Sprintf("%v", val)
+			}
+		}
+	}
+
 	return &auth.Claims{
-		Subject:   claims.Subject,
+		Subject:   subject,
 		Issuer:    claims.Issuer,
 		Audience:  claims.Audience,
 		ExpiresAt: claims.ExpiresAt.Unix(),

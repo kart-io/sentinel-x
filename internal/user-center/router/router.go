@@ -37,6 +37,14 @@ func Register(mgr *server.Manager, jwtAuth *jwt.JWT, ds *datasource.Manager) err
 		{
 			auth.Handle("POST", "/login", authHandler.Login)
 			auth.Handle("POST", "/logout", authHandler.Logout)
+			auth.Handle("POST", "/register", authHandler.Register)
+
+			// Protected Auth Routes
+			authProtected := auth.Group("")
+			authProtected.Use(middleware.Auth(middleware.AuthWithAuthenticator(jwtAuth)))
+			{
+				authProtected.Handle("GET", "/me", userHandler.GetProfile)
+			}
 		}
 
 		// User Routes

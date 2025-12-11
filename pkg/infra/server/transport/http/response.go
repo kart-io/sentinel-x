@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/gin-gonic/gin/binding"
 	"github.com/kart-io/sentinel-x/pkg/utils/json"
 	"github.com/kart-io/sentinel-x/pkg/utils/validator"
 )
@@ -62,17 +63,21 @@ func (c *RequestContext) Redirect(code int, url string) {
 }
 
 // Bind binds the request body to the given struct.
-// Supports JSON content type. Uses high-performance sonic JSON decoder when available.
+// Supports JSON and Form content types.
 func (c *RequestContext) Bind(v interface{}) error {
 	contentType := c.Header("Content-Type")
 
-	// Default to JSON if no content type specified
-	if contentType == "" || contentType == "application/json" ||
-		len(contentType) > 16 && contentType[:16] == "application/json" {
-		return json.NewDecoder(c.request.Body).Decode(v)
+	// Handle Multipart Form
+	if strings.Contains(contentType, "multipart/form-data") {
+		return binding.FormMultipart.Bind(c.request, v)
 	}
 
-	// For other content types, try JSON as fallback
+	// Handle URL Encoded Form
+	if strings.Contains(contentType, "application/x-www-form-urlencoded") {
+		return binding.Form.Bind(c.request, v)
+	}
+
+	// Default to JSON
 	return json.NewDecoder(c.request.Body).Decode(v)
 }
 

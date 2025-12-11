@@ -17,10 +17,9 @@
 package sonic
 
 import (
-	"io"
-
 	"github.com/bytedance/sonic/ast"
 	"github.com/bytedance/sonic/internal/rt"
+	"io"
 )
 
 const (

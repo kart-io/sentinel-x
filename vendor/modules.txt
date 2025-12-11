@@ -242,8 +242,6 @@ github.com/kart-io/logger/engines/zap
 github.com/kart-io/logger/errors
 github.com/kart-io/logger/factory
 github.com/kart-io/logger/fields
-github.com/kart-io/logger/integrations
-github.com/kart-io/logger/integrations/gorm
 github.com/kart-io/logger/option
 github.com/kart-io/logger/otlp
 github.com/kart-io/logger/runtime

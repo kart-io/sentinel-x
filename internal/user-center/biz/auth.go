@@ -8,6 +8,7 @@ import (
 
 	"github.com/kart-io/sentinel-x/internal/model"
 	"github.com/kart-io/sentinel-x/internal/user-center/store"
+	"github.com/kart-io/sentinel-x/pkg/security/auth"
 	"github.com/kart-io/sentinel-x/pkg/security/auth/jwt"
 )
 
@@ -38,18 +39,38 @@ func (s *AuthService) Login(ctx context.Context, req *model.LoginRequest) (*mode
 	}
 
 	// Generate token
-	token, err := s.jwtAuth.Sign(ctx, req.Username)
+	token, err := s.jwtAuth.Sign(ctx, req.Username, auth.WithExtra(map[string]interface{}{
+		"id": user.ID,
+	}))
 	if err != nil {
 		return nil, err
 	}
 
 	return &model.LoginResponse{
 		Token:     token.GetAccessToken(),
-		ExpiresIn: 7200, // TODO: Get from config
+		ExpiresIn: token.GetExpiresAt(),
+		UserID:    user.ID,
 	}, nil
 }
 
 // Logout revokes a user token.
 func (s *AuthService) Logout(ctx context.Context, token string) error {
 	return s.jwtAuth.Revoke(ctx, token)
+}
+
+// Register registers a new user.
+func (s *AuthService) Register(ctx context.Context, req *model.RegisterRequest) error {
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	user := &model.User{
+		Username: req.Username,
+		Password: string(hashedPassword),
+		Email:    &req.Email,
+		Status:   1,
+	}
+
+	return s.store.Users().Create(ctx, user)
 }

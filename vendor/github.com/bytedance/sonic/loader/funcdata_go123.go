@@ -20,9 +20,8 @@
 package loader
 
 import (
-	"unsafe"
-
 	"github.com/bytedance/sonic/loader/internal/rt"
+	"unsafe"
 )
 
 const (

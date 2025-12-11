@@ -87,3 +87,41 @@ func MustClaimsFromContext(ctx context.Context) *Claims {
 	}
 	return claims
 }
+
+// UserIDFromContext returns the user ID (subject) from the context.
+// This is an alias for SubjectFromContext.
+func UserIDFromContext(ctx context.Context) string {
+	return SubjectFromContext(ctx)
+}
+
+// ContextWithUserID returns a new context with the given user ID.
+// This is an alias for ContextWithSubject.
+func ContextWithUserID(ctx context.Context, userID string) context.Context {
+	return ContextWithSubject(ctx, userID)
+}
+
+// MustUserIDFromContext returns the user ID from context or panics.
+func MustUserIDFromContext(ctx context.Context) string {
+	return MustSubjectFromContext(ctx)
+}
+
+// ClaimFromContext returns a specific claim value from the context.
+// Returns nil if the claim is not found.
+func ClaimFromContext(ctx context.Context, key string) interface{} {
+	claims := ClaimsFromContext(ctx)
+	if claims == nil {
+		return nil
+	}
+	val, _ := claims.GetExtra(key)
+	return val
+}
+
+// StringClaimFromContext returns a specific claim value as a string from the context.
+// Returns empty string if the claim is not found or not a string.
+func StringClaimFromContext(ctx context.Context, key string) string {
+	claims := ClaimsFromContext(ctx)
+	if claims == nil {
+		return ""
+	}
+	return claims.GetExtraString(key)
+}

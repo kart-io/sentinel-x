@@ -22,13 +22,12 @@ package jitdec
 import (
 	"encoding/json"
 	"fmt"
-	"reflect"
-
 	"github.com/bytedance/sonic/internal/jit"
 	"github.com/bytedance/sonic/internal/native"
 	"github.com/bytedance/sonic/internal/native/types"
 	"github.com/bytedance/sonic/internal/rt"
 	"github.com/twitchyliquid64/golang-asm/obj"
+	"reflect"
 )
 
 /** Crucial Registers:

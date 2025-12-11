@@ -17,11 +17,10 @@
 package loader
 
 import (
-	"reflect"
-	"unsafe"
-
 	"github.com/bytedance/sonic/loader/internal/abi"
 	"github.com/bytedance/sonic/loader/internal/rt"
+	"reflect"
+	"unsafe"
 )
 
 var _C_Redzone = []bool{false, false, false, false}
