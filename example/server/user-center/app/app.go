@@ -9,9 +9,9 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/kart-io/logger"
-	v1 "github.com/kart-io/sentinel-x/example/server/user-center/api/v1"
 	"github.com/kart-io/sentinel-x/example/server/user-center/handler"
 	"github.com/kart-io/sentinel-x/example/server/user-center/service/userservice"
+	v1 "github.com/kart-io/sentinel-x/pkg/api/user-center/v1"
 	// Import bridge to register gin adapter
 	_ "github.com/kart-io/sentinel-x/pkg/infra/adapter/gin"
 	"github.com/kart-io/sentinel-x/pkg/infra/app"

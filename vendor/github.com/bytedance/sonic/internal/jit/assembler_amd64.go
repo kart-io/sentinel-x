@@ -18,13 +18,14 @@ package jit
 
 import (
 	"encoding/binary"
+	"strconv"
+	"strings"
+	"sync"
+
 	"github.com/bytedance/sonic/internal/rt"
 	"github.com/bytedance/sonic/loader"
 	"github.com/twitchyliquid64/golang-asm/obj"
 	"github.com/twitchyliquid64/golang-asm/obj/x86"
-	"strconv"
-	"strings"
-	"sync"
 )
 
 const (

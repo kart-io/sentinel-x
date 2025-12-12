@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package api.user.v1;
 
-option go_package = "github.com/kart-io/sentinel-x/example/server/user-center/api/v1;v1";
+option go_package = "github.com/kart-io/sentinel-x/pkg/api/user-center/v1;user";
 
 service UserService {
   rpc GetUser (UserRequest) returns (UserResponse);

@@ -18,4 +18,5 @@ type RegisterRequest struct {
 	Username string `json:"username" form:"username" validate:"required"`
 	Password string `json:"password" form:"password" validate:"required"`
 	Email    string `json:"email" form:"email" validate:"required,email"`
+	Mobile   string `json:"mobile" form:"mobile" validate:"omitempty,mobile"`
 }

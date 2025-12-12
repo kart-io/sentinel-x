@@ -92,6 +92,7 @@ func (s *AuthService) Register(ctx context.Context, req *model.RegisterRequest) 
 		Username: req.Username,
 		Password: string(hashedPassword),
 		Email:    &req.Email,
+		Mobile:   req.Mobile,
 		Status:   1,
 	}
 

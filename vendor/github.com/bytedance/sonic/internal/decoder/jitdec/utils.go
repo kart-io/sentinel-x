@@ -17,8 +17,9 @@
 package jitdec
 
 import (
-	"github.com/bytedance/sonic/loader"
 	"unsafe"
+
+	"github.com/bytedance/sonic/loader"
 )
 
 //go:nosplit

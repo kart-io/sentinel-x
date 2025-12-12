@@ -18,14 +18,15 @@ package jit
 
 import (
 	"fmt"
+	"sync"
+	_ "unsafe"
+
 	"github.com/bytedance/sonic/internal/rt"
 	"github.com/bytedance/sonic/loader"
 	"github.com/twitchyliquid64/golang-asm/asm/arch"
 	"github.com/twitchyliquid64/golang-asm/obj"
 	"github.com/twitchyliquid64/golang-asm/obj/x86"
 	"github.com/twitchyliquid64/golang-asm/objabi"
-	"sync"
-	_ "unsafe"
 )
 
 type Backend struct {

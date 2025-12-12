@@ -9,7 +9,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	v1 "github.com/kart-io/sentinel-x/example/server/user-center/api/v1"
+	v1 "github.com/kart-io/sentinel-x/pkg/api/user-center/v1"
 )
 
 func main() {

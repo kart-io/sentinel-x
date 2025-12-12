@@ -5,10 +5,10 @@ import (
 	"fmt"
 
 	"github.com/kart-io/logger"
-	v1 "github.com/kart-io/sentinel-x/example/server/example/api/hello/v1"
 	"github.com/kart-io/sentinel-x/example/server/example/handler"
 	"github.com/kart-io/sentinel-x/example/server/example/service/authservice"
 	"github.com/kart-io/sentinel-x/example/server/example/service/helloservice"
+	v1 "github.com/kart-io/sentinel-x/pkg/api/hello/v1"
 	// Import bridges to register them
 	_ "github.com/kart-io/sentinel-x/pkg/infra/adapter/echo"
 	_ "github.com/kart-io/sentinel-x/pkg/infra/adapter/gin"

@@ -22,9 +22,17 @@ func NewAuthHandler(svc *biz.AuthService) *AuthHandler {
 	return &AuthHandler{svc: svc}
 }
 
+// LoginRequest is the request body for user login.
+type LoginRequest struct {
+	// Username must be provided, 3-32 characters
+	Username string `json:"username" validate:"required,min=3,max=32"`
+	// Password must be provided, 6-64 characters
+	Password string `json:"password" validate:"required,min=6,max=64"`
+}
+
 // Login handles user login.
 func (h *AuthHandler) Login(c transport.Context) {
-	var req model.LoginRequest
+	var req LoginRequest
 	if err := c.ShouldBindAndValidate(&req); err != nil {
 		resp := response.Err(errors.ErrBadRequest.WithMessage(err.Error()))
 		defer response.Release(resp)
@@ -32,7 +40,10 @@ func (h *AuthHandler) Login(c transport.Context) {
 		return
 	}
 
-	respData, err := h.svc.Login(c.Request(), &req)
+	respData, err := h.svc.Login(c.Request(), &model.LoginRequest{
+		Username: req.Username,
+		Password: req.Password,
+	})
 	if err != nil {
 		logger.Warnf("Login failed: %v", err)
 		resp := response.Err(errors.ErrUnauthorized.WithMessage(err.Error()))
@@ -77,9 +88,21 @@ func (h *AuthHandler) Logout(c transport.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
+// RegisterRequest is the request body for user registration.
+type RegisterRequest struct {
+	// Username must start with letter, contain letters/numbers/underscore, 3-32 chars
+	Username string `json:"username" validate:"required,username"`
+	// Password must be at least 8 chars with letter and number
+	Password string `json:"password" validate:"required,password"`
+	// Email must be valid email format
+	Email string `json:"email" validate:"required,email"`
+	// Mobile must be valid mobile number (optional)
+	Mobile string `json:"mobile" validate:"omitempty,mobile"`
+}
+
 // Register handles user registration.
 func (h *AuthHandler) Register(c transport.Context) {
-	var req model.RegisterRequest
+	var req RegisterRequest
 	if err := c.ShouldBindAndValidate(&req); err != nil {
 		resp := response.Err(errors.ErrBadRequest.WithMessage(err.Error()))
 		defer response.Release(resp)
@@ -87,7 +110,12 @@ func (h *AuthHandler) Register(c transport.Context) {
 		return
 	}
 
-	if err := h.svc.Register(c.Request(), &req); err != nil {
+	if err := h.svc.Register(c.Request(), &model.RegisterRequest{
+		Username: req.Username,
+		Password: req.Password,
+		Email:    req.Email,
+		Mobile:   req.Mobile,
+	}); err != nil {
 		logger.Errorf("Register failed: %v", err)
 		resp := response.Err(errors.ErrInternal.WithMessage(err.Error()))
 		defer response.Release(resp)

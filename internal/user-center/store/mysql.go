@@ -51,6 +51,11 @@ func (ds *datastore) Users() UserStore {
 	return newUsers(ds.db)
 }
 
+// Roles returns the role store.
+func (ds *datastore) Roles() RoleStore {
+	return newRoles(ds.db)
+}
+
 // Close closes the factory and underlying connections.
 func (ds *datastore) Close() error {
 	return nil

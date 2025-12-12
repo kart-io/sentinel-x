@@ -17,10 +17,11 @@
 package caching
 
 import (
-	"github.com/bytedance/sonic/internal/rt"
 	"sync"
 	"sync/atomic"
 	"unsafe"
+
+	"github.com/bytedance/sonic/internal/rt"
 )
 
 /** Program Map **/

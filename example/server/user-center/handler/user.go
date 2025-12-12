@@ -6,8 +6,8 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	v1 "github.com/kart-io/sentinel-x/example/server/user-center/api/v1"
 	"github.com/kart-io/sentinel-x/example/server/user-center/service/userservice"
+	v1 "github.com/kart-io/sentinel-x/pkg/api/user-center/v1"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 	"github.com/kart-io/sentinel-x/pkg/utils/errors"
 	"github.com/kart-io/sentinel-x/pkg/utils/response"

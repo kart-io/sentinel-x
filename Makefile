@@ -141,6 +141,26 @@ docker-build:
 	@echo "Docker image built: $(API_BINARY):$(VERSION)"
 
 # =============================================================================
+# Tools
+# =============================================================================
+
+.PHONY: tools.install
+tools.install:
+	@bash scripts/install/install.sh
+
+.PHONY: tools.install.%
+tools.install.%:
+	@bash scripts/install/install.sh $*
+
+# =============================================================================
+# Proto Commands
+# =============================================================================
+
+.PHONY: gen.proto
+gen.proto:
+	@buf generate --path pkg/api
+
+# =============================================================================
 # Example Server Commands
 # =============================================================================
 
@@ -213,6 +233,9 @@ help:
 	@echo ""
 	@echo "  Docker:"
 	@echo "    docker-build      - Build Docker image"
+	@echo ""
+	@echo "  Proto:"
+	@echo "    gen.proto         - Generate Go code from proto files"
 	@echo ""
 	@echo "  Help:"
 	@echo "    help              - Show this help message"

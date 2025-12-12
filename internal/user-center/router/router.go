@@ -5,6 +5,7 @@ import (
 	"github.com/kart-io/sentinel-x/internal/user-center/biz"
 	"github.com/kart-io/sentinel-x/internal/user-center/handler"
 	"github.com/kart-io/sentinel-x/internal/user-center/store"
+	v1 "github.com/kart-io/sentinel-x/pkg/api/user-center/v1"
 	"github.com/kart-io/sentinel-x/pkg/infra/datasource"
 	"github.com/kart-io/sentinel-x/pkg/infra/middleware"
 	"github.com/kart-io/sentinel-x/pkg/infra/server"
@@ -23,16 +24,18 @@ func Register(mgr *server.Manager, jwtAuth *jwt.JWT, ds *datasource.Manager) err
 
 	// Initialize Biz and Handlers
 	userBiz := biz.NewUserService(storeFactory)
+	roleBiz := biz.NewRoleService(storeFactory)
 	authBiz := biz.NewAuthService(jwtAuth, storeFactory)
 
-	userHandler := handler.NewUserHandler(userBiz)
+	userHandler := handler.NewUserHandler(userBiz, roleBiz)
+	roleHandler := handler.NewRoleHandler(roleBiz)
 	authHandler := handler.NewAuthHandler(authBiz)
 
 	// HTTP Server
 	if httpServer := mgr.HTTPServer(); httpServer != nil {
 		router := httpServer.Router()
 
-		// Auth Routes
+		//  Auth Routes
 		auth := router.Group("/auth")
 		{
 			auth.Handle("POST", "/login", authHandler.Login)
@@ -58,10 +61,26 @@ func Register(mgr *server.Manager, jwtAuth *jwt.JWT, ds *datasource.Manager) err
 			users.Use(middleware.Auth(middleware.AuthWithAuthenticator(jwtAuth)))
 			{
 				users.Handle("GET", "", userHandler.List)
+				users.Handle("POST", "/batch-delete", userHandler.BatchDelete)
 				users.Handle("GET", "/:username", userHandler.Get)
 				users.Handle("PUT", "/:username", userHandler.Update)
 				users.Handle("DELETE", "/:username", userHandler.Delete)
 				users.Handle("POST", "/:username/password", userHandler.ChangePassword)
+
+				// User Role Assignment
+				users.Handle("POST", "/:username/roles", roleHandler.AssignRole)
+				users.Handle("GET", "/:username/roles", roleHandler.GetUserRoles)
+			}
+
+			// Role Routes
+			roles := v1.Group("/roles")
+			roles.Use(middleware.Auth(middleware.AuthWithAuthenticator(jwtAuth)))
+			{
+				roles.Handle("POST", "", roleHandler.Create)
+				roles.Handle("GET", "", roleHandler.List)
+				roles.Handle("GET", "/:code", roleHandler.Get)
+				roles.Handle("PUT", "/:code", roleHandler.Update)
+				roles.Handle("DELETE", "/:code", roleHandler.Delete)
 			}
 		}
 
@@ -71,10 +90,7 @@ func Register(mgr *server.Manager, jwtAuth *jwt.JWT, ds *datasource.Manager) err
 	// gRPC Server
 	if grpcServer := mgr.GRPCServer(); grpcServer != nil {
 		// Register gRPC services here
-		// example:
-		// pb.RegisterUserServiceServer(grpcServer.Server, handler.NewUserService())
-
-		// For now, let's just log
+		v1.RegisterUserServiceServer(grpcServer.Server(), userHandler)
 		logger.Info("gRPC services registered")
 	}
 

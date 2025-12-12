@@ -22,10 +22,11 @@ package encoder
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/bytedance/sonic/internal/compat"
-	"github.com/bytedance/sonic/option"
 	"io"
 	"reflect"
+
+	"github.com/bytedance/sonic/internal/compat"
+	"github.com/bytedance/sonic/option"
 )
 
 func init() {

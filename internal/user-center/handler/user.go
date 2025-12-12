@@ -1,34 +1,50 @@
 package handler
 
 import (
-	"net/http"
+	"context"
 	"strconv"
+	"strings"
 
 	"github.com/kart-io/logger"
 	"github.com/kart-io/sentinel-x/internal/model"
 	"github.com/kart-io/sentinel-x/internal/user-center/biz"
+	v1 "github.com/kart-io/sentinel-x/pkg/api/user-center/v1"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 	"github.com/kart-io/sentinel-x/pkg/security/auth"
 	"github.com/kart-io/sentinel-x/pkg/utils/errors"
 	"github.com/kart-io/sentinel-x/pkg/utils/response"
 )
 
-// UserHandler handles user-related HTTP requests.
+// UserHandler handles user-related HTTP requests and gRPC requests.
 type UserHandler struct {
-	svc *biz.UserService
+	v1.UnimplementedUserServiceServer
+	svc     *biz.UserService
+	roleSvc *biz.RoleService
 }
 
 // NewUserHandler creates a new UserHandler.
-func NewUserHandler(svc *biz.UserService) *UserHandler {
-	return &UserHandler{svc: svc}
+func NewUserHandler(svc *biz.UserService, roleSvc *biz.RoleService) *UserHandler {
+	return &UserHandler{
+		svc:     svc,
+		roleSvc: roleSvc,
+	}
+}
+
+// CreateUserRequest is the request body for creating a user.
+type CreateUserRequest struct {
+	// Username must start with letter, 3-32 characters
+	Username string `json:"username" validate:"required,username"`
+	// Password must be at least 8 chars with letter and number
+	Password string `json:"password" validate:"required,password"`
+	// Email must be valid email format
+	Email string `json:"email" validate:"required,email"`
+	// Mobile is optional, must be valid mobile number if provided
+	Mobile string `json:"mobile" validate:"omitempty,mobile"`
 }
 
 // Create handles user creation.
 func (h *UserHandler) Create(c transport.Context) {
-	var req struct {
-		model.User
-		Password string `json:"password"`
-	}
+	var req CreateUserRequest
 	if err := c.ShouldBindAndValidate(&req); err != nil {
 		resp := response.Err(errors.ErrBadRequest.WithMessage(err.Error()))
 		defer response.Release(resp)
@@ -36,10 +52,15 @@ func (h *UserHandler) Create(c transport.Context) {
 		return
 	}
 
-	user := req.User
-	user.Password = req.Password
+	user := &model.User{
+		Username: req.Username,
+		Password: req.Password,
+		Email:    &req.Email,
+		Mobile:   req.Mobile,
+		Status:   1,
+	}
 
-	if err := h.svc.Create(c.Request(), &user); err != nil {
+	if err := h.svc.Create(c.Request(), user); err != nil {
 		logger.Errorf("failed to create user: %v", err)
 		resp := response.Err(errors.ErrInternal.WithMessage(err.Error()))
 		defer response.Release(resp)
@@ -49,29 +70,20 @@ func (h *UserHandler) Create(c transport.Context) {
 
 	resp := response.Success(user)
 	defer response.Release(resp)
-	c.JSON(http.StatusCreated, resp)
+	c.JSON(200, resp)
 }
 
-// UpdateUserRequest 定义用户更新请求的 DTO，明确排除敏感字段
-type UpdateUserRequest struct {
-	Email  *string `json:"email" validate:"omitempty,email"`
-	Avatar string  `json:"avatar"`
-	Mobile string  `json:"mobile"`
-	Status *int    `json:"status" validate:"omitempty,min=0,max=1"`
-}
-
-// Update 处理用户更新请求
+// Update handles user updates.
 func (h *UserHandler) Update(c transport.Context) {
 	username := c.Param("username")
 	if username == "" {
-		resp := response.Err(errors.ErrBadRequest.WithMessage("用户名不能为空"))
+		resp := response.Err(errors.ErrBadRequest.WithMessage("username is required"))
 		defer response.Release(resp)
 		c.JSON(resp.HTTPStatus(), resp)
 		return
 	}
 
-	// 获取现有用户
-	existingUser, err := h.svc.Get(c.Request(), username)
+	user, err := h.svc.Get(c.Request(), username)
 	if err != nil {
 		resp := response.Err(errors.ErrUserNotFound)
 		defer response.Release(resp)
@@ -79,40 +91,35 @@ func (h *UserHandler) Update(c transport.Context) {
 		return
 	}
 
-	// 使用专用 DTO 接收请求，禁止更新敏感字段
-	var req UpdateUserRequest
-	if err := c.ShouldBindAndValidate(&req); err != nil {
+	var req struct {
+		Email  string `json:"email"`
+		Mobile string `json:"mobile"`
+	}
+	if err := c.Bind(&req); err != nil {
 		resp := response.Err(errors.ErrBadRequest.WithMessage(err.Error()))
 		defer response.Release(resp)
 		c.JSON(resp.HTTPStatus(), resp)
 		return
 	}
 
-	// 选择性更新字段，确保 Password 和 Username 永远不会被更新
-	if req.Email != nil {
-		existingUser.Email = req.Email
-	}
-	if req.Avatar != "" {
-		existingUser.Avatar = req.Avatar
+	if req.Email != "" {
+		user.Email = &req.Email
 	}
 	if req.Mobile != "" {
-		existingUser.Mobile = req.Mobile
-	}
-	if req.Status != nil {
-		existingUser.Status = *req.Status
+		user.Mobile = req.Mobile
 	}
 
-	if err := h.svc.Update(c.Request(), existingUser); err != nil {
-		logger.Errorf("更新用户失败: %v", err)
+	if err := h.svc.Update(c.Request(), user); err != nil {
+		logger.Errorf("failed to update user: %v", err)
 		resp := response.Err(errors.ErrInternal.WithMessage(err.Error()))
 		defer response.Release(resp)
 		c.JSON(resp.HTTPStatus(), resp)
 		return
 	}
 
-	resp := response.Success(existingUser)
+	resp := response.Success(user)
 	defer response.Release(resp)
-	c.JSON(http.StatusOK, resp)
+	c.JSON(200, resp)
 }
 
 // Delete handles user deletion.
@@ -135,10 +142,43 @@ func (h *UserHandler) Delete(c transport.Context) {
 
 	resp := response.SuccessWithMessage("user deleted", nil)
 	defer response.Release(resp)
-	c.JSON(http.StatusOK, resp)
+	c.JSON(200, resp)
 }
 
-// Get handles retrieving a single user.
+// BatchDeleteRequest is the request for batch deleting users.
+type BatchDeleteRequest struct {
+	// IDs is the list of usernames/IDs to delete, 1-100 items
+	Usernames []string `json:"usernames" validate:"required,min=1,max=100,dive,min=1"`
+}
+
+// BatchDelete handles batch deletion of users.
+func (h *UserHandler) BatchDelete(c transport.Context) {
+	var req BatchDeleteRequest
+	if err := c.ShouldBindAndValidate(&req); err != nil {
+		resp := response.Err(errors.ErrBadRequest.WithMessage(err.Error()))
+		defer response.Release(resp)
+		c.JSON(resp.HTTPStatus(), resp)
+		return
+	}
+
+	for _, username := range req.Usernames {
+		if err := h.svc.Delete(c.Request(), username); err != nil {
+			logger.Errorf("failed to delete user %s: %v", username, err)
+			// Continue deleting others or return error? Example implied strict success or partial?
+			// For now, let's return error on first failure to be safe
+			resp := response.Err(errors.ErrInternal.WithMessage(err.Error()))
+			defer response.Release(resp)
+			c.JSON(resp.HTTPStatus(), resp)
+			return
+		}
+	}
+
+	resp := response.SuccessWithMessage("users deleted", nil)
+	defer response.Release(resp)
+	c.JSON(200, resp)
+}
+
+// Get handles retrieving a user by username.
 func (h *UserHandler) Get(c transport.Context) {
 	username := c.Param("username")
 	if username == "" {
@@ -158,23 +198,39 @@ func (h *UserHandler) Get(c transport.Context) {
 
 	resp := response.Success(user)
 	defer response.Release(resp)
-	c.JSON(http.StatusOK, resp)
+	c.JSON(200, resp)
+}
+
+// ListUsersRequest is the query parameters for listing users.
+type ListUsersRequest struct {
+	// Page number, must be at least 1
+	Page int `form:"page" validate:"omitempty,min=1"`
+	// PageSize is the number of items per page, 1-100
+	PageSize int `form:"page_size" validate:"omitempty,min=1,max=100"`
+	// Search keyword for username or email
+	Search string `form:"search" validate:"omitempty,max=100"`
 }
 
 // List handles listing users.
 func (h *UserHandler) List(c transport.Context) {
-	offsetStr := c.Query("offset")
-	limitStr := c.Query("limit")
+	var req ListUsersRequest
+	// Set defaults
+	req.Page = 1
+	req.PageSize = 10
 
-	offset := 0
-	limit := 10
+	// Ignore bind error for optional params
+	_ = c.Bind(&req)
 
-	if val, err := strconv.Atoi(offsetStr); err == nil && val >= 0 {
-		offset = val
+	// Manual override if bind failed or not present
+	if val, err := strconv.Atoi(c.Query("page")); err == nil && val > 0 {
+		req.Page = val
 	}
-	if val, err := strconv.Atoi(limitStr); err == nil && val > 0 {
-		limit = val
+	if val, err := strconv.Atoi(c.Query("page_size")); err == nil && val > 0 {
+		req.PageSize = val
 	}
+
+	offset := (req.Page - 1) * req.PageSize
+	limit := req.PageSize
 
 	count, users, err := h.svc.List(c.Request(), offset, limit)
 	if err != nil {
@@ -185,9 +241,42 @@ func (h *UserHandler) List(c transport.Context) {
 		return
 	}
 
-	resp := response.Page(users, count, offset/limit+1, limit)
+	resp := response.Page(users, count, req.Page, req.PageSize)
 	defer response.Release(resp)
-	c.JSON(http.StatusOK, resp)
+	c.JSON(200, resp)
+}
+
+// GetProfile handles retrieving the current user's profile.
+func (h *UserHandler) GetProfile(c transport.Context) {
+	username := auth.SubjectFromContext(c.Request())
+	if username == "" {
+		resp := response.Err(errors.ErrUnauthorized)
+		defer response.Release(resp)
+		c.JSON(resp.HTTPStatus(), resp)
+		return
+	}
+
+	user, err := h.svc.Get(c.Request(), username)
+	if err != nil {
+		resp := response.Err(errors.ErrUserNotFound)
+		defer response.Release(resp)
+		c.JSON(resp.HTTPStatus(), resp)
+		return
+	}
+
+	resp := response.Success(user)
+	defer response.Release(resp)
+	c.JSON(200, resp)
+}
+
+// ChangePasswordRequest is the request body for changing password.
+type ChangePasswordRequest struct {
+	// OldPassword is the current password
+	OldPassword string `json:"old_password" validate:"required,min=6,max=64"`
+	// NewPassword must be at least 8 chars with letter and number
+	NewPassword string `json:"new_password" validate:"required,password"`
+	// ConfirmPassword must match NewPassword
+	ConfirmPassword string `json:"confirm_password" validate:"required,eqfield=NewPassword"`
 }
 
 // ChangePassword handles password change.
@@ -200,11 +289,17 @@ func (h *UserHandler) ChangePassword(c transport.Context) {
 		return
 	}
 
-	var req struct {
-		NewPassword string `json:"newPassword"`
-	}
-	if err := c.Bind(&req); err != nil {
+	var req ChangePasswordRequest
+	if err := c.ShouldBindAndValidate(&req); err != nil {
 		resp := response.Err(errors.ErrBadRequest.WithMessage(err.Error()))
+		defer response.Release(resp)
+		c.JSON(resp.HTTPStatus(), resp)
+		return
+	}
+
+	// Verify old password
+	if err := h.svc.ValidatePassword(c.Request(), username, req.OldPassword); err != nil {
+		resp := response.Err(errors.ErrUnauthorized.WithMessage("旧密码错误"))
 		defer response.Release(resp)
 		c.JSON(resp.HTTPStatus(), resp)
 		return
@@ -220,22 +315,42 @@ func (h *UserHandler) ChangePassword(c transport.Context) {
 
 	resp := response.SuccessWithMessage("password changed", nil)
 	defer response.Release(resp)
-	c.JSON(http.StatusOK, resp)
+	c.JSON(200, resp)
 }
 
-// GetProfile handles retrieving the current user's profile.
-func (h *UserHandler) GetProfile(c transport.Context) {
-	username := auth.UserIDFromContext(c.Request())
-
-	user, err := h.svc.Get(c.Request(), username)
-	if err != nil {
-		resp := response.Err(errors.ErrUserNotFound)
-		defer response.Release(resp)
-		c.JSON(resp.HTTPStatus(), resp)
-		return
+// GetUser implements the gRPC method to get a user by ID.
+func (h *UserHandler) GetUser(ctx context.Context, req *v1.UserRequest) (*v1.UserResponse, error) {
+	// Note: The proto defines GetUser taking an ID, but our svc.Get takes a username.
+	// We might need to handle this mapping or if ID is passed as string.
+	// Assuming req.Id is the ID.
+	var user *model.User
+	id, err := strconv.ParseUint(req.Id, 10, 64)
+	if err == nil {
+		// Numeric ID, try get by ID
+		user, err = h.svc.GetByUserId(ctx, id)
+	} else {
+		// Non-numeric, treat as username
+		user, err = h.svc.Get(ctx, req.Id)
 	}
 
-	resp := response.Success(user)
-	defer response.Release(resp)
-	c.JSON(http.StatusOK, resp)
+	if err != nil {
+		return nil, err
+	}
+
+	// Fetch roles
+	roles, err := h.roleSvc.GetUserRoles(ctx, user.Username)
+	var roleStr string
+	if err == nil && len(roles) > 0 {
+		var roleCodes []string
+		for _, r := range roles {
+			roleCodes = append(roleCodes, r.Code)
+		}
+		roleStr = strings.Join(roleCodes, ",")
+	}
+
+	return &v1.UserResponse{
+		Id:       strconv.FormatUint(user.ID, 10),
+		Username: user.Username,
+		Role:     roleStr,
+	}, nil
 }

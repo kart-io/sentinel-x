@@ -17,11 +17,12 @@
 package jitdec
 
 import (
-	"github.com/bytedance/sonic/internal/jit"
 	"os"
 	"runtime"
 	"runtime/debug"
 	"strings"
+
+	"github.com/bytedance/sonic/internal/jit"
 )
 
 var (

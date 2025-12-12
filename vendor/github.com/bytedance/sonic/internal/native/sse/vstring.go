@@ -17,9 +17,10 @@
 package sse
 
 import (
+	"unsafe"
+
 	"github.com/bytedance/sonic/internal/native/types"
 	"github.com/bytedance/sonic/internal/rt"
-	"unsafe"
 )
 
 var F_vstring func(s unsafe.Pointer, p unsafe.Pointer, v unsafe.Pointer, flags uint64)

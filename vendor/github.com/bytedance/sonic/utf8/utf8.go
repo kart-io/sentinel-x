@@ -20,10 +20,11 @@
 package utf8
 
 import (
+	"runtime"
+
 	"github.com/bytedance/sonic/internal/native"
 	"github.com/bytedance/sonic/internal/native/types"
 	"github.com/bytedance/sonic/internal/rt"
-	"runtime"
 )
 
 // CorrectWith corrects the invalid utf8 byte with repl string.

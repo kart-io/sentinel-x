@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package api.hello.v1;
 
-option go_package = "github.com/kart-io/sentinel-x/pkg/server/example/api/hello/v1;v1";
+option go_package = "github.com/kart-io/sentinel-x/pkg/api/hello/v1;hello";
 
 // HelloService provides greeting functionality.
 service HelloService {
