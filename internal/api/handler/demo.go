@@ -29,17 +29,7 @@ func (h *DemoHandler) Hello(c transport.Context) {
 
 // Protected 处理需要认证的请求。
 func (h *DemoHandler) Protected(c transport.Context) {
-	// 调试：检查 request context 中是否有 claims
-	ctx := c.Request()
-	claims := auth.ClaimsFromContext(ctx)
-
-	// 调试日志
-	if claims == nil {
-		// 尝试从 HTTP request context 获取
-		httpCtx := c.HTTPRequest().Context()
-		claims = auth.ClaimsFromContext(httpCtx)
-	}
-
+	claims := auth.ClaimsFromContext(c.Request())
 	if claims == nil {
 		resp := response.ErrorWithCode(401, "unauthorized")
 		defer response.Release(resp)
