@@ -91,6 +91,7 @@ func (mi *MiddlewareInitializer) configureAuth() {
 		SkipPaths: []string{
 			"/api/v1/auth/login",
 			"/api/v1/auth/register",
+			"/api/v1/hello", // 公开演示端点
 			"/health", "/live", "/ready", "/metrics",
 		},
 	}
@@ -104,6 +105,7 @@ func (mi *MiddlewareInitializer) configureAuth() {
 			"/api/v1/auth/register",
 			"/api/v1/auth/refresh",
 			"/api/v1/auth/logout",
+			"/api/v1/hello", // 公开演示端点
 			"/health", "/live", "/ready", "/metrics",
 		},
 	}

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	// Use the shared bootstrap package
+	"github.com/kart-io/sentinel-x/internal/api/router"
 	"github.com/kart-io/sentinel-x/internal/bootstrap"
 	// Import bridges to register them
 	_ "github.com/kart-io/sentinel-x/pkg/infra/adapter/echo"
@@ -72,14 +73,15 @@ func Run(opts *Options) error {
 
 	// Create bootstrap options
 	bootstrapOpts := &bootstrap.BootstrapOptions{
-		AppName:    appName,
-		AppVersion: app.GetVersion(),
-		ServerMode: opts.Server.Mode.String(),
-		LogOpts:    opts.Log,
-		ServerOpts: opts.Server,
-		JWTOpts:    opts.JWT,
-		MySQLOpts:  opts.MySQL,
-		RedisOpts:  opts.Redis,
+		AppName:      appName,
+		AppVersion:   app.GetVersion(),
+		ServerMode:   opts.Server.Mode.String(),
+		LogOpts:      opts.Log,
+		ServerOpts:   opts.Server,
+		JWTOpts:      opts.JWT,
+		MySQLOpts:    opts.MySQL,
+		RedisOpts:    opts.Redis,
+		RegisterFunc: router.Register,
 	}
 
 	return bootstrap.Run(bootstrapOpts)

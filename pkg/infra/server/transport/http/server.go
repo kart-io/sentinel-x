@@ -72,11 +72,19 @@ func NewServer(opts ...options.Option) *Server {
 	// Note: adapter may still be nil if no adapters are registered
 	// This will be checked in Start()
 
-	return &Server{
+	s := &Server{
 		opts:     serverOpts,
 		adapter:  adapter,
 		handlers: make([]registeredHandler, 0),
 	}
+
+	// 关键：在创建 Server 时就应用中间件
+	// 这样所有后续创建的路由组都会继承这些中间件
+	if adapter != nil {
+		s.applyMiddleware(adapter.Router(), serverOpts.Middleware)
+	}
+
+	return s
 }
 
 // Name returns the server name.
@@ -128,8 +136,9 @@ func (s *Server) Start(ctx context.Context) error {
 	router := s.adapter.Router()
 	mwOpts := s.opts.Middleware
 
-	// Apply middleware based on options
-	s.applyMiddleware(router, mwOpts)
+	// 注意：中间件已在 NewServer 时应用，这里不再重复应用
+	// 这是因为 Gin 的 RouterGroup 在创建子组时会复制当前的 handlers
+	// 如果中间件在路由注册之后才应用，则不会被子组继承
 
 	// Register health endpoints
 	if !mwOpts.DisableHealth {

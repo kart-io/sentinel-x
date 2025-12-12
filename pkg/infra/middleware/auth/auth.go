@@ -142,6 +142,12 @@ func Auth(opts ...AuthOption) transport.MiddlewareFunc {
 				return
 			}
 
+			// Debug: log successful auth
+			logger.Infow("authentication successful",
+				"subject", claims.Subject,
+				"path", path,
+			)
+
 			// Inject claims into context
 			newCtx := auth.InjectAuth(ctx.Request(), claims, tokenString)
 			ctx.SetRequest(newCtx)
@@ -189,14 +195,10 @@ func extractToken(ctx transport.Context, lookup tokenLookup, scheme string) stri
 		}
 	}
 
-	// Sanitize token
-	token = strings.TrimSpace(token)
-	token = strings.ReplaceAll(token, " ", "")  // Remove internal spaces
-	token = strings.ReplaceAll(token, "+", "-") // Standard base64 to URL-safe
-	token = strings.ReplaceAll(token, "/", "_") // Standard base64 to URL-safe
-	token = strings.TrimRight(token, "=")       // Remove padding
-
-	return token
+	// Sanitize token - only trim whitespace
+	// Note: JWT tokens are already URL-safe Base64 encoded (RFC 7519)
+	// Do NOT convert base64 characters as this would corrupt the signature
+	return strings.TrimSpace(token)
 }
 
 // shouldSkipAuth checks if the path should skip authentication.

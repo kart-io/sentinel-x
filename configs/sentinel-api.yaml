@@ -119,6 +119,7 @@ server:
         skip-paths:
           - /api/v1/auth/login
           - /api/v1/auth/register
+          - /api/v1/hello
           - /health
           - /live
           - /ready
@@ -188,14 +189,14 @@ mysql:
   port: 3306
   # Database username
   # 通过环境变量设置: SENTINEL_API_MYSQL_USERNAME
-  username: ""
+  username: "root"
   # Database password
   # 必须通过环境变量设置: SENTINEL_API_MYSQL_PASSWORD
   # 不要在配置文件中硬编码密码！
-  password: ""
+  password: "root123"
   # Database name
   # 通过环境变量设置: SENTINEL_API_MYSQL_DATABASE
-  database: ""
+  database: "agent_manager"
   # Maximum idle connections
   max-idle-connections: 10
   # Maximum open connections
@@ -213,7 +214,7 @@ redis:
   # Redis password (leave empty if no password)
   # 必须通过环境变量设置: SENTINEL_API_REDIS_PASSWORD
   # 不要在配置文件中硬编码密码！
-  password: ""
+  password: "redis_pass"
   # Redis database number
   database: 0
   # Maximum retries
