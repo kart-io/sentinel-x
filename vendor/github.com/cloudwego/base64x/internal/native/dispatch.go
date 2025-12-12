@@ -2,16 +2,17 @@ package native
 
 import (
 	"unsafe"
-    
-    `github.com/klauspost/cpuid/v2`
-	"github.com/cloudwego/base64x/internal/rt"
+
+	"github.com/klauspost/cpuid/v2"
+
 	"github.com/cloudwego/base64x/internal/native/avx2"
 	"github.com/cloudwego/base64x/internal/native/sse"
+	"github.com/cloudwego/base64x/internal/rt"
 )
 
 var (
-    hasAVX2 = cpuid.CPU.Has(cpuid.AVX2)
-    hasSSE = cpuid.CPU.Has(cpuid.SSE)
+	hasAVX2 = cpuid.CPU.Has(cpuid.AVX2)
+	hasSSE  = cpuid.CPU.Has(cpuid.SSE)
 )
 
 var (
@@ -44,7 +45,7 @@ func useSSE() {
 
 //go:nosplit
 func B64Decode(out *[]byte, src unsafe.Pointer, len int, mod int) (ret int) {
-    return F_b64decode(rt.NoEscape(unsafe.Pointer(out)), rt.NoEscape(unsafe.Pointer(src)), len, mod)
+	return F_b64decode(rt.NoEscape(unsafe.Pointer(out)), rt.NoEscape(unsafe.Pointer(src)), len, mod)
 }
 
 //go:nosplit

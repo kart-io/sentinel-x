@@ -109,6 +109,23 @@ server:
 
       # Authentication middleware
       disable-auth: false
+      auth:
+        # Token lookup location
+        # Format: "header:<name>" or "query:<name>" or "cookie:<name>"
+        token-lookup: "header:Authorization"
+        # Authorization scheme
+        auth-scheme: "Bearer"
+        # Paths to skip authentication (exact match)
+        skip-paths:
+          - /api/v1/auth/login
+          - /api/v1/auth/register
+          - /health
+          - /live
+          - /ready
+          - /metrics
+        # Path prefixes to skip authentication
+        skip-path-prefixes:
+          - /api/v1/public/
 
       # Authorization middleware
       disable-authz: false
@@ -150,9 +167,9 @@ jwt:
   # Disable authentication (set to true for development without auth)
   disable-auth: false
   # Secret key for signing tokens (min 64 characters for HMAC algorithms)
-  # 必须通过环境变量设置: SENTINEL_API_JWT_KEY
-  # 不要在配置文件中硬编码密钥！
-  key: ""
+  # 必须与 user-center 使用相同的密钥！
+  # 生产环境必须通过环境变量设置: SENTINEL_API_JWT_KEY
+  key: "your-super-secret-key-change-in-production-minimum-64-characters-required-here"
   # Signing algorithm
   signing-method: "HS256"
   # Token issuer

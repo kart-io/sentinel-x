@@ -93,7 +93,7 @@ func main() {
 
 	// Initialize JWT authenticator
 	jwtOpts := jwtopts.NewOptions()
-	jwtOpts.Key = "sentinel-x-demo-secret-key-32char!"
+	jwtOpts.Key = "your-super-secret-key-change-in-production-minimum-64-characters-required-here"
 	jwtOpts.Expired = 15 * time.Minute
 	jwtOpts.MaxRefresh = 24 * time.Hour
 	jwtOpts.Issuer = "sentinel-x-auth-demo"

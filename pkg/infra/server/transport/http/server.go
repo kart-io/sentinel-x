@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/kart-io/sentinel-x/pkg/infra/middleware"
+	authmw "github.com/kart-io/sentinel-x/pkg/infra/middleware/auth"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/service"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
@@ -229,6 +230,19 @@ func (s *Server) applyMiddleware(router transport.Router, opts *mwopts.Options) 
 	// Metrics middleware (disabled by default, but endpoint is registered separately)
 	if !opts.DisableMetrics {
 		router.Use(middleware.MetricsMiddlewareWithOptions(opts.Metrics))
+	}
+
+	// Auth middleware (JWT authentication)
+	if !opts.DisableAuth && opts.Auth.Authenticator != nil {
+		router.Use(authmw.Auth(
+			authmw.AuthWithAuthenticator(opts.Auth.Authenticator),
+			authmw.AuthWithTokenLookup(opts.Auth.TokenLookup),
+			authmw.AuthWithAuthScheme(opts.Auth.AuthScheme),
+			authmw.AuthWithSkipPaths(opts.Auth.SkipPaths...),
+			authmw.AuthWithSkipPathPrefixes(opts.Auth.SkipPathPrefixes...),
+			authmw.AuthWithErrorHandler(opts.Auth.ErrorHandler),
+			authmw.AuthWithSuccessHandler(opts.Auth.SuccessHandler),
+		))
 	}
 }
 
