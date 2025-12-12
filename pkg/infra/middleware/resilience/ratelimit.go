@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/kart-io/logger"
+	"github.com/kart-io/sentinel-x/pkg/infra/pool"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 	"github.com/kart-io/sentinel-x/pkg/utils/errors"
 	"github.com/kart-io/sentinel-x/pkg/utils/response"
@@ -353,8 +354,16 @@ func NewMemoryRateLimiter(limit int, window time.Duration) *MemoryRateLimiter {
 		stopCleanup: make(chan struct{}),
 	}
 
-	// 启动清理协程
-	go limiter.cleanupExpiredEntries()
+	// 使用 ants 池提交清理任务，而非直接创建 goroutine
+	if err := pool.SubmitToType(pool.BackgroundPool, func() {
+		limiter.cleanupExpiredEntries()
+	}); err != nil {
+		// 池不可用时降级为直接启动 goroutine
+		logger.Warnw("failed to submit cleanup task to pool, fallback to goroutine",
+			"error", err.Error(),
+		)
+		go limiter.cleanupExpiredEntries()
+	}
 
 	return limiter
 }

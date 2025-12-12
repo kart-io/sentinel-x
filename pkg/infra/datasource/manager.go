@@ -44,6 +44,7 @@ import (
 	"github.com/kart-io/sentinel-x/pkg/component/postgres"
 	"github.com/kart-io/sentinel-x/pkg/component/redis"
 	"github.com/kart-io/sentinel-x/pkg/component/storage"
+	"github.com/kart-io/sentinel-x/pkg/infra/pool"
 	etcdopts "github.com/kart-io/sentinel-x/pkg/options/etcd"
 	mongoopts "github.com/kart-io/sentinel-x/pkg/options/mongodb"
 	mysqlopts "github.com/kart-io/sentinel-x/pkg/options/mysql"
@@ -406,6 +407,7 @@ func (m *Manager) getClientWithContext(ctx context.Context, storageType StorageT
 // =============================================================================
 
 // HealthCheckAll performs health checks on all initialized storage instances in parallel.
+// 使用 ants 池执行并行健康检查，避免无限制创建 goroutine
 func (m *Manager) HealthCheckAll(ctx context.Context) map[string]storage.HealthStatus {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -414,13 +416,17 @@ func (m *Manager) HealthCheckAll(ctx context.Context) map[string]storage.HealthS
 	var resultsMu sync.Mutex
 	var wg sync.WaitGroup
 
+	// 获取健康检查池
+	healthPool, err := pool.GetByType(pool.HealthCheckPool)
+	usePool := err == nil && healthPool != nil
+
 	for key, entry := range m.entries {
 		if !m.initialized[key] || entry.client == nil {
 			continue
 		}
 
 		wg.Add(1)
-		go func(key string, client interface{}) {
+		task := func(key string, client interface{}) {
 			defer wg.Done()
 
 			start := time.Now()
@@ -434,7 +440,17 @@ func (m *Manager) HealthCheckAll(ctx context.Context) map[string]storage.HealthS
 				Error:   err,
 			}
 			resultsMu.Unlock()
-		}(key, entry.client)
+		}
+
+		// 使用池提交任务，失败时降级为直接创建 goroutine
+		if usePool {
+			k, c := key, entry.client
+			if submitErr := healthPool.Submit(func() { task(k, c) }); submitErr != nil {
+				go task(key, entry.client)
+			}
+		} else {
+			go task(key, entry.client)
+		}
 	}
 
 	wg.Wait()

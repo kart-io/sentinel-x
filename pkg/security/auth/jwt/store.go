@@ -4,6 +4,9 @@ import (
 	"context"
 	"sync"
 	"time"
+
+	"github.com/kart-io/logger"
+	"github.com/kart-io/sentinel-x/pkg/infra/pool"
 )
 
 // Store defines the interface for token storage/revocation.
@@ -36,6 +39,7 @@ type MemoryStore struct {
 type MemoryStoreOption func(*MemoryStore)
 
 // NewMemoryStore creates a new in-memory token store.
+// 使用 ants 池提交清理任务，而非直接创建 goroutine
 func NewMemoryStore(opts ...MemoryStoreOption) *MemoryStore {
 	s := &MemoryStore{
 		tokens:          make(map[string]time.Time),
@@ -47,8 +51,16 @@ func NewMemoryStore(opts ...MemoryStoreOption) *MemoryStore {
 		opt(s)
 	}
 
-	// Start cleanup goroutine
-	go s.cleanup()
+	// 使用 ants 池提交清理任务
+	if err := pool.SubmitToType(pool.BackgroundPool, func() {
+		s.cleanup()
+	}); err != nil {
+		// 池不可用时降级为直接启动 goroutine
+		logger.Warnw("failed to submit JWT cleanup task to pool, fallback to goroutine",
+			"error", err.Error(),
+		)
+		go s.cleanup()
+	}
 
 	return s
 }

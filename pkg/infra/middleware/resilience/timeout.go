@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/kart-io/logger"
+	"github.com/kart-io/sentinel-x/pkg/infra/pool"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 	"github.com/kart-io/sentinel-x/pkg/utils/errors"
 	"github.com/kart-io/sentinel-x/pkg/utils/response"
@@ -70,7 +71,9 @@ func TimeoutWithConfig(config TimeoutConfig) transport.MiddlewareFunc {
 			// Variable to track if timeout occurred
 			var timedOut bool
 
-			go func() {
+			// 使用 ants 池提交任务，而非直接创建 goroutine
+			// 这样可以限制并发数量，避免高并发下 goroutine 爆炸
+			task := func() {
 				defer func() {
 					// Recover from panic to prevent process crash
 					if r := recover(); r != nil {
@@ -86,7 +89,18 @@ func TimeoutWithConfig(config TimeoutConfig) transport.MiddlewareFunc {
 				// Handler will receive the timeout context and should respect it
 				// If context is cancelled, handlers should stop processing
 				next(c)
-			}()
+			}
+
+			// 提交到超时专用池，如果提交失败则降级为同步执行
+			if err := pool.SubmitToType(pool.TimeoutPool, task); err != nil {
+				// 池不可用时降级为直接执行（同步模式）
+				logger.Warnw("timeout middleware pool unavailable, fallback to sync execution",
+					"error", err.Error(),
+					"path", req.URL.Path,
+				)
+				task()
+				return
+			}
 
 			select {
 			case <-done:

@@ -33,7 +33,6 @@ import (
 	"google.golang.org/grpc/balancer"
 	"google.golang.org/grpc/balancer/base"
 	"google.golang.org/grpc/balancer/pickfirst"
-	_ "google.golang.org/grpc/balancer/roundrobin" // To register roundrobin.
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/internal"
@@ -41,16 +40,18 @@ import (
 	"google.golang.org/grpc/internal/grpcsync"
 	"google.golang.org/grpc/internal/idle"
 	iresolver "google.golang.org/grpc/internal/resolver"
-	_ "google.golang.org/grpc/internal/resolver/passthrough" // To register passthrough resolver.
-	_ "google.golang.org/grpc/internal/resolver/unix"        // To register unix resolver.
 	istats "google.golang.org/grpc/internal/stats"
 	"google.golang.org/grpc/internal/transport"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/resolver"
-	_ "google.golang.org/grpc/resolver/dns" // To register dns resolver.
 	"google.golang.org/grpc/serviceconfig"
 	"google.golang.org/grpc/stats"
 	"google.golang.org/grpc/status"
+
+	_ "google.golang.org/grpc/balancer/roundrobin"           // To register roundrobin.
+	_ "google.golang.org/grpc/internal/resolver/passthrough" // To register passthrough resolver.
+	_ "google.golang.org/grpc/internal/resolver/unix"        // To register unix resolver.
+	_ "google.golang.org/grpc/resolver/dns"                  // To register dns resolver.
 )
 
 const (

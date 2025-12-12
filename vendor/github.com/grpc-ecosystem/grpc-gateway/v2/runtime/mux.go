@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/grpc-ecosystem/grpc-gateway/v2/internal/httprule"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/grpclog"
@@ -16,8 +17,6 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
-
-	"github.com/grpc-ecosystem/grpc-gateway/v2/internal/httprule"
 )
 
 // UnescapingMode defines the behavior of ServeMux when unescaping path parameters.

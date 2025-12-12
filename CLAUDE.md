@@ -137,6 +137,111 @@ Sentinel-X 是一个基于 Go 语言的微服务平台，集成了用户中心�
 - 对预期失败场景提供处理策略，保证服务可控降级。
 - 连续三次验证失败必须暂停实现，回到需求和设计阶段复盘。
 
+## 🔄 并发编程规范（强制）
+
+本项目使用 `github.com/panjf2000/ants/v2` 作为统一的 goroutine 池管理方案。所有并发任务必须遵循以下规范。
+
+### 核心原则
+
+**禁止直接使用 `go func()`**
+
+以下场景禁止直接使用 `go` 关键字创建 goroutine：
+- HTTP 请求处理中的异步操作
+- 定时任务和后台清理
+- 并行健康检查
+- 回调执行
+- 任何可能高并发的场景
+
+**唯一允许的例外：**
+- 服务启动时的监听 goroutine（如 HTTP/gRPC Server）
+- 需要长期运行的订阅 goroutine（如 Redis Pub/Sub）
+- 池不可用时的降级处理
+
+### 预定义池类型
+
+| 池类型 | 用途 | 容量 | 模式 |
+|--------|------|------|------|
+| `DefaultPool` | 通用任务 | 1000 | 阻塞 |
+| `HealthCheckPool` | 健康检查 | 100 | 阻塞 |
+| `BackgroundPool` | 后台任务（清理、监控） | 50 | 阻塞 |
+| `CallbackPool` | 回调执行 | 200 | 非阻塞 |
+| `TimeoutPool` | 超时中间件 | 5000 | 阻塞 |
+
+### 使用方法
+
+```go
+import "github.com/kart-io/sentinel-x/pkg/infra/pool"
+
+// 初始化（在 main 函数中）
+pool.InitGlobal()
+defer pool.CloseGlobal()
+
+// 提交任务到默认池
+pool.Submit(func() {
+    // 业务逻辑
+})
+
+// 提交到指定类型的池
+pool.SubmitToType(pool.HealthCheckPool, func() {
+    // 健康检查逻辑
+})
+
+// 带上下文提交（支持取消）
+pool.SubmitWithContext(ctx, func() {
+    // 可被取消的任务
+})
+```
+
+### 降级处理（必须）
+
+当池不可用时，必须提供降级方案：
+
+```go
+task := func() {
+    // 业务逻辑
+}
+
+if err := pool.SubmitToType(pool.BackgroundPool, task); err != nil {
+    // 降级：记录日志并使用 goroutine
+    logger.Warnw("pool unavailable, fallback to goroutine",
+        "error", err.Error(),
+    )
+    go func() {
+        defer func() {
+            if r := recover(); r != nil {
+                logger.Errorw("panic recovered", "error", r)
+            }
+        }()
+        task()
+    }()
+}
+```
+
+### 容量选择指南
+
+```go
+// 高并发低延迟（如 HTTP 请求处理）：
+//   容量 = 预期 QPS × 平均处理时间(秒) × 2
+//   例如：QPS=1000, 平均处理时间=50ms
+//   容量 = 1000 × 0.05 × 2 = 100
+
+// 低并发长任务（如后台清理）：
+//   容量 = 预期并行任务数 × 1.5
+
+// 健康检查：
+//   容量 = 存储实例数 × 2
+```
+
+### 代码审查清单
+
+- [ ] 是否使用了 `go func()` ？如有，是否属于允许的例外？
+- [ ] 是否选择了合适的池类型？
+- [ ] 是否处理了池不可用的降级情况？
+- [ ] 是否正确捕获了闭包变量？
+- [ ] 长任务是否添加了超时控制？
+
+详细规范参见：`docs/concurrency-spec.md`
+
 ## �🚀 强制工作流程
 
 ### ⚡ 总原则（必须遵循）

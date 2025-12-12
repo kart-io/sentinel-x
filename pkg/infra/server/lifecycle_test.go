@@ -150,7 +150,7 @@ func TestLifecycleContextCancellation(t *testing.T) {
 func TestLifecycleServerAlias(t *testing.T) {
 	// Verify that Server is an alias for Lifecycle
 	var lc Lifecycle = &lifecycleHooks{}
-	var srv = lc // 类型会从右侧推导
+	srv := lc // 类型会从右侧推导
 
 	ctx := context.Background()
 
