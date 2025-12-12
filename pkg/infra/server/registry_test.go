@@ -181,9 +181,9 @@ func TestRegistryGetAllServices(t *testing.T) {
 	svc2 := &mockService{name: "service-2"}
 	svc3 := &mockService{name: "service-3"}
 
-	registry.RegisterService(svc1, nil, nil)
-	registry.RegisterService(svc2, nil, nil)
-	registry.RegisterService(svc3, nil, nil)
+	_ = registry.RegisterService(svc1, nil, nil)
+	_ = registry.RegisterService(svc2, nil, nil)
+	_ = registry.RegisterService(svc3, nil, nil)
 
 	// Test getting all services
 	services = registry.GetAllServices()
@@ -246,7 +246,7 @@ func TestRegistryConcurrentRegister(t *testing.T) {
 			defer wg.Done()
 			svc := &mockService{name: "service"}
 			handler := &mockHTTPHandler{}
-			registry.RegisterService(svc, handler, nil)
+			_ = registry.RegisterService(svc, handler, nil)
 		}(i)
 	}
 
@@ -265,7 +265,7 @@ func TestRegistryConcurrentRead(t *testing.T) {
 	// Pre-register some services
 	for i := 0; i < 10; i++ {
 		svc := &mockService{name: "service"}
-		registry.RegisterService(svc, nil, nil)
+		_ = registry.RegisterService(svc, nil, nil)
 	}
 
 	var wg sync.WaitGroup
@@ -295,7 +295,7 @@ func TestRegistryConcurrentReadWrite(t *testing.T) {
 		go func(id int) {
 			defer wg.Done()
 			svc := &mockService{name: "service"}
-			registry.RegisterService(svc, nil, nil)
+			_ = registry.RegisterService(svc, nil, nil)
 		}(i)
 
 		// Reader
@@ -324,8 +324,8 @@ func TestRegistryMultipleGRPCDescs(t *testing.T) {
 	svc1 := &mockService{name: "grpc-service-1"}
 	svc2 := &mockService{name: "grpc-service-2"}
 
-	registry.RegisterGRPC(svc1, desc1)
-	registry.RegisterGRPC(svc2, desc2)
+	_ = registry.RegisterGRPC(svc1, desc1)
+	_ = registry.RegisterGRPC(svc2, desc2)
 
 	if len(registry.grpcDescs) != 2 {
 		t.Errorf("Expected 2 gRPC descs, got %d", len(registry.grpcDescs))
@@ -339,7 +339,7 @@ func TestRegistryApplyToHTTP(t *testing.T) {
 	svc := &mockService{name: "http-service"}
 	handler := &mockHTTPHandler{}
 
-	registry.RegisterHTTP(svc, handler)
+	_ = registry.RegisterHTTP(svc, handler)
 
 	// Cannot test actual application without HTTP server implementation
 	// This validates the registration succeeds
@@ -358,7 +358,7 @@ func TestRegistryApplyToGRPC(t *testing.T) {
 		ServiceImpl: "test-impl",
 	}
 
-	registry.RegisterGRPC(svc, desc)
+	_ = registry.RegisterGRPC(svc, desc)
 
 	// Cannot test actual application without gRPC server implementation
 	// This validates the registration succeeds

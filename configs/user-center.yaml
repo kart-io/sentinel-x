@@ -46,8 +46,15 @@ server:
       # CORS middleware
       disable-cors: false
       cors:
+        # ⚠️ 安全警告：生产环境必须配置具体域名！
+        # 当前配置使用通配符仅适用于开发/测试环境
+        # 生产环境示例：
+        #   allow-origins:
+        #     - "https://example.com"
+        #     - "https://admin.example.com"
+        #     - "https://api.example.com"
         allow-origins:
-          - "*"
+          - "*"  # TODO: 生产环境替换为具体域名
         allow-methods:
           - GET
           - POST
@@ -141,9 +148,10 @@ log:
 # JWT authentication configuration
 jwt:
   # Disable authentication (set to true for development without auth)
-  disable-auth: false
+  disable-auth: true
   # Secret key for signing tokens (min 64 characters for HMAC algorithms)
-  # WARNING: Change this in production!
+  # 必须通过环境变量设置: USER_CENTER_JWT_KEY
+  # 不要在配置文件中硬编码密钥！
   key: "your-super-secret-key-change-in-production-minimum-64-characters-required-here"
   # Signing algorithm
   signing-method: "HS256"
@@ -157,14 +165,19 @@ jwt:
 # MySQL database configuration
 mysql:
   # Database host
+  # 通过环境变量设置: USER_CENTER_MYSQL_HOST
   host: "localhost"
   # Database port
   port: 3306
   # Database username
+  # 通过环境变量设置: USER_CENTER_MYSQL_USERNAME
   username: "root"
   # Database password
+  # 必须通过环境变量设置: USER_CENTER_MYSQL_PASSWORD
+  # 不要在配置文件中硬编码密码！
   password: "root123"
   # Database name
+  # 通过环境变量设置: USER_CENTER_MYSQL_DATABASE
   database: "user_auth"
   # Maximum idle connections
   max-idle-connections: 10
@@ -176,10 +189,13 @@ mysql:
 # Redis configuration
 redis:
   # Redis host
+  # 通过环境变量设置: USER_CENTER_REDIS_HOST
   host: "localhost"
   # Redis port
   port: 6379
   # Redis password (leave empty if no password)
+  # 必须通过环境变量设置: USER_CENTER_REDIS_PASSWORD
+  # 不要在配置文件中硬编码密码！
   password: "redis_pass"
   # Redis database number
   database: 0

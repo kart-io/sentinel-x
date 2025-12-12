@@ -5,7 +5,14 @@ import (
 	"fmt"
 
 	"github.com/kart-io/sentinel-x/pkg/component/storage"
+	options "github.com/kart-io/sentinel-x/pkg/options/postgres"
 )
+
+// Options is re-exported from pkg/options/postgres for convenience.
+type Options = options.Options
+
+// NewOptions is re-exported from pkg/options/postgres for convenience.
+var NewOptions = options.NewOptions
 
 // Factory implements the storage.Factory interface for creating PostgreSQL clients.
 // It encapsulates the PostgreSQL client creation logic and configuration,

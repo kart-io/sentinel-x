@@ -5,13 +5,20 @@ import (
 	"fmt"
 
 	"github.com/kart-io/sentinel-x/pkg/component/storage"
+	options "github.com/kart-io/sentinel-x/pkg/options/etcd"
 )
+
+// Options is re-exported from pkg/options/etcd for convenience.
+type Options = options.Options
+
+// NewOptions is re-exported from pkg/options/etcd for convenience.
+var NewOptions = options.NewOptions
 
 // Factory implements the storage.Factory interface for creating etcd clients.
 // It encapsulates the client creation logic and allows for dependency injection
 // and testing with mock implementations.
 type Factory struct {
-	opts *Options
+	opts *options.Options
 }
 
 // NewFactory creates a new Factory for etcd clients.
@@ -28,7 +35,7 @@ type Factory struct {
 //	    log.Fatalf("failed to create client: %v", err)
 //	}
 //	defer client.Close()
-func NewFactory(opts *Options) *Factory {
+func NewFactory(opts *options.Options) *Factory {
 	return &Factory{
 		opts: opts,
 	}
@@ -51,7 +58,7 @@ func (f *Factory) Create(ctx context.Context) (storage.Client, error) {
 
 // Options returns the etcd options used by this factory.
 // This is useful for inspecting or cloning the configuration.
-func (f *Factory) Options() *Options {
+func (f *Factory) Options() *options.Options {
 	return f.opts
 }
 

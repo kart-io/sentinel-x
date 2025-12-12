@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"sync"
 	"time"
+
+	"github.com/kart-io/sentinel-x/pkg/infra/pool"
 )
 
 // Manager manages multiple storage clients and provides centralized
@@ -205,6 +207,7 @@ func (m *Manager) HealthCheck(ctx context.Context, name string) HealthStatus {
 
 // HealthCheckAll performs health checks on all registered clients concurrently.
 // It returns a map of client names to their health status.
+// 使用 ants 池执行并行健康检查，避免无限制创建 goroutine
 //
 // Example usage:
 //
@@ -223,39 +226,45 @@ func (m *Manager) HealthCheckAll(ctx context.Context) map[string]HealthStatus {
 	m.mu.RUnlock()
 
 	statuses := make(map[string]HealthStatus, len(clients))
-	statusChan := make(chan HealthStatus, len(clients))
+	var statusMu sync.Mutex
 	var wg sync.WaitGroup
+
+	// 获取健康检查池
+	healthPool, err := pool.GetByType(pool.HealthCheckPool)
+	usePool := err == nil && healthPool != nil
 
 	// Perform health checks concurrently
 	for name, client := range clients {
 		wg.Add(1)
-		go func(n string, c Client) {
+		task := func(n string, c Client) {
 			defer wg.Done()
 
 			start := time.Now()
 			err := c.Ping(ctx)
 			latency := time.Since(start)
 
-			statusChan <- HealthStatus{
+			statusMu.Lock()
+			statuses[n] = HealthStatus{
 				Name:    n,
 				Healthy: err == nil,
 				Latency: latency,
 				Error:   err,
 			}
-		}(name, client)
+			statusMu.Unlock()
+		}
+
+		// 使用池提交任务，失败时降级为直接创建 goroutine
+		if usePool {
+			n, c := name, client
+			if submitErr := healthPool.Submit(func() { task(n, c) }); submitErr != nil {
+				go task(name, client)
+			}
+		} else {
+			go task(name, client)
+		}
 	}
 
-	// Wait for all health checks to complete
-	go func() {
-		wg.Wait()
-		close(statusChan)
-	}()
-
-	// Collect results
-	for status := range statusChan {
-		statuses[status.Name] = status
-	}
-
+	wg.Wait()
 	return statuses
 }
 

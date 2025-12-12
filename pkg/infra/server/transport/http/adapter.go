@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"sync"
 
-	httpopts "github.com/kart-io/sentinel-x/pkg/infra/server/http"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	httpopts "github.com/kart-io/sentinel-x/pkg/options/server/http"
 )
 
 // Adapter defines the interface for HTTP framework adapters.

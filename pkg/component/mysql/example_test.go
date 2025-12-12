@@ -24,7 +24,7 @@ func Example_basicUsage() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	// Use the client
 	fmt.Printf("Connected to MySQL: %s\n", client.Name())
@@ -44,7 +44,7 @@ func Example_withContext() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	// Verify connection
 	if err := client.Ping(ctx); err != nil {
@@ -64,7 +64,7 @@ func Example_healthCheck() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	// Basic health check
 	ctx := context.Background()
@@ -90,7 +90,7 @@ func Example_factory() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	fmt.Printf("Client created via factory: %s\n", client.Name())
 }
@@ -111,13 +111,13 @@ func Example_gormUsage() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	// Get GORM DB
 	db := client.DB()
 
 	// Auto migrate
-	db.AutoMigrate(&User{})
+	_ = db.AutoMigrate(&User{})
 
 	// Create records
 	db.Create(&User{Name: "Alice", Age: 30})
@@ -144,7 +144,7 @@ func Example_connectionPool() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	// Get connection pool statistics
 	sqlDB, err := client.SqlDB()
@@ -156,21 +156,6 @@ func Example_connectionPool() {
 	fmt.Printf("Max open connections: %d\n", stats.MaxOpenConnections)
 	fmt.Printf("Open connections: %d\n", stats.OpenConnections)
 	fmt.Printf("Idle connections: %d\n", stats.Idle)
-}
-
-// Example_dsnBuilder demonstrates DSN building.
-func Example_dsnBuilder() {
-	opts := mysql.NewOptions()
-	opts.Host = "localhost"
-	opts.Port = 3306
-	opts.Username = "root"
-	opts.Password = "secret"
-	opts.Database = "mydb"
-
-	dsn := mysql.BuildDSN(opts)
-	fmt.Println("DSN built successfully")
-	// DSN will be: root:secret@tcp(localhost:3306)/mydb?charset=utf8mb4&parseTime=True&loc=Local
-	_ = dsn
 }
 
 // Example_errorHandling demonstrates proper error handling.
@@ -185,7 +170,7 @@ func Example_errorHandling() {
 		fmt.Printf("Error creating client: %v\n", err)
 		return
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 }
 
 // Example_multipleClients demonstrates creating multiple clients with different configurations.
@@ -207,10 +192,10 @@ func Example_multipleClients() {
 
 	// Create clients
 	prodClient, _ := prodFactory.Create(context.Background())
-	defer prodClient.Close()
+	defer func() { _ = prodClient.Close() }()
 
 	devClient, _ := devFactory.Create(context.Background())
-	defer devClient.Close()
+	defer func() { _ = devClient.Close() }()
 
 	fmt.Println("Multiple clients created successfully")
 }

@@ -22,10 +22,9 @@ package sonic
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/bytedance/sonic/option"
 	"io"
 	"reflect"
-
-	"github.com/bytedance/sonic/option"
 )
 
 const apiKind = UseStdJSON

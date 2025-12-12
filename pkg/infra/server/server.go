@@ -9,17 +9,45 @@ import (
 	"syscall"
 
 	"github.com/kart-io/logger"
-	"github.com/kart-io/sentinel-x/pkg/infra/middleware"
-	httpopts "github.com/kart-io/sentinel-x/pkg/infra/server/http"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/service"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport/grpc"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport/http"
+	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
+	options "github.com/kart-io/sentinel-x/pkg/options/server"
+	httpopts "github.com/kart-io/sentinel-x/pkg/options/server/http"
+)
+
+// Options is re-exported from pkg/options/server for convenience.
+type Options = options.Options
+
+// Option is re-exported from pkg/options/server for convenience.
+type Option = options.Option
+
+// Mode is re-exported from pkg/options/server for convenience.
+type Mode = options.Mode
+
+// Re-export mode constants.
+const (
+	ModeHTTPOnly = options.ModeHTTPOnly
+	ModeGRPCOnly = options.ModeGRPCOnly
+	ModeBoth     = options.ModeBoth
+)
+
+// NewOptions is re-exported from pkg/options/server for convenience.
+var NewOptions = options.NewOptions
+
+// Re-export option functions.
+var (
+	WithMode            = options.WithMode
+	WithHTTPOptions     = options.WithHTTPOptions
+	WithGRPCOptions     = options.WithGRPCOptions
+	WithShutdownTimeout = options.WithShutdownTimeout
 )
 
 // Manager manages multiple servers (HTTP, gRPC) with unified lifecycle.
 type Manager struct {
-	opts       *Options
+	opts       *options.Options
 	registry   *Registry
 	httpServer *http.Server
 	grpcServer *grpc.Server
@@ -29,40 +57,40 @@ type Manager struct {
 }
 
 // NewManager creates a new server manager with the given options.
-func NewManager(opts ...Option) *Manager {
-	options := NewOptions()
+func NewManager(opts ...options.Option) *Manager {
+	serverOpts := options.NewOptions()
 	for _, opt := range opts {
-		opt(options)
+		opt(serverOpts)
 	}
 
 	m := &Manager{
-		opts:     options,
+		opts:     serverOpts,
 		registry: NewRegistry(),
 		servers:  make([]Runnable, 0),
 	}
 
 	// Create HTTP server if enabled
-	if options.EnableHTTP() && options.HTTP != nil {
+	if serverOpts.EnableHTTP() && serverOpts.HTTP != nil {
 		m.httpServer = http.NewServer(
-			http.WithAddr(options.HTTP.Addr),
-			http.WithReadTimeout(options.HTTP.ReadTimeout),
-			http.WithWriteTimeout(options.HTTP.WriteTimeout),
-			http.WithIdleTimeout(options.HTTP.IdleTimeout),
-			http.WithAdapter(httpopts.AdapterType(options.HTTP.Adapter)),
-			http.WithMiddleware(func(opts *middleware.Options) {
-				*opts = *options.HTTP.Middleware
+			http.WithAddr(serverOpts.HTTP.Addr),
+			http.WithReadTimeout(serverOpts.HTTP.ReadTimeout),
+			http.WithWriteTimeout(serverOpts.HTTP.WriteTimeout),
+			http.WithIdleTimeout(serverOpts.HTTP.IdleTimeout),
+			http.WithAdapter(httpopts.AdapterType(serverOpts.HTTP.Adapter)),
+			http.WithMiddleware(func(opts *mwopts.Options) {
+				*opts = *serverOpts.HTTP.Middleware
 			}),
 		)
 	}
 
 	// Create gRPC server if enabled
-	if options.EnableGRPC() && options.GRPC != nil {
+	if serverOpts.EnableGRPC() && serverOpts.GRPC != nil {
 		m.grpcServer = grpc.NewServer(
-			grpc.WithAddr(options.GRPC.Addr),
-			grpc.WithTimeout(options.GRPC.Timeout),
-			grpc.WithMaxRecvMsgSize(options.GRPC.MaxRecvMsgSize),
-			grpc.WithMaxSendMsgSize(options.GRPC.MaxSendMsgSize),
-			grpc.WithReflection(options.GRPC.EnableReflection),
+			grpc.WithAddr(serverOpts.GRPC.Addr),
+			grpc.WithTimeout(serverOpts.GRPC.Timeout),
+			grpc.WithMaxRecvMsgSize(serverOpts.GRPC.MaxRecvMsgSize),
+			grpc.WithMaxSendMsgSize(serverOpts.GRPC.MaxSendMsgSize),
+			grpc.WithReflection(serverOpts.GRPC.EnableReflection),
 		)
 	}
 

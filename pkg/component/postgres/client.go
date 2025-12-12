@@ -11,13 +11,14 @@ import (
 	gormlogger "gorm.io/gorm/logger"
 
 	"github.com/kart-io/sentinel-x/pkg/component/storage"
+	options "github.com/kart-io/sentinel-x/pkg/options/postgres"
 )
 
 // Client wraps gorm.DB and provides a PostgreSQL database client.
 // It implements the storage.Client interface.
 type Client struct {
 	db   *gorm.DB
-	opts *Options
+	opts *options.Options
 }
 
 // Compile-time check that Client implements storage.Client.
@@ -25,13 +26,13 @@ var _ storage.Client = (*Client)(nil)
 
 // New creates a new PostgreSQL client from the provided options.
 // It validates the options, establishes a connection, and configures the connection pool.
-func New(opts *Options) (*Client, error) {
+func New(opts *options.Options) (*Client, error) {
 	return NewWithContext(context.Background(), opts)
 }
 
 // NewWithContext creates a new PostgreSQL client with the given context.
 // This allows for timeout and cancellation during connection establishment.
-func NewWithContext(ctx context.Context, opts *Options) (*Client, error) {
+func NewWithContext(ctx context.Context, opts *options.Options) (*Client, error) {
 	if opts == nil {
 		return nil, fmt.Errorf("postgres options cannot be nil")
 	}
@@ -47,7 +48,7 @@ func NewWithContext(ctx context.Context, opts *Options) (*Client, error) {
 	}
 
 	// Build DSN
-	dsn := BuildDSN(opts)
+	dsn := options.BuildDSN(opts)
 
 	// Configure GORM logger
 	logLevel := gormlogger.Silent

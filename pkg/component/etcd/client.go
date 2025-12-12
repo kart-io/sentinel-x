@@ -12,6 +12,7 @@ import (
 	clientv3 "go.etcd.io/etcd/client/v3"
 
 	"github.com/kart-io/sentinel-x/pkg/component/storage"
+	options "github.com/kart-io/sentinel-x/pkg/options/etcd"
 )
 
 // Client wraps clientv3.Client with the storage.Client interface.
@@ -22,7 +23,7 @@ type Client struct {
 	client *clientv3.Client
 
 	// opts stores the configuration options used to create this client
-	opts *Options
+	opts *options.Options
 }
 
 // New creates a new Etcd client from the provided options.
@@ -35,14 +36,14 @@ type Client struct {
 //
 // Example usage:
 //
-//	opts := NewOptions()
+//	opts := options.NewOptions()
 //	opts.Endpoints = []string{"localhost:2379"}
 //	client, err := New(opts)
 //	if err != nil {
 //	    log.Fatalf("failed to create etcd client: %v", err)
 //	}
 //	defer client.Close()
-func New(opts *Options) (*Client, error) {
+func New(opts *options.Options) (*Client, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	return NewWithContext(ctx, opts)
@@ -62,7 +63,7 @@ func New(opts *Options) (*Client, error) {
 //	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 //	defer cancel()
 //
-//	opts := NewOptions()
+//	opts := options.NewOptions()
 //	opts.Endpoints = []string{"etcd-1:2379", "etcd-2:2379", "etcd-3:2379"}
 //	opts.Username = "root"
 //	opts.Password = "secret"
@@ -72,7 +73,7 @@ func New(opts *Options) (*Client, error) {
 //	    log.Fatalf("failed to create etcd client: %v", err)
 //	}
 //	defer client.Close()
-func NewWithContext(ctx context.Context, opts *Options) (*Client, error) {
+func NewWithContext(ctx context.Context, opts *options.Options) (*Client, error) {
 	// Validate options
 	if err := validateOptions(opts); err != nil {
 		return nil, fmt.Errorf("invalid etcd options: %w", err)
@@ -105,7 +106,7 @@ func NewWithContext(ctx context.Context, opts *Options) (*Client, error) {
 
 	// Verify connectivity with a ping
 	if err := client.Ping(ctx); err != nil {
-		cli.Close()
+		_ = cli.Close()
 		return nil, fmt.Errorf("failed to ping etcd cluster: %w", err)
 	}
 
@@ -201,7 +202,7 @@ func (c *Client) Lease() clientv3.Lease {
 
 // validateOptions validates the etcd options.
 // Returns an error if the options are invalid.
-func validateOptions(opts *Options) error {
+func validateOptions(opts *options.Options) error {
 	if opts == nil {
 		return fmt.Errorf("options cannot be nil")
 	}
@@ -224,7 +225,7 @@ func validateOptions(opts *Options) error {
 // buildTLSConfig builds a TLS configuration from the options.
 // Returns nil if TLS is not configured.
 // TODO: Implement TLS configuration based on options
-func buildTLSConfig(opts *Options) *tls.Config {
+func buildTLSConfig(opts *options.Options) *tls.Config {
 	// Placeholder for future TLS support
 	// This would read certificate paths from options and build TLS config
 	return nil

@@ -20,12 +20,11 @@
 package unquote
 
 import (
-	"runtime"
-	"unsafe"
-
 	"github.com/bytedance/sonic/internal/native"
 	"github.com/bytedance/sonic/internal/native/types"
 	"github.com/bytedance/sonic/internal/rt"
+	"runtime"
+	"unsafe"
 )
 
 // String unescapes an escaped string (not including `"` at beginning and end)

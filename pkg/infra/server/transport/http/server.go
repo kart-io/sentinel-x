@@ -7,9 +7,11 @@ import (
 	"net/http"
 
 	"github.com/kart-io/sentinel-x/pkg/infra/middleware"
-	httpopts "github.com/kart-io/sentinel-x/pkg/infra/server/http"
+	authmw "github.com/kart-io/sentinel-x/pkg/infra/middleware/auth"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/service"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
+	options "github.com/kart-io/sentinel-x/pkg/options/server/http"
 	apierrors "github.com/kart-io/sentinel-x/pkg/utils/errors"
 	"github.com/kart-io/sentinel-x/pkg/utils/response"
 )
@@ -17,33 +19,33 @@ import (
 // Re-export types from options package for convenience
 type (
 	// Options contains HTTP server configuration.
-	Options = httpopts.Options
+	Options = options.Options
 	// Option is a function that configures Options.
-	Option = httpopts.Option
+	Option = options.Option
 	// AdapterType represents the HTTP framework adapter type.
-	AdapterType = httpopts.AdapterType
+	AdapterType = options.AdapterType
 )
 
 // Re-export constants
 const (
-	AdapterGin  = httpopts.AdapterGin
-	AdapterEcho = httpopts.AdapterEcho
+	AdapterGin  = options.AdapterGin
+	AdapterEcho = options.AdapterEcho
 )
 
 // Re-export option functions
 var (
-	NewOptions       = httpopts.NewOptions
-	WithAddr         = httpopts.WithAddr
-	WithReadTimeout  = httpopts.WithReadTimeout
-	WithWriteTimeout = httpopts.WithWriteTimeout
-	WithIdleTimeout  = httpopts.WithIdleTimeout
-	WithAdapter      = httpopts.WithAdapter
-	WithMiddleware   = httpopts.WithMiddleware
+	NewOptions       = options.NewOptions
+	WithAddr         = options.WithAddr
+	WithReadTimeout  = options.WithReadTimeout
+	WithWriteTimeout = options.WithWriteTimeout
+	WithIdleTimeout  = options.WithIdleTimeout
+	WithAdapter      = options.WithAdapter
+	WithMiddleware   = options.WithMiddleware
 )
 
 // Server is the HTTP server implementation.
 type Server struct {
-	opts     *httpopts.Options
+	opts     *options.Options
 	adapter  Adapter
 	server   *http.Server
 	handlers []registeredHandler
@@ -55,26 +57,34 @@ type registeredHandler struct {
 }
 
 // NewServer creates a new HTTP server with the given options.
-func NewServer(opts ...httpopts.Option) *Server {
-	options := httpopts.NewOptions()
+func NewServer(opts ...options.Option) *Server {
+	serverOpts := options.NewOptions()
 	for _, opt := range opts {
-		opt(options)
+		opt(serverOpts)
 	}
 
-	adapter := GetAdapter(options.Adapter)
+	adapter := GetAdapter(serverOpts.Adapter)
 	if adapter == nil {
 		// Default to gin if no adapter is registered
-		adapter = GetAdapter(httpopts.AdapterGin)
+		adapter = GetAdapter(options.AdapterGin)
 	}
 
 	// Note: adapter may still be nil if no adapters are registered
 	// This will be checked in Start()
 
-	return &Server{
-		opts:     options,
+	s := &Server{
+		opts:     serverOpts,
 		adapter:  adapter,
 		handlers: make([]registeredHandler, 0),
 	}
+
+	// 关键：在创建 Server 时就应用中间件
+	// 这样所有后续创建的路由组都会继承这些中间件
+	if adapter != nil {
+		s.applyMiddleware(adapter.Router(), serverOpts.Middleware)
+	}
+
+	return s
 }
 
 // Name returns the server name.
@@ -126,8 +136,9 @@ func (s *Server) Start(ctx context.Context) error {
 	router := s.adapter.Router()
 	mwOpts := s.opts.Middleware
 
-	// Apply middleware based on options
-	s.applyMiddleware(router, mwOpts)
+	// 注意：中间件已在 NewServer 时应用，这里不再重复应用
+	// 这是因为 Gin 的 RouterGroup 在创建子组时会复制当前的 handlers
+	// 如果中间件在路由注册之后才应用，则不会被子组继承
 
 	// Register health endpoints
 	if !mwOpts.DisableHealth {
@@ -136,7 +147,7 @@ func (s *Server) Start(ctx context.Context) error {
 
 	// Register metrics endpoint
 	if !mwOpts.DisableMetrics {
-		middleware.RegisterMetricsRoutes(router, mwOpts.Metrics)
+		middleware.RegisterMetricsRoutesWithOptions(router, mwOpts.Metrics)
 	}
 
 	// Register pprof endpoints
@@ -175,7 +186,7 @@ func (s *Server) Start(ctx context.Context) error {
 }
 
 // applyMiddleware applies configured middleware to the router.
-func (s *Server) applyMiddleware(router transport.Router, opts *middleware.Options) {
+func (s *Server) applyMiddleware(router transport.Router, opts *mwopts.Options) {
 	// Recovery middleware (enabled by default)
 	if !opts.DisableRecovery {
 		router.Use(middleware.RecoveryWithConfig(middleware.RecoveryConfig{
@@ -227,7 +238,20 @@ func (s *Server) applyMiddleware(router transport.Router, opts *middleware.Optio
 
 	// Metrics middleware (disabled by default, but endpoint is registered separately)
 	if !opts.DisableMetrics {
-		router.Use(middleware.MetricsMiddleware(opts.Metrics))
+		router.Use(middleware.MetricsMiddlewareWithOptions(opts.Metrics))
+	}
+
+	// Auth middleware (JWT authentication)
+	if !opts.DisableAuth && opts.Auth.Authenticator != nil {
+		router.Use(authmw.Auth(
+			authmw.AuthWithAuthenticator(opts.Auth.Authenticator),
+			authmw.AuthWithTokenLookup(opts.Auth.TokenLookup),
+			authmw.AuthWithAuthScheme(opts.Auth.AuthScheme),
+			authmw.AuthWithSkipPaths(opts.Auth.SkipPaths...),
+			authmw.AuthWithSkipPathPrefixes(opts.Auth.SkipPathPrefixes...),
+			authmw.AuthWithErrorHandler(opts.Auth.ErrorHandler),
+			authmw.AuthWithSuccessHandler(opts.Auth.SuccessHandler),
+		))
 	}
 }
 

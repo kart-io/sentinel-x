@@ -17,11 +17,10 @@
 package jit
 
 import (
-	"reflect"
-	"unsafe"
-
 	"github.com/bytedance/sonic/internal/rt"
 	"github.com/twitchyliquid64/golang-asm/obj"
+	"reflect"
+	"unsafe"
 )
 
 func Func(f interface{}) obj.Addr {

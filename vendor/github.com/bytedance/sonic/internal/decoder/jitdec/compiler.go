@@ -19,16 +19,15 @@ package jitdec
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/bytedance/sonic/internal/caching"
+	"github.com/bytedance/sonic/internal/resolver"
+	"github.com/bytedance/sonic/internal/rt"
+	"github.com/bytedance/sonic/option"
 	"reflect"
 	"sort"
 	"strconv"
 	"strings"
 	"unsafe"
-
-	"github.com/bytedance/sonic/internal/caching"
-	"github.com/bytedance/sonic/internal/resolver"
-	"github.com/bytedance/sonic/internal/rt"
-	"github.com/bytedance/sonic/option"
 )
 
 type _Op uint8

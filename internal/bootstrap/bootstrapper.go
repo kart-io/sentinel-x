@@ -5,14 +5,14 @@ import (
 	"fmt"
 
 	"github.com/kart-io/logger"
-	mysqlopts "github.com/kart-io/sentinel-x/pkg/component/mysql"
-	redisopts "github.com/kart-io/sentinel-x/pkg/component/redis"
 	"github.com/kart-io/sentinel-x/pkg/infra/datasource"
-	logopts "github.com/kart-io/sentinel-x/pkg/infra/logger"
-	"github.com/kart-io/sentinel-x/pkg/infra/server"
-	serveropts "github.com/kart-io/sentinel-x/pkg/infra/server"
-	"github.com/kart-io/sentinel-x/pkg/security/auth/jwt"
-	jwtopts "github.com/kart-io/sentinel-x/pkg/security/auth/jwt"
+	server "github.com/kart-io/sentinel-x/pkg/infra/server"
+	jwtopts "github.com/kart-io/sentinel-x/pkg/options/auth/jwt"
+	logopts "github.com/kart-io/sentinel-x/pkg/options/logger"
+	mysqlopts "github.com/kart-io/sentinel-x/pkg/options/mysql"
+	redisopts "github.com/kart-io/sentinel-x/pkg/options/redis"
+	serveropts "github.com/kart-io/sentinel-x/pkg/options/server"
+	jwt "github.com/kart-io/sentinel-x/pkg/security/auth/jwt"
 )
 
 // AppBootstrapper composes multiple initializers to bootstrap the entire application.

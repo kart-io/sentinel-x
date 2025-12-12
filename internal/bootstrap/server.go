@@ -5,8 +5,8 @@ import (
 
 	"github.com/kart-io/logger"
 	"github.com/kart-io/sentinel-x/pkg/infra/datasource"
-	"github.com/kart-io/sentinel-x/pkg/infra/server"
-	serveropts "github.com/kart-io/sentinel-x/pkg/infra/server"
+	server "github.com/kart-io/sentinel-x/pkg/infra/server"
+	serveropts "github.com/kart-io/sentinel-x/pkg/options/server"
 	"github.com/kart-io/sentinel-x/pkg/security/auth/jwt"
 )
 
@@ -40,13 +40,19 @@ func (si *ServerInitializer) Name() string {
 	return "server"
 }
 
+// Dependencies returns the names of initializers this one depends on.
+// Server depends on middleware for proper middleware configuration.
+func (si *ServerInitializer) Dependencies() []string {
+	return []string{"middleware"}
+}
+
 // Initialize creates and configures the server manager.
 func (si *ServerInitializer) Initialize(ctx context.Context) error {
 	si.manager = server.NewManager(
-		server.WithMode(si.serverOpts.Mode),
-		server.WithHTTPOptions(si.serverOpts.HTTP),
-		server.WithGRPCOptions(si.serverOpts.GRPC),
-		server.WithShutdownTimeout(si.serverOpts.ShutdownTimeout),
+		serveropts.WithMode(si.serverOpts.Mode),
+		serveropts.WithHTTPOptions(si.serverOpts.HTTP),
+		serveropts.WithGRPCOptions(si.serverOpts.GRPC),
+		serveropts.WithShutdownTimeout(si.serverOpts.ShutdownTimeout),
 	)
 
 	if si.registerFunc != nil {

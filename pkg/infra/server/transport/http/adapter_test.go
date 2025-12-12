@@ -6,8 +6,8 @@ import (
 	"sync"
 	"testing"
 
-	httpopts "github.com/kart-io/sentinel-x/pkg/infra/server/http"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	httpopts "github.com/kart-io/sentinel-x/pkg/options/server/http"
 )
 
 // mockBridge implements FrameworkBridge for testing.

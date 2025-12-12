@@ -1,5 +1,4 @@
 //go:build integration
-// +build integration
 
 package config_test
 
@@ -12,6 +11,8 @@ import (
 	"github.com/kart-io/sentinel-x/pkg/infra/config"
 	"github.com/kart-io/sentinel-x/pkg/infra/logger"
 	"github.com/kart-io/sentinel-x/pkg/infra/middleware"
+	logopts "github.com/kart-io/sentinel-x/pkg/options/logger"
+	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 	"github.com/spf13/viper"
 )
 
@@ -80,13 +81,13 @@ server:
 	}
 
 	// Parse logger options
-	logOpts := logger.NewOptions()
+	logOpts := logopts.NewOptions()
 	if err := v.UnmarshalKey("log", logOpts); err != nil {
 		t.Fatalf("Failed to unmarshal log config: %v", err)
 	}
 
 	// Parse middleware options
-	mwOpts := middleware.NewOptions()
+	mwOpts := mwopts.NewOptions()
 	if err := v.UnmarshalKey("server.http.middleware", mwOpts); err != nil {
 		t.Fatalf("Failed to unmarshal middleware config: %v", err)
 	}
@@ -234,7 +235,7 @@ log:
 		t.Fatalf("Failed to read config: %v", err)
 	}
 
-	logOpts := logger.NewOptions()
+	logOpts := logopts.NewOptions()
 	if err := v.UnmarshalKey("log", logOpts); err != nil {
 		t.Fatalf("Failed to unmarshal log config: %v", err)
 	}
@@ -294,7 +295,7 @@ middleware:
 		t.Fatalf("Failed to read config: %v", err)
 	}
 
-	mwOpts := middleware.NewOptions()
+	mwOpts := mwopts.NewOptions()
 	if err := v.UnmarshalKey("middleware", mwOpts); err != nil {
 		t.Fatalf("Failed to unmarshal middleware config: %v", err)
 	}
@@ -356,7 +357,7 @@ log:
 		t.Fatalf("Failed to read config: %v", err)
 	}
 
-	logOpts := logger.NewOptions()
+	logOpts := logopts.NewOptions()
 	if err := v.UnmarshalKey("log", logOpts); err != nil {
 		t.Fatalf("Failed to unmarshal log config: %v", err)
 	}

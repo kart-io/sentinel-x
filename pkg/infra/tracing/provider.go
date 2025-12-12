@@ -18,6 +18,36 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+
+	options "github.com/kart-io/sentinel-x/pkg/options/tracing"
+)
+
+// Options is re-exported from pkg/options/tracing for convenience.
+type Options = options.Options
+
+// SamplerType is re-exported from pkg/options/tracing for convenience.
+type SamplerType = options.SamplerType
+
+// ExporterType is re-exported from pkg/options/tracing for convenience.
+type ExporterType = options.ExporterType
+
+// NewOptions is re-exported from pkg/options/tracing for convenience.
+var NewOptions = options.NewOptions
+
+// Re-export sampler type constants.
+const (
+	SamplerAlwaysOn    = options.SamplerAlwaysOn
+	SamplerAlwaysOff   = options.SamplerAlwaysOff
+	SamplerRatio       = options.SamplerRatio
+	SamplerParentBased = options.SamplerParentBased
+)
+
+// Re-export exporter type constants.
+const (
+	ExporterOTLPGRPC = options.ExporterOTLPGRPC
+	ExporterOTLPHTTP = options.ExporterOTLPHTTP
+	ExporterStdout   = options.ExporterStdout
+	ExporterNoop     = options.ExporterNoop
 )
 
 // Provider manages the OpenTelemetry tracer provider lifecycle.

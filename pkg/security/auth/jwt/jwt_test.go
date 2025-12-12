@@ -451,7 +451,7 @@ func TestJWT_Refresh_ExceedsMaxRefresh(t *testing.T) {
 func TestJWT_Revoke(t *testing.T) {
 	ctx := context.Background()
 	store := NewMemoryStore()
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	j := createTestJWT(t, WithStore(store))
 
@@ -510,7 +510,7 @@ func TestJWT_Revoke_WithoutStore(t *testing.T) {
 func TestJWT_Revoke_ExpiredToken(t *testing.T) {
 	ctx := context.Background()
 	store := NewMemoryStore()
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	j := createTestJWT(t,
 		WithStore(store),

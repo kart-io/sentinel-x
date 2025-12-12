@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/go-playground/locales/en"
 	"github.com/go-playground/locales/zh"
@@ -31,23 +32,31 @@ type Validator struct {
 }
 
 var (
-	globalValidator *Validator
-	once            sync.Once
+	// globalValidator 使用 atomic.Value 保证并发安全
+	globalValidator atomic.Value // stores *Validator
+	initOnce        sync.Once
 )
 
 // Global returns the global validator instance.
 // It initializes the validator on first call with default settings.
+// This function is thread-safe.
 func Global() *Validator {
-	once.Do(func() {
-		globalValidator = New()
+	// 快速路径：如果已经初始化，直接返回
+	if v := globalValidator.Load(); v != nil {
+		return v.(*Validator)
+	}
+	// 慢速路径：使用 Once 保证只初始化一次
+	initOnce.Do(func() {
+		globalValidator.Store(New())
 	})
-	return globalValidator
+	return globalValidator.Load().(*Validator)
 }
 
 // SetGlobal sets the global validator instance.
 // This should be called during application initialization if custom configuration is needed.
+// This function is thread-safe and can be called concurrently with Global().
 func SetGlobal(v *Validator) {
-	globalValidator = v
+	globalValidator.Store(v)
 }
 
 // New creates a new Validator instance with default configuration.

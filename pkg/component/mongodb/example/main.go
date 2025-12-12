@@ -26,7 +26,7 @@ func main() {
 		log.Printf("Failed to create MongoDB client: %v\n", err)
 		// In production, handle this error appropriately
 	} else {
-		defer client.Close()
+		defer func() { _ = client.Close() }()
 
 		// Health check
 		ctx := context.Background()
@@ -57,7 +57,7 @@ func main() {
 	if err != nil {
 		log.Printf("Failed to create MongoDB client: %v\n", err)
 	} else {
-		defer client2.Close()
+		defer func() { _ = client2.Close() }()
 		fmt.Println("Connected using URI!")
 	}
 
@@ -72,7 +72,7 @@ func main() {
 	if err != nil {
 		log.Printf("Failed to create MongoDB client via factory: %v\n", err)
 	} else {
-		defer client3.Close()
+		defer func() { _ = client3.Close() }()
 		fmt.Println("Created client via factory!")
 	}
 

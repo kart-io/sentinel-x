@@ -14,6 +14,7 @@ require (
 	github.com/kart-io/logger v0.2.2
 	github.com/kart-io/version v1.1.0
 	github.com/labstack/echo/v4 v4.13.4
+	github.com/panjf2000/ants/v2 v2.11.3
 	github.com/redis/go-redis/v9 v9.17.2
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/pflag v1.0.10

@@ -9,7 +9,7 @@ import (
 
 func TestMemoryStore_Basic(t *testing.T) {
 	store := NewMemoryStore()
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	ctx := context.Background()
 	token := "test-token-123"
@@ -41,7 +41,7 @@ func TestMemoryStore_Basic(t *testing.T) {
 
 func TestMemoryStore_MultipleTokens(t *testing.T) {
 	store := NewMemoryStore()
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	ctx := context.Background()
 
@@ -79,7 +79,7 @@ func TestMemoryStore_MultipleTokens(t *testing.T) {
 
 func TestMemoryStore_Expiration(t *testing.T) {
 	store := NewMemoryStore()
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	ctx := context.Background()
 	token := "expiring-token"
@@ -115,7 +115,7 @@ func TestMemoryStore_Expiration(t *testing.T) {
 func TestMemoryStore_Cleanup(t *testing.T) {
 	// 创建清理间隔很短的 store
 	store := NewMemoryStore(WithCleanupInterval(50 * time.Millisecond))
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	ctx := context.Background()
 
@@ -146,7 +146,7 @@ func TestMemoryStore_Cleanup(t *testing.T) {
 
 func TestMemoryStore_ConcurrentAccess(t *testing.T) {
 	store := NewMemoryStore()
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	ctx := context.Background()
 	const numGoroutines = 100
@@ -186,7 +186,7 @@ func TestMemoryStore_ConcurrentAccess(t *testing.T) {
 
 func TestMemoryStore_UpdateExpiration(t *testing.T) {
 	store := NewMemoryStore()
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	ctx := context.Background()
 	token := "renewable-token"
@@ -221,7 +221,7 @@ func TestMemoryStore_UpdateExpiration(t *testing.T) {
 
 func TestMemoryStore_CleanupWithMixedExpiration(t *testing.T) {
 	store := NewMemoryStore(WithCleanupInterval(50 * time.Millisecond))
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	ctx := context.Background()
 
@@ -310,7 +310,7 @@ func TestMemoryStore_Close(t *testing.T) {
 
 func TestNoopStore(t *testing.T) {
 	store := NewNoopStore()
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	ctx := context.Background()
 	token := "test-token"
@@ -339,7 +339,7 @@ func TestNoopStore(t *testing.T) {
 
 func TestNoopStore_Multiple(t *testing.T) {
 	store := NewNoopStore()
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	ctx := context.Background()
 
@@ -366,7 +366,7 @@ func TestNoopStore_Multiple(t *testing.T) {
 
 func BenchmarkMemoryStore_Revoke(b *testing.B) {
 	store := NewMemoryStore()
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	ctx := context.Background()
 
@@ -379,7 +379,7 @@ func BenchmarkMemoryStore_Revoke(b *testing.B) {
 
 func BenchmarkMemoryStore_IsRevoked(b *testing.B) {
 	store := NewMemoryStore()
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	ctx := context.Background()
 
@@ -398,7 +398,7 @@ func BenchmarkMemoryStore_IsRevoked(b *testing.B) {
 
 func BenchmarkMemoryStore_ConcurrentRevoke(b *testing.B) {
 	store := NewMemoryStore()
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	ctx := context.Background()
 
@@ -414,7 +414,7 @@ func BenchmarkMemoryStore_ConcurrentRevoke(b *testing.B) {
 
 func BenchmarkMemoryStore_ConcurrentIsRevoked(b *testing.B) {
 	store := NewMemoryStore()
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	ctx := context.Background()
 
@@ -437,7 +437,7 @@ func BenchmarkMemoryStore_ConcurrentIsRevoked(b *testing.B) {
 
 func BenchmarkNoopStore_Revoke(b *testing.B) {
 	store := NewNoopStore()
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	ctx := context.Background()
 
@@ -450,7 +450,7 @@ func BenchmarkNoopStore_Revoke(b *testing.B) {
 
 func BenchmarkNoopStore_IsRevoked(b *testing.B) {
 	store := NewNoopStore()
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	ctx := context.Background()
 

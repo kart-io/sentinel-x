@@ -2,15 +2,14 @@ package jitdec
 
 import (
 	"encoding/json"
-	"reflect"
-	"runtime"
-	"unsafe"
-
 	"github.com/bytedance/sonic/internal/decoder/consts"
 	"github.com/bytedance/sonic/internal/decoder/errors"
 	"github.com/bytedance/sonic/internal/rt"
 	"github.com/bytedance/sonic/option"
 	"github.com/bytedance/sonic/utf8"
+	"reflect"
+	"runtime"
+	"unsafe"
 )
 
 type (

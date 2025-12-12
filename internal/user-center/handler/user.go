@@ -52,17 +52,25 @@ func (h *UserHandler) Create(c transport.Context) {
 	c.JSON(http.StatusCreated, resp)
 }
 
-// Update handles user updates.
+// UpdateUserRequest 定义用户更新请求的 DTO，明确排除敏感字段
+type UpdateUserRequest struct {
+	Email  *string `json:"email" validate:"omitempty,email"`
+	Avatar string  `json:"avatar"`
+	Mobile string  `json:"mobile"`
+	Status *int    `json:"status" validate:"omitempty,min=0,max=1"`
+}
+
+// Update 处理用户更新请求
 func (h *UserHandler) Update(c transport.Context) {
 	username := c.Param("username")
 	if username == "" {
-		resp := response.Err(errors.ErrBadRequest.WithMessage("username is required"))
+		resp := response.Err(errors.ErrBadRequest.WithMessage("用户名不能为空"))
 		defer response.Release(resp)
 		c.JSON(resp.HTTPStatus(), resp)
 		return
 	}
 
-	// Fetch existing user to ensure we don't overwrite password with empty string
+	// 获取现有用户
 	existingUser, err := h.svc.Get(c.Request(), username)
 	if err != nil {
 		resp := response.Err(errors.ErrUserNotFound)
@@ -71,18 +79,31 @@ func (h *UserHandler) Update(c transport.Context) {
 		return
 	}
 
-	// Bind new values directly to existing user struct
-	if err := c.ShouldBindAndValidate(existingUser); err != nil {
+	// 使用专用 DTO 接收请求，禁止更新敏感字段
+	var req UpdateUserRequest
+	if err := c.ShouldBindAndValidate(&req); err != nil {
 		resp := response.Err(errors.ErrBadRequest.WithMessage(err.Error()))
 		defer response.Release(resp)
 		c.JSON(resp.HTTPStatus(), resp)
 		return
 	}
 
-	existingUser.Username = username // Ensure username from path is respected
+	// 选择性更新字段，确保 Password 和 Username 永远不会被更新
+	if req.Email != nil {
+		existingUser.Email = req.Email
+	}
+	if req.Avatar != "" {
+		existingUser.Avatar = req.Avatar
+	}
+	if req.Mobile != "" {
+		existingUser.Mobile = req.Mobile
+	}
+	if req.Status != nil {
+		existingUser.Status = *req.Status
+	}
 
 	if err := h.svc.Update(c.Request(), existingUser); err != nil {
-		logger.Errorf("failed to update user: %v", err)
+		logger.Errorf("更新用户失败: %v", err)
 		resp := response.Err(errors.ErrInternal.WithMessage(err.Error()))
 		defer response.Release(resp)
 		c.JSON(resp.HTTPStatus(), resp)

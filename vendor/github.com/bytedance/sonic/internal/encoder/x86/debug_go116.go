@@ -20,12 +20,11 @@
 package x86
 
 import (
+	"github.com/bytedance/sonic/internal/jit"
 	"os"
 	"runtime"
 	"runtime/debug"
 	"strings"
-
-	"github.com/bytedance/sonic/internal/jit"
 )
 
 var (

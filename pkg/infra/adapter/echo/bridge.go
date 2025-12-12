@@ -5,8 +5,8 @@ package echo
 import (
 	"net/http"
 
-	httpopts "github.com/kart-io/sentinel-x/pkg/infra/server/http"
 	httpserver "github.com/kart-io/sentinel-x/pkg/infra/server/transport/http"
+	httpopts "github.com/kart-io/sentinel-x/pkg/options/server/http"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )

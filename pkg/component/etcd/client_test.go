@@ -109,7 +109,7 @@ func TestFactoryCreation(t *testing.T) {
 	opts := NewOptions()
 	factory := NewFactory(opts)
 	if factory == nil {
-		t.Error("NewFactory() should not return nil")
+		t.Fatal("NewFactory() should not return nil")
 	}
 	if factory.opts != opts {
 		t.Error("factory should store the provided options")

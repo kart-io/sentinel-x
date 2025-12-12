@@ -17,12 +17,11 @@
 package jitdec
 
 import (
-	"sync"
-	"unsafe"
-
 	"github.com/bytedance/sonic/internal/caching"
 	"github.com/bytedance/sonic/internal/native/types"
 	"github.com/bytedance/sonic/internal/rt"
+	"sync"
+	"unsafe"
 )
 
 const (

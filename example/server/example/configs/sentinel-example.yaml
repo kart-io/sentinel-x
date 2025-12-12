@@ -121,7 +121,9 @@ jwt:
   # Disable JWT authentication (set to false to enable)
   disable-auth: false
   # JWT signing key (min 32 characters for HMAC algorithms)
-  key: "sentinel-x-example-secret-key-32!"
+  # 必须通过环境变量设置: SENTINEL_EXAMPLE_JWT_KEY
+  # 不要在配置文件中硬编码密钥！
+  key: ""
   # JWT signing algorithm
   signing-method: "HS256"
   # Token expiration duration

@@ -17,10 +17,9 @@
 package avx2
 
 import (
-	"unsafe"
-
 	"github.com/bytedance/sonic/internal/native/types"
 	"github.com/bytedance/sonic/internal/rt"
+	"unsafe"
 )
 
 var F_vsigned func(s unsafe.Pointer, p unsafe.Pointer, v unsafe.Pointer)

@@ -3,6 +3,7 @@ package json
 import (
 	"bytes"
 	stdjson "encoding/json"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -168,11 +169,8 @@ func TestDecoder(t *testing.T) {
 }
 
 func TestConfigFastestMode(t *testing.T) {
-	// Save original state
-	origMarshal := Marshal
-	defer func() { Marshal = origMarshal }()
-
 	ConfigFastestMode()
+	defer ConfigStandardMode() // 恢复默认模式
 
 	// Test that it still works
 	data := SimpleStruct{ID: 1, Name: "test", Message: "hello"}
@@ -183,10 +181,6 @@ func TestConfigFastestMode(t *testing.T) {
 }
 
 func TestConfigStandardMode(t *testing.T) {
-	// Save original state
-	origMarshal := Marshal
-	defer func() { Marshal = origMarshal }()
-
 	ConfigStandardMode()
 
 	// Test that it still works
@@ -405,9 +399,8 @@ func BenchmarkMarshalFastestMode(b *testing.B) {
 	}
 
 	// Switch to fastest mode
-	origMarshal := Marshal
-	defer func() { Marshal = origMarshal }()
 	ConfigFastestMode()
+	defer ConfigStandardMode() // 恢复默认模式
 
 	data := getTestData()
 	b.ResetTimer()
@@ -434,5 +427,145 @@ func BenchmarkRoundtripStdlib(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		jsonBytes, _ := stdjson.Marshal(data)
 		_ = stdjson.Unmarshal(jsonBytes, &result)
+	}
+}
+
+// ============================================================================
+// Concurrency Safety Tests
+// ============================================================================
+
+// TestConcurrentMarshalUnmarshal 测试并发调用 Marshal/Unmarshal 的安全性
+func TestConcurrentMarshalUnmarshal(t *testing.T) {
+	const goroutines = 100
+	const iterations = 100
+
+	data := SimpleStruct{ID: 1, Name: "test", Message: "hello"}
+	errChan := make(chan error, goroutines)
+
+	for i := 0; i < goroutines; i++ {
+		go func() {
+			for j := 0; j < iterations; j++ {
+				// 并发 Marshal
+				bytes, err := Marshal(data)
+				if err != nil {
+					errChan <- err
+					return
+				}
+
+				// 并发 Unmarshal
+				var result SimpleStruct
+				if err := Unmarshal(bytes, &result); err != nil {
+					errChan <- err
+					return
+				}
+
+				// 验证结果
+				if result.ID != data.ID || result.Name != data.Name {
+					errChan <- fmt.Errorf("result mismatch: got %v", result)
+					return
+				}
+			}
+			errChan <- nil
+		}()
+	}
+
+	// 等待所有 goroutine 完成
+	for i := 0; i < goroutines; i++ {
+		if err := <-errChan; err != nil {
+			t.Errorf("并发测试失败: %v", err)
+		}
+	}
+}
+
+// TestConcurrentConfigSwitch 测试并发切换配置模式的安全性
+func TestConcurrentConfigSwitch(t *testing.T) {
+	if !IsUsingSonic() {
+		t.Skip("Sonic not available on this architecture")
+	}
+
+	const goroutines = 50
+	const iterations = 100
+
+	data := SimpleStruct{ID: 1, Name: "test", Message: "hello"}
+	errChan := make(chan error, goroutines)
+
+	for i := 0; i < goroutines; i++ {
+		go func(id int) {
+			for j := 0; j < iterations; j++ {
+				// 奇数 goroutine 切换配置
+				if id%2 == 0 {
+					ConfigFastestMode()
+				} else {
+					ConfigStandardMode()
+				}
+
+				// 同时进行序列化操作
+				bytes, err := Marshal(data)
+				if err != nil {
+					errChan <- err
+					return
+				}
+
+				var result SimpleStruct
+				if err := Unmarshal(bytes, &result); err != nil {
+					errChan <- err
+					return
+				}
+			}
+			errChan <- nil
+		}(i)
+	}
+
+	// 等待所有 goroutine 完成
+	for i := 0; i < goroutines; i++ {
+		if err := <-errChan; err != nil {
+			t.Errorf("并发配置切换测试失败: %v", err)
+		}
+	}
+
+	// 恢复默认模式
+	ConfigStandardMode()
+}
+
+// TestConcurrentEncoderDecoder 测试并发创建 Encoder/Decoder 的安全性
+func TestConcurrentEncoderDecoder(t *testing.T) {
+	const goroutines = 50
+	const iterations = 50
+
+	data := SimpleStruct{ID: 1, Name: "test", Message: "hello"}
+	errChan := make(chan error, goroutines)
+
+	for i := 0; i < goroutines; i++ {
+		go func() {
+			for j := 0; j < iterations; j++ {
+				// 测试 Encoder
+				var buf bytes.Buffer
+				encoder := NewEncoder(&buf)
+				if err := encoder.Encode(data); err != nil {
+					errChan <- err
+					return
+				}
+
+				// 测试 Decoder
+				decoder := NewDecoder(strings.NewReader(buf.String()))
+				var result SimpleStruct
+				if err := decoder.Decode(&result); err != nil {
+					errChan <- err
+					return
+				}
+
+				if result.ID != data.ID {
+					errChan <- fmt.Errorf("result mismatch: got %v", result)
+					return
+				}
+			}
+			errChan <- nil
+		}()
+	}
+
+	for i := 0; i < goroutines; i++ {
+		if err := <-errChan; err != nil {
+			t.Errorf("并发 Encoder/Decoder 测试失败: %v", err)
+		}
 	}
 }

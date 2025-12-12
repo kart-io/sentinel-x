@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/kart-io/logger"
+	"github.com/kart-io/sentinel-x/pkg/infra/pool"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -64,12 +65,13 @@ func handleChannelClosed(closeCh chan struct{}) {
 }
 
 // executeCallback executes the callback in a separate goroutine to avoid blocking
+// 使用 ants 池执行回调，避免无限制创建 goroutine
 func executeCallback(callback func(string), payload string) {
 	if callback == nil {
 		return
 	}
 
-	go func() {
+	task := func() {
 		defer func() {
 			if r := recover(); r != nil {
 				logger.Global().Errorw("Recovered from panic in callback execution",
@@ -81,7 +83,17 @@ func executeCallback(callback func(string), payload string) {
 		}()
 
 		callback(payload)
-	}()
+	}
+
+	// 使用回调专用池执行
+	if err := pool.SubmitToType(pool.CallbackPool, task); err != nil {
+		// 池不可用时降级为直接执行 goroutine
+		logger.Global().Warnw("failed to submit callback to pool, fallback to goroutine",
+			"error", err.Error(),
+			"component", "redis.watcher",
+		)
+		go task()
+	}
 }
 
 func (w *Watcher) startSubscribe() {

@@ -11,6 +11,7 @@ import (
 	"gorm.io/gorm/logger"
 
 	"github.com/kart-io/sentinel-x/pkg/component/storage"
+	options "github.com/kart-io/sentinel-x/pkg/options/mysql"
 )
 
 // Client wraps gorm.DB with storage.Client interface implementation.
@@ -19,7 +20,7 @@ import (
 //
 // Example usage:
 //
-//	opts := NewOptions()
+//	opts := options.NewOptions()
 //	opts.Host = "localhost"
 //	opts.Database = "mydb"
 //
@@ -34,7 +35,7 @@ import (
 //	db.AutoMigrate(&User{})
 type Client struct {
 	db   *gorm.DB
-	opts *Options
+	opts *options.Options
 }
 
 // New creates a new MySQL client from the provided options.
@@ -45,7 +46,7 @@ type Client struct {
 // - Options validation fails
 // - Connection to MySQL server fails
 // - Connection pool configuration fails
-func New(opts *Options) (*Client, error) {
+func New(opts *options.Options) (*Client, error) {
 	return NewWithContext(context.Background(), opts)
 }
 
@@ -61,7 +62,7 @@ func New(opts *Options) (*Client, error) {
 // - Connection to MySQL server fails
 // - Initial ping fails
 // - Connection pool configuration fails
-func NewWithContext(ctx context.Context, opts *Options) (*Client, error) {
+func NewWithContext(ctx context.Context, opts *options.Options) (*Client, error) {
 	if opts == nil {
 		return nil, fmt.Errorf("mysql options cannot be nil")
 	}
@@ -72,7 +73,7 @@ func NewWithContext(ctx context.Context, opts *Options) (*Client, error) {
 	}
 
 	// Build DSN
-	dsn := BuildDSN(opts)
+	dsn := options.BuildDSN(opts)
 
 	// Configure logger
 	var logLevel logger.LogLevel
@@ -200,7 +201,7 @@ func (c *Client) SqlDB() (*sql.DB, error) {
 
 // validateOptions validates MySQL options before creating the client.
 // It ensures that required fields are set and values are reasonable.
-func validateOptions(opts *Options) error {
+func validateOptions(opts *options.Options) error {
 	if opts.Host == "" {
 		return fmt.Errorf("host is required")
 	}

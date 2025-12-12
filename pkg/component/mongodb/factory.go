@@ -5,7 +5,14 @@ import (
 	"fmt"
 
 	"github.com/kart-io/sentinel-x/pkg/component/storage"
+	options "github.com/kart-io/sentinel-x/pkg/options/mongodb"
 )
+
+// Options is re-exported from pkg/options/mongodb for convenience.
+type Options = options.Options
+
+// NewOptions is re-exported from pkg/options/mongodb for convenience.
+var NewOptions = options.NewOptions
 
 // Factory implements the storage.Factory interface for creating MongoDB clients.
 // It encapsulates the MongoDB client creation logic and configuration,
@@ -24,7 +31,7 @@ import (
 //	}
 //	defer client.Close()
 type Factory struct {
-	opts *Options
+	opts *options.Options
 }
 
 // NewFactory creates a new MongoDB client factory with the provided options.
@@ -35,7 +42,7 @@ type Factory struct {
 // - opts: MongoDB configuration options
 //
 // Returns a new Factory instance.
-func NewFactory(opts *Options) *Factory {
+func NewFactory(opts *options.Options) *Factory {
 	return &Factory{
 		opts: opts,
 	}
@@ -69,7 +76,7 @@ func (f *Factory) Create(ctx context.Context) (storage.Client, error) {
 
 // Options returns the MongoDB options used by this factory.
 // This is useful for inspecting or cloning the configuration.
-func (f *Factory) Options() *Options {
+func (f *Factory) Options() *options.Options {
 	return f.opts
 }
 

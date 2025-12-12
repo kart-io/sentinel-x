@@ -40,9 +40,16 @@ import (
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/kart-io/logger"
+	options "github.com/kart-io/sentinel-x/pkg/options/auth/jwt"
 	"github.com/kart-io/sentinel-x/pkg/security/auth"
 	"github.com/kart-io/sentinel-x/pkg/utils/errors"
 )
+
+// Options is re-exported from pkg/options/auth/jwt for convenience.
+type Options = options.Options
+
+// NewOptions is re-exported from pkg/options/auth/jwt for convenience.
+var NewOptions = options.NewOptions
 
 // JWT implements auth.Authenticator using JSON Web Tokens.
 type JWT struct {
@@ -157,6 +164,11 @@ func WithKeyID(kid string) Option {
 // Type returns the authenticator type.
 func (j *JWT) Type() string {
 	return "jwt"
+}
+
+// IsDisabled returns true if authentication is disabled.
+func (j *JWT) IsDisabled() bool {
+	return j.opts.DisableAuth
 }
 
 // Sign creates a new token for the given subject.

@@ -2,7 +2,7 @@ package biz
 
 import (
 	"context"
-	"errors"
+	stderrors "errors"
 
 	"golang.org/x/crypto/bcrypt"
 
@@ -10,15 +10,16 @@ import (
 	"github.com/kart-io/sentinel-x/internal/user-center/store"
 	"github.com/kart-io/sentinel-x/pkg/security/auth"
 	"github.com/kart-io/sentinel-x/pkg/security/auth/jwt"
+	"github.com/kart-io/sentinel-x/pkg/utils/errors"
 )
 
-// AuthService handles authentication business logic.
+// AuthService 处理认证业务逻辑
 type AuthService struct {
 	jwtAuth *jwt.JWT
 	store   store.Factory
 }
 
-// NewAuthService creates a new AuthService.
+// NewAuthService 创建新的 AuthService
 func NewAuthService(jwtAuth *jwt.JWT, store store.Factory) *AuthService {
 	return &AuthService{
 		jwtAuth: jwtAuth,
@@ -26,24 +27,30 @@ func NewAuthService(jwtAuth *jwt.JWT, store store.Factory) *AuthService {
 	}
 }
 
-// Login authenticates a user and returns a token.
+// Login 用户登录并返回访问令牌
 func (s *AuthService) Login(ctx context.Context, req *model.LoginRequest) (*model.LoginResponse, error) {
-	// TODO: Validate user against DB
+	// 获取用户信息
 	user, err := s.store.Users().Get(ctx, req.Username)
 	if err != nil {
-		return nil, errors.New("invalid credentials")
+		return nil, errors.ErrUnauthorized.WithMessage("无效的用户名或密码")
 	}
 
+	// 验证密码
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
-		return nil, errors.New("invalid credentials")
+		return nil, errors.ErrUnauthorized.WithMessage("无效的用户名或密码")
 	}
 
-	// Generate token
+	// 检查用户状态
+	if user.Status == 0 {
+		return nil, errors.ErrAccountDisabled.WithMessage("账号已被禁用")
+	}
+
+	// 生成访问令牌
 	token, err := s.jwtAuth.Sign(ctx, req.Username, auth.WithExtra(map[string]interface{}{
 		"id": user.ID,
 	}))
 	if err != nil {
-		return nil, err
+		return nil, errors.ErrInternal.WithCause(err)
 	}
 
 	return &model.LoginResponse{
@@ -53,16 +60,32 @@ func (s *AuthService) Login(ctx context.Context, req *model.LoginRequest) (*mode
 	}, nil
 }
 
-// Logout revokes a user token.
+// Logout 撤销用户令牌
 func (s *AuthService) Logout(ctx context.Context, token string) error {
-	return s.jwtAuth.Revoke(ctx, token)
+	if err := s.jwtAuth.Revoke(ctx, token); err != nil {
+		return errors.ErrInternal.WithCause(err)
+	}
+	return nil
 }
 
-// Register registers a new user.
+// Register 注册新用户
 func (s *AuthService) Register(ctx context.Context, req *model.RegisterRequest) error {
+	// 检查用户名是否已存在
+	existingUser, err := s.store.Users().Get(ctx, req.Username)
+	if err != nil {
+		// 区分"用户不存在"和"数据库错误"两种情况
+		if !stderrors.Is(err, errors.ErrUserNotFound) {
+			return errors.ErrInternal.WithCause(err)
+		}
+		// 用户不存在,可以继续注册
+	} else if existingUser != nil {
+		return errors.ErrAlreadyExists.WithMessage("用户名已存在")
+	}
+
+	// 对密码进行哈希处理
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return err
+		return errors.ErrInternal.WithCause(err)
 	}
 
 	user := &model.User{
