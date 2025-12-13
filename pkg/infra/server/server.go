@@ -15,7 +15,6 @@ import (
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport/http"
 	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 	options "github.com/kart-io/sentinel-x/pkg/options/server"
-	httpopts "github.com/kart-io/sentinel-x/pkg/options/server/http"
 )
 
 // Options is re-exported from pkg/options/server for convenience.
@@ -76,7 +75,7 @@ func NewManager(opts ...options.Option) *Manager {
 			http.WithReadTimeout(serverOpts.HTTP.ReadTimeout),
 			http.WithWriteTimeout(serverOpts.HTTP.WriteTimeout),
 			http.WithIdleTimeout(serverOpts.HTTP.IdleTimeout),
-			http.WithAdapter(httpopts.AdapterType(serverOpts.HTTP.Adapter)),
+			http.WithAdapter(serverOpts.HTTP.Adapter),
 			http.WithMiddleware(func(opts *mwopts.Options) {
 				*opts = *serverOpts.HTTP.Middleware
 			}),

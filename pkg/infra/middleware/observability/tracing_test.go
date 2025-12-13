@@ -79,11 +79,11 @@ func (m *mockTracingContext) JSON(code int, v interface{}) {
 	m.rw.WriteHeader(code)
 }
 
-func (m *mockTracingContext) String(code int, s string) {
+func (m *mockTracingContext) String(code int, _ string) {
 	m.rw.WriteHeader(code)
 }
 
-func (m *mockTracingContext) Error(code int, err error) {
+func (m *mockTracingContext) Error(code int, _ error) {
 	m.rw.WriteHeader(code)
 }
 
@@ -95,7 +95,7 @@ func (m *mockTracingContext) Lang() string {
 	return "en"
 }
 
-func (m *mockTracingContext) SetLang(lang string) {
+func (m *mockTracingContext) SetLang(_ string) {
 }
 
 func TestNewTracingOptions(t *testing.T) {

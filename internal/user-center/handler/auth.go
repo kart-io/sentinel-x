@@ -24,9 +24,9 @@ func NewAuthHandler(svc *biz.AuthService) *AuthHandler {
 // LoginRequest is the request body for user login.
 type LoginRequest struct {
 	// Username must be provided, 3-32 characters
-	Username string `json:"username" validate:"required,min=3,max=32"`
+	Username string `json:"username" form:"username" validate:"required,min=3,max=32"`
 	// Password must be provided, 6-64 characters
-	Password string `json:"password" validate:"required,min=6,max=64"`
+	Password string `json:"password" form:"password" validate:"required,min=6,max=64"`
 }
 
 // Login handles user login.
@@ -78,13 +78,13 @@ func (h *AuthHandler) Logout(c transport.Context) {
 // RegisterRequest is the request body for user registration.
 type RegisterRequest struct {
 	// Username must start with letter, contain letters/numbers/underscore, 3-32 chars
-	Username string `json:"username" validate:"required,username"`
+	Username string `json:"username" form:"username" validate:"required,username"`
 	// Password must be at least 8 chars with letter and number
-	Password string `json:"password" validate:"required,password"`
+	Password string `json:"password" form:"password" validate:"required,password"`
 	// Email must be valid email format
-	Email string `json:"email" validate:"required,email"`
+	Email string `json:"email" form:"email" validate:"required,email"`
 	// Mobile must be valid mobile number (optional)
-	Mobile string `json:"mobile" validate:"omitempty,mobile"`
+	Mobile string `json:"mobile" form:"mobile" validate:"omitempty,mobile"`
 }
 
 // Register handles user registration.

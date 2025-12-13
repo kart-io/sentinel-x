@@ -112,6 +112,7 @@ func (r *Repository) RemovePolicy(ctx context.Context, p *casbin.Policy) error {
 	return r.db.WithContext(ctx).Where(&rule).Delete(&CasbinRule{}).Error
 }
 
+// RemoveFilteredPolicy removes policies based on the given parameters.
 func (r *Repository) RemoveFilteredPolicy(ctx context.Context, ptype string, fieldIndex int, fieldValues ...string) error {
 	query := r.db.WithContext(ctx).Model(&CasbinRule{}).Where("p_type = ?", ptype)
 

@@ -167,21 +167,21 @@ func TestMultipleSubscribers(t *testing.T) {
 	var callOrder []string
 	var mu sync.Mutex
 
-	handler1 := func(v *viper.Viper) error {
+	handler1 := func(_ *viper.Viper) error {
 		mu.Lock()
 		defer mu.Unlock()
 		callOrder = append(callOrder, "handler1")
 		return nil
 	}
 
-	handler2 := func(v *viper.Viper) error {
+	handler2 := func(_ *viper.Viper) error {
 		mu.Lock()
 		defer mu.Unlock()
 		callOrder = append(callOrder, "handler2")
 		return nil
 	}
 
-	handler3 := func(v *viper.Viper) error {
+	handler3 := func(_ *viper.Viper) error {
 		mu.Lock()
 		defer mu.Unlock()
 		callOrder = append(callOrder, "handler3")

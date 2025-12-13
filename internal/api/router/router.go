@@ -2,6 +2,7 @@
 package router
 
 import (
+	"github.com/go-kratos/swagger-api/openapiv2"
 	"github.com/kart-io/logger"
 	"github.com/kart-io/sentinel-x/internal/api/handler"
 	"github.com/kart-io/sentinel-x/pkg/infra/datasource"
@@ -19,6 +20,12 @@ func Register(mgr *server.Manager, jwtAuth *jwt.JWT, ds *datasource.Manager) err
 	// HTTP Server
 	if httpServer := mgr.HTTPServer(); httpServer != nil {
 		router := httpServer.Router()
+
+		// Serve static files for OpenAPI specs
+		router.Static("/openapi", "api/openapi")
+
+		// Mount Swagger UI handler
+		router.Mount("/swagger", openapiv2.NewHandler())
 
 		// API v1 路由组
 		v1 := router.Group("/api/v1")

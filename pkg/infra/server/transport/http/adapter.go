@@ -104,6 +104,14 @@ func (r *bridgeRouter) Use(middleware ...transport.MiddlewareFunc) {
 	}
 }
 
+func (r *bridgeRouter) Static(prefix, root string) {
+	r.group.Static(prefix, root)
+}
+
+func (r *bridgeRouter) Mount(prefix string, handler http.Handler) {
+	r.group.Mount(prefix, handler)
+}
+
 // bridges stores registered bridge factories.
 var (
 	bridges   = make(map[httpopts.AdapterType]BridgeFactory)

@@ -25,28 +25,36 @@ func (m *mockBridge) Handler() http.Handler {
 	})
 }
 
-func (m *mockBridge) AddRoute(method, path string, handler BridgeHandler) {}
+func (m *mockBridge) AddRoute(_, _ string, _ BridgeHandler) {}
 
-func (m *mockBridge) AddRouteGroup(prefix string) RouteGroup {
+func (m *mockBridge) AddRouteGroup(_ string) RouteGroup {
 	return &mockRouteGroup{}
 }
 
-func (m *mockBridge) AddMiddleware(middleware BridgeMiddleware) {}
+func (m *mockBridge) AddMiddleware(_ BridgeMiddleware) {}
 
-func (m *mockBridge) SetNotFoundHandler(handler BridgeHandler) {}
+func (m *mockBridge) SetNotFoundHandler(_ BridgeHandler) {}
 
-func (m *mockBridge) SetErrorHandler(handler BridgeErrorHandler) {}
+func (m *mockBridge) SetErrorHandler(_ BridgeErrorHandler) {}
+
+func (m *mockBridge) Static(_, _ string) {}
+
+func (m *mockBridge) Mount(_ string, _ http.Handler) {}
 
 // mockRouteGroup implements RouteGroup for testing.
 type mockRouteGroup struct{}
 
-func (m *mockRouteGroup) AddRoute(method, path string, handler BridgeHandler) {}
+func (m *mockRouteGroup) AddRoute(_, _ string, _ BridgeHandler) {}
 
-func (m *mockRouteGroup) AddRouteGroup(prefix string) RouteGroup {
+func (m *mockRouteGroup) AddRouteGroup(_ string) RouteGroup {
 	return &mockRouteGroup{}
 }
 
-func (m *mockRouteGroup) AddMiddleware(middleware BridgeMiddleware) {}
+func (m *mockRouteGroup) AddMiddleware(_ BridgeMiddleware) {}
+
+func (m *mockRouteGroup) Static(_, _ string) {}
+
+func (m *mockRouteGroup) Mount(_ string, _ http.Handler) {}
 
 func TestRegisterBridge(t *testing.T) {
 	// Clear existing bridges for test isolation

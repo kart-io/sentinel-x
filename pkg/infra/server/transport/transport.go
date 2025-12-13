@@ -45,6 +45,10 @@ type Router interface {
 	Group(prefix string) Router
 	// Use adds middleware to the router.
 	Use(middleware ...MiddlewareFunc)
+	// Static serves static files from the given root directory.
+	Static(prefix, root string)
+	// Mount mounts an http.Handler to the given prefix.
+	Mount(prefix string, handler http.Handler)
 }
 
 // HandlerFunc is the HTTP handler function signature.

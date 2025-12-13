@@ -222,12 +222,12 @@ func TestPoolSafety(t *testing.T) {
 		}
 	})
 
-	t.Run("ReleaseNil", func(t *testing.T) {
+	t.Run("ReleaseNil", func(_ *testing.T) {
 		// Should not panic
 		Release(nil)
 	})
 
-	t.Run("MultipleAcquireRelease", func(t *testing.T) {
+	t.Run("MultipleAcquireRelease", func(_ *testing.T) {
 		for i := 0; i < 100; i++ {
 			resp := Acquire()
 			resp.Code = i

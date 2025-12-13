@@ -128,12 +128,12 @@ func TestEnhancedLogger(t *testing.T) {
 		}
 	})
 
-	t.Run("redacts sensitive headers", func(t *testing.T) {
+	t.Run("redacts sensitive headers", func(_ *testing.T) {
 		config := loggeropts.NewEnhancedLoggerConfig()
 		config.CaptureHeaders = []string{"Authorization"}
 
 		middleware := EnhancedLogger(config)
-		handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusOK)
 		}))
 
@@ -144,7 +144,7 @@ func TestEnhancedLogger(t *testing.T) {
 		handler.ServeHTTP(rec, req)
 	})
 
-	t.Run("captures request body when enabled", func(t *testing.T) {
+	t.Run("captures request body when enabled", func(_ *testing.T) {
 		config := loggeropts.NewEnhancedLoggerConfig()
 		config.LogRequestBody = true
 		config.MaxBodyLogSize = 1024

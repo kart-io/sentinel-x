@@ -32,6 +32,12 @@ type FrameworkBridge interface {
 
 	// SetErrorHandler sets the global error handler.
 	SetErrorHandler(handler BridgeErrorHandler)
+
+	// Static serves static files from the given root directory.
+	Static(prefix, root string)
+
+	// Mount mounts an http.Handler to the given prefix.
+	Mount(prefix string, handler http.Handler)
 }
 
 // RouteGroup represents a route group within the framework.
@@ -44,6 +50,12 @@ type RouteGroup interface {
 
 	// AddMiddleware adds a middleware to this group.
 	AddMiddleware(middleware BridgeMiddleware)
+
+	// Static serves static files from the given root directory.
+	Static(prefix, root string)
+
+	// Mount mounts an http.Handler to the given prefix.
+	Mount(prefix string, handler http.Handler)
 }
 
 // BridgeHandler is the handler function signature for the bridge.

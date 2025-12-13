@@ -1,3 +1,4 @@
+// store provides a set of tools for database operations.
 package store
 
 import (

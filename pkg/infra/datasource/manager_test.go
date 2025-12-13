@@ -3,7 +3,7 @@ package datasource
 import (
 	"testing"
 
-	mysqlOpts "github.com/kart-io/sentinel-x/pkg/options/mysql"
+	"github.com/kart-io/sentinel-x/pkg/options/mysql"
 	redisOpts "github.com/kart-io/sentinel-x/pkg/options/redis"
 )
 
@@ -17,10 +17,15 @@ func TestNewManager(t *testing.T) {
 func TestRegisterMySQL(t *testing.T) {
 	mgr := NewManager()
 
-	opts := mysqlOpts.NewOptions()
-	opts.Host = "localhost"
-	opts.Database = "test"
-	opts.Username = "root"
+	const (
+		host     = "localhost"
+		database = "test"
+		username = "root"
+	)
+	opts := mysql.NewOptions()
+	opts.Host = host
+	opts.Database = database
+	opts.Username = username
 
 	err := mgr.RegisterMySQL("primary", opts)
 	if err != nil {
@@ -55,8 +60,8 @@ func TestRegisterRedis(t *testing.T) {
 func TestListRegistered(t *testing.T) {
 	mgr := NewManager()
 
-	_ = mgr.RegisterMySQL("primary", mysqlOpts.NewOptions())
-	_ = mgr.RegisterMySQL("replica", mysqlOpts.NewOptions())
+	_ = mgr.RegisterMySQL("primary", mysql.NewOptions())
+	_ = mgr.RegisterMySQL("replica", mysql.NewOptions())
 	_ = mgr.RegisterRedis("cache", redisOpts.NewOptions())
 
 	registered := mgr.ListRegistered()

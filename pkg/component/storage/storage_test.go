@@ -78,7 +78,7 @@ func TestHealthStatus(t *testing.T) {
 }
 
 // TestFactoryInterface verifies the Factory interface signature.
-func TestFactoryInterface(t *testing.T) {
+func TestFactoryInterface(_ *testing.T) {
 	// This is a compile-time check, no runtime test needed
 	var _ Factory = (*MockFactory)(nil)
 }
@@ -86,6 +86,6 @@ func TestFactoryInterface(t *testing.T) {
 // MockFactory is a test implementation of the Factory interface.
 type MockFactory struct{}
 
-func (m *MockFactory) Create(ctx context.Context) (Client, error) {
+func (m *MockFactory) Create(_ context.Context) (Client, error) {
 	return &MockClient{name: "mock", healthy: true}, nil
 }

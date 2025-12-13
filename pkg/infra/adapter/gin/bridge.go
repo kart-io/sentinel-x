@@ -76,6 +76,16 @@ func (b *Bridge) SetErrorHandler(handler httpserver.BridgeErrorHandler) {
 	})
 }
 
+// Static serves static files from the given root directory.
+func (b *Bridge) Static(prefix, root string) {
+	b.engine.Static(prefix, root)
+}
+
+// Mount mounts an http.Handler to the given prefix.
+func (b *Bridge) Mount(prefix string, handler http.Handler) {
+	b.engine.Any(prefix+"/*any", gin.WrapH(http.StripPrefix(prefix, handler)))
+}
+
 // wrapHandler converts a BridgeHandler to gin.HandlerFunc.
 func (b *Bridge) wrapHandler(handler httpserver.BridgeHandler) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -163,6 +173,14 @@ func (g *routeGroup) AddRouteGroup(prefix string) httpserver.RouteGroup {
 
 func (g *routeGroup) AddMiddleware(middleware httpserver.BridgeMiddleware) {
 	g.group.Use(g.bridge.wrapMiddleware(middleware))
+}
+
+func (g *routeGroup) Static(prefix, root string) {
+	g.group.Static(prefix, root)
+}
+
+func (g *routeGroup) Mount(prefix string, handler http.Handler) {
+	g.group.Any(prefix+"/*any", gin.WrapH(http.StripPrefix(prefix, handler)))
 }
 
 // Ensure Bridge implements FrameworkBridge.

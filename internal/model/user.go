@@ -34,7 +34,7 @@ func (u *User) TableName() string {
 }
 
 // BeforeCreate sets the CreatedAt and UpdatedAt fields.
-func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
+func (u *User) BeforeCreate(_ *gorm.DB) (err error) {
 	now := time.Now().UnixMilli()
 	u.CreatedAt = now
 	u.UpdatedAt = now
@@ -42,7 +42,7 @@ func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
 }
 
 // BeforeUpdate sets the UpdatedAt field.
-func (u *User) BeforeUpdate(tx *gorm.DB) (err error) {
+func (u *User) BeforeUpdate(_ *gorm.DB) (err error) {
 	u.UpdatedAt = time.Now().UnixMilli()
 	return
 }

@@ -51,7 +51,7 @@ func (ur *UserRole) TableName() string {
 }
 
 // BeforeCreate sets the CreatedAt field.
-func (ur *UserRole) BeforeCreate(tx *gorm.DB) (err error) {
+func (ur *UserRole) BeforeCreate(_ *gorm.DB) (err error) {
 	ur.CreatedAt = time.Now().UnixMilli()
 	return
 }

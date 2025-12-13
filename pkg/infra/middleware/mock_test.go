@@ -109,12 +109,10 @@ func (m *mockContext) JSON(code int, v interface{}) {
 	m.jsonData = v
 }
 
-func (m *mockContext) String(code int, s string) {
-	// Not implemented for these tests
+func (m *mockContext) String(_ int, _ string) {
 }
 
 func (m *mockContext) Error(code int, err error) {
-	m.JSON(code, map[string]string{"error": err.Error()})
 }
 
 func (m *mockContext) GetRawContext() interface{} {
@@ -125,8 +123,7 @@ func (m *mockContext) Lang() string {
 	return "en"
 }
 
-func (m *mockContext) SetLang(lang string) {
-	// Not implemented for these tests
+func (m *mockContext) SetLang(_ string) {
 }
 
 // Compile-time check to ensure mockContext implements transport.Context
