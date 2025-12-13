@@ -209,7 +209,7 @@ func TestErrorHandler_ErrorCallback(t *testing.T) {
 	mu.Unlock()
 
 	if receivedErr == nil {
-		t.Fatal("Expected error callback to be called")
+		t.Error("Expected error callback to be called")
 	}
 	if receivedErr.Type != OutputError {
 		t.Errorf("Expected OutputError, got %v", receivedErr.Type)

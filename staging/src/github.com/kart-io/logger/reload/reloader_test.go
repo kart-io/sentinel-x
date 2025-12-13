@@ -178,9 +178,7 @@ func TestConfigReloader_TriggerReload(t *testing.T) {
 	if err := reloader.Start(); err != nil {
 		t.Fatalf("Failed to start reloader: %v", err)
 	}
-	defer func() {
-		_ = reloader.Stop()
-	}()
+	defer reloader.Stop()
 
 	// Give some time for goroutines to start
 	time.Sleep(100 * time.Millisecond)
@@ -241,9 +239,7 @@ func TestConfigReloader_FileWatch(t *testing.T) {
 	if err := reloader.Start(); err != nil {
 		t.Fatalf("Failed to start reloader: %v", err)
 	}
-	defer func() {
-		_ = reloader.Stop()
-	}()
+	defer reloader.Stop()
 
 	// Give some time for file watcher to initialize
 	time.Sleep(200 * time.Millisecond)
@@ -320,9 +316,7 @@ func TestConfigReloader_SignalReload(t *testing.T) {
 	if err := reloader.Start(); err != nil {
 		t.Fatalf("Failed to start reloader: %v", err)
 	}
-	defer func() {
-		_ = reloader.Stop()
-	}()
+	defer reloader.Stop()
 
 	// Give some time for signal handler to initialize
 	time.Sleep(200 * time.Millisecond)
@@ -389,9 +383,7 @@ func TestConfigReloader_BackupAndRollback(t *testing.T) {
 	if err := reloader.Start(); err != nil {
 		t.Fatalf("Failed to start reloader: %v", err)
 	}
-	defer func() {
-		_ = reloader.Stop()
-	}()
+	defer reloader.Stop()
 
 	// Give some time for goroutines to start
 	time.Sleep(100 * time.Millisecond)
@@ -491,9 +483,7 @@ func TestConfigReloader_ValidationCallback(t *testing.T) {
 	if err := reloader.Start(); err != nil {
 		t.Fatalf("Failed to start reloader: %v", err)
 	}
-	defer func() {
-		_ = reloader.Stop()
-	}()
+	defer reloader.Stop()
 
 	// Give some time for goroutines to start
 	time.Sleep(100 * time.Millisecond)
@@ -581,9 +571,7 @@ func TestConfigReloader_ConcurrentAccess(t *testing.T) {
 	if err := reloader.Start(); err != nil {
 		t.Fatalf("Failed to start reloader: %v", err)
 	}
-	defer func() {
-		_ = reloader.Stop()
-	}()
+	defer reloader.Stop()
 
 	// Give some time for goroutines to start
 	time.Sleep(100 * time.Millisecond)
@@ -617,7 +605,7 @@ func TestConfigReloader_ConcurrentAccess(t *testing.T) {
 					Level:  "DEBUG",
 					Format: "json",
 				}
-				_ = reloader.TriggerReload(newCfg)
+				reloader.TriggerReload(newCfg)
 				time.Sleep(10 * time.Millisecond)
 			}
 		}()

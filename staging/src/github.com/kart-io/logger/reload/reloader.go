@@ -200,7 +200,7 @@ func (r *ConfigReloader) Stop() error {
 
 	// Close watchers and channels
 	if r.watcher != nil {
-		_ = r.watcher.Close()
+		r.watcher.Close()
 	}
 
 	if r.signalChan != nil {

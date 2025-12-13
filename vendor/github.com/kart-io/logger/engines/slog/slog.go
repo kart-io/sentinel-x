@@ -514,11 +514,11 @@ func createManagedOutputWriters(paths []string) (*managedWriter, error) {
 		case "stderr":
 			writers = append(writers, os.Stderr)
 		default:
-			file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+			file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 			if err != nil {
 				// Close any already opened files on error
 				for _, closer := range closers {
-					_ = closer.Close()
+					closer.Close()
 				}
 				return nil, err
 			}
@@ -631,6 +631,60 @@ func (h *standardizedHandler) getStandardFieldName(fieldName string) string {
 	}
 
 	return fieldName // Return original if no mapping found
+}
+
+// getCaller returns the caller information for the SlogLogger
+func (l *SlogLogger) getCaller() string {
+	if l == nil {
+		return ""
+	}
+
+	// Check if this is a call through global logger function
+	// by looking at the call stack
+	var pcs [10]uintptr
+	n := goruntime.Callers(1, pcs[:])
+	if n == 0 {
+		return ""
+	}
+
+	fs := goruntime.CallersFrames(pcs[:n])
+	hasGlobalCall := false
+
+	// Check if there's a global logger function in the call stack
+	for i := 0; i < n; i++ {
+		if f, more := fs.Next(); more || i == n-1 {
+			if strings.Contains(f.File, "github.com/kart-io/logger/logger.go") {
+				hasGlobalCall = true
+				break
+			}
+		}
+	}
+
+	// Determine skip based on call type
+	var skip int
+	if hasGlobalCall {
+		skip = 4 + l.callerSkip // getCaller -> SlogLogger method -> global function -> actual caller
+	} else {
+		skip = 3 + l.callerSkip // getCaller -> SlogLogger method -> actual caller
+	}
+
+	var pcs2 [1]uintptr
+	if goruntime.Callers(skip, pcs2[:]) > 0 {
+		fs2 := goruntime.CallersFrames(pcs2[:1])
+		if f, _ := fs2.Next(); f.File != "" {
+			// Extract just the filename from the full path
+			file := f.File
+			if idx := strings.LastIndex(file, "/"); idx >= 0 {
+				if idx2 := strings.LastIndex(file[:idx], "/"); idx2 >= 0 {
+					file = file[idx2+1:] // Keep last two path segments
+				}
+			}
+
+			return fmt.Sprintf("%s:%d", file, f.Line)
+		}
+	}
+
+	return ""
 }
 
 // getStacktrace returns the stack trace for error/fatal level logs

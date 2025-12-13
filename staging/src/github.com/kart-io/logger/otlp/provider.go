@@ -356,9 +356,7 @@ func (c *OTLPClient) exportHTTP(ctx context.Context, req *v1.ExportLogsServiceRe
 	if err != nil {
 		return fmt.Errorf("failed to send HTTP request: %w", err)
 	}
-	defer func() {
-		_ = resp.Body.Close()
-	}()
+	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return fmt.Errorf("HTTP request failed with status: %d", resp.StatusCode)

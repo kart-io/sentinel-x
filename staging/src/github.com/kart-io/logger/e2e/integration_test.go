@@ -45,7 +45,7 @@ func TestRotationWithZapEngine(t *testing.T) {
 		)
 
 		if i%10 == 0 {
-			_ = helper.SafeFlush(log)
+			helper.SafeFlush(log)
 			time.Sleep(50 * time.Millisecond)
 		}
 	}
@@ -131,14 +131,14 @@ func TestRotationWithSlogEngine(t *testing.T) {
 		}
 
 		if i%5 == 0 {
-			_ = helper.SafeFlush(log)
+			helper.SafeFlush(log)
 			time.Sleep(25 * time.Millisecond)
 		}
 	}
 
 	// Final flush with multiple attempts for Slog
 	for attempt := 0; attempt < 3; attempt++ {
-		_ = helper.SafeFlush(log)
+		helper.SafeFlush(log)
 		time.Sleep(100 * time.Millisecond)
 	}
 
@@ -277,8 +277,7 @@ func TestRotationWithContextAndFields(t *testing.T) {
 	}
 
 	// Test with context
-	type key string
-	ctx := context.WithValue(context.Background(), key("request_id"), "test-123")
+	ctx := context.WithValue(context.Background(), "request_id", "test-123")
 
 	// Test with additional fields
 	logWithFields := log.With(
@@ -426,7 +425,7 @@ func TestRotationPerformanceComparison(t *testing.T) {
 			"timestamp", time.Now().UnixNano(),
 		)
 	}
-	_ = helper.SafeFlush(zapLogger)
+	helper.SafeFlush(zapLogger)
 	zapDuration := time.Since(zapStart)
 
 	// Test Slog performance
@@ -443,7 +442,7 @@ func TestRotationPerformanceComparison(t *testing.T) {
 			"timestamp", time.Now().UnixNano(),
 		)
 	}
-	_ = helper.SafeFlush(slogLogger)
+	helper.SafeFlush(slogLogger)
 	slogDuration := time.Since(slogStart)
 
 	// Wait for files
@@ -503,7 +502,7 @@ func TestRotationFieldUnification(t *testing.T) {
 		"boolean_field", true,
 		"timestamp_field", time.Now().Unix(),
 	)
-	_ = helper.SafeFlush(zapLogger)
+	helper.SafeFlush(zapLogger)
 
 	// Test Slog
 	slogConfig := *baseConfig
@@ -521,7 +520,7 @@ func TestRotationFieldUnification(t *testing.T) {
 		"boolean_field", true,
 		"timestamp_field", time.Now().Unix(),
 	)
-	_ = helper.SafeFlush(slogLogger)
+	helper.SafeFlush(slogLogger)
 
 	// Wait for files
 	helper.WaitForFile(zapFile, 5*time.Second)

@@ -88,6 +88,7 @@ func (f *LoggerFactory) CreateLoggerWithContext(ctx context.Context) (core.Logge
 			return errors.NewError(errors.ConfigError, "factory", fmt.Sprintf("unsupported logger engine: %s", f.option.Engine), nil)
 		}
 	})
+
 	if err != nil {
 		createErr = err
 		// As a last resort, return the fallback logger from error handler

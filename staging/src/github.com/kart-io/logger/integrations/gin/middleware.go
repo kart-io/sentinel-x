@@ -353,6 +353,26 @@ func generateRequestID() string {
 	return fmt.Sprintf("req-%d", time.Now().UnixNano())
 }
 
+// isHealthCheckPath checks if the path is a health check endpoint
+func isHealthCheckPath(path string, healthPaths []string) bool {
+	for _, healthPath := range healthPaths {
+		if path == healthPath {
+			return true
+		}
+	}
+	return false
+}
+
+// shouldSkipLogging checks if logging should be skipped for this request
+func shouldSkipLogging(c Context) bool {
+	if skip, exists := c.Get("skip_logging"); exists {
+		if skipBool, ok := skip.(bool); ok {
+			return skipBool
+		}
+	}
+	return false
+}
+
 // Convenience functions for creating middleware combinations
 
 // DefaultMiddleware returns a set of default middleware

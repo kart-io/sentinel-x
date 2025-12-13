@@ -53,22 +53,22 @@ func NewHelper(logger Logger) *Helper {
 
 // Debug logs debug level message
 func (h *Helper) Debug(a ...interface{}) {
-	_ = h.logger.Log(LevelDebug, "msg", fmt.Sprint(a...))
+	h.logger.Log(LevelDebug, "msg", fmt.Sprint(a...))
 }
 
 // Info logs info level message
 func (h *Helper) Info(a ...interface{}) {
-	_ = h.logger.Log(LevelInfo, "msg", fmt.Sprint(a...))
+	h.logger.Log(LevelInfo, "msg", fmt.Sprint(a...))
 }
 
 // Warn logs warn level message
 func (h *Helper) Warn(a ...interface{}) {
-	_ = h.logger.Log(LevelWarn, "msg", fmt.Sprint(a...))
+	h.logger.Log(LevelWarn, "msg", fmt.Sprint(a...))
 }
 
 // Error logs error level message
 func (h *Helper) Error(a ...interface{}) {
-	_ = h.logger.Log(LevelError, "msg", fmt.Sprint(a...))
+	h.logger.Log(LevelError, "msg", fmt.Sprint(a...))
 }
 
 // FilterFunc defines a function to filter log entries
@@ -110,17 +110,17 @@ func NewStdLogger(logger Logger) *StdLogger {
 
 // Print implements standard library logger interface
 func (s *StdLogger) Print(v ...interface{}) {
-	_ = s.logger.Log(LevelInfo, "msg", fmt.Sprint(v...))
+	s.logger.Log(LevelInfo, "msg", fmt.Sprint(v...))
 }
 
 // Printf implements standard library logger interface
 func (s *StdLogger) Printf(format string, v ...interface{}) {
-	_ = s.logger.Log(LevelInfo, "msg", fmt.Sprintf(format, v...))
+	s.logger.Log(LevelInfo, "msg", fmt.Sprintf(format, v...))
 }
 
 // Println implements standard library logger interface
 func (s *StdLogger) Println(v ...interface{}) {
-	_ = s.logger.Log(LevelInfo, "msg", fmt.Sprintln(v...))
+	s.logger.Log(LevelInfo, "msg", fmt.Sprintln(v...))
 }
 
 // KratosAdapter implements Kratos' log.Logger interface using our unified logger

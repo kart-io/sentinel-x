@@ -14,7 +14,7 @@ func TestNewLoggerFactory(t *testing.T) {
 	factory := NewLoggerFactory(opt)
 
 	if factory == nil {
-		t.Fatal("NewLoggerFactory() returned nil")
+		t.Error("NewLoggerFactory() returned nil")
 	}
 
 	if factory.option != opt {

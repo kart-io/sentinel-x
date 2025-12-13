@@ -183,7 +183,7 @@ func TestRotationWithBackupLimit(t *testing.T) {
 		}
 
 		// Flush and wait between rounds
-		_ = helper.SafeFlush(log)
+		helper.SafeFlush(log)
 		time.Sleep(100 * time.Millisecond)
 	}
 
