@@ -205,49 +205,19 @@ var (
 
 var (
 	// ErrNotFound indicates the resource is not found.
-	ErrNotFound = Register(&Errno{
-		Code:      MakeCode(ServiceCommon, CategoryResource, 0),
-		HTTP:      http.StatusNotFound,
-		GRPCCode:  codes.NotFound,
-		MessageEN: "Resource not found",
-		MessageZH: "资源不存在",
-	})
+	ErrNotFound = registerErr(CategoryResource, 0, http.StatusNotFound, codes.NotFound, "Resource not found", "资源不存在")
 
 	// ErrUserNotFound indicates the user is not found.
-	ErrUserNotFound = Register(&Errno{
-		Code:      MakeCode(ServiceCommon, CategoryResource, 1),
-		HTTP:      http.StatusNotFound,
-		GRPCCode:  codes.NotFound,
-		MessageEN: "User not found",
-		MessageZH: "用户不存在",
-	})
+	ErrUserNotFound = registerErr(CategoryResource, 1, http.StatusNotFound, codes.NotFound, "User not found", "用户不存在")
 
 	// ErrRecordNotFound indicates the record is not found.
-	ErrRecordNotFound = Register(&Errno{
-		Code:      MakeCode(ServiceCommon, CategoryResource, 2),
-		HTTP:      http.StatusNotFound,
-		GRPCCode:  codes.NotFound,
-		MessageEN: "Record not found",
-		MessageZH: "记录不存在",
-	})
+	ErrRecordNotFound = registerErr(CategoryResource, 2, http.StatusNotFound, codes.NotFound, "Record not found", "记录不存在")
 
 	// ErrFileNotFound indicates the file is not found.
-	ErrFileNotFound = Register(&Errno{
-		Code:      MakeCode(ServiceCommon, CategoryResource, 3),
-		HTTP:      http.StatusNotFound,
-		GRPCCode:  codes.NotFound,
-		MessageEN: "File not found",
-		MessageZH: "文件不存在",
-	})
+	ErrFileNotFound = registerErr(CategoryResource, 3, http.StatusNotFound, codes.NotFound, "File not found", "文件不存在")
 
 	// ErrRouteNotFound indicates the route is not found.
-	ErrRouteNotFound = Register(&Errno{
-		Code:      MakeCode(ServiceCommon, CategoryResource, 4),
-		HTTP:      http.StatusNotFound,
-		GRPCCode:  codes.NotFound,
-		MessageEN: "Route not found",
-		MessageZH: "路由不存在",
-	})
+	ErrRouteNotFound = registerErr(CategoryResource, 4, http.StatusNotFound, codes.NotFound, "Route not found", "路由不存在")
 )
 
 // ============================================================================
@@ -373,49 +343,19 @@ var (
 
 var (
 	// ErrDatabase indicates a database error.
-	ErrDatabase = Register(&Errno{
-		Code:      MakeCode(ServiceCommon, CategoryDatabase, 0),
-		HTTP:      http.StatusInternalServerError,
-		GRPCCode:  codes.Internal,
-		MessageEN: "Database error",
-		MessageZH: "数据库错误",
-	})
+	ErrDatabase = registerErr(CategoryDatabase, 0, http.StatusInternalServerError, codes.Internal, "Database error", "数据库错误")
 
 	// ErrDBConnection indicates database connection failure.
-	ErrDBConnection = Register(&Errno{
-		Code:      MakeCode(ServiceCommon, CategoryDatabase, 1),
-		HTTP:      http.StatusInternalServerError,
-		GRPCCode:  codes.Unavailable,
-		MessageEN: "Database connection failed",
-		MessageZH: "数据库连接失败",
-	})
+	ErrDBConnection = registerErr(CategoryDatabase, 1, http.StatusInternalServerError, codes.Unavailable, "Database connection failed", "数据库连接失败")
 
 	// ErrDBQuery indicates database query failure.
-	ErrDBQuery = Register(&Errno{
-		Code:      MakeCode(ServiceCommon, CategoryDatabase, 2),
-		HTTP:      http.StatusInternalServerError,
-		GRPCCode:  codes.Internal,
-		MessageEN: "Database query failed",
-		MessageZH: "数据库查询失败",
-	})
+	ErrDBQuery = registerErr(CategoryDatabase, 2, http.StatusInternalServerError, codes.Internal, "Database query failed", "数据库查询失败")
 
 	// ErrDBTransaction indicates database transaction failure.
-	ErrDBTransaction = Register(&Errno{
-		Code:      MakeCode(ServiceCommon, CategoryDatabase, 3),
-		HTTP:      http.StatusInternalServerError,
-		GRPCCode:  codes.Internal,
-		MessageEN: "Database transaction failed",
-		MessageZH: "数据库事务失败",
-	})
+	ErrDBTransaction = registerErr(CategoryDatabase, 3, http.StatusInternalServerError, codes.Internal, "Database transaction failed", "数据库事务失败")
 
 	// ErrDBDeadlock indicates database deadlock.
-	ErrDBDeadlock = Register(&Errno{
-		Code:      MakeCode(ServiceCommon, CategoryDatabase, 4),
-		HTTP:      http.StatusInternalServerError,
-		GRPCCode:  codes.Internal,
-		MessageEN: "Database deadlock",
-		MessageZH: "数据库死锁",
-	})
+	ErrDBDeadlock = registerErr(CategoryDatabase, 4, http.StatusInternalServerError, codes.Internal, "Database deadlock", "数据库死锁")
 )
 
 // ============================================================================
@@ -576,3 +516,13 @@ var (
 		MessageZH: "配置无效",
 	})
 )
+
+func registerErr(category, subCode int, httpStatus int, grpcCode codes.Code, msgEN, msgZH string) *Errno {
+	return Register(&Errno{
+		Code:      MakeCode(ServiceCommon, category, subCode),
+		HTTP:      httpStatus,
+		GRPCCode:  grpcCode,
+		MessageEN: msgEN,
+		MessageZH: msgZH,
+	})
+}

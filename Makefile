@@ -185,8 +185,7 @@ fmt:
 
 .PHONY: lint
 lint:
-lint:
-	@find . -name go.mod -not -path "*/vendor/*" -not -path "*/example/*" -exec dirname {} \; | xargs -I {} bash -c "cd {} && echo 'Linting {}' && golangci-lint run ./..."
+	@find . -name go.mod -not -path "*/vendor/*" -not -path "*/example/*" -not -path "*/staging/*" -not -path "*/scripts/*" -exec dirname {} \; | xargs -I {} bash -c "cd {} && echo 'Linting {}' && golangci-lint run ./..."
 
 # =============================================================================
 # Help

@@ -282,6 +282,9 @@ github.com/mattn/go-isatty
 # github.com/mattn/go-runewidth v0.0.16
 ## explicit; go 1.9
 github.com/mattn/go-runewidth
+# github.com/mattn/go-sqlite3 v1.14.22
+## explicit; go 1.19
+github.com/mattn/go-sqlite3
 # github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
 ## explicit
 github.com/modern-go/concurrent
@@ -819,6 +822,9 @@ gorm.io/driver/mysql
 # gorm.io/driver/postgres v1.6.0
 ## explicit; go 1.20
 gorm.io/driver/postgres
+# gorm.io/driver/sqlite v1.6.0
+## explicit; go 1.20
+gorm.io/driver/sqlite
 # gorm.io/gorm v1.31.1
 ## explicit; go 1.18
 gorm.io/gorm
