@@ -27,21 +27,21 @@ func GetDefaultErrorLogger() *SafeErrorLogger {
 func (s *SafeErrorLogger) LogOTLPError(operation string, err error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	fmt.Fprintf(s.w, "[OTLP-ERROR] %s: %v\n", operation, err)
+	_, _ = fmt.Fprintf(s.w, "[OTLP-ERROR] %s: %v\n", operation, err)
 }
 
 // LogEngineError logs engine-related errors in a thread-safe manner.
 func (s *SafeErrorLogger) LogEngineError(engine string, operation string, err error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	fmt.Fprintf(s.w, "[%s-ERROR] %s: %v\n", engine, operation, err)
+	_, _ = fmt.Fprintf(s.w, "[%s-ERROR] %s: %v\n", engine, operation, err)
 }
 
 // LogGeneralError logs general errors in a thread-safe manner.
 func (s *SafeErrorLogger) LogGeneralError(component string, err error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	fmt.Fprintf(s.w, "[%s-ERROR] %v\n", component, err)
+	_, _ = fmt.Fprintf(s.w, "[%s-ERROR] %v\n", component, err)
 }
 
 // SetWriter changes the output writer (useful for testing).

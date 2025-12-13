@@ -1,14 +1,13 @@
 package handler
 
 import (
-	stderrors "errors"
-	"net/http"
 	"strconv"
 
-	"github.com/kart-io/logger"
 	"github.com/kart-io/sentinel-x/internal/model"
+	"github.com/kart-io/sentinel-x/internal/pkg/utils"
 	"github.com/kart-io/sentinel-x/internal/user-center/biz"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	pkgstore "github.com/kart-io/sentinel-x/pkg/store"
 	"github.com/kart-io/sentinel-x/pkg/utils/errors"
 	"github.com/kart-io/sentinel-x/pkg/utils/response"
 )
@@ -34,9 +33,7 @@ type CreateRoleRequest struct {
 func (h *RoleHandler) Create(c transport.Context) {
 	var req CreateRoleRequest
 	if err := c.ShouldBindAndValidate(&req); err != nil {
-		resp := response.Err(errors.ErrBadRequest.WithMessage(err.Error()))
-		defer response.Release(resp)
-		c.JSON(resp.HTTPStatus(), resp)
+		utils.WriteResponse(c, errors.ErrBadRequest.WithMessage(err.Error()), nil)
 		return
 	}
 
@@ -48,34 +45,25 @@ func (h *RoleHandler) Create(c transport.Context) {
 	}
 
 	if err := h.svc.Create(c.Request(), role); err != nil {
-		logger.Errorf("failed to create role: %v", err)
-		resp := response.Err(errors.ErrInternal.WithMessage(err.Error()))
-		defer response.Release(resp)
-		c.JSON(resp.HTTPStatus(), resp)
+		utils.WriteResponse(c, err, nil)
 		return
 	}
 
-	resp := response.Success(role)
-	defer response.Release(resp)
-	c.JSON(http.StatusCreated, resp)
+	utils.WriteResponse(c, nil, role)
 }
 
 // Update handles role updates.
 func (h *RoleHandler) Update(c transport.Context) {
 	code := c.Param("code")
 	if code == "" {
-		resp := response.Err(errors.ErrBadRequest.WithMessage("role code is required"))
-		defer response.Release(resp)
-		c.JSON(resp.HTTPStatus(), resp)
+		utils.WriteResponse(c, errors.ErrBadRequest.WithMessage("role code is required"), nil)
 		return
 	}
 
 	// Fetch existing role first
 	role, err := h.svc.Get(c.Request(), code)
 	if err != nil {
-		resp := response.Err(errors.ErrNotFound.WithMessage("role not found"))
-		defer response.Release(resp)
-		c.JSON(resp.HTTPStatus(), resp)
+		utils.WriteResponse(c, err, nil)
 		return
 	}
 
@@ -89,9 +77,7 @@ func (h *RoleHandler) Update(c transport.Context) {
 
 	var req UpdateRoleRequest
 	if err := c.ShouldBindAndValidate(&req); err != nil {
-		resp := response.Err(errors.ErrBadRequest.WithMessage(err.Error()))
-		defer response.Release(resp)
-		c.JSON(resp.HTTPStatus(), resp)
+		utils.WriteResponse(c, errors.ErrBadRequest.WithMessage(err.Error()), nil)
 		return
 	}
 
@@ -106,62 +92,44 @@ func (h *RoleHandler) Update(c transport.Context) {
 	}
 
 	if err := h.svc.Update(c.Request(), role); err != nil {
-		logger.Errorf("failed to update role: %v", err)
-		resp := response.Err(errors.ErrInternal.WithMessage(err.Error()))
-		defer response.Release(resp)
-		c.JSON(resp.HTTPStatus(), resp)
+		utils.WriteResponse(c, err, nil)
 		return
 	}
 
-	resp := response.Success(role)
-	defer response.Release(resp)
-	c.JSON(http.StatusOK, resp)
+	utils.WriteResponse(c, nil, role)
 }
 
 // Delete handles role deletion.
 func (h *RoleHandler) Delete(c transport.Context) {
 	code := c.Param("code")
 	if code == "" {
-		resp := response.Err(errors.ErrBadRequest.WithMessage("role code is required"))
-		defer response.Release(resp)
-		c.JSON(resp.HTTPStatus(), resp)
+		utils.WriteResponse(c, errors.ErrBadRequest.WithMessage("role code is required"), nil)
 		return
 	}
 
 	if err := h.svc.Delete(c.Request(), code); err != nil {
-		logger.Errorf("failed to delete role: %v", err)
-		resp := response.Err(errors.ErrInternal.WithMessage(err.Error()))
-		defer response.Release(resp)
-		c.JSON(resp.HTTPStatus(), resp)
+		utils.WriteResponse(c, err, nil)
 		return
 	}
 
-	resp := response.SuccessWithMessage("role deleted", nil)
-	defer response.Release(resp)
-	c.JSON(http.StatusOK, resp)
+	utils.WriteResponse(c, nil, "role deleted")
 }
 
 // Get handles retrieving a role.
 func (h *RoleHandler) Get(c transport.Context) {
 	code := c.Param("code")
 	if code == "" {
-		resp := response.Err(errors.ErrBadRequest.WithMessage("role code is required"))
-		defer response.Release(resp)
-		c.JSON(resp.HTTPStatus(), resp)
+		utils.WriteResponse(c, errors.ErrBadRequest.WithMessage("role code is required"), nil)
 		return
 	}
 
 	role, err := h.svc.Get(c.Request(), code)
 	if err != nil {
-		resp := response.Err(errors.ErrNotFound)
-		defer response.Release(resp)
-		c.JSON(resp.HTTPStatus(), resp)
+		utils.WriteResponse(c, err, nil)
 		return
 	}
 
-	resp := response.Success(role)
-	defer response.Release(resp)
-	c.JSON(http.StatusOK, resp)
+	utils.WriteResponse(c, nil, role)
 }
 
 // List handles listing roles.
@@ -187,30 +155,23 @@ func (h *RoleHandler) List(c transport.Context) {
 		req.PageSize = val
 	}
 
-	offset := (req.Page - 1) * req.PageSize
-	limit := req.PageSize
+	// offset := (req.Page - 1) * req.PageSize
+	// limit := req.PageSize
 
-	count, roles, err := h.svc.List(c.Request(), offset, limit)
+	count, roles, err := h.svc.List(c.Request(), pkgstore.WithPage(req.Page, req.PageSize))
 	if err != nil {
-		logger.Errorf("failed to list roles: %v", err)
-		resp := response.Err(errors.ErrInternal.WithMessage(err.Error()))
-		defer response.Release(resp)
-		c.JSON(resp.HTTPStatus(), resp)
+		utils.WriteResponse(c, err, nil)
 		return
 	}
 
-	resp := response.Page(roles, count, offset/limit+1, limit)
-	defer response.Release(resp)
-	c.JSON(http.StatusOK, resp)
+	utils.WriteResponse(c, nil, response.Page(roles, count, req.Page, req.PageSize))
 }
 
 // AssignRole handles assigning a role to a user.
 func (h *RoleHandler) AssignRole(c transport.Context) {
 	username := c.Param("username")
 	if username == "" {
-		resp := response.Err(errors.ErrBadRequest.WithMessage("username is required"))
-		defer response.Release(resp)
-		c.JSON(resp.HTTPStatus(), resp)
+		utils.WriteResponse(c, errors.ErrBadRequest.WithMessage("username is required"), nil)
 		return
 	}
 
@@ -221,27 +182,16 @@ func (h *RoleHandler) AssignRole(c transport.Context) {
 
 	var req AssignRoleRequest
 	if err := c.ShouldBindAndValidate(&req); err != nil {
-		resp := response.Err(errors.ErrBadRequest.WithMessage(err.Error()))
-		defer response.Release(resp)
-		c.JSON(resp.HTTPStatus(), resp)
+		utils.WriteResponse(c, errors.ErrBadRequest.WithMessage(err.Error()), nil)
 		return
 	}
 
 	if err := h.svc.AssignRoleToUser(c.Request(), username, req.RoleCode); err != nil {
-		logger.Errorf("failed to assign role: %v", err)
-		errResp := errors.ErrInternal.WithMessage(err.Error())
-		if stderrors.Is(err, errors.ErrAlreadyExists) {
-			errResp = errors.ErrAlreadyExists
-		}
-		resp := response.Err(errResp)
-		defer response.Release(resp)
-		c.JSON(resp.HTTPStatus(), resp)
+		utils.WriteResponse(c, err, nil)
 		return
 	}
 
-	resp := response.SuccessWithMessage("role assigned", nil)
-	defer response.Release(resp)
-	c.JSON(http.StatusOK, resp)
+	utils.WriteResponse(c, nil, "role assigned")
 }
 
 // GetUserRoles handles retrieving roles for a user.
@@ -256,14 +206,9 @@ func (h *RoleHandler) GetUserRoles(c transport.Context) {
 
 	roles, err := h.svc.GetUserRoles(c.Request(), username)
 	if err != nil {
-		logger.Errorf("failed to get user roles: %v", err)
-		resp := response.Err(errors.ErrInternal.WithMessage(err.Error()))
-		defer response.Release(resp)
-		c.JSON(resp.HTTPStatus(), resp)
+		utils.WriteResponse(c, err, nil)
 		return
 	}
 
-	resp := response.Success(roles)
-	defer response.Release(resp)
-	c.JSON(http.StatusOK, resp)
+	utils.WriteResponse(c, nil, roles)
 }

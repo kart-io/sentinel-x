@@ -215,7 +215,7 @@ func (h *ErrorHandler) ExecuteWithRetry(ctx context.Context, component string, o
 
 		// Determine error type
 		var loggerErr *LoggerError
-		var errType ErrorType = SystemError
+		errType := SystemError
 
 		if le, ok := err.(*LoggerError); ok {
 			loggerErr = le

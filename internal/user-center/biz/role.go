@@ -5,6 +5,7 @@ import (
 
 	"github.com/kart-io/sentinel-x/internal/model"
 	"github.com/kart-io/sentinel-x/internal/user-center/store"
+	storepkg "github.com/kart-io/sentinel-x/pkg/store"
 )
 
 // RoleService handles role-related business logic.
@@ -38,8 +39,8 @@ func (s *RoleService) Get(ctx context.Context, code string) (*model.Role, error)
 }
 
 // List lists roles with pagination.
-func (s *RoleService) List(ctx context.Context, offset, limit int) (int64, []*model.Role, error) {
-	return s.store.Roles().List(ctx, offset, limit)
+func (s *RoleService) List(ctx context.Context, opts ...storepkg.Option) (int64, []*model.Role, error) {
+	return s.store.Roles().List(ctx, opts...)
 }
 
 // AssignRoleToUser assigns a specific role to a user.

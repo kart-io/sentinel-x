@@ -179,13 +179,14 @@ run-auth-example:
 .PHONY: fmt
 fmt:
 	@gofumpt -version || go install mvdan.cc/gofumpt@latest
-	gofumpt -w -d .
+	@gofumpt -w $(shell find . -type f -name '*.go' -not -path "*/vendor/*" -not -name '*.pb.go')
 	@gci -v || go install github.com/daixiang0/gci@latest
-	gci write -s standard -s default -s 'Prefix($(GO_MOD_DOMAIN))' --skip-generated .
+	@gci write -s standard -s default -s 'Prefix($(GO_MOD_DOMAIN))' --skip-generated $(shell find . -type f -name '*.go' -not -path "*/vendor/*" -not -name '*.pb.go') > /dev/null
 
 .PHONY: lint
 lint:
-	golangci-lint run ./...
+lint:
+	@find . -name go.mod -not -path "*/vendor/*" -not -path "*/example/*" -exec dirname {} \; | xargs -I {} bash -c "cd {} && echo 'Linting {}' && golangci-lint run ./..."
 
 # =============================================================================
 # Help

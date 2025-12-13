@@ -7,6 +7,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/kart-io/sentinel-x/internal/model"
+	"github.com/kart-io/sentinel-x/pkg/store"
 	"github.com/kart-io/sentinel-x/pkg/utils/errors"
 )
 
@@ -91,16 +92,17 @@ func (u *users) GetByUserId(ctx context.Context, userID uint64) (*model.User, er
 //   - int64: 符合条件的总记录数
 //   - []*model.User: 当前页的用户列表（不包含 password 字段）
 //   - error: 查询失败时返回的错误
-func (u *users) List(ctx context.Context, offset, limit int) (int64, []*model.User, error) {
-	// 定义结果结构体，用于接收窗口函数返回的总数
+func (u *users) List(ctx context.Context, opts ...store.Option) (int64, []*model.User, error) {
 	var results []struct {
 		model.User
 		TotalCount int64 `gorm:"column:total_count"`
 	}
 
+	db := store.NewWhere(opts...).Where(u.db.WithContext(ctx))
+
 	// 使用窗口函数 COUNT(*) OVER() 在单次查询中获取总数和分页数据
 	// 明确指定字段列表，排除 password 和 deleted_at 等敏感字段
-	err := u.db.WithContext(ctx).
+	err := db.
 		Select(`
 			id,
 			username,
@@ -115,8 +117,6 @@ func (u *users) List(ctx context.Context, offset, limit int) (int64, []*model.Us
 			COUNT(*) OVER() as total_count
 		`).
 		Model(&model.User{}).
-		Offset(offset).
-		Limit(limit).
 		Find(&results).Error
 	if err != nil {
 		return 0, nil, errors.ErrDatabase.WithCause(err)

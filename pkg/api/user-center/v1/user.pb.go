@@ -7,11 +7,12 @@
 package user
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -151,11 +152,14 @@ func file_pkg_api_user_center_v1_user_proto_rawDescGZIP() []byte {
 	return file_pkg_api_user_center_v1_user_proto_rawDescData
 }
 
-var file_pkg_api_user_center_v1_user_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
-var file_pkg_api_user_center_v1_user_proto_goTypes = []any{
-	(*UserRequest)(nil),  // 0: api.user.v1.UserRequest
-	(*UserResponse)(nil), // 1: api.user.v1.UserResponse
-}
+var (
+	file_pkg_api_user_center_v1_user_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+	file_pkg_api_user_center_v1_user_proto_goTypes  = []any{
+		(*UserRequest)(nil),  // 0: api.user.v1.UserRequest
+		(*UserResponse)(nil), // 1: api.user.v1.UserResponse
+	}
+)
+
 var file_pkg_api_user_center_v1_user_proto_depIdxs = []int32{
 	0, // 0: api.user.v1.UserService.GetUser:input_type -> api.user.v1.UserRequest
 	1, // 1: api.user.v1.UserService.GetUser:output_type -> api.user.v1.UserResponse

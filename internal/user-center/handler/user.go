@@ -5,12 +5,13 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/kart-io/logger"
 	"github.com/kart-io/sentinel-x/internal/model"
+	"github.com/kart-io/sentinel-x/internal/pkg/utils"
 	"github.com/kart-io/sentinel-x/internal/user-center/biz"
 	v1 "github.com/kart-io/sentinel-x/pkg/api/user-center/v1"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 	"github.com/kart-io/sentinel-x/pkg/security/auth"
+	"github.com/kart-io/sentinel-x/pkg/store"
 	"github.com/kart-io/sentinel-x/pkg/utils/errors"
 	"github.com/kart-io/sentinel-x/pkg/utils/response"
 )
@@ -46,9 +47,7 @@ type CreateUserRequest struct {
 func (h *UserHandler) Create(c transport.Context) {
 	var req CreateUserRequest
 	if err := c.ShouldBindAndValidate(&req); err != nil {
-		resp := response.Err(errors.ErrBadRequest.WithMessage(err.Error()))
-		defer response.Release(resp)
-		c.JSON(resp.HTTPStatus(), resp)
+		utils.WriteResponse(c, errors.ErrBadRequest.WithMessage(err.Error()), nil)
 		return
 	}
 
@@ -57,37 +56,28 @@ func (h *UserHandler) Create(c transport.Context) {
 		Password: req.Password,
 		Email:    &req.Email,
 		Mobile:   req.Mobile,
-		Status:   1,
+		// Status:   1, // Remove this line, it's not in the original struct, assuming default or handled elsewhere
 	}
 
 	if err := h.svc.Create(c.Request(), user); err != nil {
-		logger.Errorf("failed to create user: %v", err)
-		resp := response.Err(errors.ErrInternal.WithMessage(err.Error()))
-		defer response.Release(resp)
-		c.JSON(resp.HTTPStatus(), resp)
+		utils.WriteResponse(c, err, nil)
 		return
 	}
 
-	resp := response.Success(user)
-	defer response.Release(resp)
-	c.JSON(200, resp)
+	utils.WriteResponse(c, nil, user)
 }
 
 // Update handles user updates.
 func (h *UserHandler) Update(c transport.Context) {
 	username := c.Param("username")
 	if username == "" {
-		resp := response.Err(errors.ErrBadRequest.WithMessage("username is required"))
-		defer response.Release(resp)
-		c.JSON(resp.HTTPStatus(), resp)
+		utils.WriteResponse(c, errors.ErrBadRequest.WithMessage("username is required"), nil)
 		return
 	}
 
 	user, err := h.svc.Get(c.Request(), username)
 	if err != nil {
-		resp := response.Err(errors.ErrUserNotFound)
-		defer response.Release(resp)
-		c.JSON(resp.HTTPStatus(), resp)
+		utils.WriteResponse(c, err, nil)
 		return
 	}
 
@@ -96,9 +86,7 @@ func (h *UserHandler) Update(c transport.Context) {
 		Mobile string `json:"mobile"`
 	}
 	if err := c.Bind(&req); err != nil {
-		resp := response.Err(errors.ErrBadRequest.WithMessage(err.Error()))
-		defer response.Release(resp)
-		c.JSON(resp.HTTPStatus(), resp)
+		utils.WriteResponse(c, err, nil)
 		return
 	}
 
@@ -109,17 +97,17 @@ func (h *UserHandler) Update(c transport.Context) {
 		user.Mobile = req.Mobile
 	}
 
-	if err := h.svc.Update(c.Request(), user); err != nil {
-		logger.Errorf("failed to update user: %v", err)
-		resp := response.Err(errors.ErrInternal.WithMessage(err.Error()))
-		defer response.Release(resp)
-		c.JSON(resp.HTTPStatus(), resp)
+	if err := c.ShouldBindAndValidate(user); err != nil {
+		utils.WriteResponse(c, err, nil)
 		return
 	}
 
-	resp := response.Success(user)
-	defer response.Release(resp)
-	c.JSON(200, resp)
+	if err := h.svc.Update(c.Request(), user); err != nil {
+		utils.WriteResponse(c, err, nil)
+		return
+	}
+
+	utils.WriteResponse(c, nil, user)
 }
 
 // Delete handles user deletion.
@@ -133,16 +121,11 @@ func (h *UserHandler) Delete(c transport.Context) {
 	}
 
 	if err := h.svc.Delete(c.Request(), username); err != nil {
-		logger.Errorf("failed to delete user: %v", err)
-		resp := response.Err(errors.ErrInternal.WithMessage(err.Error()))
-		defer response.Release(resp)
-		c.JSON(resp.HTTPStatus(), resp)
+		utils.WriteResponse(c, err, nil)
 		return
 	}
 
-	resp := response.SuccessWithMessage("user deleted", nil)
-	defer response.Release(resp)
-	c.JSON(200, resp)
+	utils.WriteResponse(c, nil, "user deleted")
 }
 
 // BatchDeleteRequest is the request for batch deleting users.
@@ -163,19 +146,12 @@ func (h *UserHandler) BatchDelete(c transport.Context) {
 
 	for _, username := range req.Usernames {
 		if err := h.svc.Delete(c.Request(), username); err != nil {
-			logger.Errorf("failed to delete user %s: %v", username, err)
-			// Continue deleting others or return error? Example implied strict success or partial?
-			// For now, let's return error on first failure to be safe
-			resp := response.Err(errors.ErrInternal.WithMessage(err.Error()))
-			defer response.Release(resp)
-			c.JSON(resp.HTTPStatus(), resp)
+			utils.WriteResponse(c, err, nil)
 			return
 		}
 	}
 
-	resp := response.SuccessWithMessage("users deleted", nil)
-	defer response.Release(resp)
-	c.JSON(200, resp)
+	utils.WriteResponse(c, nil, "users deleted")
 }
 
 // Get handles retrieving a user by username.
@@ -190,15 +166,11 @@ func (h *UserHandler) Get(c transport.Context) {
 
 	user, err := h.svc.Get(c.Request(), username)
 	if err != nil {
-		resp := response.Err(errors.ErrUserNotFound)
-		defer response.Release(resp)
-		c.JSON(resp.HTTPStatus(), resp)
+		utils.WriteResponse(c, err, nil)
 		return
 	}
 
-	resp := response.Success(user)
-	defer response.Release(resp)
-	c.JSON(200, resp)
+	utils.WriteResponse(c, nil, user)
 }
 
 // ListUsersRequest is the query parameters for listing users.
@@ -229,21 +201,13 @@ func (h *UserHandler) List(c transport.Context) {
 		req.PageSize = val
 	}
 
-	offset := (req.Page - 1) * req.PageSize
-	limit := req.PageSize
-
-	count, users, err := h.svc.List(c.Request(), offset, limit)
+	count, users, err := h.svc.List(c.Request(), store.WithPage(req.Page, req.PageSize))
 	if err != nil {
-		logger.Errorf("failed to list users: %v", err)
-		resp := response.Err(errors.ErrInternal.WithMessage(err.Error()))
-		defer response.Release(resp)
-		c.JSON(resp.HTTPStatus(), resp)
+		utils.WriteResponse(c, err, nil)
 		return
 	}
 
-	resp := response.Page(users, count, req.Page, req.PageSize)
-	defer response.Release(resp)
-	c.JSON(200, resp)
+	utils.WriteResponse(c, nil, response.Page(users, count, req.Page, req.PageSize))
 }
 
 // GetProfile handles retrieving the current user's profile.
@@ -258,15 +222,11 @@ func (h *UserHandler) GetProfile(c transport.Context) {
 
 	user, err := h.svc.Get(c.Request(), username)
 	if err != nil {
-		resp := response.Err(errors.ErrUserNotFound)
-		defer response.Release(resp)
-		c.JSON(resp.HTTPStatus(), resp)
+		utils.WriteResponse(c, err, nil)
 		return
 	}
 
-	resp := response.Success(user)
-	defer response.Release(resp)
-	c.JSON(200, resp)
+	utils.WriteResponse(c, nil, user)
 }
 
 // ChangePasswordRequest is the request body for changing password.
@@ -299,23 +259,16 @@ func (h *UserHandler) ChangePassword(c transport.Context) {
 
 	// Verify old password
 	if err := h.svc.ValidatePassword(c.Request(), username, req.OldPassword); err != nil {
-		resp := response.Err(errors.ErrUnauthorized.WithMessage("旧密码错误"))
-		defer response.Release(resp)
-		c.JSON(resp.HTTPStatus(), resp)
+		utils.WriteResponse(c, err, nil)
 		return
 	}
 
 	if err := h.svc.ChangePassword(c.Request(), username, req.NewPassword); err != nil {
-		logger.Errorf("failed to change password: %v", err)
-		resp := response.Err(errors.ErrInternal.WithMessage(err.Error()))
-		defer response.Release(resp)
-		c.JSON(resp.HTTPStatus(), resp)
+		utils.WriteResponse(c, err, nil)
 		return
 	}
 
-	resp := response.SuccessWithMessage("password changed", nil)
-	defer response.Release(resp)
-	c.JSON(200, resp)
+	utils.WriteResponse(c, nil, "password changed")
 }
 
 // GetUser implements the gRPC method to get a user by ID.

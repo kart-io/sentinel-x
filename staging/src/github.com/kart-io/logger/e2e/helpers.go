@@ -34,7 +34,7 @@ func NewTestHelper(t *testing.T) *TestHelper {
 
 	// Register cleanup for temp directory
 	helper.AddCleanup(func() {
-		os.RemoveAll(tempDir)
+		_ = os.RemoveAll(tempDir)
 	})
 
 	return helper
@@ -92,7 +92,9 @@ func (h *TestHelper) CountLines(filepath string) int {
 	if err != nil {
 		h.t.Fatalf("Failed to open file %s: %v", filepath, err)
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+	}()
 
 	scanner := bufio.NewScanner(file)
 	count := 0
@@ -113,7 +115,9 @@ func (h *TestHelper) ParseJSONLogs(filepath string) []map[string]interface{} {
 	if err != nil {
 		h.t.Fatalf("Failed to open log file %s: %v", filepath, err)
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+	}()
 
 	var logs []map[string]interface{}
 	scanner := bufio.NewScanner(file)
@@ -209,7 +213,9 @@ func (h *TestHelper) CopyFile(src, dst string) {
 	if err != nil {
 		h.t.Fatalf("Failed to open source file %s: %v", src, err)
 	}
-	defer source.Close()
+	defer func() {
+		_ = source.Close()
+	}()
 
 	// Ensure destination directory exists
 	dstDir := filepath.Dir(dst)
@@ -221,7 +227,9 @@ func (h *TestHelper) CopyFile(src, dst string) {
 	if err != nil {
 		h.t.Fatalf("Failed to create destination file %s: %v", dst, err)
 	}
-	defer destination.Close()
+	defer func() {
+		_ = destination.Close()
+	}()
 
 	if _, err := io.Copy(destination, source); err != nil {
 		h.t.Fatalf("Failed to copy file from %s to %s: %v", src, dst, err)

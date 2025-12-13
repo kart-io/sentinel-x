@@ -1,15 +1,14 @@
 package handler
 
 import (
-	"net/http"
 	"strings"
 
 	"github.com/kart-io/logger"
 	"github.com/kart-io/sentinel-x/internal/model"
+	"github.com/kart-io/sentinel-x/internal/pkg/utils"
 	"github.com/kart-io/sentinel-x/internal/user-center/biz"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 	"github.com/kart-io/sentinel-x/pkg/utils/errors"
-	"github.com/kart-io/sentinel-x/pkg/utils/response"
 )
 
 // AuthHandler handles authentication requests.
@@ -34,9 +33,7 @@ type LoginRequest struct {
 func (h *AuthHandler) Login(c transport.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindAndValidate(&req); err != nil {
-		resp := response.Err(errors.ErrBadRequest.WithMessage(err.Error()))
-		defer response.Release(resp)
-		c.JSON(resp.HTTPStatus(), resp)
+		utils.WriteResponse(c, errors.ErrBadRequest.WithMessage(err.Error()), nil)
 		return
 	}
 
@@ -46,15 +43,11 @@ func (h *AuthHandler) Login(c transport.Context) {
 	})
 	if err != nil {
 		logger.Warnf("Login failed: %v", err)
-		resp := response.Err(errors.ErrUnauthorized.WithMessage(err.Error()))
-		defer response.Release(resp)
-		c.JSON(resp.HTTPStatus(), resp)
+		utils.WriteResponse(c, errors.ErrUnauthorized.WithMessage(err.Error()), nil)
 		return
 	}
 
-	resp := response.Success(respData)
-	defer response.Release(resp)
-	c.JSON(http.StatusOK, resp)
+	utils.WriteResponse(c, nil, respData)
 }
 
 // Logout handles user logout.
@@ -69,23 +62,17 @@ func (h *AuthHandler) Logout(c transport.Context) {
 	}
 
 	if token == "" {
-		resp := response.Err(errors.ErrBadRequest.WithMessage("token required"))
-		defer response.Release(resp)
-		c.JSON(resp.HTTPStatus(), resp)
+		utils.WriteResponse(c, errors.ErrBadRequest.WithMessage("token required"), nil)
 		return
 	}
 
 	if err := h.svc.Logout(c.Request(), token); err != nil {
 		logger.Errorf("Logout failed: %v", err)
-		resp := response.Err(errors.ErrInternal.WithMessage("failed to logout"))
-		defer response.Release(resp)
-		c.JSON(resp.HTTPStatus(), resp)
+		utils.WriteResponse(c, errors.ErrInternal.WithMessage("failed to logout"), nil)
 		return
 	}
 
-	resp := response.SuccessWithMessage("logged out", nil)
-	defer response.Release(resp)
-	c.JSON(http.StatusOK, resp)
+	utils.WriteResponse(c, nil, "logged out")
 }
 
 // RegisterRequest is the request body for user registration.
@@ -104,9 +91,7 @@ type RegisterRequest struct {
 func (h *AuthHandler) Register(c transport.Context) {
 	var req RegisterRequest
 	if err := c.ShouldBindAndValidate(&req); err != nil {
-		resp := response.Err(errors.ErrBadRequest.WithMessage(err.Error()))
-		defer response.Release(resp)
-		c.JSON(resp.HTTPStatus(), resp)
+		utils.WriteResponse(c, errors.ErrBadRequest.WithMessage(err.Error()), nil)
 		return
 	}
 
@@ -117,13 +102,9 @@ func (h *AuthHandler) Register(c transport.Context) {
 		Mobile:   req.Mobile,
 	}); err != nil {
 		logger.Errorf("Register failed: %v", err)
-		resp := response.Err(errors.ErrInternal.WithMessage(err.Error()))
-		defer response.Release(resp)
-		c.JSON(resp.HTTPStatus(), resp)
+		utils.WriteResponse(c, errors.ErrInternal.WithMessage(err.Error()), nil)
 		return
 	}
 
-	resp := response.SuccessWithMessage("user registered", nil)
-	defer response.Release(resp)
-	c.JSON(http.StatusOK, resp)
+	utils.WriteResponse(c, nil, "user registered")
 }

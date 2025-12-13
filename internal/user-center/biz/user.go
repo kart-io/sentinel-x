@@ -7,6 +7,7 @@ import (
 
 	"github.com/kart-io/sentinel-x/internal/model"
 	"github.com/kart-io/sentinel-x/internal/user-center/store"
+	storepkg "github.com/kart-io/sentinel-x/pkg/store"
 	"github.com/kart-io/sentinel-x/pkg/utils/errors"
 )
 
@@ -51,8 +52,8 @@ func (s *UserService) GetByUserId(ctx context.Context, userId uint64) (*model.Us
 }
 
 // List 列出用户
-func (s *UserService) List(ctx context.Context, offset, limit int) (int64, []*model.User, error) {
-	return s.store.Users().List(ctx, offset, limit)
+func (s *UserService) List(ctx context.Context, opts ...storepkg.Option) (int64, []*model.User, error) {
+	return s.store.Users().List(ctx, opts...)
 }
 
 // ChangePassword 更改用户密码

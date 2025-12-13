@@ -7,6 +7,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/kart-io/sentinel-x/internal/model"
+	"github.com/kart-io/sentinel-x/pkg/store"
 	"github.com/kart-io/sentinel-x/pkg/utils/errors"
 )
 
@@ -66,15 +67,18 @@ func (r *roles) Get(ctx context.Context, code string) (*model.Role, error) {
 }
 
 // List lists roles with pagination.
-func (r *roles) List(ctx context.Context, offset, limit int) (int64, []*model.Role, error) {
+func (r *roles) List(ctx context.Context, opts ...store.Option) (int64, []*model.Role, error) {
 	var count int64
 	var roles []*model.Role
 
-	if err := r.db.WithContext(ctx).Model(&model.Role{}).Count(&count).Error; err != nil {
+	db := store.NewWhere(opts...).Where(r.db.WithContext(ctx))
+
+	if err := db.Model(&model.Role{}).Count(&count).Error; err != nil {
 		return 0, nil, errors.ErrDatabase.WithCause(err)
 	}
 
-	if err := r.db.WithContext(ctx).Offset(offset).Limit(limit).Find(&roles).Error; err != nil {
+	// store.Where applies offset and limit from opts
+	if err := db.Find(&roles).Error; err != nil {
 		return 0, nil, errors.ErrDatabase.WithCause(err)
 	}
 
