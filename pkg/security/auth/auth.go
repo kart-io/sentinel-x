@@ -1,6 +1,6 @@
 // Package auth provides authentication interfaces and implementations for Sentinel-X.
 //
-// This package follows the onex project authentication architecture pattern,
+// This package follows the Sentinel-X project authentication architecture pattern,
 // providing a unified authentication interface that can be implemented by
 // different authentication providers (JWT, OAuth2, API Key, etc.).
 //

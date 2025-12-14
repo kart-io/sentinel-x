@@ -1,6 +1,6 @@
 // Package jwt provides JWT configuration options for Sentinel-X.
 //
-// This package implements JWT options following the onex project design pattern.
+// This package implements JWT options following the Sentinel-X project design pattern.
 // It supports configuration via config files, environment variables, and command-line flags.
 //
 // Configuration Example (YAML):

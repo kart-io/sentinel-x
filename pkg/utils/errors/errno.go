@@ -1,6 +1,6 @@
 // Package errors provides a unified error handling system for Sentinel-X.
 //
-// This package implements a structured error code system following the onex project
+// This package implements a structured error code system following the Sentinel-X project
 // error code design specifications. It provides:
 //
 //   - Globally unique error codes

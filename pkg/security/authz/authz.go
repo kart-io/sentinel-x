@@ -1,6 +1,6 @@
 // Package authz provides authorization interfaces and implementations for Sentinel-X.
 //
-// This package follows the onex project authorization architecture pattern,
+// This package follows the Sentinel-X project authorization architecture pattern,
 // providing a unified authorization interface that supports RBAC (Role-Based Access Control)
 // and policy-based authorization.
 //
