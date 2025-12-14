@@ -244,13 +244,13 @@ func (s *Server) applyMiddleware(router transport.Router, opts *mwopts.Options) 
 	// Auth middleware (JWT authentication)
 	if !opts.DisableAuth && opts.Auth.Authenticator != nil {
 		router.Use(authmw.Auth(
-			authmw.AuthWithAuthenticator(opts.Auth.Authenticator),
-			authmw.AuthWithTokenLookup(opts.Auth.TokenLookup),
-			authmw.AuthWithAuthScheme(opts.Auth.AuthScheme),
-			authmw.AuthWithSkipPaths(opts.Auth.SkipPaths...),
-			authmw.AuthWithSkipPathPrefixes(opts.Auth.SkipPathPrefixes...),
-			authmw.AuthWithErrorHandler(opts.Auth.ErrorHandler),
-			authmw.AuthWithSuccessHandler(opts.Auth.SuccessHandler),
+			authmw.WithAuthenticator(opts.Auth.Authenticator),
+			authmw.WithTokenLookup(opts.Auth.TokenLookup),
+			authmw.WithAuthScheme(opts.Auth.AuthScheme),
+			authmw.WithSkipPaths(opts.Auth.SkipPaths...),
+			authmw.WithSkipPathPrefixes(opts.Auth.SkipPathPrefixes...),
+			authmw.WithErrorHandler(opts.Auth.ErrorHandler),
+			authmw.WithSuccessHandler(opts.Auth.SuccessHandler),
 		))
 	}
 }

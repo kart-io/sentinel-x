@@ -85,19 +85,19 @@ func (m *mockContext) SetHeader(key, value string) {
 	}
 }
 
-func (m *mockContext) Bind(v interface{}) error {
+func (m *mockContext) Bind(_ interface{}) error {
 	return nil
 }
 
-func (m *mockContext) Validate(v interface{}) error {
+func (m *mockContext) Validate(_ interface{}) error {
 	return nil
 }
 
-func (m *mockContext) ShouldBindAndValidate(v interface{}) error {
+func (m *mockContext) ShouldBindAndValidate(_ interface{}) error {
 	return nil
 }
 
-func (m *mockContext) MustBindAndValidate(v interface{}) (string, bool) {
+func (m *mockContext) MustBindAndValidate(_ interface{}) (string, bool) {
 	return "", true
 }
 
@@ -112,7 +112,7 @@ func (m *mockContext) JSON(code int, v interface{}) {
 func (m *mockContext) String(_ int, _ string) {
 }
 
-func (m *mockContext) Error(code int, err error) {
+func (m *mockContext) Error(_ int, _ error) {
 }
 
 func (m *mockContext) GetRawContext() interface{} {

@@ -22,7 +22,7 @@ func newMockAuthorizer(decisions map[string]bool) *mockAuthorizer {
 }
 
 // Authorize implements Authorizer interface.
-func (m *mockAuthorizer) Authorize(ctx context.Context, subject, resource, action string) (bool, error) {
+func (m *mockAuthorizer) Authorize(_ context.Context, subject, resource, action string) (bool, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.calls++
@@ -31,7 +31,7 @@ func (m *mockAuthorizer) Authorize(ctx context.Context, subject, resource, actio
 }
 
 // AuthorizeWithContext implements Authorizer interface.
-func (m *mockAuthorizer) AuthorizeWithContext(ctx context.Context, subject, resource, action string, context map[string]interface{}) (bool, error) {
+func (m *mockAuthorizer) AuthorizeWithContext(ctx context.Context, subject, resource, action string, _ map[string]interface{}) (bool, error) {
 	return m.Authorize(ctx, subject, resource, action)
 }
 

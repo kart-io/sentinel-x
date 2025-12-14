@@ -1,4 +1,5 @@
-package utils
+// Package httputils provides HTTP utility functions.
+package httputils
 
 import (
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"

@@ -565,7 +565,7 @@ func TestFormTagFallback(t *testing.T) {
 }
 
 // TestConcurrentValidation tests that the validator is safe for concurrent use.
-func TestConcurrentValidation(t *testing.T) {
+func TestConcurrentValidation(_ *testing.T) {
 	v := New()
 
 	type TestStruct struct {

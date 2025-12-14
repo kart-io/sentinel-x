@@ -188,7 +188,7 @@ func TestWhere_Clauses(t *testing.T) {
 
 func TestWhere_Tenant(t *testing.T) {
 	// Register global tenant for test
-	RegisterTenant("tenant_id", func(ctx context.Context) string {
+	RegisterTenant("tenant_id", func(_ context.Context) string {
 		return "tenant-1"
 	})
 

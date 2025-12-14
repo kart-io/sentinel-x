@@ -59,23 +59,23 @@ func (m *mockTracingContext) SetHeader(key, value string) {
 	m.rw.Header().Set(key, value)
 }
 
-func (m *mockTracingContext) Bind(v interface{}) error {
+func (m *mockTracingContext) Bind(_ interface{}) error {
 	return nil
 }
 
-func (m *mockTracingContext) Validate(v interface{}) error {
+func (m *mockTracingContext) Validate(_ interface{}) error {
 	return nil
 }
 
-func (m *mockTracingContext) ShouldBindAndValidate(v interface{}) error {
+func (m *mockTracingContext) ShouldBindAndValidate(_ interface{}) error {
 	return nil
 }
 
-func (m *mockTracingContext) MustBindAndValidate(v interface{}) (string, bool) {
+func (m *mockTracingContext) MustBindAndValidate(_ interface{}) (string, bool) {
 	return "", true
 }
 
-func (m *mockTracingContext) JSON(code int, v interface{}) {
+func (m *mockTracingContext) JSON(code int, _ interface{}) {
 	m.rw.WriteHeader(code)
 }
 
@@ -154,7 +154,7 @@ func TestTracingOptions(t *testing.T) {
 	}
 
 	// Test WithSpanNameFormatter
-	customFormatter := func(ctx transport.Context) string {
+	customFormatter := func(_ transport.Context) string {
 		return "custom-span"
 	}
 	WithSpanNameFormatter(customFormatter)(opts)
@@ -163,7 +163,7 @@ func TestTracingOptions(t *testing.T) {
 	}
 
 	// Test WithAttributeExtractor
-	customExtractor := func(ctx transport.Context) []attribute.KeyValue {
+	customExtractor := func(_ transport.Context) []attribute.KeyValue {
 		return []attribute.KeyValue{
 			attribute.String("custom", "value"),
 		}
@@ -221,6 +221,7 @@ func TestTracing_BasicRequest(t *testing.T) {
 	_ = recorder
 }
 
+//nolint:dupl
 func TestTracing_SkipPaths(t *testing.T) {
 	// Create middleware with skip paths
 	middleware := Tracing(
@@ -253,7 +254,7 @@ func TestTracing_SkipPaths(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			handlerCalled := false
 
-			handler := middleware(func(ctx transport.Context) {
+			handler := middleware(func(_ transport.Context) {
 				handlerCalled = true
 			})
 
@@ -275,6 +276,7 @@ func TestTracing_SkipPaths(t *testing.T) {
 	}
 }
 
+//nolint:dupl
 func TestTracing_SkipPathPrefixes(t *testing.T) {
 	// Create middleware with skip path prefixes
 	middleware := Tracing(
@@ -307,7 +309,7 @@ func TestTracing_SkipPathPrefixes(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			handlerCalled := false
 
-			handler := middleware(func(ctx transport.Context) {
+			handler := middleware(func(_ transport.Context) {
 				handlerCalled = true
 			})
 

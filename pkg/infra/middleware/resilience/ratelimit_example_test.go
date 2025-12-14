@@ -155,12 +155,12 @@ func Example_rateLimitPerEndpoint() {
 // customLimiter is a custom rate limiter implementation
 type customLimiter struct{}
 
-func (c *customLimiter) Allow(ctx context.Context, key string) (bool, error) {
+func (c *customLimiter) Allow(_ context.Context, _ string) (bool, error) {
 	// Custom rate limiting logic
 	return true, nil
 }
 
-func (c *customLimiter) Reset(ctx context.Context, key string) error {
+func (c *customLimiter) Reset(_ context.Context, _ string) error {
 	// Custom reset logic
 	return nil
 }

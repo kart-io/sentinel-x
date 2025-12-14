@@ -1,3 +1,4 @@
+// Package storage provides common storage configuration options.
 package storage
 
 import "fmt"

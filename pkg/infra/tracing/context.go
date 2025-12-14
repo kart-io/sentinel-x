@@ -1,3 +1,4 @@
+// Package tracing provides tracing middleware.
 package tracing
 
 import (

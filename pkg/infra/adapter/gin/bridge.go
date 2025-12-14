@@ -112,7 +112,7 @@ func (b *Bridge) wrapMiddleware(middleware httpserver.BridgeMiddleware) gin.Hand
 			return
 		}
 		ctx := b.getOrCreateContext(c)
-		middleware(func(ctx *httpserver.RequestContext) {
+		middleware(func(_ *httpserver.RequestContext) {
 			c.Next()
 		})(ctx)
 		// Mark response as written and abort Gin chain

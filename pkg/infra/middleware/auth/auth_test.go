@@ -27,21 +27,21 @@ func (m *MockContext) HTTPRequest() *http.Request {
 
 // Implement other methods with dummy implementations
 func (m *MockContext) Request() context.Context                         { return context.Background() }
-func (m *MockContext) SetRequest(ctx context.Context)                   {}
+func (m *MockContext) SetRequest(_ context.Context)                     {}
 func (m *MockContext) ResponseWriter() http.ResponseWriter              { return nil }
 func (m *MockContext) Body() io.ReadCloser                              { return nil }
-func (m *MockContext) Param(key string) string                          { return "" }
-func (m *MockContext) SetHeader(key, value string)                      {}
-func (m *MockContext) Bind(v interface{}) error                         { return nil }
-func (m *MockContext) Validate(v interface{}) error                     { return nil }
-func (m *MockContext) ShouldBindAndValidate(v interface{}) error        { return nil }
-func (m *MockContext) MustBindAndValidate(v interface{}) (string, bool) { return "", true }
-func (m *MockContext) JSON(code int, v interface{})                     {}
-func (m *MockContext) String(code int, s string)                        {}
-func (m *MockContext) Error(code int, err error)                        {}
+func (m *MockContext) Param(_ string) string                            { return "" }
+func (m *MockContext) SetHeader(_, _ string)                            {}
+func (m *MockContext) Bind(_ interface{}) error                         { return nil }
+func (m *MockContext) Validate(_ interface{}) error                     { return nil }
+func (m *MockContext) ShouldBindAndValidate(_ interface{}) error        { return nil }
+func (m *MockContext) MustBindAndValidate(_ interface{}) (string, bool) { return "", true }
+func (m *MockContext) JSON(_ int, _ interface{})                        {}
+func (m *MockContext) String(_ int, _ string)                           {}
+func (m *MockContext) Error(_ int, _ error)                             {}
 func (m *MockContext) GetRawContext() interface{}                       { return nil }
 func (m *MockContext) Lang() string                                     { return "en" }
-func (m *MockContext) SetLang(lang string)                              {}
+func (m *MockContext) SetLang(_ string)                                 {}
 
 func TestExtractToken(t *testing.T) {
 	tests := []struct {

@@ -18,7 +18,8 @@ func ExampleNew() {
 	// Create a new etcd client
 	client, err := etcd.New(opts)
 	if err != nil {
-		log.Fatalf("failed to create etcd client: %v", err)
+		fmt.Printf("failed to create etcd client: %v\n", err)
+		return
 	}
 	defer func() { _ = client.Close() }()
 
@@ -43,7 +44,8 @@ func ExampleNewWithContext() {
 
 	client, err := etcd.NewWithContext(ctx, opts)
 	if err != nil {
-		log.Fatalf("failed to create etcd client: %v", err)
+		fmt.Printf("failed to create etcd client: %v\n", err)
+		return
 	}
 	defer func() { _ = client.Close() }()
 

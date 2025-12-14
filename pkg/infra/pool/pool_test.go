@@ -9,7 +9,7 @@ import (
 )
 
 func TestNewPool(t *testing.T) {
-	p, err := NewPool("test", DefaultPoolConfig())
+	p, err := NewPool("test", DefaultPool, DefaultPoolConfig())
 	if err != nil {
 		t.Fatalf("创建池失败: %v", err)
 	}
@@ -25,9 +25,9 @@ func TestNewPool(t *testing.T) {
 }
 
 func TestPoolSubmit(t *testing.T) {
-	p, err := NewPool("test", &PoolConfig{
+	p, err := NewPool("test", DefaultPool, &Config{
 		Capacity:       10,
-		ExpiryDuration: 5 * time.Second,
+		ExpiryDuration: time.Second,
 	})
 	if err != nil {
 		t.Fatalf("创建池失败: %v", err)
@@ -57,7 +57,7 @@ func TestPoolSubmit(t *testing.T) {
 }
 
 func TestPoolSubmitWithContext(t *testing.T) {
-	p, err := NewPool("test", &PoolConfig{
+	p, err := NewPool("test", DefaultPool, &Config{
 		Capacity:       5,
 		ExpiryDuration: 5 * time.Second,
 	})
@@ -96,10 +96,10 @@ func TestPoolSubmitWithContext(t *testing.T) {
 func TestPoolPanicRecovery(t *testing.T) {
 	var panicCaught atomic.Bool
 
-	p, err := NewPool("test", &PoolConfig{
+	p, err := NewPool("test", DefaultPool, &Config{
 		Capacity:       5,
 		ExpiryDuration: 5 * time.Second,
-		PanicHandler: func(r interface{}) {
+		PanicHandler: func(_ interface{}) {
 			panicCaught.Store(true)
 		},
 	})
@@ -122,7 +122,7 @@ func TestPoolPanicRecovery(t *testing.T) {
 }
 
 func TestPoolClosed(t *testing.T) {
-	p, err := NewPool("test", &PoolConfig{
+	p, err := NewPool("test", DefaultPool, &Config{
 		Capacity:       5,
 		ExpiryDuration: 5 * time.Second,
 	})
@@ -147,16 +147,17 @@ func TestManager(t *testing.T) {
 	}()
 
 	// 注册池
-	err := mgr.Register("test-pool", &PoolConfig{
+	config := &Config{
 		Capacity:       10,
 		ExpiryDuration: 5 * time.Second,
-	})
+	}
+	err := mgr.Register("test-pool", DefaultPool, config)
 	if err != nil {
 		t.Fatalf("注册池失败: %v", err)
 	}
 
 	// 重复注册
-	err = mgr.Register("test-pool", DefaultPoolConfig())
+	err = mgr.Register("test-pool", DefaultPool, DefaultPoolConfig())
 	if err == nil {
 		t.Error("重复注册应返回错误")
 	}
@@ -251,7 +252,7 @@ func TestGlobalPool(t *testing.T) {
 }
 
 func TestPoolNonblocking(t *testing.T) {
-	p, err := NewPool("test", &PoolConfig{
+	p, err := NewPool("test", DefaultPool, &Config{
 		Capacity:       1,
 		ExpiryDuration: 5 * time.Second,
 		Nonblocking:    true,
@@ -282,7 +283,7 @@ func TestPoolNonblocking(t *testing.T) {
 }
 
 func BenchmarkPoolSubmit(b *testing.B) {
-	p, _ := NewPool("bench", &PoolConfig{
+	p, _ := NewPool("bench", DefaultPool, &Config{
 		Capacity:       1000,
 		ExpiryDuration: 5 * time.Second,
 		PreAlloc:       true,

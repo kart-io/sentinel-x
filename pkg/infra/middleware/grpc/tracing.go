@@ -223,11 +223,12 @@ func StreamTracingInterceptor(opts ...TracingInterceptorOption) grpc.StreamServe
 		}
 
 		// Add stream type attributes
-		if info.IsClientStream && info.IsServerStream {
+		switch {
+		case info.IsClientStream && info.IsServerStream:
 			attrs = append(attrs, attribute.String("rpc.grpc.stream_type", "bidi"))
-		} else if info.IsClientStream {
+		case info.IsClientStream:
 			attrs = append(attrs, attribute.String("rpc.grpc.stream_type", "client"))
-		} else if info.IsServerStream {
+		case info.IsServerStream:
 			attrs = append(attrs, attribute.String("rpc.grpc.stream_type", "server"))
 		}
 
@@ -438,10 +439,13 @@ func StreamClientTracingInterceptor(opts ...TracingInterceptorOption) grpc.Strea
 		// Add stream type attributes
 		if desc.ClientStreams && desc.ServerStreams {
 			attrs = append(attrs, attribute.String("rpc.grpc.stream_type", "bidi"))
-		} else if desc.ClientStreams {
-			attrs = append(attrs, attribute.String("rpc.grpc.stream_type", "client"))
-		} else if desc.ServerStreams {
-			attrs = append(attrs, attribute.String("rpc.grpc.stream_type", "server"))
+		} else {
+			switch {
+			case desc.ClientStreams:
+				attrs = append(attrs, attribute.String("rpc.grpc.stream_type", "client"))
+			case desc.ServerStreams:
+				attrs = append(attrs, attribute.String("rpc.grpc.stream_type", "server"))
+			}
 		}
 
 		span.SetAttributes(attrs...)

@@ -93,7 +93,7 @@ func (r *bridgeRouter) Use(middleware ...transport.MiddlewareFunc) {
 		mw := m // capture
 		r.group.AddMiddleware(func(next BridgeHandler) BridgeHandler {
 			return func(ctx *RequestContext) {
-				mw(func(c transport.Context) {
+				mw(func(_ transport.Context) {
 					// Only call next if response not yet written
 					if !ctx.Written() {
 						next(ctx)
@@ -158,6 +158,7 @@ func GetBridge(adapterType httpopts.AdapterType) FrameworkBridge {
 	return nil
 }
 
+// AdapterFactory creates a new adapter.
 // Legacy support: RegisterAdapter for backward compatibility
 // Deprecated: Use RegisterBridge instead.
 type AdapterFactory func() Adapter

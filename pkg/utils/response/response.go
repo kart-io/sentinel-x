@@ -40,6 +40,8 @@ var responsePool = sync.Pool{
 	},
 }
 
+const successMsg = "success"
+
 // Acquire retrieves a Response object from the pool.
 // The returned Response should be released back to the pool using Release() after use.
 func Acquire() *Response {
@@ -87,7 +89,7 @@ func Success(data interface{}) *Response {
 	resp := Acquire()
 	resp.Code = 0
 	resp.HTTPCode = http.StatusOK
-	resp.Message = "success"
+	resp.Message = successMsg
 	resp.Data = data
 	return resp
 }

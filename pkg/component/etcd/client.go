@@ -225,7 +225,7 @@ func validateOptions(opts *options.Options) error {
 // buildTLSConfig builds a TLS configuration from the options.
 // Returns nil if TLS is not configured.
 // TODO: Implement TLS configuration based on options
-func buildTLSConfig(opts *options.Options) *tls.Config {
+func buildTLSConfig(_ *options.Options) *tls.Config {
 	// Placeholder for future TLS support
 	// This would read certificate paths from options and build TLS config
 	return nil

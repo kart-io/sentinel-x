@@ -1,3 +1,4 @@
+// Package model defines the data models for the application.
 package model
 
 // LoginRequest represents the login request body.

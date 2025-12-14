@@ -89,7 +89,7 @@ func TestSubscribeUnsubscribe(t *testing.T) {
 	v := viper.New()
 	watcher := NewWatcher(v)
 
-	handler := func(v *viper.Viper) error {
+	handler := func(_ *viper.Viper) error {
 		return nil
 	}
 
@@ -124,13 +124,13 @@ func TestSubscribeReplacement(t *testing.T) {
 	watcher := NewWatcher(v)
 
 	firstCalled := false
-	firstHandler := func(v *viper.Viper) error {
+	firstHandler := func(_ *viper.Viper) error {
 		firstCalled = true
 		return nil
 	}
 
 	secondCalled := false
-	secondHandler := func(v *viper.Viper) error {
+	secondHandler := func(_ *viper.Viper) error {
 		secondCalled = true
 		return nil
 	}
@@ -233,7 +233,7 @@ func TestStartIdempotent(t *testing.T) {
 	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	configFile := filepath.Join(tmpDir, "config.yaml")
-	if err := os.WriteFile(configFile, []byte("test: value\n"), 0o644); err != nil {
+	if err := os.WriteFile(configFile, []byte("test: value\n"), 0o600); err != nil {
 		t.Fatalf("Failed to write config file: %v", err)
 	}
 
@@ -374,7 +374,7 @@ func TestConcurrentSubscribe(t *testing.T) {
 	for i := 0; i < goroutines; i++ {
 		go func(id int) {
 			defer wg.Done()
-			handler := func(v *viper.Viper) error { return nil }
+			handler := func(_ *viper.Viper) error { return nil }
 			watcher.Subscribe(string(rune('A'+id%26)), handler)
 		}(i)
 	}
@@ -394,7 +394,7 @@ func TestConcurrentUnsubscribe(t *testing.T) {
 
 	// Register handlers first
 	for i := 0; i < 26; i++ {
-		handler := func(v *viper.Viper) error { return nil }
+		handler := func(_ *viper.Viper) error { return nil }
 		watcher.Subscribe(string(rune('A'+i)), handler)
 	}
 
@@ -436,7 +436,7 @@ server:
   timeout: 30s
 `)
 
-	if err := os.WriteFile(configFile, initialConfig, 0o644); err != nil {
+	if err := os.WriteFile(configFile, initialConfig, 0o600); err != nil {
 		t.Fatalf("Failed to write initial config: %v", err)
 	}
 
@@ -456,7 +456,7 @@ server:
 	var closeOnce sync.Once
 	done := make(chan struct{})
 
-	handler := func(v *viper.Viper) error {
+	handler := func(_ *viper.Viper) error {
 		mu.Lock()
 		handlerCalls++
 		mu.Unlock()
@@ -481,7 +481,7 @@ server:
   timeout: 60s
 `)
 
-	if err := os.WriteFile(configFile, updatedConfig, 0o644); err != nil {
+	if err := os.WriteFile(configFile, updatedConfig, 0o600); err != nil {
 		t.Fatalf("Failed to write updated config: %v", err)
 	}
 
@@ -511,7 +511,7 @@ server:
 func BenchmarkSubscribe(b *testing.B) {
 	v := viper.New()
 	watcher := NewWatcher(v)
-	handler := func(v *viper.Viper) error { return nil }
+	handler := func(_ *viper.Viper) error { return nil }
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -523,7 +523,7 @@ func BenchmarkSubscribe(b *testing.B) {
 func BenchmarkUnsubscribe(b *testing.B) {
 	v := viper.New()
 	watcher := NewWatcher(v)
-	handler := func(v *viper.Viper) error { return nil }
+	handler := func(_ *viper.Viper) error { return nil }
 
 	// Pre-populate with handlers
 	for i := 0; i < 1000; i++ {
@@ -540,7 +540,7 @@ func BenchmarkUnsubscribe(b *testing.B) {
 func BenchmarkHandlerCount(b *testing.B) {
 	v := viper.New()
 	watcher := NewWatcher(v)
-	handler := func(v *viper.Viper) error { return nil }
+	handler := func(_ *viper.Viper) error { return nil }
 
 	// Add some handlers
 	for i := 0; i < 100; i++ {

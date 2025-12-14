@@ -46,9 +46,9 @@ func (s *UserService) Get(ctx context.Context, username string) (*model.User, er
 	return s.store.Users().Get(ctx, username)
 }
 
-// GetByUserId 根据用户 ID 检索用户
-func (s *UserService) GetByUserId(ctx context.Context, userId uint64) (*model.User, error) {
-	return s.store.Users().GetByUserId(ctx, userId)
+// GetByUserID retrieves a user by ID.
+func (s *UserService) GetByUserID(ctx context.Context, userID uint64) (*model.User, error) {
+	return s.store.Users().GetByUserID(ctx, userID)
 }
 
 // List 列出用户

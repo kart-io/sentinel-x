@@ -47,7 +47,7 @@ func (si *ServerInitializer) Dependencies() []string {
 }
 
 // Initialize creates and configures the server manager.
-func (si *ServerInitializer) Initialize(ctx context.Context) error {
+func (si *ServerInitializer) Initialize(_ context.Context) error {
 	si.manager = server.NewManager(
 		serveropts.WithMode(si.serverOpts.Mode),
 		serveropts.WithHTTPOptions(si.serverOpts.HTTP),

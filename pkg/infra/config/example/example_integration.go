@@ -19,12 +19,12 @@ import (
 	"github.com/spf13/viper"
 )
 
-// ExampleBootstrapWithConfigReload demonstrates how to integrate
+// BootstrapWithConfigReload demonstrates how to integrate
 // the config watcher into the application bootstrap process.
 //
 // Add this to your bootstrap.go or main application initialization:
-func ExampleBootstrapWithConfigReload(
-	ctx context.Context,
+func BootstrapWithConfigReload(
+	_ context.Context,
 	v *viper.Viper,
 	logOpts *logopts.Options,
 	mwOpts *mwopts.Options,
@@ -43,7 +43,7 @@ func ExampleBootstrapWithConfigReload(
 	reloadableMiddleware.RegisterWithWatcher(watcher, "app.middleware", "server.http.middleware")
 
 	// 4. Optionally: Register custom handlers for other components
-	watcher.Subscribe("app.custom", func(v *viper.Viper) error {
+	watcher.Subscribe("app.custom", func(_ *viper.Viper) error {
 		// Handle custom configuration changes
 		logger.Info("Custom configuration changed")
 		return nil
@@ -57,25 +57,26 @@ func ExampleBootstrapWithConfigReload(
 	return watcher, nil
 }
 
-// ExampleCustomReloadableComponent shows how to create a custom
+// CustomReloadableComponent shows how to create a custom
 // component that implements the Reloadable interface.
-type ExampleCustomReloadableComponent struct {
-	config ExampleConfig
+type CustomReloadableComponent struct {
+	config Config
 	// Add sync.RWMutex for thread-safe access
 	// mu sync.RWMutex
 }
 
-type ExampleConfig struct {
+// Config holds the example configuration.
+type Config struct {
 	Enabled    bool   `mapstructure:"enabled"`
 	MaxRetries int    `mapstructure:"max_retries"`
 	Timeout    string `mapstructure:"timeout"`
 }
 
 // OnConfigChange implements the config.Reloadable interface.
-func (c *ExampleCustomReloadableComponent) OnConfigChange(newConfig interface{}) error {
-	cfg, ok := newConfig.(*ExampleConfig)
+func (c *CustomReloadableComponent) OnConfigChange(newConfig interface{}) error {
+	cfg, ok := newConfig.(*Config)
 	if !ok {
-		return fmt.Errorf("invalid config type: expected *ExampleConfig, got %T", newConfig)
+		return fmt.Errorf("invalid config type: expected *Config, got %T", newConfig)
 	}
 
 	// Validate new configuration
@@ -97,15 +98,15 @@ func (c *ExampleCustomReloadableComponent) OnConfigChange(newConfig interface{})
 
 // RegisterCustomComponent shows how to register a custom component with the watcher.
 func RegisterCustomComponent(watcher *config.Watcher) {
-	component := &ExampleCustomReloadableComponent{}
-	target := &ExampleConfig{}
+	component := &CustomReloadableComponent{}
+	target := &Config{}
 
 	subscriber := config.NewReloadableSubscriber(component, "custom.component", target)
 	watcher.Subscribe("custom-component", subscriber.Handler())
 }
 
-// ExampleIntegrationWithApp shows the complete integration in an application.
-func ExampleIntegrationWithApp() {
+// IntegrationWithApp shows the complete integration in an application.
+func IntegrationWithApp() {
 	// This example shows the typical flow in your main() or app.Run()
 
 	// 1. Load configuration with viper
@@ -133,7 +134,7 @@ func ExampleIntegrationWithApp() {
 
 	// 4. Set up config hot reload
 	ctx := context.Background()
-	watcher, err := ExampleBootstrapWithConfigReload(ctx, v, logOpts, mwOpts)
+	watcher, err := BootstrapWithConfigReload(ctx, v, logOpts, mwOpts)
 	if err != nil {
 		logger.Fatalf("Failed to setup config reload: %v", err)
 	}
@@ -148,11 +149,11 @@ func ExampleIntegrationWithApp() {
 	logger.Info("Application running with config hot reload")
 }
 
-// ExampleMiddlewareCallbacks demonstrates how to set up callbacks
+// MiddlewareCallbacks demonstrates how to set up callbacks
 // for middleware configuration changes.
-func ExampleMiddlewareCallbacks(rm *middleware.ReloadableMiddleware) {
+func MiddlewareCallbacks(rm *middleware.ReloadableMiddleware) {
 	// Set timeout change callback
-	rm.SetTimeoutChangeCallback(func(newTimeout time.Duration, skipPaths []string) error {
+	rm.SetTimeoutChangeCallback(func(newTimeout time.Duration, _ []string) error {
 		logger.Infof("Timeout changed to: %v", newTimeout)
 		// Update your middleware implementation here
 		return nil

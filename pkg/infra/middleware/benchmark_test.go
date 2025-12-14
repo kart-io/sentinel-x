@@ -8,8 +8,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kart-io/sentinel-x/pkg/infra/middleware/common"
+	"github.com/kart-io/sentinel-x/pkg/infra/middleware/requestutil"
+	"github.com/kart-io/sentinel-x/pkg/infra/middleware/security"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+)
+
+const (
+	testPath  = "/test"
+	statusMsg = "ok"
+	testAddr  = "127.0.0.1:12345"
 )
 
 // ============================================================================
@@ -26,14 +33,14 @@ func BenchmarkLoggerMiddleware(b *testing.B) {
 
 	handler := middleware(func(c transport.Context) {
 		// Simulate minimal handler work
-		c.JSON(200, map[string]string{"status": "ok"})
+		c.JSON(200, map[string]string{"status": statusMsg})
 	})
 
 	b.ResetTimer()
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req := httptest.NewRequest(http.MethodGet, testPath, nil)
 		w := httptest.NewRecorder()
 		ctx := newMockContext(req, w)
 		handler(ctx)
@@ -80,7 +87,7 @@ func BenchmarkRecoveryMiddleware(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req := httptest.NewRequest(http.MethodGet, testPath, nil)
 		w := httptest.NewRecorder()
 		ctx := newMockContext(req, w)
 		handler(ctx)
@@ -95,7 +102,7 @@ func BenchmarkRecoveryMiddlewareWithPanic(b *testing.B) {
 		OnPanic:          nil,
 	})
 
-	handler := middleware(func(c transport.Context) {
+	handler := middleware(func(_ transport.Context) {
 		panic("test panic")
 	})
 
@@ -103,7 +110,7 @@ func BenchmarkRecoveryMiddlewareWithPanic(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req := httptest.NewRequest(http.MethodGet, testPath, nil)
 		w := httptest.NewRecorder()
 		ctx := newMockContext(req, w)
 		handler(ctx)
@@ -127,7 +134,7 @@ func BenchmarkRequestIDMiddleware(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req := httptest.NewRequest(http.MethodGet, testPath, nil)
 		w := httptest.NewRecorder()
 		ctx := newMockContext(req, w)
 		handler(ctx)
@@ -147,7 +154,7 @@ func BenchmarkRequestIDMiddlewareWithExisting(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req := httptest.NewRequest(http.MethodGet, testPath, nil)
 		req.Header.Set("X-Request-ID", "existing-id-12345678")
 		w := httptest.NewRecorder()
 		ctx := newMockContext(req, w)
@@ -161,7 +168,7 @@ func BenchmarkGenerateRequestID(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		_ = common.GenerateRequestID()
+		_ = requestutil.GenerateRequestID()
 	}
 }
 
@@ -189,8 +196,8 @@ func BenchmarkRateLimitMiddleware(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		req := httptest.NewRequest(http.MethodGet, "/test", nil)
-		req.RemoteAddr = "127.0.0.1:12345"
+		req := httptest.NewRequest(http.MethodGet, testPath, nil)
+		req.RemoteAddr = testAddr
 		w := httptest.NewRecorder()
 		ctx := newMockContext(req, w)
 		handler(ctx)
@@ -246,18 +253,19 @@ func BenchmarkMemoryRateLimiterAllow(b *testing.B) {
 
 // BenchmarkSecurityHeadersMiddleware measures the performance of SecurityHeaders
 // middleware.
-func BenchmarkSecurityHeadersMiddleware(b *testing.B) {
-	middleware := SecurityHeadersWithConfig(DefaultSecurityHeadersConfig)
-
-	handler := middleware(func(c transport.Context) {
-		c.JSON(200, map[string]string{"status": "ok"})
+func BenchmarkSecurityHeaders(b *testing.B) {
+	// Setup
+	config := security.DefaultHeadersConfig()
+	mw := security.HeadersWithConfig(config)
+	handler := mw(func(c transport.Context) {
+		c.String(http.StatusOK, "OK")
 	})
 
 	b.ResetTimer()
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req := httptest.NewRequest(http.MethodGet, testPath, nil)
 		w := httptest.NewRecorder()
 		ctx := newMockContext(req, w)
 		handler(ctx)
@@ -268,13 +276,16 @@ func BenchmarkSecurityHeadersMiddleware(b *testing.B) {
 // enabled.
 func BenchmarkSecurityHeadersMiddlewareWithHSTS(b *testing.B) {
 	middleware := SecurityHeadersWithConfig(SecurityHeadersConfig{
-		XFrameOptions:           "DENY",
-		XContentTypeOptions:     "nosniff",
-		XXSSProtection:          "1; mode=block",
-		ContentSecurityPolicy:   "default-src 'self'",
-		ReferrerPolicy:          "strict-origin-when-cross-origin",
-		StrictTransportSecurity: "max-age=31536000; includeSubDomains",
-		EnableHSTS:              true,
+		FrameOptionsValue:        "DENY",
+		XSSProtectionValue:       "1; mode=block",
+		ContentSecurityPolicy:    "default-src 'self'",
+		ReferrerPolicy:           "strict-origin-when-cross-origin",
+		HSTSMaxAge:               31536000,
+		HSTSIncludeSubdomains:    true,
+		EnableHSTS:               true,
+		EnableFrameOptions:       true,
+		EnableContentTypeOptions: true,
+		EnableXSSProtection:      true,
 	})
 
 	handler := middleware(func(c transport.Context) {
@@ -285,7 +296,7 @@ func BenchmarkSecurityHeadersMiddlewareWithHSTS(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req := httptest.NewRequest(http.MethodGet, testPath, nil)
 		w := httptest.NewRecorder()
 		ctx := newMockContext(req, w)
 		handler(ctx)
@@ -311,7 +322,7 @@ func BenchmarkTimeoutMiddleware(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req := httptest.NewRequest(http.MethodGet, testPath, nil)
 		w := httptest.NewRecorder()
 		ctx := newMockContext(req, w)
 		handler(ctx)
@@ -357,7 +368,7 @@ func BenchmarkTimeoutMiddlewareWithDelay(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req := httptest.NewRequest(http.MethodGet, testPath, nil)
 		w := httptest.NewRecorder()
 		ctx := newMockContext(req, w)
 		handler(ctx)
@@ -403,8 +414,8 @@ func BenchmarkMiddlewareChain(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		req := httptest.NewRequest(http.MethodGet, "/test", nil)
-		req.RemoteAddr = "127.0.0.1:12345"
+		req := httptest.NewRequest(http.MethodGet, testPath, nil)
+		req.RemoteAddr = testAddr
 		w := httptest.NewRecorder()
 		ctx := newMockContext(req, w)
 		handler(ctx)
@@ -430,7 +441,7 @@ func BenchmarkMiddlewareChainMinimal(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req := httptest.NewRequest(http.MethodGet, testPath, nil)
 		w := httptest.NewRecorder()
 		ctx := newMockContext(req, w)
 		handler(ctx)
@@ -450,13 +461,16 @@ func BenchmarkMiddlewareChainProduction(b *testing.B) {
 		EnableStackTrace: false, // Disabled in production
 	})
 	securityMiddleware := SecurityHeadersWithConfig(SecurityHeadersConfig{
-		XFrameOptions:           "DENY",
-		XContentTypeOptions:     "nosniff",
-		XXSSProtection:          "1; mode=block",
-		ContentSecurityPolicy:   "default-src 'self'",
-		ReferrerPolicy:          "strict-origin-when-cross-origin",
-		StrictTransportSecurity: "max-age=31536000; includeSubDomains",
-		EnableHSTS:              true,
+		FrameOptionsValue:        "DENY",
+		XSSProtectionValue:       "1; mode=block",
+		ContentSecurityPolicy:    "default-src 'self'",
+		ReferrerPolicy:           "strict-origin-when-cross-origin",
+		HSTSMaxAge:               31536000,
+		HSTSIncludeSubdomains:    true,
+		EnableHSTS:               true,
+		EnableFrameOptions:       true,
+		EnableContentTypeOptions: true,
+		EnableXSSProtection:      true,
 	})
 
 	limiter := NewMemoryRateLimiter(100, 1*time.Minute)
@@ -482,7 +496,7 @@ func BenchmarkMiddlewareChainProduction(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req := httptest.NewRequest(http.MethodGet, testPath, nil)
 		req.RemoteAddr = "127.0.0.1:12345"
 		w := httptest.NewRecorder()
 		ctx := newMockContext(req, w)
@@ -523,7 +537,7 @@ func BenchmarkMiddlewareChainConcurrent(b *testing.B) {
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			req := httptest.NewRequest(http.MethodGet, "/test", nil)
+			req := httptest.NewRequest(http.MethodGet, testPath, nil)
 			req.RemoteAddr = "127.0.0.1:12345"
 			w := httptest.NewRecorder()
 			ctx := newMockContext(req, w)
@@ -571,7 +585,7 @@ func BenchmarkMiddlewareMemoryAllocation(b *testing.B) {
 			b.ReportAllocs()
 
 			for i := 0; i < b.N; i++ {
-				req := httptest.NewRequest(http.MethodGet, "/test", nil)
+				req := httptest.NewRequest(http.MethodGet, testPath, nil)
 				w := httptest.NewRecorder()
 				ctx := newMockContext(req, w)
 				handler(ctx)

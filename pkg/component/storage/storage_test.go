@@ -16,7 +16,7 @@ func (m *MockClient) Name() string {
 	return m.name
 }
 
-func (m *MockClient) Ping(ctx context.Context) error {
+func (m *MockClient) Ping(_ context.Context) error {
 	if !m.healthy {
 		return context.DeadlineExceeded
 	}

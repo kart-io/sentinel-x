@@ -1,0 +1,553 @@
+===========> Run golangci to lint source codes
+pkg/infra/logger/context_test.go:15: 15-54 lines are duplicate of `pkg/infra/logger/context_test.go:56-95` (dupl)
+func TestWithRequestID(t *testing.T) {
+	tests := []struct {
+		name      string
+		requestID string
+		wantField bool
+	}{
+		{
+			name:      "valid request ID",
+			requestID: "req-123",
+			wantField: true,
+		},
+		{
+			name:      "empty request ID",
+			requestID: "",
+			wantField: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+			ctx = WithRequestID(ctx, tt.requestID)
+
+			fields := GetContextFields(ctx)
+			hasRequestID := false
+			for i := 0; i < len(fields); i += 2 {
+				if fields[i] == "request_id" {
+					hasRequestID = true
+					if fields[i+1] != tt.requestID {
+						t.Errorf("expected request_id=%s, got %s", tt.requestID, fields[i+1])
+					}
+				}
+			}
+
+			if hasRequestID != tt.wantField {
+				t.Errorf("hasRequestID=%v, want %v", hasRequestID, tt.wantField)
+			}
+		})
+	}
+}
+pkg/infra/logger/context_test.go:56: 56-95 lines are duplicate of `pkg/infra/logger/context_test.go:15-54` (dupl)
+func TestWithTraceID(t *testing.T) {
+	tests := []struct {
+		name      string
+		traceID   string
+		wantField bool
+	}{
+		{
+			name:      "valid trace ID",
+			traceID:   "trace-456",
+			wantField: true,
+		},
+		{
+			name:      "empty trace ID",
+			traceID:   "",
+			wantField: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+			ctx = WithTraceID(ctx, tt.traceID)
+
+			fields := GetContextFields(ctx)
+			hasTraceID := false
+			for i := 0; i < len(fields); i += 2 {
+				if fields[i] == "trace_id" {
+					hasTraceID = true
+					if fields[i+1] != tt.traceID {
+						t.Errorf("expected trace_id=%s, got %s", tt.traceID, fields[i+1])
+					}
+				}
+			}
+
+			if hasTraceID != tt.wantField {
+				t.Errorf("hasTraceID=%v, want %v", hasTraceID, tt.wantField)
+			}
+		})
+	}
+}
+pkg/infra/middleware/observability/tracing_test.go:224: 224-276 lines are duplicate of `pkg/infra/middleware/observability/tracing_test.go:278-330` (dupl)
+func TestTracing_SkipPaths(t *testing.T) {
+	// Create middleware with skip paths
+	middleware := Tracing(
+		WithTracingSkipPaths([]string{"/health", "/metrics"}),
+	)
+
+	tests := []struct {
+		name        string
+		path        string
+		shouldTrace bool
+	}{
+		{
+			name:        "normal path",
+			path:        "/api/users",
+			shouldTrace: true,
+		},
+		{
+			name:        "skip health",
+			path:        "/health",
+			shouldTrace: false,
+		},
+		{
+			name:        "skip metrics",
+			path:        "/metrics",
+			shouldTrace: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			handlerCalled := false
+
+			handler := middleware(func(_ transport.Context) {
+				handlerCalled = true
+			})
+
+			req := httptest.NewRequest("GET", tt.path, nil)
+			rw := httptest.NewRecorder()
+
+			mockCtx := &mockTracingContext{
+				req:    req,
+				rw:     rw,
+				params: make(map[string]string),
+			}
+
+			handler(mockCtx)
+
+			if !handlerCalled {
+				t.Error("Expected handler to be called")
+			}
+		})
+	}
+}
+pkg/infra/middleware/observability/tracing_test.go:278: 278-330 lines are duplicate of `pkg/infra/middleware/observability/tracing_test.go:224-276` (dupl)
+func TestTracing_SkipPathPrefixes(t *testing.T) {
+	// Create middleware with skip path prefixes
+	middleware := Tracing(
+		WithTracingSkipPathPrefixes([]string{"/debug", "/internal"}),
+	)
+
+	tests := []struct {
+		name        string
+		path        string
+		shouldTrace bool
+	}{
+		{
+			name:        "normal path",
+			path:        "/api/users",
+			shouldTrace: true,
+		},
+		{
+			name:        "skip debug prefix",
+			path:        "/debug/pprof",
+			shouldTrace: false,
+		},
+		{
+			name:        "skip internal prefix",
+			path:        "/internal/status",
+			shouldTrace: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			handlerCalled := false
+
+			handler := middleware(func(ctx transport.Context) {
+				handlerCalled = true
+			})
+
+			req := httptest.NewRequest("GET", tt.path, nil)
+			rw := httptest.NewRecorder()
+
+			mockCtx := &mockTracingContext{
+				req:    req,
+				rw:     rw,
+				params: make(map[string]string),
+			}
+
+			handler(mockCtx)
+
+			if !handlerCalled {
+				t.Error("Expected handler to be called")
+			}
+		})
+	}
+}
+pkg/utils/validator/rules_test.go:8: 8-51 lines are duplicate of `pkg/utils/validator/rules_test.go:397-440` (dupl)
+func TestMobileValidation(t *testing.T) {
+	v := New()
+
+	tests := []struct {
+		name    string
+		value   string
+		wantErr bool
+	}{
+		// Valid mobile numbers
+		{"valid_13x", "13800138000", false},
+		{"valid_14x", "14512345678", false},
+		{"valid_15x", "15912345678", false},
+		{"valid_16x", "16612345678", false},
+		{"valid_17x", "17712345678", false},
+		{"valid_18x", "18600000000", false},
+		{"valid_19x", "19912345678", false},
+
+		// Invalid mobile numbers
+		{"invalid_12x", "12345678901", true},
+		{"invalid_10x", "10800138000", true},
+		{"invalid_too_short", "1380013800", true},
+		{"invalid_too_long", "138001380000", true},
+		{"invalid_start_with_23", "23800138000", true},
+		{"invalid_start_with_0", "03800138000", true},
+		{"invalid_letters", "1380013800a", true},
+		{"invalid_special_chars", "138-0013-8000", true},
+		{"invalid_spaces", "138 0013 8000", true},
+
+		// Edge cases
+		{"empty_string", "", false}, // Empty is valid (let 'required' handle it)
+		{"only_digits_wrong_length", "123456789", true},
+		{"valid_boundary_13000000000", "13000000000", false},
+		{"valid_boundary_19999999999", "19999999999", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := v.ValidateVar(tt.value, TagMobile)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Mobile validation for '%s': error = %v, wantErr %v", tt.value, err, tt.wantErr)
+			}
+		})
+	}
+}
+pkg/utils/validator/rules_test.go:83: 83-127 lines are duplicate of `pkg/utils/validator/rules_test.go:130-174` (dupl)
+func TestIDCardValidation(t *testing.T) {
+	v := New()
+
+	tests := []struct {
+		name    string
+		value   string
+		wantErr bool
+	}{
+		// Valid ID card numbers (18-digit format)
+		{"valid_18_digit_1980", "110101198001011234", false},
+		{"valid_18_digit_1990", "110101199012311234", false},
+		{"valid_18_digit_2000", "110101200001011234", false},
+		{"valid_18_digit_2020", "110101202012311234", false},
+		{"valid_with_X", "11010119800101123X", false},
+		{"valid_with_lowercase_x", "11010119800101123x", false},
+
+		// Invalid ID card numbers
+		{"invalid_17_digits", "11010119800101123", true},
+		{"invalid_19_digits", "1101011980010112345", true},
+		{"invalid_start_with_0", "010101198001011234", true},
+		{"invalid_year_17", "110101178001011234", true},
+		{"invalid_year_21", "110101218001011234", true},
+		{"invalid_month_00", "110101198000011234", true},
+		{"invalid_month_13", "110101198013011234", true},
+		{"invalid_day_00", "110101198001001234", true},
+		{"invalid_day_32", "110101198001321234", true},
+		{"invalid_letters", "11010119800101123A", true},
+		{"invalid_special_chars", "110101-1980-0101-1234", true},
+
+		// Edge cases
+		{"empty_string", "", false}, // Empty is valid (let 'required' handle it)
+		{"valid_leap_year_feb_29", "110101200002291234", false},
+		{"valid_jan_31", "110101198001311234", false},
+		{"valid_dec_31", "110101198012311234", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := v.ValidateVar(tt.value, TagIDCard)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("IDCard validation for '%s': error = %v, wantErr %v", tt.value, err, tt.wantErr)
+			}
+		})
+	}
+}
+pkg/utils/validator/rules_test.go:130: 130-174 lines are duplicate of `pkg/utils/validator/rules_test.go:83-127` (dupl)
+func TestUsernameValidation(t *testing.T) {
+	v := New()
+
+	tests := []struct {
+		name    string
+		value   string
+		wantErr bool
+	}{
+		// Valid usernames
+		{"valid_simple", "user123", false},
+		{"valid_with_underscore", "Admin_test", false},
+		{"valid_min_length", "abc", false},
+		{"valid_max_length", "a123456789012345678901234567890b", false},
+		{"valid_all_letters", "Username", false},
+		{"valid_letter_number", "user1", false},
+		{"valid_multiple_underscores", "user_name_test", false},
+
+		// Invalid usernames
+		{"invalid_start_with_number", "123user", true},
+		{"invalid_start_with_underscore", "_admin", true},
+		{"invalid_too_short", "ab", true},
+		{"invalid_too_long", "a1234567890123456789012345678901234", true},
+		{"invalid_special_char_dash", "user-name", true},
+		{"invalid_special_char_at", "user@name", true},
+		{"invalid_special_char_dot", "user.name", true},
+		{"invalid_special_char_asterisk", "user*name", true},
+		{"invalid_space", "user name", true},
+		{"invalid_only_numbers", "123456", true},
+		{"invalid_only_underscore", "___", true},
+
+		// Edge cases
+		{"empty_string", "", false}, // Empty is valid (let 'required' handle it)
+		{"valid_exactly_3_chars", "a12", false},
+		{"valid_exactly_32_chars", "a1234567890123456789012345678901", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := v.ValidateVar(tt.value, TagUsername)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Username validation for '%s': error = %v, wantErr %v", tt.value, err, tt.wantErr)
+			}
+		})
+	}
+}
+pkg/utils/validator/rules_test.go:397: 397-440 lines are duplicate of `pkg/utils/validator/rules_test.go:8-51` (dupl)
+func TestSlugValidation(t *testing.T) {
+	v := New()
+
+	tests := []struct {
+		name    string
+		value   string
+		wantErr bool
+	}{
+		// Valid slugs
+		{"valid_simple", "hello-world", false},
+		{"valid_single_word", "hello", false},
+		{"valid_with_numbers", "test123", false},
+		{"valid_multiple_hyphens", "this-is-a-test", false},
+		{"valid_numbers_only", "123", false},
+		{"valid_alphanumeric", "abc123def", false},
+		{"valid_with_hyphen_numbers", "test-123-slug", false},
+
+		// Invalid slugs
+		{"invalid_uppercase", "Hello-World", true},
+		{"invalid_uppercase_single", "Hello", true},
+		{"invalid_start_with_hyphen", "-hello", true},
+		{"invalid_end_with_hyphen", "hello-", true},
+		{"invalid_double_hyphen", "hello--world", true},
+		{"invalid_underscore", "hello_world", true},
+		{"invalid_space", "hello world", true},
+		{"invalid_special_char_at", "hello@world", true},
+		{"invalid_special_char_dot", "hello.world", true},
+		{"invalid_special_char_slash", "hello/world", true},
+
+		// Edge cases
+		{"empty_string", "", false},
+		{"valid_single_char", "a", false},
+		{"valid_long_slug", "this-is-a-very-long-slug-with-many-words", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := v.ValidateVar(tt.value, TagSlug)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Slug validation for '%s': error = %v, wantErr %v", tt.value, err, tt.wantErr)
+			}
+		})
+	}
+}
+pkg/cache/memory_test.go:182:11: Error return value of `c.Find` is not checked (errcheck)
+				c.Find("mod", 0)
+				      ^
+pkg/security/authz/casbin/infrastructure/redis/watcher.go:139:17: Error return value of `w.pubsub.Close` is not checked (errcheck)
+		w.pubsub.Close()
+		              ^
+pkg/component/mongodb/example/main.go:18:14: string `localhost` has 3 occurrences, make it a constant (goconst)
+	opts.Host = "localhost"
+	            ^
+pkg/component/mysql/client_test.go:12:14: string `localhost` has 5 occurrences, make it a constant (goconst)
+	opts.Host = "localhost"
+	            ^
+pkg/component/mysql/client_test.go:13:18: string `testdb` has 5 occurrences, make it a constant (goconst)
+	opts.Database = "testdb"
+	                ^
+pkg/component/mysql/example_test.go:16:14: string `localhost` has 7 occurrences, make it a constant (goconst)
+	opts.Host = "localhost"
+	            ^
+pkg/component/mysql/example_test.go:20:18: string `testdb` has 6 occurrences, make it a constant (goconst)
+	opts.Database = "testdb"
+	                ^
+pkg/infra/datasource/generic_test.go:23:18: string `test` has 8 occurrences, but such constant `database` already exists (goconst)
+	opts.Database = "test"
+	                ^
+pkg/infra/datasource/generic_test.go:24:18: string `root` has 6 occurrences, but such constant `username` already exists (goconst)
+	opts.Username = "root"
+	                ^
+pkg/infra/datasource/manager_test.go:46:14: string `localhost` has 11 occurrences, but such constant `host` already exists (goconst)
+	opts.Host = "localhost"
+	            ^
+pkg/infra/middleware/benchmark_test.go:198:20: string `127.0.0.1:12345` has 4 occurrences, make it a constant (goconst)
+		req.RemoteAddr = "127.0.0.1:12345"
+		                 ^
+pkg/infra/middleware/observability/logger_enhanced_test.go:90:16: string `json` has 3 occurrences, make it a constant (goconst)
+	opts.Format = "json"
+	              ^
+pkg/security/auth/jwt/jwt_test.go:209:23: string `user-123` has 3 occurrences, make it a constant (goconst)
+	if claims.Subject != "user-123" {
+	                     ^
+pkg/security/authz/rbac/rbac_test.go:327:36: string `viewer` has 4 occurrences, make it a constant (goconst)
+	if len(roles) != 1 || roles[0] != "viewer" {
+	                                  ^
+pkg/utils/response/pool_test.go:16:19: string `success` has 5 occurrences, make it a constant (goconst)
+			resp.Message = "success"
+			               ^
+pkg/component/etcd/example_test.go:46:3: exitAfterDefer: log.Fatalf will exit, and `defer cancel()` will not run (gocritic)
+		log.Fatalf("failed to create etcd client: %v", err)
+		^
+pkg/component/mysql/example_test.go:45:3: exitAfterDefer: log.Fatal will exit, and `defer cancel()` will not run (gocritic)
+		log.Fatal(err)
+		^
+pkg/component/mysql/example_test.go:152:3: exitAfterDefer: log.Fatal will exit, and `defer func(){...}(...)` will not run (gocritic)
+		log.Fatal(err)
+		^
+pkg/infra/logger/context_test.go:277:18: unlambda: replace `func() context.Context {
+	return context.Background()
+}` with `context.Background` (gocritic)
+			setupContext: func() context.Context {
+			              ^
+pkg/infra/middleware/grpc/tracing.go:440:3: ifElseChain: rewrite if-else to switch statement (gocritic)
+		if desc.ClientStreams && desc.ServerStreams {
+		^
+pkg/infra/middleware/observability/logger_enhanced.go:192:4: ifElseChain: rewrite if-else to switch statement (gocritic)
+			if rw.statusCode >= 500 {
+			^
+pkg/security/auth/jwt/jwt_test.go:29:13: appendAssign: append result not assigned to the same slice (gocritic)
+	allOpts := append(defaultOpts, opts...)
+	           ^
+pkg/utils/id/snowflake_clockdrift_test.go:9:1: cyclomatic complexity 36 of func `TestSnowflakeClockDrift` is high (> 30) (gocyclo)
+func TestSnowflakeClockDrift(t *testing.T) {
+^
+internal/user-center/handler/role.go:213:21: G115: integer overflow conversion int -> int32 (gosec)
+		Status:      int32(role.Status),
+		                  ^
+internal/user-center/handler/role.go:242:21: G115: integer overflow conversion int -> int32 (gosec)
+		Status:      int32(role.Status),
+		                  ^
+internal/user-center/handler/role.go:265:21: G115: integer overflow conversion int -> int32 (gosec)
+		Status:      int32(role.Status),
+		                  ^
+pkg/infra/config/watcher_test.go:236:12: G306: Expect WriteFile permissions to be 0600 or less (gosec)
+	if err := os.WriteFile(configFile, []byte("test: value\n"), 0o644); err != nil {
+	          ^
+pkg/infra/config/watcher_test.go:439:12: G306: Expect WriteFile permissions to be 0600 or less (gosec)
+	if err := os.WriteFile(configFile, initialConfig, 0o644); err != nil {
+	          ^
+pkg/infra/config/watcher_test.go:484:12: G306: Expect WriteFile permissions to be 0600 or less (gosec)
+	if err := os.WriteFile(configFile, updatedConfig, 0o644); err != nil {
+	          ^
+pkg/security/auth/jwt/store_test.go:85:2: G101: Potential hardcoded credentials (gosec)
+	token := "expiring-token"
+	^
+internal/api/router/router.go:14:48: unused-parameter: parameter 'ds' seems to be unused, consider removing or renaming it as _ (revive)
+func Register(mgr *server.Manager, _ *jwt.JWT, ds *datasource.Manager) error {
+                                               ^
+internal/user-center/app.go:9:2: blank-imports: a blank import should be only in a main or test package, or have a comment justifying it (revive)
+	_ "github.com/kart-io/sentinel-x/pkg/infra/adapter/echo"
+	^
+internal/user-center/biz/user.go:49:1: exported: comment on exported method UserService.GetByUserID should be of the form "GetByUserID ..." by using its correct casing, not "GetByUserId ..." (revive)
+// GetByUserId 根据用户 ID 检索用户
+^
+pkg/component/interface_test.go:62:21: unused-parameter: parameter 'f' seems to be unused, consider removing or renaming it as _ (revive)
+			fs.VisitAll(func(f *pflag.Flag) {
+			                 ^
+pkg/component/redis/client.go:1:1: package-comments: should have a package comment (revive)
+package redis
+^
+pkg/component/storage/errors.go:83:6: exported: type name will be used as storage.StorageError by other packages, and that stutters; consider calling this Error (revive)
+type StorageError struct {
+     ^
+pkg/component/storage/storage_test.go:19:27: unused-parameter: parameter 'ctx' seems to be unused, consider removing or renaming it as _ (revive)
+func (m *MockClient) Ping(ctx context.Context) error {
+                          ^
+pkg/infra/app/app.go:177:46: unused-parameter: parameter 'args' seems to be unused, consider removing or renaming it as _ (revive)
+func (a *App) runCommand(cmd *cobra.Command, args []string) error {
+                                             ^
+pkg/infra/config/basic_test.go:97:19: unused-parameter: parameter 'v' seems to be unused, consider removing or renaming it as _ (revive)
+	handler2 := func(v *viper.Viper) error { return nil }
+	                 ^
+pkg/infra/config/basic_test.go:98:19: unused-parameter: parameter 'v' seems to be unused, consider removing or renaming it as _ (revive)
+	handler3 := func(v *viper.Viper) error { return nil }
+	                 ^
+pkg/infra/config/basic_test.go:120:19: unused-parameter: parameter 'v' seems to be unused, consider removing or renaming it as _ (revive)
+	handler1 := func(v *viper.Viper) error { return nil }
+	                 ^
+pkg/infra/config/example/example_integration.go:68:6: exported: exported type Config should have comment or be unexported (revive)
+type Config struct {
+     ^
+pkg/infra/datasource/manager.go:59:2: exported: exported const TypeMySQL should have comment (or a comment on this block) or be unexported (revive)
+	TypeMySQL    StorageType = "mysql"
+	^
+pkg/infra/middleware/benchmark_test.go:103:29: unused-parameter: parameter 'c' seems to be unused, consider removing or renaming it as _ (revive)
+	handler := middleware(func(c transport.Context) {
+	                           ^
+pkg/infra/middleware/requestutil/context.go:1:1: package-comments: package comment should be of the form "Package requestutil ..." (revive)
+// Package common provides shared utilities for middleware packages.
+// This package contains common types and functions used across multiple
+// middleware subpackages, avoiding circular dependencies.
+pkg/infra/server/transport/grpc/server.go:1:1: package-comments: should have a package comment (revive)
+package grpc
+^
+pkg/security/auth/example_test.go:49:66: unused-parameter: parameter 'ptype' seems to be unused, consider removing or renaming it as _ (revive)
+func (m *MockRepository) RemoveFilteredPolicy(_ context.Context, ptype string, fieldIndex int, fieldValues ...string) error {
+                                                                 ^
+pkg/security/auth/middleware/grpc.go:1:1: package-comments: should have a package comment (revive)
+package middleware
+^
+pkg/security/auth/middleware/grpc.go:11:1: exported: comment on exported method Authorizer.GrpcUnaryInterceptor should be of the form "GrpcUnaryInterceptor ..." (revive)
+// GrpcMiddleware returns a gRPC unary interceptor for authorization
+^
+pkg/security/authz/casbin/service.go:120:27: unused-parameter: parameter 'msg' seems to be unused, consider removing or renaming it as _ (revive)
+	w.SetUpdateCallback(func(msg string) {
+	                         ^
+pkg/security/authz/rbac/rbac.go:167:37: unused-parameter: parameter 'ctx' seems to be unused, consider removing or renaming it as _ (revive)
+func (r *RBAC) AuthorizeWithContext(ctx context.Context, subject, resource, action string, context map[string]interface{}) (bool, error) {
+                                    ^
+pkg/utils/errors/example_test.go:312:20: unused-parameter: parameter 'ctx' seems to be unused, consider removing or renaming it as _ (revive)
+func findOrderGRPC(ctx context.Context, id string) (*OrderGRPCResponse, error) { return nil, nil }
+                   ^
+pkg/utils/id/snowflake_clockdrift_test.go:22:5: increment-decrement: should replace currentTime += 1 with currentTime++ (revive)
+				currentTime += 1 // Time moves forward to catch up
+				^
+pkg/utils/response/pool_test.go:240:27: unused-parameter: parameter 't' seems to be unused, consider removing or renaming it as _ (revive)
+func TestConcurrentSafety(t *testing.T) {
+                          ^
+pkg/utils/validator/errors_test.go:606:31: unused-parameter: parameter 't' seems to be unused, consider removing or renaming it as _ (revive)
+func TestRegisterTranslations(t *testing.T) {
+                              ^
+pkg/utils/validator/errors_test.go:622:37: unused-parameter: parameter 't' seems to be unused, consider removing or renaming it as _ (revive)
+func TestRegisterTranslation_Single(t *testing.T) {
+                                    ^
+64 issues:
+* dupl: 8
+* errcheck: 2
+* goconst: 13
+* gocritic: 7
+* gocyclo: 1
+* gosec: 7
+* revive: 26
+make: *** [go.lint] Error 1

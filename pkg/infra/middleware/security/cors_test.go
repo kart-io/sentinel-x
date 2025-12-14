@@ -116,7 +116,7 @@ func TestCORSWithConfig_PreflightRequest(t *testing.T) {
 
 	middleware := CORSWithConfig(config)
 	handlerCalled := false
-	handler := middleware(func(ctx transport.Context) {
+	handler := middleware(func(_ transport.Context) {
 		handlerCalled = true
 	})
 
@@ -162,7 +162,7 @@ func TestCORSWithConfig_NormalRequest(t *testing.T) {
 
 	middleware := CORSWithConfig(config)
 	handlerCalled := false
-	handler := middleware(func(ctx transport.Context) {
+	handler := middleware(func(_ transport.Context) {
 		handlerCalled = true
 	})
 
@@ -195,7 +195,7 @@ func TestCORSWithConfig_DisallowedOrigin(t *testing.T) {
 
 	middleware := CORSWithConfig(config)
 	handlerCalled := false
-	handler := middleware(func(ctx transport.Context) {
+	handler := middleware(func(_ transport.Context) {
 		handlerCalled = true
 	})
 
@@ -223,7 +223,7 @@ func TestCORSWithConfig_WildcardOrigin(t *testing.T) {
 	}
 
 	middleware := CORSWithConfig(config)
-	handler := middleware(func(ctx transport.Context) {})
+	handler := middleware(func(_ transport.Context) {})
 
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 	req.Header.Set("Origin", "https://any-domain.com")
@@ -245,7 +245,7 @@ func TestCORSWithConfig_NoOriginHeader(t *testing.T) {
 
 	middleware := CORSWithConfig(config)
 	handlerCalled := false
-	handler := middleware(func(ctx transport.Context) {
+	handler := middleware(func(_ transport.Context) {
 		handlerCalled = true
 	})
 
@@ -276,7 +276,7 @@ func TestCORS_DefaultConfig(t *testing.T) {
 
 	// Test that default config works
 	handlerCalled := false
-	handler := middleware(func(ctx transport.Context) {
+	handler := middleware(func(_ transport.Context) {
 		handlerCalled = true
 	})
 

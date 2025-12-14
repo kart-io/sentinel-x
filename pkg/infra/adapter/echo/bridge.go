@@ -106,7 +106,7 @@ func (b *Bridge) wrapMiddleware(mw httpserver.BridgeMiddleware) echo.MiddlewareF
 		return func(c echo.Context) error {
 			ctx := b.createContext(c)
 			var nextCalled bool
-			mw(func(ctx *httpserver.RequestContext) {
+			mw(func(_ *httpserver.RequestContext) {
 				nextCalled = true
 				_ = next(c)
 			})(ctx)

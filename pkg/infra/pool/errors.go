@@ -1,3 +1,4 @@
+// Package pool provides resource pooling.
 package pool
 
 import "errors"
@@ -18,4 +19,7 @@ var (
 
 	// ErrManagerNotInitialized 管理器未初始化
 	ErrManagerNotInitialized = errors.New("池管理器未初始化")
+
+	// ErrPoolOverload 池已满
+	ErrPoolOverload = errors.New("池已满")
 )

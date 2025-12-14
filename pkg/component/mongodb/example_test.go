@@ -10,12 +10,12 @@ import (
 )
 
 // TestClientImplementsStorageInterface verifies that mongodb.Client implements storage.Client
-func TestClientImplementsStorageInterface(t *testing.T) {
+func TestClientImplementsStorageInterface(_ *testing.T) {
 	var _ storage.Client = (*mongodb.Client)(nil)
 }
 
 // TestFactoryImplementsStorageFactory verifies that mongodb.Factory implements storage.Factory
-func TestFactoryImplementsStorageFactory(t *testing.T) {
+func TestFactoryImplementsStorageFactory(_ *testing.T) {
 	var _ storage.Factory = (*mongodb.Factory)(nil)
 }
 

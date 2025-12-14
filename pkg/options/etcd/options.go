@@ -1,3 +1,4 @@
+// Package etcd provides Etcd options.
 package etcd
 
 import (

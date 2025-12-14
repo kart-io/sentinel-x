@@ -14,10 +14,10 @@ import (
 type Store interface {
 	// Revoke marks a token as revoked.
 	// The token should be stored until its natural expiration (TTL).
-	Revoke(ctx context.Context, token string, expiration time.Duration) error
+	Revoke(_ context.Context, _ string, _ time.Duration) error
 
 	// IsRevoked checks if a token has been revoked.
-	IsRevoked(ctx context.Context, token string) (bool, error)
+	IsRevoked(_ context.Context, _ string) (bool, error)
 
 	// Close releases any resources used by the store.
 	Close() error
@@ -73,7 +73,7 @@ func WithCleanupInterval(d time.Duration) MemoryStoreOption {
 }
 
 // Revoke marks a token as revoked.
-func (s *MemoryStore) Revoke(ctx context.Context, token string, expiration time.Duration) error {
+func (s *MemoryStore) Revoke(_ context.Context, token string, expiration time.Duration) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -82,7 +82,7 @@ func (s *MemoryStore) Revoke(ctx context.Context, token string, expiration time.
 }
 
 // IsRevoked checks if a token has been revoked.
-func (s *MemoryStore) IsRevoked(ctx context.Context, token string) (bool, error) {
+func (s *MemoryStore) IsRevoked(_ context.Context, token string) (bool, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -197,12 +197,12 @@ func NewNoopStore() *NoopStore {
 }
 
 // Revoke does nothing.
-func (s *NoopStore) Revoke(ctx context.Context, token string, expiration time.Duration) error {
+func (s *NoopStore) Revoke(_ context.Context, _ string, _ time.Duration) error {
 	return nil
 }
 
 // IsRevoked always returns false.
-func (s *NoopStore) IsRevoked(ctx context.Context, token string) (bool, error) {
+func (s *NoopStore) IsRevoked(_ context.Context, _ string) (bool, error) {
 	return false, nil
 }
 

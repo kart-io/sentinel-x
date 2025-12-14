@@ -22,8 +22,8 @@ func NewManager() *Manager {
 	}
 }
 
-// Register 注册新池
-func (m *Manager) Register(name string, config *PoolConfig) error {
+// Register registers a new pool.
+func (m *Manager) Register(name string, typ Type, config *Config) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -35,7 +35,7 @@ func (m *Manager) Register(name string, config *PoolConfig) error {
 		return fmt.Errorf("%w: %s", ErrPoolAlreadyExists, name)
 	}
 
-	pool, err := NewPool(name, config)
+	pool, err := NewPool(name, typ, config)
 	if err != nil {
 		return err
 	}
@@ -45,8 +45,8 @@ func (m *Manager) Register(name string, config *PoolConfig) error {
 }
 
 // RegisterWithType 使用预定义类型注册池
-func (m *Manager) RegisterWithType(poolType PoolType, config *PoolConfig) error {
-	return m.Register(string(poolType), config)
+func (m *Manager) RegisterWithType(poolType Type, config *Config) error {
+	return m.Register(string(poolType), poolType, config)
 }
 
 // Get 获取指定名称的池
@@ -67,7 +67,7 @@ func (m *Manager) Get(name string) (*Pool, error) {
 }
 
 // GetByType 获取预定义类型的池
-func (m *Manager) GetByType(poolType PoolType) (*Pool, error) {
+func (m *Manager) GetByType(poolType Type) (*Pool, error) {
 	return m.Get(string(poolType))
 }
 
@@ -104,27 +104,31 @@ func (m *Manager) SubmitWithContext(ctx context.Context, poolName string, task f
 }
 
 // List 返回所有已注册的池名称
-func (m *Manager) List() []string {
+func (m *Manager) List() []Info {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	names := make([]string, 0, len(m.pools))
-	for name := range m.pools {
-		names = append(names, name)
+	infos := make([]Info, 0, len(m.pools))
+	for name, pool := range m.pools {
+		infos = append(infos, Info{
+			Name: name,
+			Type: pool.Type(),
+		})
 	}
-	return names
+	return infos
 }
 
-// Stats 返回所有池的统计信息
-func (m *Manager) Stats() map[string]PoolInfo {
+// Stats returns statistics for all pools.
+func (m *Manager) Stats() map[string]Info {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	stats := make(map[string]PoolInfo, len(m.pools))
+	stats := make(map[string]Info, len(m.pools))
 	for name, pool := range m.pools {
 		submitted, completed, failed, rejected, panics := pool.GetStats()
-		stats[name] = PoolInfo{
+		stats[name] = Info{
 			Name:           name,
+			Type:           pool.Type(),
 			Running:        pool.Running(),
 			Free:           pool.Free(),
 			Capacity:       pool.Cap(),
@@ -139,9 +143,10 @@ func (m *Manager) Stats() map[string]PoolInfo {
 	return stats
 }
 
-// PoolInfo 池信息
-type PoolInfo struct {
+// Info contains information about a registered pool.
+type Info struct {
 	Name           string
+	Type           Type
 	Running        int
 	Free           int
 	Capacity       int

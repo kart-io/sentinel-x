@@ -9,8 +9,10 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+// ChannelName is the Redis channel for policy updates.
 const ChannelName = "casbin:policy:update"
 
+// Watcher is the Redis watcher for Casbin.
 type Watcher struct {
 	client   *redis.Client
 	channel  string
@@ -121,16 +123,18 @@ func (w *Watcher) startSubscribe() {
 	}()
 }
 
+// SetUpdateCallback sets the callback function to handle policy updates.
 func (w *Watcher) SetUpdateCallback(callback func(string)) {
 	w.callback = callback
 }
 
+// Update publishes a policy update message to Redis.
 func (w *Watcher) Update() error {
-	return w.client.Publish(context.Background(), w.channel, "update").Err()
+	return w.client.Publish(context.Background(), ChannelName, "update").Err()
 }
 
+// Close closes the Redis watcher.
 func (w *Watcher) Close() {
-	close(w.closeCh)
 	if w.pubsub != nil {
 		_ = w.pubsub.Close()
 	}

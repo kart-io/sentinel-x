@@ -16,7 +16,7 @@ func TestTimeout_NormalRequest(t *testing.T) {
 	middleware := Timeout(timeout)
 
 	handlerCalled := false
-	handler := middleware(func(ctx transport.Context) {
+	handler := middleware(func(_ transport.Context) {
 		handlerCalled = true
 		// Fast request that completes before timeout
 		time.Sleep(10 * time.Millisecond)
@@ -44,7 +44,7 @@ func TestTimeout_SlowRequest(t *testing.T) {
 	var handlerStarted sync.WaitGroup
 	handlerStarted.Add(1)
 
-	handler := middleware(func(ctx transport.Context) {
+	handler := middleware(func(_ transport.Context) {
 		handlerStarted.Done()
 		// Slow request that exceeds timeout
 		time.Sleep(200 * time.Millisecond)
@@ -105,7 +105,7 @@ func TestTimeoutWithConfig_SkipPaths(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			handler := middleware(func(ctx transport.Context) {
+			handler := middleware(func(_ transport.Context) {
 				time.Sleep(tt.sleepTime)
 			})
 
@@ -134,7 +134,7 @@ func TestTimeoutWithConfig_DefaultTimeout(t *testing.T) {
 	middleware := TimeoutWithConfig(config)
 
 	handlerCalled := false
-	handler := middleware(func(ctx transport.Context) {
+	handler := middleware(func(_ transport.Context) {
 		handlerCalled = true
 	})
 
@@ -186,15 +186,14 @@ func TestTimeout_CanceledContext(t *testing.T) {
 	timeout := 50 * time.Millisecond
 	middleware := Timeout(timeout)
 
-	var contextErr error
-	var ctxChecked bool
+	// Use channel to receive result from background goroutine
+	resultCh := make(chan error, 1)
 
 	handler := middleware(func(ctx transport.Context) {
 		// Sleep longer than timeout
 		time.Sleep(100 * time.Millisecond)
 		// Check context after timeout
-		contextErr = ctx.Request().Err()
-		ctxChecked = true
+		resultCh <- ctx.Request().Err()
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
@@ -204,29 +203,28 @@ func TestTimeout_CanceledContext(t *testing.T) {
 	handler(mockCtx)
 
 	// Wait for goroutine to finish checking context
-	time.Sleep(150 * time.Millisecond)
+	select {
+	case contextErr := <-resultCh:
+		// Context should have been canceled due to timeout
+		if contextErr == nil {
+			t.Error("Expected context error but got nil")
+		}
 
-	if !ctxChecked {
+		if contextErr != context.DeadlineExceeded {
+			t.Errorf("Expected context.DeadlineExceeded, got %v", contextErr)
+		}
+	case <-time.After(200 * time.Millisecond):
 		t.Error("Context check did not complete")
-	}
-
-	// Context should have been canceled due to timeout
-	if contextErr == nil {
-		t.Error("Expected context error but got nil")
-	}
-
-	if contextErr != context.DeadlineExceeded {
-		t.Errorf("Expected context.DeadlineExceeded, got %v", contextErr)
 	}
 }
 
-func TestTimeout_GoroutineDoesNotLeak(t *testing.T) {
+func TestTimeout_GoroutineDoesNotLeak(_ *testing.T) {
 	timeout := 50 * time.Millisecond
 	middleware := Timeout(timeout)
 
 	// Run multiple requests to check for goroutine leaks
 	for i := 0; i < 10; i++ {
-		handler := middleware(func(ctx transport.Context) {
+		handler := middleware(func(_ transport.Context) {
 			// Fast completion
 			time.Sleep(10 * time.Millisecond)
 		})
@@ -242,11 +240,11 @@ func TestTimeout_GoroutineDoesNotLeak(t *testing.T) {
 	// This is a basic test, more sophisticated leak detection would require runtime analysis
 }
 
-func TestTimeout_PanicInHandler(t *testing.T) {
+func TestTimeout_PanicInHandler(_ *testing.T) {
 	timeout := 100 * time.Millisecond
 	middleware := Timeout(timeout)
 
-	handler := middleware(func(ctx transport.Context) {
+	handler := middleware(func(_ transport.Context) {
 		panic("test panic in timeout handler")
 	})
 
@@ -274,7 +272,7 @@ func TestTimeout_MultipleTimeouts(t *testing.T) {
 		go func() {
 			defer wg.Done()
 
-			handler := middleware(func(ctx transport.Context) {
+			handler := middleware(func(_ transport.Context) {
 				time.Sleep(100 * time.Millisecond)
 			})
 
@@ -302,7 +300,7 @@ func TestTimeoutWithConfig_ZeroTimeout(t *testing.T) {
 	middleware := TimeoutWithConfig(config)
 
 	handlerCalled := false
-	handler := middleware(func(ctx transport.Context) {
+	handler := middleware(func(_ transport.Context) {
 		handlerCalled = true
 	})
 
@@ -321,7 +319,7 @@ func TestTimeout_VeryShortTimeout(t *testing.T) {
 	timeout := 1 * time.Millisecond
 	middleware := Timeout(timeout)
 
-	handler := middleware(func(ctx transport.Context) {
+	handler := middleware(func(_ transport.Context) {
 		// Even a small sleep should trigger timeout
 		time.Sleep(10 * time.Millisecond)
 	})

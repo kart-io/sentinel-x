@@ -7,12 +7,11 @@
 package hello
 
 import (
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
-
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -139,14 +138,11 @@ func file_pkg_api_hello_v1_hello_proto_rawDescGZIP() []byte {
 	return file_pkg_api_hello_v1_hello_proto_rawDescData
 }
 
-var (
-	file_pkg_api_hello_v1_hello_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
-	file_pkg_api_hello_v1_hello_proto_goTypes  = []any{
-		(*HelloRequest)(nil),  // 0: api.hello.v1.HelloRequest
-		(*HelloResponse)(nil), // 1: api.hello.v1.HelloResponse
-	}
-)
-
+var file_pkg_api_hello_v1_hello_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_pkg_api_hello_v1_hello_proto_goTypes = []any{
+	(*HelloRequest)(nil),  // 0: api.hello.v1.HelloRequest
+	(*HelloResponse)(nil), // 1: api.hello.v1.HelloResponse
+}
 var file_pkg_api_hello_v1_hello_proto_depIdxs = []int32{
 	0, // 0: api.hello.v1.HelloService.SayHello:input_type -> api.hello.v1.HelloRequest
 	0, // 1: api.hello.v1.HelloService.SayHelloStream:input_type -> api.hello.v1.HelloRequest

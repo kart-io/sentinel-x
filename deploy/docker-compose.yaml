@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: sentinel-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: user_auth
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  redis:
+    image: redis:alpine
+    container_name: sentinel-redis
+    ports:
+      - "6379:6379"
+
+  user-center:
+    image: costalong/user-center-arm64:54338ca-dirty
+    container_name: sentinel-user-center
+    depends_on:
+      - mysql
+      - redis
+    ports:
+      - "8081:8081"
+      - "8101:8101"
+    environment:
+      - USER_CENTER_MYSQL_HOST=mysql
+      - USER_CENTER_MYSQL_USERNAME=root
+      - USER_CENTER_MYSQL_PASSWORD=root123
+      - USER_CENTER_MYSQL_DATABASE=user_auth
+      - USER_CENTER_REDIS_HOST=redis
+      - USER_CENTER_REDIS_PASSWORD=
+      - USER_CENTER_JWT_KEY=your-super-secret-key-change-in-production-minimum-64-characters-required-here
+    command: ["--config", "/etc/sentinel-x/user-center.yaml"]
+    volumes:
+      - ../configs/user-center.yaml:/etc/sentinel-x/user-center.yaml
+
+volumes:
+  mysql_data:

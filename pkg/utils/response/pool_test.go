@@ -13,7 +13,7 @@ func BenchmarkResponsePool(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			resp := Acquire()
 			resp.Code = 0
-			resp.Message = "success"
+			resp.Message = successMsg
 			resp.Data = map[string]string{"key": "value"}
 			Release(resp)
 		}
@@ -24,7 +24,7 @@ func BenchmarkResponsePool(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			_ = &Response{
 				Code:    0,
-				Message: "success",
+				Message: successMsg,
 				Data:    map[string]string{"key": "value"},
 			}
 		}
@@ -118,7 +118,7 @@ func BenchmarkConcurrentPool(b *testing.B) {
 			for pb.Next() {
 				resp := Acquire()
 				resp.Code = 0
-				resp.Message = "success"
+				resp.Message = successMsg
 				Release(resp)
 			}
 		})
@@ -178,7 +178,7 @@ func BenchmarkHighThroughput(b *testing.B) {
 			for pb.Next() {
 				resp := &Response{
 					Code:    0,
-					Message: "success",
+					Message: successMsg,
 					Data:    testData,
 				}
 				// Simulate some work
@@ -237,7 +237,7 @@ func TestPoolSafety(t *testing.T) {
 }
 
 // TestConcurrentSafety tests concurrent pool access
-func TestConcurrentSafety(t *testing.T) {
+func TestConcurrentSafety(_ *testing.T) {
 	const goroutines = 100
 	const iterations = 1000
 

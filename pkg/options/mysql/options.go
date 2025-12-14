@@ -1,3 +1,4 @@
+// Package mysql provides MySQL options.
 package mysql
 
 import (

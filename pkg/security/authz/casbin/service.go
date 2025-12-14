@@ -117,7 +117,7 @@ func (s *service) GetEnforcer() *casbin.Enforcer {
 
 func (s *service) SetWatcher(w Watcher) {
 	s.watcher = w
-	w.SetUpdateCallback(func(msg string) {
+	w.SetUpdateCallback(func(_ string) {
 		_ = s.LoadPolicy()
 	})
 }

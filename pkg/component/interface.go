@@ -1,3 +1,4 @@
+// Package component defines the component interfaces.
 package component
 
 import "github.com/spf13/pflag"

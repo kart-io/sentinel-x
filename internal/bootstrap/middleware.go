@@ -46,7 +46,7 @@ func (mi *MiddlewareInitializer) Dependencies() []string {
 }
 
 // Initialize configures all middleware components.
-func (mi *MiddlewareInitializer) Initialize(ctx context.Context) error {
+func (mi *MiddlewareInitializer) Initialize(_ context.Context) error {
 	mi.configureHealth()
 
 	if mi.authInitializer.IsEnabled() {

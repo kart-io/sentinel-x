@@ -278,7 +278,7 @@ func (m *Manager) Run() error {
 // This method ensures servers have been started and are accepting connections.
 // Note: The actual readiness check is lightweight as servers start immediately
 // once Start() completes successfully.
-func (m *Manager) Wait(ctx context.Context) error {
+func (m *Manager) Wait(_ context.Context) error {
 	m.mu.Lock()
 	if !m.started {
 		m.mu.Unlock()

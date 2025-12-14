@@ -56,11 +56,16 @@ import (
 type StorageType string
 
 const (
-	TypeMySQL    StorageType = "mysql"
+	// TypeMySQL represents MySQL storage type.
+	TypeMySQL StorageType = "mysql"
+	// TypePostgres represents PostgreSQL storage type
 	TypePostgres StorageType = "postgres"
-	TypeRedis    StorageType = "redis"
-	TypeMongoDB  StorageType = "mongodb"
-	TypeEtcd     StorageType = "etcd"
+	// TypeRedis represents Redis storage type
+	TypeRedis StorageType = "redis"
+	// TypeMongoDB represents MongoDB storage type
+	TypeMongoDB StorageType = "mongodb"
+	// TypeEtcd represents Etcd storage type
+	TypeEtcd StorageType = "etcd"
 )
 
 // storageEntry holds options and client for any storage type

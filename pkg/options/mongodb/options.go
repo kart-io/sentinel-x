@@ -1,3 +1,4 @@
+// Package mongodb provides MongoDB options.
 package mongodb
 
 import (

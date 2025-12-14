@@ -1,0 +1,8 @@
+===========> Run golangci to lint source codes
+pkg/infra/middleware/observability/logger.go:9:2: could not import github.com/kart-io/sentinel-x/pkg/infra/middleware/common (pkg/infra/middleware/request_id.go:4:2: cannot find module providing package github.com/kart-io/sentinel-x/pkg/infra/middleware/common: import lookup disabled by -mod=vendor
+	(Go version in go.mod is at least 1.14 and vendor directory exists.)) (typecheck)
+	"github.com/kart-io/sentinel-x/pkg/infra/middleware/common"
+	^
+1 issues:
+* typecheck: 1
+make: *** [go.lint] Error 1

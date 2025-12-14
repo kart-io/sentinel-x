@@ -174,7 +174,7 @@ func (a *App) addGlobalFlags(cmd *cobra.Command) {
 }
 
 // runCommand is the main run function for the command.
-func (a *App) runCommand(cmd *cobra.Command, args []string) error {
+func (a *App) runCommand(cmd *cobra.Command, _ []string) error {
 	// Handle version flag - this will print and exit if --version is set
 	if !a.noVersion {
 		version.PrintAndExitIfRequested()

@@ -1,3 +1,4 @@
+// Package mysql provides MySQL implementation for Casbin adapter.
 package mysql
 
 import (
@@ -25,6 +26,7 @@ func (CasbinRule) TableName() string {
 	return "casbin_rule"
 }
 
+// Repository implements the Casbin repository interface.
 type Repository struct {
 	db *gorm.DB
 }
@@ -38,6 +40,7 @@ func NewRepository(db *gorm.DB) (*Repository, error) {
 	return &Repository{db: db}, nil
 }
 
+// LoadPolicies loads all policies from the database.
 func (r *Repository) LoadPolicies(ctx context.Context) ([]*casbin.Policy, error) {
 	var rules []CasbinRule
 	if err := r.db.WithContext(ctx).Find(&rules).Error; err != nil {
@@ -59,6 +62,7 @@ func (r *Repository) LoadPolicies(ctx context.Context) ([]*casbin.Policy, error)
 	return policies, nil
 }
 
+// SavePolicies saves policies to the database.
 func (r *Repository) SavePolicies(ctx context.Context, policies []*casbin.Policy) error {
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// Truncate table (or delete all)
@@ -86,6 +90,7 @@ func (r *Repository) SavePolicies(ctx context.Context, policies []*casbin.Policy
 	})
 }
 
+// AddPolicy adds a policy to the database.
 func (r *Repository) AddPolicy(ctx context.Context, p *casbin.Policy) error {
 	rule := CasbinRule{
 		PType: p.PType,
@@ -99,6 +104,7 @@ func (r *Repository) AddPolicy(ctx context.Context, p *casbin.Policy) error {
 	return r.db.WithContext(ctx).Create(&rule).Error
 }
 
+// RemovePolicy removes a policy from the database.
 func (r *Repository) RemovePolicy(ctx context.Context, p *casbin.Policy) error {
 	rule := CasbinRule{
 		PType: p.PType,

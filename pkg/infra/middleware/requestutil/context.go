@@ -1,7 +1,7 @@
-// Package common provides shared utilities for middleware packages.
+// Package requestutil provides shared utilities for middleware packages.
 // This package contains common types and functions used across multiple
 // middleware subpackages, avoiding circular dependencies.
-package common
+package requestutil
 
 import (
 	"context"

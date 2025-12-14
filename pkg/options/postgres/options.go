@@ -1,3 +1,4 @@
+// Package postgres provides PostgreSQL configuration options.
 package postgres
 
 import (

@@ -183,7 +183,7 @@ func (c *Client) DB() *gorm.DB {
 	return c.db
 }
 
-// SqlDB returns the underlying sql.DB instance.
+// SQLDB returns the underlying sql.DB instance.
 // This provides access to the standard library database/sql functionality
 // for operations not available through GORM.
 //
@@ -195,7 +195,7 @@ func (c *Client) DB() *gorm.DB {
 //	}
 //	stats := sqlDB.Stats()
 //	fmt.Printf("Open connections: %d\n", stats.OpenConnections)
-func (c *Client) SqlDB() (*sql.DB, error) {
+func (c *Client) SQLDB() (*sql.DB, error) {
 	return c.db.DB()
 }
 

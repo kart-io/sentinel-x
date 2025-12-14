@@ -6,13 +6,7 @@ import (
 
 // TestMobileValidation tests Chinese mobile phone number validation.
 func TestMobileValidation(t *testing.T) {
-	v := New()
-
-	tests := []struct {
-		name    string
-		value   string
-		wantErr bool
-	}{
+	tests := []validationTestCase{
 		// Valid mobile numbers
 		{"valid_13x", "13800138000", false},
 		{"valid_14x", "14512345678", false},
@@ -40,14 +34,7 @@ func TestMobileValidation(t *testing.T) {
 		{"valid_boundary_19999999999", "19999999999", false},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := v.ValidateVar(tt.value, TagMobile)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Mobile validation for '%s': error = %v, wantErr %v", tt.value, err, tt.wantErr)
-			}
-		})
-	}
+	runValidationTests(t, TagMobile, tests)
 }
 
 // TestMobileValidationWithStruct tests mobile validation in struct context.
@@ -81,13 +68,7 @@ func TestMobileValidationWithStruct(t *testing.T) {
 
 // TestIDCardValidation tests Chinese ID card number validation.
 func TestIDCardValidation(t *testing.T) {
-	v := New()
-
-	tests := []struct {
-		name    string
-		value   string
-		wantErr bool
-	}{
+	tests := []validationTestCase{
 		// Valid ID card numbers (18-digit format)
 		{"valid_18_digit_1980", "110101198001011234", false},
 		{"valid_18_digit_1990", "110101199012311234", false},
@@ -116,25 +97,12 @@ func TestIDCardValidation(t *testing.T) {
 		{"valid_dec_31", "110101198012311234", false},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := v.ValidateVar(tt.value, TagIDCard)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("IDCard validation for '%s': error = %v, wantErr %v", tt.value, err, tt.wantErr)
-			}
-		})
-	}
+	runValidationTests(t, TagIDCard, tests)
 }
 
 // TestUsernameValidation tests username format validation.
 func TestUsernameValidation(t *testing.T) {
-	v := New()
-
-	tests := []struct {
-		name    string
-		value   string
-		wantErr bool
-	}{
+	tests := []validationTestCase{
 		// Valid usernames
 		{"valid_simple", "user123", false},
 		{"valid_with_underscore", "Admin_test", false},
@@ -163,14 +131,7 @@ func TestUsernameValidation(t *testing.T) {
 		{"valid_exactly_32_chars", "a1234567890123456789012345678901", false},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := v.ValidateVar(tt.value, TagUsername)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Username validation for '%s': error = %v, wantErr %v", tt.value, err, tt.wantErr)
-			}
-		})
-	}
+	runValidationTests(t, TagUsername, tests)
 }
 
 // TestPasswordValidation tests basic password validation.
@@ -395,13 +356,7 @@ func TestTrimmedValidation(t *testing.T) {
 
 // TestSlugValidation tests URL slug validation.
 func TestSlugValidation(t *testing.T) {
-	v := New()
-
-	tests := []struct {
-		name    string
-		value   string
-		wantErr bool
-	}{
+	tests := []validationTestCase{
 		// Valid slugs
 		{"valid_simple", "hello-world", false},
 		{"valid_single_word", "hello", false},
@@ -429,14 +384,7 @@ func TestSlugValidation(t *testing.T) {
 		{"valid_long_slug", "this-is-a-very-long-slug-with-many-words", false},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := v.ValidateVar(tt.value, TagSlug)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Slug validation for '%s': error = %v, wantErr %v", tt.value, err, tt.wantErr)
-			}
-		})
-	}
+	runValidationTests(t, TagSlug, tests)
 }
 
 // TestCustomRulesWithTranslations tests that custom rules have proper translations.

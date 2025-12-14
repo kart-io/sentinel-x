@@ -1,3 +1,4 @@
+// Package main is an example.
 package main
 
 import (
@@ -12,12 +13,17 @@ import (
 )
 
 func main() {
+	const (
+		defaultHost = "localhost"
+		testDB      = "testdb"
+	)
+
 	// Example 1: Basic usage with host/port
 	fmt.Println("=== Example 1: Basic Usage ===")
 	opts := mongodb.NewOptions()
-	opts.Host = "localhost"
+	opts.Host = defaultHost
 	opts.Port = 27017
-	opts.Database = "testdb"
+	opts.Database = testDB
 	opts.Username = "admin"
 	// Password will be read from MONGODB_PASSWORD environment variable
 
@@ -51,7 +57,7 @@ func main() {
 	// Example 2: Using URI
 	fmt.Println("\n=== Example 2: Using URI ===")
 	opts2 := mongodb.NewOptions()
-	opts2.URI = "mongodb://localhost:27017/testdb"
+	opts2.URI = "mongodb://localhost:27017/" + testDB
 
 	client2, err := mongodb.New(opts2)
 	if err != nil {
@@ -64,7 +70,7 @@ func main() {
 	// Example 3: Using Factory Pattern
 	fmt.Println("\n=== Example 3: Factory Pattern ===")
 	opts3 := mongodb.NewOptions()
-	opts3.Host = "localhost"
+	opts3.Host = defaultHost
 	opts3.Database = "myapp"
 
 	factory := mongodb.NewFactory(opts3)
@@ -112,7 +118,7 @@ func main() {
 	// Example 6: Connection Pool Configuration
 	fmt.Println("\n=== Example 6: Connection Pool ===")
 	opts6 := mongodb.NewOptions()
-	opts6.Host = "localhost"
+	opts6.Host = defaultHost
 	opts6.MaxPoolSize = 100
 	opts6.MinPoolSize = 10
 	opts6.MaxIdleTime = 10 * time.Minute

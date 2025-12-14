@@ -62,7 +62,7 @@ func (di *DatasourceInitializer) Initialize(ctx context.Context) error {
 }
 
 // Shutdown performs graceful shutdown of all datasources.
-func (di *DatasourceInitializer) Shutdown(ctx context.Context) error {
+func (di *DatasourceInitializer) Shutdown(_ context.Context) error {
 	if di.manager != nil {
 		if err := di.manager.CloseAll(); err != nil {
 			logger.Errorw("Failed to close datasources during shutdown", "error", err)

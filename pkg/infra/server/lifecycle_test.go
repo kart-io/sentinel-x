@@ -14,17 +14,17 @@ type lifecycleHooks struct {
 	stopErr     error
 }
 
-func (h *lifecycleHooks) Start(ctx context.Context) error {
+func (h *lifecycleHooks) Start(_ context.Context) error {
 	h.startCalled = true
 	return h.startErr
 }
 
-func (h *lifecycleHooks) Stop(ctx context.Context) error {
+func (h *lifecycleHooks) Stop(_ context.Context) error {
 	h.stopCalled = true
 	return h.stopErr
 }
 
-func TestLifecycleInterface(t *testing.T) {
+func TestLifecycleInterface(_ *testing.T) {
 	// Verify that our mock implements the Lifecycle interface
 	var _ Lifecycle = (*lifecycleHooks)(nil)
 }

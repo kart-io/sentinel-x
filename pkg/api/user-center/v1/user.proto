@@ -4,16 +4,164 @@ package api.user.v1;
 
 option go_package = "github.com/kart-io/sentinel-x/pkg/api/user-center/v1;user";
 
+import "google/protobuf/empty.proto";
+import "google/protobuf/wrappers.proto";
+import "validate/validate.proto";
+
 service UserService {
   rpc GetUser (UserRequest) returns (UserResponse);
+
+  // User management
+  rpc CreateUser (CreateUserRequest) returns (UserResponse);
+  rpc UpdateUser (UpdateUserRequest) returns (UserResponse);
+  rpc DeleteUser (DeleteUserRequest) returns (google.protobuf.Empty);
+  rpc ListUsers (ListUsersRequest) returns (ListUsersResponse);
+  rpc BatchDeleteUsers (BatchDeleteRequest) returns (google.protobuf.Empty);
+  rpc ChangePassword (ChangePasswordRequest) returns (google.protobuf.Empty);
+
+  // Authentication
+  rpc Login (LoginRequest) returns (LoginResponse);
+  rpc Register (RegisterRequest) returns (google.protobuf.Empty);
+  rpc Logout (LogoutRequest) returns (google.protobuf.Empty);
 }
 
 message UserRequest {
-  string id = 1;
+  string id = 1; // Can be ID or Username as per handler logic
 }
 
 message UserResponse {
   string id = 1;
   string username = 2;
-  string role = 3;
+  string email = 3;
+  string mobile = 4;
+  string role = 5;
+  int64 created_at = 6;
+  int64 updated_at = 7;
+}
+
+message CreateUserRequest {
+  string username = 1 [(validate.rules).string = {min_len: 3, max_len: 32}];
+  string password = 2 [(validate.rules).string = {min_len: 8, max_len: 64}]; // Simplified regex for now, can add pattern
+  string email = 3 [(validate.rules).string = {email: true}];
+  string mobile = 4 [(validate.rules).string = {pattern: "^$|^1[3-9]\\d{9}$"}]; // Optional mobile validation
+}
+
+message UpdateUserRequest {
+  string username = 1 [(validate.rules).string = {min_len: 1}]; // Path param usually
+  string email = 2 [(validate.rules).string = {email: true, ignore_empty: true}];
+  string mobile = 3 [(validate.rules).string = {pattern: "^$|^1[3-9]\\d{9}$", ignore_empty: true}];
+}
+
+message DeleteUserRequest {
+  string username = 1 [(validate.rules).string = {min_len: 1}];
+}
+
+message ListUsersRequest {
+  int32 page = 1 [(validate.rules).int32 = {gt: 0}];
+  int32 page_size = 2 [(validate.rules).int32 = {gt: 0, lte: 100}];
+  string search = 3 [(validate.rules).string = {max_len: 100}];
+}
+
+message ListUsersResponse {
+  int64 total = 1;
+  repeated UserResponse items = 2;
+}
+
+message BatchDeleteRequest {
+  repeated string usernames = 1 [(validate.rules).repeated = {min_items: 1, max_items: 100, unique: true}];
+}
+
+message ChangePasswordRequest {
+  string username = 1; // From path or context
+  string old_password = 2 [(validate.rules).string = {min_len: 6, max_len: 64}];
+  string new_password = 3 [(validate.rules).string = {min_len: 8, max_len: 64}];
+  string confirm_password = 4 [(validate.rules).string = {min_len: 8, max_len: 64}];
+}
+
+// Authentication Messages
+
+message LoginRequest {
+  string username = 1 [(validate.rules).string = {min_len: 3, max_len: 32}];
+  string password = 2 [(validate.rules).string = {min_len: 6, max_len: 64}];
+}
+
+message LoginResponse {
+  string token = 1;
+  int64 expire_at = 2;
+}
+
+message RegisterRequest {
+  string username = 1 [(validate.rules).string = {min_len: 3, max_len: 32}];
+  string password = 2 [(validate.rules).string = {min_len: 8, max_len: 64}];
+  string email = 3 [(validate.rules).string = {email: true}];
+  string mobile = 4 [(validate.rules).string = {pattern: "^$|^1[3-9]\\d{9}$", ignore_empty: true}];
+}
+
+message LogoutRequest {
+  string token = 1;
+}
+
+// Role Service
+
+service RoleService {
+  rpc CreateRole (CreateRoleRequest) returns (Role);
+  rpc UpdateRole (UpdateRoleRequest) returns (Role);
+  rpc DeleteRole (DeleteRoleRequest) returns (google.protobuf.Empty);
+  rpc GetRole (GetRoleRequest) returns (Role);
+  rpc ListRoles (ListRolesRequest) returns (ListRolesResponse);
+
+  // User Role Assignment
+  rpc AssignRole (AssignRoleRequest) returns (google.protobuf.Empty);
+  rpc GetUserRoles (GetUserRolesRequest) returns (GetUserRolesResponse);
+}
+
+message Role {
+  string code = 1;
+  string name = 2;
+  string description = 3;
+  int32 status = 4;
+}
+
+message CreateRoleRequest {
+  string code = 1 [(validate.rules).string = {min_len: 3, max_len: 32}];
+  string name = 2 [(validate.rules).string = {min_len: 2, max_len: 64}];
+  string description = 3 [(validate.rules).string = {max_len: 255}];
+}
+
+message UpdateRoleRequest {
+  string code = 1 [(validate.rules).string = {min_len: 1}]; // Path param
+  string name = 2 [(validate.rules).string = {min_len: 2, max_len: 64, ignore_empty: true}];
+  string description = 3 [(validate.rules).string = {max_len: 255, ignore_empty: true}];
+  google.protobuf.Int32Value status = 4; // Use wrapper to allow setting 0 explicitly
+}
+
+message DeleteRoleRequest {
+  string code = 1 [(validate.rules).string = {min_len: 1}];
+}
+
+message GetRoleRequest {
+  string code = 1 [(validate.rules).string = {min_len: 1}];
+}
+
+message ListRolesRequest {
+  int32 page = 1 [(validate.rules).int32 = {gt: 0}];
+  int32 page_size = 2 [(validate.rules).int32 = {gt: 0, lte: 100}];
+}
+
+message ListRolesResponse {
+  int64 total = 1;
+  repeated Role items = 2;
+}
+
+message AssignRoleRequest {
+  string username = 1 [(validate.rules).string = {min_len: 1}];
+  string role_code = 2 [(validate.rules).string = {min_len: 1}];
+}
+
+message GetUserRolesRequest {
+  string username = 1 [(validate.rules).string = {min_len: 1}];
+}
+
+message GetUserRolesResponse {
+  repeated Role items = 1;
 }

@@ -7,7 +7,7 @@ import (
 )
 
 // TestReloadableInterface verifies the Reloadable interface exists.
-func TestReloadableInterface(t *testing.T) {
+func TestReloadableInterface(_ *testing.T) {
 	var _ Reloadable = (*simpleReloadable)(nil)
 }
 
@@ -15,7 +15,7 @@ type simpleReloadable struct {
 	called bool
 }
 
-func (m *simpleReloadable) OnConfigChange(newConfig interface{}) error {
+func (m *simpleReloadable) OnConfigChange(_ interface{}) error {
 	m.called = true
 	return nil
 }
@@ -47,7 +47,7 @@ func TestSubscribeBasic(t *testing.T) {
 	v := viper.New()
 	watcher := NewWatcher(v)
 
-	handler := func(v *viper.Viper) error {
+	handler := func(_ *viper.Viper) error {
 		return nil
 	}
 
@@ -63,7 +63,7 @@ func TestUnsubscribeBasic(t *testing.T) {
 	v := viper.New()
 	watcher := NewWatcher(v)
 
-	handler := func(v *viper.Viper) error {
+	handler := func(_ *viper.Viper) error {
 		return nil
 	}
 
@@ -93,9 +93,9 @@ func TestMultipleHandlers(t *testing.T) {
 	v := viper.New()
 	watcher := NewWatcher(v)
 
-	handler1 := func(v *viper.Viper) error { return nil }
-	handler2 := func(v *viper.Viper) error { return nil }
-	handler3 := func(v *viper.Viper) error { return nil }
+	handler1 := func(_ *viper.Viper) error { return nil }
+	handler2 := func(_ *viper.Viper) error { return nil }
+	handler3 := func(_ *viper.Viper) error { return nil }
 
 	watcher.Subscribe("h1", handler1)
 	watcher.Subscribe("h2", handler2)
@@ -117,8 +117,8 @@ func TestHandlerReplacement(t *testing.T) {
 	v := viper.New()
 	watcher := NewWatcher(v)
 
-	handler1 := func(v *viper.Viper) error { return nil }
-	handler2 := func(v *viper.Viper) error { return nil }
+	handler1 := func(_ *viper.Viper) error { return nil }
+	handler2 := func(_ *viper.Viper) error { return nil }
 
 	watcher.Subscribe("handler", handler1)
 	watcher.Subscribe("handler", handler2)

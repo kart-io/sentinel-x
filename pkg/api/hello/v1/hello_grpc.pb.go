@@ -8,7 +8,6 @@ package hello
 
 import (
 	context "context"
-
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -96,7 +95,6 @@ type UnimplementedHelloServiceServer struct{}
 func (UnimplementedHelloServiceServer) SayHello(context.Context, *HelloRequest) (*HelloResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method SayHello not implemented")
 }
-
 func (UnimplementedHelloServiceServer) SayHelloStream(*HelloRequest, grpc.ServerStreamingServer[HelloResponse]) error {
 	return status.Error(codes.Unimplemented, "method SayHelloStream not implemented")
 }

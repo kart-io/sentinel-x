@@ -1,4 +1,4 @@
-// Package options 提供中间件配置选项。
+// Package middleware provides middleware configuration options.
 package middleware
 
 import (
@@ -6,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/kart-io/sentinel-x/pkg/infra/middleware/common"
+	"github.com/kart-io/sentinel-x/pkg/infra/middleware/requestutil"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 	"github.com/spf13/pflag"
 )
@@ -70,7 +70,7 @@ func NewOptions() *Options {
 			EnableStackTrace: false,
 		},
 		RequestID: RequestIDOptions{
-			Header: common.HeaderXRequestID,
+			Header: requestutil.HeaderXRequestID,
 		},
 		Logger: LoggerOptions{
 			SkipPaths:           []string{"/health", "/ready", "/live", "/metrics"},

@@ -10,7 +10,7 @@ import (
 	"time"
 
 	applogger "github.com/kart-io/sentinel-x/pkg/infra/logger"
-	"github.com/kart-io/sentinel-x/pkg/infra/middleware/common"
+	"github.com/kart-io/sentinel-x/pkg/infra/middleware/requestutil"
 	loggeropts "github.com/kart-io/sentinel-x/pkg/options/logger"
 )
 
@@ -128,7 +128,7 @@ func EnhancedLogger(opts *loggeropts.EnhancedLoggerConfig) func(http.Handler) ht
 			duration := time.Since(start)
 
 			// Extract trace ID
-			traceID := r.Header.Get(common.HeaderTraceID)
+			traceID := r.Header.Get(requestutil.HeaderTraceID)
 			if traceID == "" {
 				traceID = r.Header.Get("X-Request-ID")
 			}
@@ -138,7 +138,7 @@ func EnhancedLogger(opts *loggeropts.EnhancedLoggerConfig) func(http.Handler) ht
 				"method", r.Method,
 				"path", r.URL.Path,
 				"query", r.URL.RawQuery,
-				"ip", common.GetClientIP(r),
+				"ip", requestutil.GetClientIP(r),
 				"status", rw.statusCode,
 				"size", rw.bytesWritten,
 				"duration", duration,
@@ -189,11 +189,12 @@ func EnhancedLogger(opts *loggeropts.EnhancedLoggerConfig) func(http.Handler) ht
 			logger := applogger.GetLogger(context.Background())
 			message := "HTTP Request"
 
-			if rw.statusCode >= 500 {
+			switch {
+			case rw.statusCode >= 500:
 				logger.Errorw(message, keysAndValues...)
-			} else if rw.statusCode >= 400 {
+			case rw.statusCode >= 400:
 				logger.Warnw(message, keysAndValues...)
-			} else {
+			default:
 				logger.Infow(message, keysAndValues...)
 			}
 		})

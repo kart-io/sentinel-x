@@ -5,8 +5,10 @@ import (
 	"strconv"
 	"strings"
 
+	"google.golang.org/protobuf/types/known/emptypb"
+
 	"github.com/kart-io/sentinel-x/internal/model"
-	"github.com/kart-io/sentinel-x/internal/pkg/utils"
+	"github.com/kart-io/sentinel-x/internal/pkg/httputils"
 	"github.com/kart-io/sentinel-x/internal/user-center/biz"
 	v1 "github.com/kart-io/sentinel-x/pkg/api/user-center/v1"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
@@ -21,33 +23,24 @@ type UserHandler struct {
 	v1.UnimplementedUserServiceServer
 	svc     *biz.UserService
 	roleSvc *biz.RoleService
+	authSvc *biz.AuthService
 }
 
 // NewUserHandler creates a new UserHandler.
-func NewUserHandler(svc *biz.UserService, roleSvc *biz.RoleService) *UserHandler {
+// NewUserHandler creates a new UserHandler.
+func NewUserHandler(svc *biz.UserService, roleSvc *biz.RoleService, authSvc *biz.AuthService) *UserHandler {
 	return &UserHandler{
 		svc:     svc,
 		roleSvc: roleSvc,
+		authSvc: authSvc,
 	}
-}
-
-// CreateUserRequest is the request body for creating a user.
-type CreateUserRequest struct {
-	// Username must start with letter, 3-32 characters
-	Username string `json:"username" validate:"required,username"`
-	// Password must be at least 8 chars with letter and number
-	Password string `json:"password" validate:"required,password"`
-	// Email must be valid email format
-	Email string `json:"email" validate:"required,email"`
-	// Mobile is optional, must be valid mobile number if provided
-	Mobile string `json:"mobile" validate:"omitempty,mobile"`
 }
 
 // Create handles user creation.
 func (h *UserHandler) Create(c transport.Context) {
-	var req CreateUserRequest
+	var req v1.CreateUserRequest
 	if err := c.ShouldBindAndValidate(&req); err != nil {
-		utils.WriteResponse(c, errors.ErrBadRequest.WithMessage(err.Error()), nil)
+		httputils.WriteResponse(c, errors.ErrBadRequest.WithMessage(err.Error()), nil)
 		return
 	}
 
@@ -56,37 +49,33 @@ func (h *UserHandler) Create(c transport.Context) {
 		Password: req.Password,
 		Email:    &req.Email,
 		Mobile:   req.Mobile,
-		// Status:   1, // Remove this line, it's not in the original struct, assuming default or handled elsewhere
 	}
 
 	if err := h.svc.Create(c.Request(), user); err != nil {
-		utils.WriteResponse(c, err, nil)
+		httputils.WriteResponse(c, err, nil)
 		return
 	}
 
-	utils.WriteResponse(c, nil, user)
+	httputils.WriteResponse(c, nil, user)
 }
 
 // Update handles user updates.
 func (h *UserHandler) Update(c transport.Context) {
 	username := c.Param("username")
 	if username == "" {
-		utils.WriteResponse(c, errors.ErrBadRequest.WithMessage("username is required"), nil)
+		httputils.WriteResponse(c, errors.ErrBadRequest.WithMessage("username is required"), nil)
 		return
 	}
 
 	user, err := h.svc.Get(c.Request(), username)
 	if err != nil {
-		utils.WriteResponse(c, err, nil)
+		httputils.WriteResponse(c, err, nil)
 		return
 	}
 
-	var req struct {
-		Email  string `json:"email"`
-		Mobile string `json:"mobile"`
-	}
-	if err := c.Bind(&req); err != nil {
-		utils.WriteResponse(c, err, nil)
+	var req v1.UpdateUserRequest
+	if err := c.ShouldBindAndValidate(&req); err != nil {
+		httputils.WriteResponse(c, err, nil)
 		return
 	}
 
@@ -97,17 +86,12 @@ func (h *UserHandler) Update(c transport.Context) {
 		user.Mobile = req.Mobile
 	}
 
-	if err := c.ShouldBindAndValidate(user); err != nil {
-		utils.WriteResponse(c, err, nil)
-		return
-	}
-
 	if err := h.svc.Update(c.Request(), user); err != nil {
-		utils.WriteResponse(c, err, nil)
+		httputils.WriteResponse(c, err, nil)
 		return
 	}
 
-	utils.WriteResponse(c, nil, user)
+	httputils.WriteResponse(c, nil, user)
 }
 
 // Delete handles user deletion.
@@ -121,22 +105,16 @@ func (h *UserHandler) Delete(c transport.Context) {
 	}
 
 	if err := h.svc.Delete(c.Request(), username); err != nil {
-		utils.WriteResponse(c, err, nil)
+		httputils.WriteResponse(c, err, nil)
 		return
 	}
 
-	utils.WriteResponse(c, nil, "user deleted")
-}
-
-// BatchDeleteRequest is the request for batch deleting users.
-type BatchDeleteRequest struct {
-	// IDs is the list of usernames/IDs to delete, 1-100 items
-	Usernames []string `json:"usernames" validate:"required,min=1,max=100,dive,min=1"`
+	httputils.WriteResponse(c, nil, "user deleted")
 }
 
 // BatchDelete handles batch deletion of users.
 func (h *UserHandler) BatchDelete(c transport.Context) {
-	var req BatchDeleteRequest
+	var req v1.BatchDeleteRequest
 	if err := c.ShouldBindAndValidate(&req); err != nil {
 		resp := response.Err(errors.ErrBadRequest.WithMessage(err.Error()))
 		defer response.Release(resp)
@@ -146,12 +124,12 @@ func (h *UserHandler) BatchDelete(c transport.Context) {
 
 	for _, username := range req.Usernames {
 		if err := h.svc.Delete(c.Request(), username); err != nil {
-			utils.WriteResponse(c, err, nil)
+			httputils.WriteResponse(c, err, nil)
 			return
 		}
 	}
 
-	utils.WriteResponse(c, nil, "users deleted")
+	httputils.WriteResponse(c, nil, "users deleted")
 }
 
 // Get handles retrieving a user by username.
@@ -166,48 +144,37 @@ func (h *UserHandler) Get(c transport.Context) {
 
 	user, err := h.svc.Get(c.Request(), username)
 	if err != nil {
-		utils.WriteResponse(c, err, nil)
+		httputils.WriteResponse(c, err, nil)
 		return
 	}
 
-	utils.WriteResponse(c, nil, user)
-}
-
-// ListUsersRequest is the query parameters for listing users.
-type ListUsersRequest struct {
-	// Page number, must be at least 1
-	Page int `form:"page" validate:"omitempty,min=1"`
-	// PageSize is the number of items per page, 1-100
-	PageSize int `form:"page_size" validate:"omitempty,min=1,max=100"`
-	// Search keyword for username or email
-	Search string `form:"search" validate:"omitempty,max=100"`
+	httputils.WriteResponse(c, nil, user)
 }
 
 // List handles listing users.
 func (h *UserHandler) List(c transport.Context) {
-	var req ListUsersRequest
-	// Set defaults
-	req.Page = 1
-	req.PageSize = 10
+	var req v1.ListUsersRequest
 
 	// Ignore bind error for optional params
-	_ = c.Bind(&req)
+	_ = c.ShouldBindAndValidate(&req)
 
-	// Manual override if bind failed or not present
-	if val, err := strconv.Atoi(c.Query("page")); err == nil && val > 0 {
-		req.Page = val
+	// Set defaults if zero
+	page := int(req.Page)
+	if page <= 0 {
+		page = 1
 	}
-	if val, err := strconv.Atoi(c.Query("page_size")); err == nil && val > 0 {
-		req.PageSize = val
+	pageSize := int(req.PageSize)
+	if pageSize <= 0 {
+		pageSize = 10
 	}
 
-	count, users, err := h.svc.List(c.Request(), store.WithPage(req.Page, req.PageSize))
+	count, users, err := h.svc.List(c.Request(), store.WithPage(page, pageSize))
 	if err != nil {
-		utils.WriteResponse(c, err, nil)
+		httputils.WriteResponse(c, err, nil)
 		return
 	}
 
-	utils.WriteResponse(c, nil, response.Page(users, count, req.Page, req.PageSize))
+	httputils.WriteResponse(c, nil, response.Page(users, count, page, pageSize))
 }
 
 // GetProfile handles retrieving the current user's profile.
@@ -222,25 +189,15 @@ func (h *UserHandler) GetProfile(c transport.Context) {
 
 	user, err := h.svc.Get(c.Request(), username)
 	if err != nil {
-		utils.WriteResponse(c, err, nil)
+		httputils.WriteResponse(c, err, nil)
 		return
 	}
 
-	utils.WriteResponse(c, nil, user)
+	httputils.WriteResponse(c, nil, user)
 }
 
-// ChangePasswordRequest is the request body for changing password.
-type ChangePasswordRequest struct {
-	// OldPassword is the current password
-	OldPassword string `json:"old_password" validate:"required,min=6,max=64"`
-	// NewPassword must be at least 8 chars with letter and number
-	NewPassword string `json:"new_password" validate:"required,password"`
-	// ConfirmPassword must match NewPassword
-	ConfirmPassword string `json:"confirm_password" validate:"required,eqfield=NewPassword"`
-}
-
-// ChangePassword handles password change.
-func (h *UserHandler) ChangePassword(c transport.Context) {
+// UpdatePassword handles password change.
+func (h *UserHandler) UpdatePassword(c transport.Context) {
 	username := c.Param("username")
 	if username == "" {
 		resp := response.Err(errors.ErrBadRequest.WithMessage("username is required"))
@@ -249,7 +206,7 @@ func (h *UserHandler) ChangePassword(c transport.Context) {
 		return
 	}
 
-	var req ChangePasswordRequest
+	var req v1.ChangePasswordRequest
 	if err := c.ShouldBindAndValidate(&req); err != nil {
 		resp := response.Err(errors.ErrBadRequest.WithMessage(err.Error()))
 		defer response.Release(resp)
@@ -257,18 +214,24 @@ func (h *UserHandler) ChangePassword(c transport.Context) {
 		return
 	}
 
+	// Manual cross-field validation not supported by base proto-validate
+	if req.NewPassword != req.ConfirmPassword {
+		httputils.WriteResponse(c, errors.ErrBadRequest.WithMessage("passwords do not match"), nil)
+		return
+	}
+
 	// Verify old password
 	if err := h.svc.ValidatePassword(c.Request(), username, req.OldPassword); err != nil {
-		utils.WriteResponse(c, err, nil)
+		httputils.WriteResponse(c, err, nil)
 		return
 	}
 
 	if err := h.svc.ChangePassword(c.Request(), username, req.NewPassword); err != nil {
-		utils.WriteResponse(c, err, nil)
+		httputils.WriteResponse(c, err, nil)
 		return
 	}
 
-	utils.WriteResponse(c, nil, "password changed")
+	httputils.WriteResponse(c, nil, "password changed")
 }
 
 // GetUser implements the gRPC method to get a user by ID.
@@ -280,7 +243,7 @@ func (h *UserHandler) GetUser(ctx context.Context, req *v1.UserRequest) (*v1.Use
 	id, err := strconv.ParseUint(req.Id, 10, 64)
 	if err == nil {
 		// Numeric ID, try get by ID
-		user, err = h.svc.GetByUserId(ctx, id)
+		user, err = h.svc.GetByUserID(ctx, id)
 	} else {
 		// Non-numeric, treat as username
 		user, err = h.svc.Get(ctx, req.Id)
@@ -306,4 +269,173 @@ func (h *UserHandler) GetUser(ctx context.Context, req *v1.UserRequest) (*v1.Use
 		Username: user.Username,
 		Role:     roleStr,
 	}, nil
+}
+
+// CreateUser implements the gRPC method to create a user.
+func (h *UserHandler) CreateUser(ctx context.Context, req *v1.CreateUserRequest) (*v1.UserResponse, error) {
+	user := &model.User{
+		Username: req.Username,
+		Password: req.Password,
+		Email:    &req.Email,
+		Mobile:   req.Mobile,
+	}
+
+	if err := h.svc.Create(ctx, user); err != nil {
+		return nil, err
+	}
+
+	var email string
+	if user.Email != nil {
+		email = *user.Email
+	}
+
+	return &v1.UserResponse{
+		Id:       strconv.FormatUint(user.ID, 10),
+		Username: user.Username,
+		Email:    email,
+		Mobile:   user.Mobile,
+	}, nil
+}
+
+// UpdateUser implements the gRPC method to update a user.
+func (h *UserHandler) UpdateUser(ctx context.Context, req *v1.UpdateUserRequest) (*v1.UserResponse, error) {
+	user, err := h.svc.Get(ctx, req.Username)
+	if err != nil {
+		return nil, err
+	}
+
+	if req.Email != "" {
+		user.Email = &req.Email
+	}
+	if req.Mobile != "" {
+		user.Mobile = req.Mobile
+	}
+
+	if err := h.svc.Update(ctx, user); err != nil {
+		return nil, err
+	}
+
+	var email string
+	if user.Email != nil {
+		email = *user.Email
+	}
+
+	return &v1.UserResponse{
+		Id:       strconv.FormatUint(user.ID, 10),
+		Username: user.Username,
+		Email:    email,
+		Mobile:   user.Mobile,
+	}, nil
+}
+
+// DeleteUser implements the gRPC method to delete a user.
+func (h *UserHandler) DeleteUser(ctx context.Context, req *v1.DeleteUserRequest) (*emptypb.Empty, error) {
+	if err := h.svc.Delete(ctx, req.Username); err != nil {
+		return nil, err
+	}
+	return &emptypb.Empty{}, nil
+}
+
+// ListUsers implements the gRPC method to list users.
+func (h *UserHandler) ListUsers(ctx context.Context, req *v1.ListUsersRequest) (*v1.ListUsersResponse, error) {
+	page := int(req.Page)
+	if page <= 0 {
+		page = 1
+	}
+	pageSize := int(req.PageSize)
+	if pageSize <= 0 {
+		pageSize = 10
+	}
+
+	total, users, err := h.svc.List(ctx, store.WithPage(page, pageSize))
+	if err != nil {
+		return nil, err
+	}
+
+	var userResponses []*v1.UserResponse
+	for _, user := range users {
+		var email string
+		if user.Email != nil {
+			email = *user.Email
+		}
+		userResponses = append(userResponses, &v1.UserResponse{
+			Id:       strconv.FormatUint(user.ID, 10),
+			Username: user.Username,
+			Email:    email,
+			Mobile:   user.Mobile,
+		})
+	}
+
+	return &v1.ListUsersResponse{
+		Total: total,
+		Items: userResponses,
+	}, nil
+}
+
+// BatchDeleteUsers implements the gRPC method to batch delete users.
+func (h *UserHandler) BatchDeleteUsers(ctx context.Context, req *v1.BatchDeleteRequest) (*emptypb.Empty, error) {
+	for _, username := range req.Usernames {
+		if err := h.svc.Delete(ctx, username); err != nil {
+			return nil, err
+		}
+	}
+	return &emptypb.Empty{}, nil
+}
+
+// ChangePassword implements the gRPC method to change password.
+func (h *UserHandler) ChangePassword(ctx context.Context, req *v1.ChangePasswordRequest) (*emptypb.Empty, error) {
+	if req.NewPassword != req.ConfirmPassword {
+		return nil, errors.ErrBadRequest.WithMessage("passwords do not match")
+	}
+
+	username := auth.SubjectFromContext(ctx)
+	if username == "" {
+		return nil, errors.ErrUnauthorized
+	}
+
+	if err := h.svc.ValidatePassword(ctx, username, req.OldPassword); err != nil {
+		return nil, err
+	}
+
+	if err := h.svc.ChangePassword(ctx, username, req.NewPassword); err != nil {
+		return nil, err
+	}
+
+	return &emptypb.Empty{}, nil
+}
+
+// Login implements the gRPC method to login.
+func (h *UserHandler) Login(ctx context.Context, req *v1.LoginRequest) (*v1.LoginResponse, error) {
+	respData, err := h.authSvc.Login(ctx, &model.LoginRequest{
+		Username: req.Username,
+		Password: req.Password,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &v1.LoginResponse{
+		Token:    respData.Token,
+		ExpireAt: respData.ExpiresIn,
+	}, nil
+}
+
+// Register implements the gRPC method to register.
+func (h *UserHandler) Register(ctx context.Context, req *v1.RegisterRequest) (*emptypb.Empty, error) {
+	if err := h.authSvc.Register(ctx, &model.RegisterRequest{
+		Username: req.Username,
+		Password: req.Password,
+		Email:    req.Email,
+		Mobile:   req.Mobile,
+	}); err != nil {
+		return nil, err
+	}
+	return &emptypb.Empty{}, nil
+}
+
+// Logout implements the gRPC method to logout.
+func (h *UserHandler) Logout(ctx context.Context, req *v1.LogoutRequest) (*emptypb.Empty, error) {
+	if err := h.authSvc.Logout(ctx, req.Token); err != nil {
+		return nil, err
+	}
+	return &emptypb.Empty{}, nil
 }

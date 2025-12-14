@@ -12,6 +12,7 @@ import (
 	"github.com/kart-io/logger/option"
 )
 
+//nolint:dupl
 func TestWithRequestID(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -53,6 +54,7 @@ func TestWithRequestID(t *testing.T) {
 	}
 }
 
+//nolint:dupl
 func TestWithTraceID(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -273,10 +275,8 @@ func TestExtractOpenTelemetryFields(t *testing.T) {
 			expectSpanID:  false,
 		},
 		{
-			name: "context without span",
-			setupContext: func() context.Context {
-				return context.Background()
-			},
+			name:          "context without span",
+			setupContext:  context.Background,
 			expectTraceID: false,
 			expectSpanID:  false,
 		},

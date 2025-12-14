@@ -7,282 +7,289 @@ import (
 
 // TestSnowflakeClockDrift tests various clock drift scenarios.
 func TestSnowflakeClockDrift(t *testing.T) {
-	t.Run("SmallClockDrift", func(t *testing.T) {
-		// Test small clock drift (< 5 seconds)
-		var currentTime int64 = 1704067200000 + 10000 // 10 seconds after epoch
-		var mu sync.Mutex
-		var callCount int
+	t.Run("SmallClockDrift", testSmallClockDrift)
+	t.Run("LargeClockDrift", testLargeClockDrift)
+	t.Run("NoClockDrift", testNoClockDrift)
+	t.Run("SequenceOverflow", testSequenceOverflow)
+	t.Run("ClockForwardProgress", testClockForwardProgress)
+	t.Run("ConcurrentGeneration", testConcurrentGeneration)
+}
 
-		timeFunc := func() int64 {
-			mu.Lock()
-			defer mu.Unlock()
-			callCount++
-			// Simulate time recovery: after drift, time gradually catches up
-			if callCount > 2 {
-				currentTime += 1 // Time moves forward to catch up
-			}
-			return currentTime
-		}
+func testSmallClockDrift(t *testing.T) {
+	// Test small clock drift (< 5 seconds)
+	var currentTime int64 = 1704067200000 + 10000 // 10 seconds after epoch
+	var mu sync.Mutex
+	var callCount int
 
-		gen, err := NewSnowflakeGenerator(
-			WithNodeID(1),
-			WithTimeFunc(timeFunc),
-		)
-		if err != nil {
-			t.Fatalf("failed to create generator: %v", err)
-		}
-
-		// Generate first ID
-		id1, err := gen.GenerateInt64()
-		if err != nil {
-			t.Fatalf("failed to generate first ID: %v", err)
-		}
-		if id1 == 0 {
-			t.Error("expected non-zero ID")
-		}
-
-		// Simulate small clock drift backward (100ms)
+	timeFunc := func() int64 {
 		mu.Lock()
-		currentTime -= 100
-		callCount = 0 // Reset call count for recovery simulation
-		mu.Unlock()
-
-		// Should handle clock drift and generate new ID
-		// The time function will gradually advance time back
-		id2, err := gen.GenerateInt64()
-		if err != nil {
-			t.Fatalf("failed to generate second ID: %v", err)
+		defer mu.Unlock()
+		callCount++
+		// Simulate time recovery: after drift, time gradually catches up
+		if callCount > 2 {
+			currentTime++ // Time moves forward to catch up
 		}
-		if id2 == 0 {
-			t.Error("expected non-zero ID")
-		}
+		return currentTime
+	}
 
-		// IDs should be different
-		if id1 == id2 {
-			t.Error("expected different IDs")
-		}
-	})
+	gen, err := NewSnowflakeGenerator(
+		WithNodeID(1),
+		WithTimeFunc(timeFunc),
+	)
+	if err != nil {
+		t.Fatalf("failed to create generator: %v", err)
+	}
 
-	t.Run("LargeClockDrift", func(t *testing.T) {
-		// Test large clock drift (> 5 seconds) - should return error
-		var currentTime int64 = 1704067200000 + 10000
-		var mu sync.Mutex
+	// Generate first ID
+	id1, err := gen.GenerateInt64()
+	if err != nil {
+		t.Fatalf("failed to generate first ID: %v", err)
+	}
+	if id1 == 0 {
+		t.Error("expected non-zero ID")
+	}
 
-		timeFunc := func() int64 {
-			mu.Lock()
-			defer mu.Unlock()
-			return currentTime
-		}
+	// Simulate small clock drift backward (100ms)
+	mu.Lock()
+	currentTime -= 100
+	callCount = 0 // Reset call count for recovery simulation
+	mu.Unlock()
 
-		gen, err := NewSnowflakeGenerator(
-			WithNodeID(1),
-			WithTimeFunc(timeFunc),
-		)
-		if err != nil {
-			t.Fatalf("failed to create generator: %v", err)
-		}
+	// Should handle clock drift and generate new ID
+	// The time function will gradually advance time back
+	id2, err := gen.GenerateInt64()
+	if err != nil {
+		t.Fatalf("failed to generate second ID: %v", err)
+	}
+	if id2 == 0 {
+		t.Error("expected non-zero ID")
+	}
 
-		// Generate first ID
-		id1, err := gen.GenerateInt64()
-		if err != nil {
-			t.Fatalf("failed to generate first ID: %v", err)
-		}
-		if id1 == 0 {
-			t.Error("expected non-zero ID")
-		}
+	// IDs should be different
+	if id1 == id2 {
+		t.Error("expected different IDs")
+	}
+}
 
-		// Simulate large clock drift backward (6 seconds)
+func testLargeClockDrift(t *testing.T) {
+	// Test large clock drift (> 5 seconds) - should return error
+	var currentTime int64 = 1704067200000 + 10000
+	var mu sync.Mutex
+
+	timeFunc := func() int64 {
 		mu.Lock()
-		currentTime -= 6000
-		mu.Unlock()
+		defer mu.Unlock()
+		return currentTime
+	}
 
-		// Should return error for large clock drift
-		_, err = gen.GenerateInt64()
-		if err != ErrClockMovedBackward {
-			t.Errorf("expected ErrClockMovedBackward, got %v", err)
-		}
-	})
+	gen, err := NewSnowflakeGenerator(
+		WithNodeID(1),
+		WithTimeFunc(timeFunc),
+	)
+	if err != nil {
+		t.Fatalf("failed to create generator: %v", err)
+	}
 
-	t.Run("NoClockDrift", func(t *testing.T) {
-		// Test normal operation without clock drift
-		var currentTime int64 = 1704067200000
-		var mu sync.Mutex
+	// Generate first ID
+	id1, err := gen.GenerateInt64()
+	if err != nil {
+		t.Fatalf("failed to generate first ID: %v", err)
+	}
+	if id1 == 0 {
+		t.Error("expected non-zero ID")
+	}
 
-		timeFunc := func() int64 {
-			mu.Lock()
-			defer mu.Unlock()
-			currentTime++ // Normal time progression
-			return currentTime
-		}
+	// Simulate large clock drift backward (6 seconds)
+	mu.Lock()
+	currentTime -= 6000
+	mu.Unlock()
 
-		gen, err := NewSnowflakeGenerator(
-			WithNodeID(1),
-			WithTimeFunc(timeFunc),
-		)
-		if err != nil {
-			t.Fatalf("failed to create generator: %v", err)
-		}
+	// Should return error for large clock drift
+	_, err = gen.GenerateInt64()
+	if err != ErrClockMovedBackward {
+		t.Errorf("expected ErrClockMovedBackward, got %v", err)
+	}
+}
 
-		// Generate multiple IDs
-		const numIDs = 100
-		ids := make(map[int64]bool)
+func testNoClockDrift(t *testing.T) {
+	// Test normal operation without clock drift
+	var currentTime int64 = 1704067200000
+	var mu sync.Mutex
 
-		for i := 0; i < numIDs; i++ {
-			id, err := gen.GenerateInt64()
-			if err != nil {
-				t.Fatalf("failed to generate ID: %v", err)
-			}
-			if id == 0 {
-				t.Error("expected non-zero ID")
-			}
-			if ids[id] {
-				t.Errorf("duplicate ID: %d", id)
-			}
-			ids[id] = true
-		}
-
-		if len(ids) != numIDs {
-			t.Errorf("expected %d unique IDs, got %d", numIDs, len(ids))
-		}
-	})
-
-	t.Run("SequenceOverflow", func(t *testing.T) {
-		// Test that sequence overflow waits for next millisecond
-		var currentTime int64 = 1704067200000
-		var mu sync.Mutex
-		var overflowDetected bool
-
-		timeFunc := func() int64 {
-			mu.Lock()
-			defer mu.Unlock()
-			// After sequence overflow is detected, advance time
-			if overflowDetected {
-				currentTime++
-			}
-			return currentTime
-		}
-
-		gen, err := NewSnowflakeGenerator(
-			WithNodeID(1),
-			WithTimeFunc(timeFunc),
-		)
-		if err != nil {
-			t.Fatalf("failed to create generator: %v", err)
-		}
-
-		// Generate IDs until sequence overflows (4096 IDs in same millisecond)
-		for i := 0; i <= snowflakeMaxSeq; i++ {
-			_, err := gen.GenerateInt64()
-			if err != nil {
-				t.Fatalf("failed to generate ID: %v", err)
-			}
-		}
-
-		// Mark overflow as detected so time can advance
+	timeFunc := func() int64 {
 		mu.Lock()
-		overflowDetected = true
-		mu.Unlock()
+		defer mu.Unlock()
+		currentTime++ // Normal time progression
+		return currentTime
+	}
 
-		// Next ID should be generated successfully after time advances
+	gen, err := NewSnowflakeGenerator(
+		WithNodeID(1),
+		WithTimeFunc(timeFunc),
+	)
+	if err != nil {
+		t.Fatalf("failed to create generator: %v", err)
+	}
+
+	// Generate multiple IDs
+	const numIDs = 100
+	ids := make(map[int64]bool)
+
+	for i := 0; i < numIDs; i++ {
 		id, err := gen.GenerateInt64()
 		if err != nil {
-			t.Fatalf("failed to generate ID after overflow: %v", err)
+			t.Fatalf("failed to generate ID: %v", err)
 		}
 		if id == 0 {
-			t.Error("expected non-zero ID after sequence overflow")
+			t.Error("expected non-zero ID")
 		}
-
-		parsed := ParseSnowflake(id)
-		if parsed.Sequence != 0 {
-			t.Errorf("expected sequence to reset after overflow, got %d", parsed.Sequence)
+		if ids[id] {
+			t.Errorf("duplicate ID: %d", id)
 		}
-	})
+		ids[id] = true
+	}
 
-	t.Run("ClockForwardProgress", func(t *testing.T) {
-		// Test that time moving forward works correctly
-		var currentTime int64 = 1704067200000
-		var mu sync.Mutex
+	if len(ids) != numIDs {
+		t.Errorf("expected %d unique IDs, got %d", numIDs, len(ids))
+	}
+}
 
-		timeFunc := func() int64 {
-			mu.Lock()
-			defer mu.Unlock()
-			return currentTime
-		}
+func testSequenceOverflow(t *testing.T) {
+	// Test that sequence overflow waits for next millisecond
+	var currentTime int64 = 1704067200000
+	var mu sync.Mutex
+	var overflowDetected bool
 
-		gen, err := NewSnowflakeGenerator(
-			WithNodeID(1),
-			WithTimeFunc(timeFunc),
-		)
-		if err != nil {
-			t.Fatalf("failed to create generator: %v", err)
-		}
-
-		// Generate first ID
-		id1, err := gen.GenerateInt64()
-		if err != nil {
-			t.Fatalf("failed to generate first ID: %v", err)
-		}
-		parsed1 := ParseSnowflake(id1)
-
-		// Move time forward
+	timeFunc := func() int64 {
 		mu.Lock()
-		currentTime += 1000 // 1 second forward
-		mu.Unlock()
+		defer mu.Unlock()
+		// After sequence overflow is detected, advance time
+		if overflowDetected {
+			currentTime++
+		}
+		return currentTime
+	}
 
-		// Generate second ID
-		id2, err := gen.GenerateInt64()
+	gen, err := NewSnowflakeGenerator(
+		WithNodeID(1),
+		WithTimeFunc(timeFunc),
+	)
+	if err != nil {
+		t.Fatalf("failed to create generator: %v", err)
+	}
+
+	// Generate IDs until sequence overflows (4096 IDs in same millisecond)
+	for i := 0; i <= snowflakeMaxSeq; i++ {
+		_, err := gen.GenerateInt64()
 		if err != nil {
-			t.Fatalf("failed to generate second ID: %v", err)
+			t.Fatalf("failed to generate ID: %v", err)
 		}
-		parsed2 := ParseSnowflake(id2)
+	}
 
-		// Second ID timestamp should be greater
-		if parsed2.Timestamp <= parsed1.Timestamp {
-			t.Errorf("expected timestamp to increase, got %d <= %d", parsed2.Timestamp, parsed1.Timestamp)
-		}
+	// Mark overflow as detected so time can advance
+	mu.Lock()
+	overflowDetected = true
+	mu.Unlock()
 
-		// Sequence should be reset
-		if parsed2.Sequence != 0 {
-			t.Errorf("expected sequence to reset to 0, got %d", parsed2.Sequence)
-		}
-	})
+	// Next ID should be generated successfully after time advances
+	id, err := gen.GenerateInt64()
+	if err != nil {
+		t.Fatalf("failed to generate ID after overflow: %v", err)
+	}
+	if id == 0 {
+		t.Error("expected non-zero ID after sequence overflow")
+	}
 
-	t.Run("ConcurrentGeneration", func(t *testing.T) {
-		// Test concurrent ID generation without clock drift
-		gen, err := NewSnowflakeGenerator(WithNodeID(1))
-		if err != nil {
-			t.Fatalf("failed to create generator: %v", err)
-		}
+	parsed := ParseSnowflake(id)
+	if parsed.Sequence != 0 {
+		t.Errorf("expected sequence to reset after overflow, got %d", parsed.Sequence)
+	}
+}
 
-		const numGoroutines = 10
-		const numIDsPerGoroutine = 100
+func testClockForwardProgress(t *testing.T) {
+	// Test that time moving forward works correctly
+	var currentTime int64 = 1704067200000
+	var mu sync.Mutex
 
-		var wg sync.WaitGroup
-		idMap := sync.Map{}
+	timeFunc := func() int64 {
+		mu.Lock()
+		defer mu.Unlock()
+		return currentTime
+	}
 
-		wg.Add(numGoroutines)
-		for i := 0; i < numGoroutines; i++ {
-			go func() {
-				defer wg.Done()
-				for j := 0; j < numIDsPerGoroutine; j++ {
-					id, err := gen.GenerateInt64()
-					if err != nil {
-						t.Errorf("failed to generate ID: %v", err)
-						return
-					}
-					if id == 0 {
-						t.Error("expected non-zero ID")
-					}
-					// Check for duplicates
-					if _, exists := idMap.LoadOrStore(id, true); exists {
-						t.Errorf("duplicate ID detected: %d", id)
-					}
+	gen, err := NewSnowflakeGenerator(
+		WithNodeID(1),
+		WithTimeFunc(timeFunc),
+	)
+	if err != nil {
+		t.Fatalf("failed to create generator: %v", err)
+	}
+
+	// Generate first ID
+	id1, err := gen.GenerateInt64()
+	if err != nil {
+		t.Fatalf("failed to generate first ID: %v", err)
+	}
+	parsed1 := ParseSnowflake(id1)
+
+	// Move time forward
+	mu.Lock()
+	currentTime += 1000 // 1 second forward
+	mu.Unlock()
+
+	// Generate second ID
+	id2, err := gen.GenerateInt64()
+	if err != nil {
+		t.Fatalf("failed to generate second ID: %v", err)
+	}
+	parsed2 := ParseSnowflake(id2)
+
+	// Second ID timestamp should be greater
+	if parsed2.Timestamp <= parsed1.Timestamp {
+		t.Errorf("expected timestamp to increase, got %d <= %d", parsed2.Timestamp, parsed1.Timestamp)
+	}
+
+	// Sequence should be reset
+	if parsed2.Sequence != 0 {
+		t.Errorf("expected sequence to reset to 0, got %d", parsed2.Sequence)
+	}
+}
+
+func testConcurrentGeneration(t *testing.T) {
+	// Test concurrent ID generation without clock drift
+	gen, err := NewSnowflakeGenerator(WithNodeID(1))
+	if err != nil {
+		t.Fatalf("failed to create generator: %v", err)
+	}
+
+	const numGoroutines = 10
+	const numIDsPerGoroutine = 100
+
+	var wg sync.WaitGroup
+	idMap := sync.Map{}
+
+	wg.Add(numGoroutines)
+	for i := 0; i < numGoroutines; i++ {
+		go func() {
+			defer wg.Done()
+			for j := 0; j < numIDsPerGoroutine; j++ {
+				id, err := gen.GenerateInt64()
+				if err != nil {
+					t.Errorf("failed to generate ID: %v", err)
+					return
 				}
-			}()
-		}
+				if id == 0 {
+					t.Error("expected non-zero ID")
+				}
+				// Check for duplicates
+				if _, exists := idMap.LoadOrStore(id, true); exists {
+					t.Errorf("duplicate ID detected: %d", id)
+				}
+			}
+		}()
+	}
 
-		wg.Wait()
-	})
+	wg.Wait()
 }
 
 // BenchmarkSnowflakeNormal benchmarks normal ID generation without clock drift.

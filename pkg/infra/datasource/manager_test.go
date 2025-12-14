@@ -39,11 +39,30 @@ func TestRegisterMySQL(t *testing.T) {
 	}
 }
 
+const (
+	primaryCluster = "primary"
+)
+
+func TestDataSourceManager_Register(t *testing.T) {
+	mgr := NewManager()
+
+	// Register MySQL
+	mysqlOpts := mysql.NewOptions()
+	mysqlOpts.Host = defaultHost
+	mysqlOpts.Database = "db1"
+
+	err := mgr.RegisterMySQL(primaryCluster, mysqlOpts)
+	if err != nil {
+		t.Fatalf("RegisterMySQL failed: %v", err)
+	}
+}
+
+// TestRegisterRedis tests Redis registration.
 func TestRegisterRedis(t *testing.T) {
 	mgr := NewManager()
 
 	opts := redisOpts.NewOptions()
-	opts.Host = "localhost"
+	opts.Host = defaultHost
 
 	err := mgr.RegisterRedis("cache", opts)
 	if err != nil {

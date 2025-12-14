@@ -14,7 +14,7 @@ var (
 	// - The client was never initialized
 	// - The connection was explicitly closed
 	// - The connection was lost and not re-established
-	ErrNotConnected = &StorageError{
+	ErrNotConnected = &Error{
 		Code:    "NOT_CONNECTED",
 		Message: "storage client is not connected",
 	}
@@ -25,7 +25,7 @@ var (
 	// - Authentication failures (invalid credentials)
 	// - Configuration errors (wrong port, invalid TLS settings)
 	// - Backend unavailability (service down, maintenance mode)
-	ErrConnectionFailed = &StorageError{
+	ErrConnectionFailed = &Error{
 		Code:    "CONNECTION_FAILED",
 		Message: "failed to connect to storage backend",
 	}
@@ -36,7 +36,7 @@ var (
 	// - Backend is overloaded and slow to respond
 	// - Large data sets cause long processing times
 	// - Context deadline was too aggressive
-	ErrTimeout = &StorageError{
+	ErrTimeout = &Error{
 		Code:    "TIMEOUT",
 		Message: "storage operation timed out",
 	}
@@ -47,7 +47,7 @@ var (
 	// - Missing required fields (e.g., address, credentials)
 	// - Invalid field values (e.g., negative timeout, invalid port)
 	// - Incompatible field combinations
-	ErrInvalidConfig = &StorageError{
+	ErrInvalidConfig = &Error{
 		Code:    "INVALID_CONFIG",
 		Message: "invalid storage configuration",
 	}
@@ -57,30 +57,29 @@ var (
 	// - Attempting to get a client that was never registered
 	// - Using an incorrect client name
 	// - The client was unregistered
-	ErrClientNotFound = &StorageError{
+	ErrClientNotFound = &Error{
 		Code:    "CLIENT_NOT_FOUND",
 		Message: "storage client not found",
 	}
 
 	// ErrClientAlreadyExists indicates that a client with the same name
 	// is already registered in the storage manager.
-	ErrClientAlreadyExists = &StorageError{
+	ErrClientAlreadyExists = &Error{
 		Code:    "CLIENT_ALREADY_EXISTS",
 		Message: "storage client already exists",
 	}
 
 	// ErrOperationFailed indicates that a storage operation failed.
 	// This is a generic error that should be wrapped with specific details.
-	ErrOperationFailed = &StorageError{
+	ErrOperationFailed = &Error{
 		Code:    "OPERATION_FAILED",
 		Message: "storage operation failed",
 	}
 )
 
-// StorageError represents a storage-related error with a code and message.
-// It implements the error interface and provides methods for error wrapping
-// and context enrichment.
-type StorageError struct {
+// Error represents a storage-related error with a code and message.
+// It implements the error interface and provides methods for error wrapping and context enrichment.
+type Error struct {
 	// Code is a machine-readable error code (e.g., "NOT_CONNECTED")
 	Code string
 
@@ -97,7 +96,7 @@ type StorageError struct {
 // Error implements the error interface.
 // It returns a formatted error message that includes the code, message,
 // and cause (if present).
-func (e *StorageError) Error() string {
+func (e *Error) Error() string {
 	if e.Cause != nil {
 		return fmt.Sprintf("[%s] %s: %v", e.Code, e.Message, e.Cause)
 	}
@@ -106,14 +105,14 @@ func (e *StorageError) Error() string {
 
 // Unwrap returns the underlying cause error.
 // This allows the error to work with errors.Is() and errors.As().
-func (e *StorageError) Unwrap() error {
+func (e *Error) Unwrap() error {
 	return e.Cause
 }
 
 // Is checks if this error matches the target error.
 // This enables the use of errors.Is() for error comparison.
-func (e *StorageError) Is(target error) bool {
-	t, ok := target.(*StorageError)
+func (e *Error) Is(target error) bool {
+	t, ok := target.(*Error)
 	if !ok {
 		return false
 	}
@@ -127,8 +126,8 @@ func (e *StorageError) Is(target error) bool {
 // Example usage:
 //
 //	err := storage.ErrConnectionFailed.WithMessage("failed to connect to Redis at localhost:6379")
-func (e *StorageError) WithMessage(msg string) *StorageError {
-	return &StorageError{
+func (e *Error) WithMessage(msg string) *Error {
+	return &Error{
 		Code:    e.Code,
 		Message: msg,
 		Cause:   e.Cause,
@@ -143,8 +142,8 @@ func (e *StorageError) WithMessage(msg string) *StorageError {
 // Example usage:
 //
 //	err := storage.ErrConnectionFailed.WithCause(netErr)
-func (e *StorageError) WithCause(cause error) *StorageError {
-	return &StorageError{
+func (e *Error) WithCause(cause error) *Error {
+	return &Error{
 		Code:    e.Code,
 		Message: e.Message,
 		Cause:   cause,
@@ -162,7 +161,7 @@ func (e *StorageError) WithCause(cause error) *StorageError {
 //	    "key": "user:123",
 //	    "timeout": "5s",
 //	})
-func (e *StorageError) WithContext(ctx map[string]interface{}) *StorageError {
+func (e *Error) WithContext(ctx map[string]interface{}) *Error {
 	newContext := make(map[string]interface{}, len(e.Context)+len(ctx))
 	for k, v := range e.Context {
 		newContext[k] = v
@@ -171,7 +170,7 @@ func (e *StorageError) WithContext(ctx map[string]interface{}) *StorageError {
 		newContext[k] = v
 	}
 
-	return &StorageError{
+	return &Error{
 		Code:    e.Code,
 		Message: e.Message,
 		Cause:   e.Cause,
@@ -181,7 +180,7 @@ func (e *StorageError) WithContext(ctx map[string]interface{}) *StorageError {
 
 // GetContext retrieves a context value by key.
 // Returns the value and true if found, nil and false otherwise.
-func (e *StorageError) GetContext(key string) (interface{}, bool) {
+func (e *Error) GetContext(key string) (interface{}, bool) {
 	if e.Context == nil {
 		return nil, false
 	}
@@ -189,17 +188,17 @@ func (e *StorageError) GetContext(key string) (interface{}, bool) {
 	return val, ok
 }
 
-// IsStorageError checks if an error is a StorageError.
+// IsError checks if an error is a StorageError.
 // This is a convenience function for type assertions.
-func IsStorageError(err error) bool {
-	var storageErr *StorageError
+func IsError(err error) bool {
+	var storageErr *Error
 	return errors.As(err, &storageErr)
 }
 
-// GetStorageError extracts a StorageError from an error chain.
+// GetError extracts a StorageError from an error chain.
 // Returns the StorageError and true if found, nil and false otherwise.
-func GetStorageError(err error) (*StorageError, bool) {
-	var storageErr *StorageError
+func GetError(err error) (*Error, bool) {
+	var storageErr *Error
 	if errors.As(err, &storageErr) {
 		return storageErr, true
 	}

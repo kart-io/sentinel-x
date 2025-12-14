@@ -20,7 +20,7 @@ type UserStore interface {
 	Update(ctx context.Context, user *model.User) error
 	Delete(ctx context.Context, username string) error
 	Get(ctx context.Context, username string) (*model.User, error)
-	GetByUserId(ctx context.Context, userId uint64) (*model.User, error)
+	GetByUserID(ctx context.Context, userID uint64) (*model.User, error)
 	List(ctx context.Context, opts ...store.Option) (int64, []*model.User, error)
 }
 

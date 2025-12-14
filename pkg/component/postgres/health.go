@@ -15,7 +15,7 @@ func (c *Client) CheckHealth(ctx context.Context) error {
 	}
 
 	// Get the underlying sql.DB
-	sqlDB, err := c.SqlDB()
+	sqlDB, err := c.SQLDB()
 	if err != nil {
 		return fmt.Errorf("failed to get sql.DB: %w", err)
 	}
@@ -44,7 +44,7 @@ func (c *Client) Stats() (sql.DBStats, error) {
 		return sql.DBStats{}, fmt.Errorf("postgres client is nil")
 	}
 
-	sqlDB, err := c.SqlDB()
+	sqlDB, err := c.SQLDB()
 	if err != nil {
 		return sql.DBStats{}, fmt.Errorf("failed to get sql.DB: %w", err)
 	}

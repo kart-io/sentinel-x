@@ -25,17 +25,17 @@ func InitGlobal() error {
 // GlobalConfig 全局池配置
 type GlobalConfig struct {
 	// DefaultPool 默认池配置
-	DefaultPool *PoolConfig
+	DefaultPool *Config
 	// HealthCheckPool 健康检查池配置
-	HealthCheckPool *PoolConfig
+	HealthCheckPool *Config
 	// BackgroundPool 后台任务池配置
-	BackgroundPool *PoolConfig
+	BackgroundPool *Config
 	// CallbackPool 回调执行池配置
-	CallbackPool *PoolConfig
+	CallbackPool *Config
 	// TimeoutPool 超时中间件池配置
-	TimeoutPool *PoolConfig
+	TimeoutPool *Config
 	// CustomPools 自定义池配置
-	CustomPools map[string]*PoolConfig
+	CustomPools map[string]*Config
 }
 
 // DefaultGlobalConfig 返回默认全局配置
@@ -46,7 +46,7 @@ func DefaultGlobalConfig() *GlobalConfig {
 		BackgroundPool:  BackgroundPoolConfig(),
 		CallbackPool:    CallbackPoolConfig(),
 		TimeoutPool:     TimeoutPoolConfig(),
-		CustomPools:     make(map[string]*PoolConfig),
+		CustomPools:     make(map[string]*Config),
 	}
 }
 
@@ -66,7 +66,7 @@ func InitGlobalWithConfig(config *GlobalConfig) error {
 	manager := NewManager()
 
 	// 注册标准池
-	pools := map[PoolType]*PoolConfig{
+	pools := map[Type]*Config{
 		DefaultPool:     config.DefaultPool,
 		HealthCheckPool: config.HealthCheckPool,
 		BackgroundPool:  config.BackgroundPool,
@@ -87,7 +87,9 @@ func InitGlobalWithConfig(config *GlobalConfig) error {
 
 	// 注册自定义池
 	for name, poolConfig := range config.CustomPools {
-		if err := manager.Register(name, poolConfig); err != nil {
+		// Custom pools default to DefaultPool type for now if not specified,
+		// but since Register required a type, we use DefaultPool.
+		if err := manager.Register(name, DefaultPool, poolConfig); err != nil {
 			manager.ReleaseAll()
 			return err
 		}
@@ -198,7 +200,7 @@ func SubmitTo(poolName string, task func()) error {
 }
 
 // SubmitToType 提交任务到指定类型的池
-func SubmitToType(poolType PoolType, task func()) error {
+func SubmitToType(poolType Type, task func()) error {
 	return SubmitTo(string(poolType), task)
 }
 
@@ -220,6 +222,15 @@ func SubmitToWithContext(ctx context.Context, poolName string, task func()) erro
 	return mgr.SubmitWithContext(ctx, poolName, task)
 }
 
+// Register registers a new pool with the global manager.
+func Register(name string, typ Type, config *Config) error {
+	mgr := GetGlobal()
+	if mgr == nil {
+		return ErrManagerNotInitialized
+	}
+	return mgr.Register(name, typ, config)
+}
+
 // Get 获取指定名称的池
 func Get(name string) (*Pool, error) {
 	mgr := GetGlobal()
@@ -230,7 +241,7 @@ func Get(name string) (*Pool, error) {
 }
 
 // GetByType 获取指定类型的池
-func GetByType(poolType PoolType) (*Pool, error) {
+func GetByType(poolType Type) (*Pool, error) {
 	return Get(string(poolType))
 }
 
@@ -243,8 +254,8 @@ func MustGet(name string) *Pool {
 	return pool
 }
 
-// Stats 获取所有池的统计信息
-func Stats() map[string]PoolInfo {
+// StatsGlobal returns statistics for all pools.
+func StatsGlobal() map[string]Info {
 	mgr := GetGlobal()
 	if mgr == nil {
 		return nil

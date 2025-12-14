@@ -303,7 +303,7 @@ func (m *MetricsCollector) GetRequestCount(method, path string, status int) uint
 
 // SetResponseStatus sets the response status for metrics recording.
 // Call this from your handler if you want accurate status code tracking.
-func SetResponseStatus(c transport.Context, status int) {
+func SetResponseStatus(_ transport.Context, status int) {
 	// This is a helper for frameworks where we can't easily wrap the response writer
 	_ = status // Status is tracked by the framework's response writer
 }

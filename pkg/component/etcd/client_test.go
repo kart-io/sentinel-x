@@ -7,13 +7,13 @@ import (
 )
 
 // TestClientImplementsStorageInterface verifies that Client implements storage.Client
-func TestClientImplementsStorageInterface(t *testing.T) {
+func TestClientImplementsStorageInterface(_ *testing.T) {
 	// This is a compile-time check
 	var _ storage.Client = (*Client)(nil)
 }
 
 // TestFactoryImplementsStorageFactory verifies that Factory implements storage.Factory
-func TestFactoryImplementsStorageFactory(t *testing.T) {
+func TestFactoryImplementsStorageFactory(_ *testing.T) {
 	// This is a compile-time check
 	var _ storage.Factory = (*Factory)(nil)
 }

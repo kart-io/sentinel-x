@@ -1,3 +1,4 @@
+// Package redis provides Redis configuration options.
 package redis
 
 import (

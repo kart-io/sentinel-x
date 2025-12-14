@@ -1,3 +1,4 @@
+// Package redis provides Redis storage for Casbin.
 package redis
 
 import (
@@ -9,8 +10,10 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+// KeyPrefix is the prefix for Redis keys.
 const KeyPrefix = "casbin:rules"
 
+// Repository implements the Casbin repository interface.
 type Repository struct {
 	client *redis.Client
 	key    string
@@ -28,6 +31,7 @@ func NewRepository(client *redis.Client, key ...string) *Repository {
 	}
 }
 
+// LoadPolicies loads all policies from Redis.
 func (r *Repository) LoadPolicies(ctx context.Context) ([]*casbin.Policy, error) {
 	val, err := r.client.LRange(ctx, r.key, 0, -1).Result()
 	if err != nil {
@@ -45,6 +49,7 @@ func (r *Repository) LoadPolicies(ctx context.Context) ([]*casbin.Policy, error)
 	return policies, nil
 }
 
+// SavePolicies saves policies to Redis.
 func (r *Repository) SavePolicies(ctx context.Context, policies []*casbin.Policy) error {
 	pipe := r.client.Pipeline()
 	pipe.Del(ctx, r.key)
@@ -65,6 +70,7 @@ func (r *Repository) SavePolicies(ctx context.Context, policies []*casbin.Policy
 	return err
 }
 
+// AddPolicy adds a policy to Redis.
 func (r *Repository) AddPolicy(ctx context.Context, policy *casbin.Policy) error {
 	b, err := json.Marshal(policy)
 	if err != nil {
@@ -73,6 +79,7 @@ func (r *Repository) AddPolicy(ctx context.Context, policy *casbin.Policy) error
 	return r.client.RPush(ctx, r.key, string(b)).Err()
 }
 
+// RemovePolicy removes a policy from Redis.
 func (r *Repository) RemovePolicy(ctx context.Context, policy *casbin.Policy) error {
 	b, err := json.Marshal(policy)
 	if err != nil {
@@ -83,6 +90,7 @@ func (r *Repository) RemovePolicy(ctx context.Context, policy *casbin.Policy) er
 	return r.client.LRem(ctx, r.key, 0, string(b)).Err()
 }
 
+// RemoveFilteredPolicy removes policies based on the given parameters.
 func (r *Repository) RemoveFilteredPolicy(ctx context.Context, ptype string, fieldIndex int, fieldValues ...string) error {
 	// Redis doesn't support filtering list elements by content pattern efficiently.
 	// We must load all, filter, and save back.

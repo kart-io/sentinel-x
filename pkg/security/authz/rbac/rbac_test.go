@@ -8,13 +8,19 @@ import (
 	"github.com/kart-io/sentinel-x/pkg/security/authz"
 )
 
+const (
+	adminRole  = "admin"
+	testUser   = "user-123"
+	viewerRole = "viewer"
+)
+
 // TestRBACAuthorize tests basic authorization flow.
 func TestRBACAuthorize(t *testing.T) {
 	rbac := New()
 	ctx := context.Background()
 
 	// Add role with permissions
-	err := rbac.AddRole("admin", authz.Permission{
+	err := rbac.AddRole(adminRole, authz.Permission{
 		Resource: "*",
 		Action:   "*",
 		Effect:   authz.EffectAllow,
@@ -24,7 +30,7 @@ func TestRBACAuthorize(t *testing.T) {
 	}
 
 	// Assign role to user
-	err = rbac.AssignRole("user-123", "admin")
+	err = rbac.AssignRole(testUser, adminRole)
 	if err != nil {
 		t.Fatalf("AssignRole error: %v", err)
 	}
@@ -73,7 +79,7 @@ func TestRBACRoleHierarchy(t *testing.T) {
 	ctx := context.Background()
 
 	// Create role hierarchy: manager -> employee -> viewer
-	err := rbac.AddRole("viewer", authz.NewPermission("posts", "read"))
+	err := rbac.AddRole(viewerRole, authz.NewPermission("posts", "read"))
 	if err != nil {
 		t.Fatalf("AddRole viewer error: %v", err)
 	}
@@ -302,7 +308,7 @@ func TestRBACRoleManagement(t *testing.T) {
 	}
 
 	// Test AddRole
-	err = rbac.AddRole("viewer", authz.NewPermission("posts", "read"))
+	err = rbac.AddRole(viewerRole, authz.NewPermission("posts", "read"))
 	if err != nil {
 		t.Fatalf("AddRole error: %v", err)
 	}
@@ -324,7 +330,7 @@ func TestRBACRoleManagement(t *testing.T) {
 
 	// Test ListRoles
 	roles := rbac.ListRoles()
-	if len(roles) != 1 || roles[0] != "viewer" {
+	if len(roles) != 1 || roles[0] != viewerRole {
 		t.Errorf("ListRoles = %v, expected [viewer]", roles)
 	}
 
@@ -345,7 +351,7 @@ func TestRBACRoleAssignment(t *testing.T) {
 	rbac := New()
 
 	// Create a role first
-	err := rbac.AddRole("viewer", authz.NewPermission("posts", "read"))
+	err := rbac.AddRole(viewerRole, authz.NewPermission("posts", "read"))
 	if err != nil {
 		t.Fatalf("AddRole error: %v", err)
 	}
@@ -388,7 +394,7 @@ func TestRBACRoleAssignment(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetRoles error: %v", err)
 	}
-	if len(roles) != 1 || roles[0] != "viewer" {
+	if len(roles) != 1 || roles[0] != viewerRole {
 		t.Errorf("GetRoles = %v, expected [viewer]", roles)
 	}
 
@@ -784,7 +790,7 @@ func TestAuditLoggerAddRole(t *testing.T) {
 	rbac := New(WithAuditLogger(mock))
 
 	perm := authz.NewPermission("posts", "read")
-	err := rbac.AddRole("viewer", perm)
+	err := rbac.AddRole(viewerRole, perm)
 	if err != nil {
 		t.Fatalf("AddRole error: %v", err)
 	}
@@ -812,7 +818,7 @@ func TestAuditLoggerRemoveRole(t *testing.T) {
 	rbac := New(WithAuditLogger(mock))
 
 	perm := authz.NewPermission("posts", "read")
-	_ = rbac.AddRole("viewer", perm)
+	_ = rbac.AddRole(viewerRole, perm)
 
 	mock.Reset()
 
@@ -1016,7 +1022,7 @@ func TestAuditLoggerConcurrentOperations(t *testing.T) {
 }
 
 // TestDefaultAuditLogger tests the default audit logger implementation.
-func TestDefaultAuditLogger(t *testing.T) {
+func TestDefaultAuditLogger(_ *testing.T) {
 	logger := &defaultAuditLogger{}
 
 	// This should not panic

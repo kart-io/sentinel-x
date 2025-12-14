@@ -167,7 +167,7 @@ func (s *GRPCServiceExample) CreateOrder(ctx context.Context, req *CreateOrderGR
 
 // GetOrder handles gRPC order retrieval request.
 func (s *GRPCServiceExample) GetOrder(ctx context.Context, req *GetOrderGRPCRequest) (*OrderGRPCResponse, error) {
-	order, err := findOrderGRPC(ctx, req.OrderId)
+	order, err := findOrderGRPC(ctx, req.OrderID)
 	if err != nil {
 		if errors.IsCode(err, ErrOrderNotFound.Code) {
 			return nil, ErrnoToGRPCStatus(ErrOrderNotFound)
@@ -298,21 +298,21 @@ type CreateOrderGRPCRequest struct {
 }
 
 type GetOrderGRPCRequest struct {
-	OrderId string
+	OrderID string
 }
 
 type OrderGRPCResponse struct{}
 
-func processOrder(req CreateOrderRequest) (*Order, error) { return nil, nil }
-func findOrder(id string) (*Order, error)                 { return nil, nil }
-func processPayment(order *Order) error                   { return nil }
-func processOrderGRPC(ctx context.Context, req *CreateOrderGRPCRequest) (*OrderGRPCResponse, error) {
+func processOrder(_ CreateOrderRequest) (*Order, error) { return nil, nil }
+func findOrder(_ string) (*Order, error)                { return nil, nil }
+func processPayment(_ *Order) error                     { return nil }
+func processOrderGRPC(_ context.Context, _ *CreateOrderGRPCRequest) (*OrderGRPCResponse, error) {
 	return nil, nil
 }
-func findOrderGRPC(ctx context.Context, id string) (*OrderGRPCResponse, error) { return nil, nil }
-func someOperation() error                                                     { return nil }
-func fetchData() (interface{}, error)                                          { return nil, nil }
-func someDBError() error                                                       { return nil }
+func findOrderGRPC(_ context.Context, _ string) (*OrderGRPCResponse, error) { return nil, nil }
+func someOperation() error                                                  { return nil }
+func fetchData() (interface{}, error)                                       { return nil, nil }
+func someDBError() error                                                    { return nil }
 
 // 以下 init 函数用于消除 unused linter 警告
 // 这些示例函数仅用于文档目的

@@ -6,6 +6,7 @@ import (
 
 	"github.com/kart-io/sentinel-x/internal/bootstrap"
 	"github.com/kart-io/sentinel-x/internal/user-center/router"
+	// Register adapters
 	_ "github.com/kart-io/sentinel-x/pkg/infra/adapter/echo"
 	_ "github.com/kart-io/sentinel-x/pkg/infra/adapter/gin"
 	"github.com/kart-io/sentinel-x/pkg/infra/app"
@@ -41,7 +42,7 @@ func NewApp() *app.App {
 func Run(opts *Options) error {
 	printBanner(opts)
 
-	bootstrapOpts := &bootstrap.BootstrapOptions{
+	bootstrapOpts := &bootstrap.Options{
 		AppName:      appName,
 		AppVersion:   app.GetVersion(),
 		ServerMode:   opts.Server.Mode.String(),
@@ -56,7 +57,7 @@ func Run(opts *Options) error {
 	return bootstrap.Run(bootstrapOpts)
 }
 
-func printBanner(opts *Options) {
+func printBanner(_ *Options) {
 	fmt.Printf("Starting %s...\n", appName)
 	// Simplified banner for now
 }

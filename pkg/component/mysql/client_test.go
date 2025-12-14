@@ -6,11 +6,17 @@ import (
 	"time"
 )
 
+const (
+	defaultHost = "localhost"
+	testDB      = "testdb"
+	rootUser    = "root"
+)
+
 // TestNew tests the client creation with valid options.
 func TestNew(t *testing.T) {
 	opts := NewOptions()
-	opts.Host = "localhost"
-	opts.Database = "testdb"
+	opts.Host = defaultHost
+	opts.Database = testDB
 
 	// Note: This test will fail if MySQL is not running
 	// In CI/CD, you should use a MySQL container or mock
@@ -36,8 +42,8 @@ func TestNewWithInvalidOptions(t *testing.T) {
 			name: "empty host",
 			opts: &Options{
 				Host:     "",
-				Database: "testdb",
-				Username: "root",
+				Database: testDB,
+				Username: rootUser,
 				Port:     3306,
 			},
 			wantErr: true,
@@ -45,9 +51,9 @@ func TestNewWithInvalidOptions(t *testing.T) {
 		{
 			name: "empty database",
 			opts: &Options{
-				Host:     "localhost",
+				Host:     defaultHost,
 				Database: "",
-				Username: "root",
+				Username: rootUser,
 				Port:     3306,
 			},
 			wantErr: true,
@@ -55,8 +61,8 @@ func TestNewWithInvalidOptions(t *testing.T) {
 		{
 			name: "empty username",
 			opts: &Options{
-				Host:     "localhost",
-				Database: "testdb",
+				Host:     defaultHost,
+				Database: testDB,
 				Username: "",
 				Port:     3306,
 			},
@@ -65,9 +71,9 @@ func TestNewWithInvalidOptions(t *testing.T) {
 		{
 			name: "invalid port",
 			opts: &Options{
-				Host:     "localhost",
-				Database: "testdb",
-				Username: "root",
+				Host:     defaultHost,
+				Database: testDB,
+				Username: rootUser,
 				Port:     0,
 			},
 			wantErr: true,
@@ -94,10 +100,10 @@ func TestValidateOptions(t *testing.T) {
 		{
 			name: "valid options",
 			opts: &Options{
-				Host:     "localhost",
+				Host:     defaultHost,
 				Port:     3306,
-				Username: "root",
-				Database: "testdb",
+				Username: rootUser,
+				Database: testDB,
 			},
 			wantErr: false,
 		},
@@ -106,17 +112,17 @@ func TestValidateOptions(t *testing.T) {
 			opts: &Options{
 				Host:     "",
 				Port:     3306,
-				Username: "root",
-				Database: "testdb",
+				Username: rootUser,
+				Database: testDB,
 			},
 			wantErr: true,
 		},
 		{
 			name: "empty database",
 			opts: &Options{
-				Host:     "localhost",
+				Host:     defaultHost,
 				Port:     3306,
-				Username: "root",
+				Username: rootUser,
 				Database: "",
 			},
 			wantErr: true,
@@ -124,20 +130,20 @@ func TestValidateOptions(t *testing.T) {
 		{
 			name: "invalid port - too low",
 			opts: &Options{
-				Host:     "localhost",
+				Host:     defaultHost,
 				Port:     0,
-				Username: "root",
-				Database: "testdb",
+				Username: rootUser,
+				Database: testDB,
 			},
 			wantErr: true,
 		},
 		{
 			name: "invalid port - too high",
 			opts: &Options{
-				Host:     "localhost",
+				Host:     defaultHost,
 				Port:     65536,
-				Username: "root",
-				Database: "testdb",
+				Username: rootUser,
+				Database: testDB,
 			},
 			wantErr: true,
 		},
@@ -165,8 +171,8 @@ func TestClientName(t *testing.T) {
 // TestFactory tests the factory pattern.
 func TestFactory(t *testing.T) {
 	opts := NewOptions()
-	opts.Host = "localhost"
-	opts.Database = "testdb"
+	opts.Host = defaultHost
+	opts.Database = testDB
 
 	factory := NewFactory(opts)
 	if factory == nil {
@@ -181,8 +187,8 @@ func TestFactory(t *testing.T) {
 // TestFactoryClone tests factory cloning.
 func TestFactoryClone(t *testing.T) {
 	opts := NewOptions()
-	opts.Host = "localhost"
-	opts.Database = "testdb"
+	opts.Host = defaultHost
+	opts.Database = testDB
 
 	factory := NewFactory(opts)
 	cloned := factory.Clone()
@@ -205,8 +211,8 @@ func TestFactoryClone(t *testing.T) {
 // TestNewWithContext tests client creation with context.
 func TestNewWithContext(t *testing.T) {
 	opts := NewOptions()
-	opts.Host = "localhost"
-	opts.Database = "testdb"
+	opts.Host = defaultHost
+	opts.Database = testDB
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
@@ -221,8 +227,8 @@ func TestNewWithContext(t *testing.T) {
 // TestFactoryCreate tests factory Create method.
 func TestFactoryCreate(t *testing.T) {
 	opts := NewOptions()
-	opts.Host = "localhost"
-	opts.Database = "testdb"
+	opts.Host = defaultHost
+	opts.Database = testDB
 
 	factory := NewFactory(opts)
 	ctx := context.Background()

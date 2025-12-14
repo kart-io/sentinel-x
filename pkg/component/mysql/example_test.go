@@ -9,15 +9,20 @@ import (
 	"github.com/kart-io/sentinel-x/pkg/component/mysql"
 )
 
+const (
+	defaultHost = "localhost"
+	testDB      = "testdb"
+)
+
 // Example_basicUsage demonstrates basic MySQL client creation and usage.
 func Example_basicUsage() {
 	// Create MySQL options
 	opts := mysql.NewOptions()
-	opts.Host = "localhost"
+	opts.Host = defaultHost
 	opts.Port = 3306
 	opts.Username = "root"
 	opts.Password = "password"
-	opts.Database = "testdb"
+	opts.Database = testDB
 
 	// Create client
 	client, err := mysql.New(opts)
@@ -33,8 +38,8 @@ func Example_basicUsage() {
 // Example_withContext demonstrates creating a client with context timeout.
 func Example_withContext() {
 	opts := mysql.NewOptions()
-	opts.Host = "localhost"
-	opts.Database = "testdb"
+	opts.Host = defaultHost
+	opts.Database = testDB
 
 	// Create client with 10-second timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -42,7 +47,8 @@ func Example_withContext() {
 
 	client, err := mysql.NewWithContext(ctx, opts)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("failed to check health: %v\n", err)
+		return
 	}
 	defer func() { _ = client.Close() }()
 
@@ -57,8 +63,8 @@ func Example_withContext() {
 // Example_healthCheck demonstrates health checking with the MySQL client.
 func Example_healthCheck() {
 	opts := mysql.NewOptions()
-	opts.Host = "localhost"
-	opts.Database = "testdb"
+	opts.Host = defaultHost
+	opts.Database = testDB
 
 	client, err := mysql.New(opts)
 	if err != nil {
@@ -79,8 +85,8 @@ func Example_healthCheck() {
 // Example_factory demonstrates using the Factory pattern.
 func Example_factory() {
 	opts := mysql.NewOptions()
-	opts.Host = "localhost"
-	opts.Database = "testdb"
+	opts.Host = defaultHost
+	opts.Database = testDB
 
 	// Create factory
 	factory := mysql.NewFactory(opts)
@@ -104,8 +110,8 @@ func Example_gormUsage() {
 	}
 
 	opts := mysql.NewOptions()
-	opts.Host = "localhost"
-	opts.Database = "testdb"
+	opts.Host = defaultHost
+	opts.Database = testDB
 
 	client, err := mysql.New(opts)
 	if err != nil {
@@ -132,8 +138,8 @@ func Example_gormUsage() {
 // Example_connectionPool demonstrates connection pool configuration.
 func Example_connectionPool() {
 	opts := mysql.NewOptions()
-	opts.Host = "localhost"
-	opts.Database = "testdb"
+	opts.Host = defaultHost
+	opts.Database = testDB
 
 	// Configure connection pool
 	opts.MaxIdleConnections = 10
@@ -146,10 +152,11 @@ func Example_connectionPool() {
 	}
 	defer func() { _ = client.Close() }()
 
-	// Get connection pool statistics
-	sqlDB, err := client.SqlDB()
+	// client.SQLDB() returns the underlying sql.DB
+	sqlDB, err := client.SQLDB()
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("failed to get connection: %v\n", err)
+		return
 	}
 
 	stats := sqlDB.Stats()
@@ -177,7 +184,7 @@ func Example_errorHandling() {
 func Example_multipleClients() {
 	// Create base options
 	baseOpts := mysql.NewOptions()
-	baseOpts.Host = "localhost"
+	baseOpts.Host = defaultHost
 	baseOpts.Username = "root"
 
 	// Create factory and clone for different databases

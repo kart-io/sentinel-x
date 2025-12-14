@@ -161,7 +161,7 @@ func validateConfig(config RateLimitConfig) RateLimitConfig {
 
 // extractKey extracts the rate limit key using the configured KeyFunc.
 // Falls back to RemoteAddr if the key function returns empty string.
-func extractKey(c transport.Context, keyFunc func(c transport.Context) string, config RateLimitConfig) string {
+func extractKey(c transport.Context, keyFunc func(c transport.Context) string, _ RateLimitConfig) string {
 	key := keyFunc(c)
 	if key == "" {
 		// Fallback to remote IP if key function returns empty string
@@ -369,7 +369,7 @@ func NewMemoryRateLimiter(limit int, window time.Duration) *MemoryRateLimiter {
 }
 
 // Allow 检查给定键的请求是否被允许（固定窗口计数器方案）
-func (m *MemoryRateLimiter) Allow(ctx context.Context, key string) (bool, error) {
+func (m *MemoryRateLimiter) Allow(_ context.Context, key string) (bool, error) {
 	now := time.Now()
 
 	// 获取或创建限流条目
@@ -400,7 +400,7 @@ func (m *MemoryRateLimiter) Allow(ctx context.Context, key string) (bool, error)
 }
 
 // Reset resets the rate limit counter for the given key.
-func (m *MemoryRateLimiter) Reset(ctx context.Context, key string) error {
+func (m *MemoryRateLimiter) Reset(_ context.Context, key string) error {
 	m.store.Delete(key)
 	return nil
 }

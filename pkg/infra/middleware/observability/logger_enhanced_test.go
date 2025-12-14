@@ -12,6 +12,14 @@ import (
 	loggeropts "github.com/kart-io/sentinel-x/pkg/options/logger"
 )
 
+const (
+	helloWorld      = "Hello, World!"
+	contentTypeJSON = "application/json"
+	jsonFormat      = "json"
+	localhost       = "localhost"
+	testAddr        = "127.0.0.1:12345"
+)
+
 func TestResponseWriter(t *testing.T) {
 	t.Run("captures status code", func(t *testing.T) {
 		rec := httptest.NewRecorder()
@@ -28,7 +36,7 @@ func TestResponseWriter(t *testing.T) {
 		rec := httptest.NewRecorder()
 		rw := newResponseWriter(rec, false)
 
-		data := []byte("Hello, World!")
+		data := []byte(helloWorld)
 		n, err := rw.Write(data)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -87,14 +95,14 @@ func TestEnhancedLogger(t *testing.T) {
 	// Initialize logger for testing
 	opts := applogger.NewOptions()
 	opts.Level = "DEBUG"
-	opts.Format = "json"
+	opts.Format = jsonFormat
 	if err := opts.Init(); err != nil {
 		t.Fatalf("failed to initialize logger: %v", err)
 	}
 
 	t.Run("logs request with default config", func(t *testing.T) {
 		middleware := EnhancedLogger(nil)
-		handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte("OK"))
 		}))
@@ -114,7 +122,7 @@ func TestEnhancedLogger(t *testing.T) {
 		config.SkipPaths = []string{"/health", "/metrics"}
 
 		middleware := EnhancedLogger(config)
-		handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusOK)
 		}))
 
@@ -182,7 +190,7 @@ func TestEnhancedLogger(t *testing.T) {
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
 				middleware := EnhancedLogger(nil)
-				handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 					w.WriteHeader(tt.statusCode)
 				}))
 
@@ -245,13 +253,13 @@ func BenchmarkEnhancedLogger(b *testing.B) {
 	// Initialize logger
 	opts := applogger.NewOptions()
 	opts.Level = "INFO"
-	opts.Format = "json"
+	opts.Format = jsonFormat
 	if err := opts.Init(); err != nil {
 		b.Fatalf("failed to initialize logger: %v", err)
 	}
 
 	middleware := EnhancedLogger(nil)
-	handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("OK"))
 	}))
@@ -271,7 +279,7 @@ func BenchmarkEnhancedLoggerWithBody(b *testing.B) {
 	// Initialize logger
 	opts := applogger.NewOptions()
 	opts.Level = "INFO"
-	opts.Format = "json"
+	opts.Format = jsonFormat
 	if err := opts.Init(); err != nil {
 		b.Fatalf("failed to initialize logger: %v", err)
 	}
@@ -281,7 +289,7 @@ func BenchmarkEnhancedLoggerWithBody(b *testing.B) {
 	config.MaxBodyLogSize = 1024
 
 	middleware := EnhancedLogger(config)
-	handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("OK"))
 	}))

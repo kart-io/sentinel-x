@@ -12,7 +12,7 @@ func TestRecovery_NoPanic(t *testing.T) {
 	middleware := Recovery()
 	handlerCalled := false
 
-	handler := middleware(func(ctx transport.Context) {
+	handler := middleware(func(_ transport.Context) {
 		handlerCalled = true
 	})
 
@@ -34,7 +34,7 @@ func TestRecovery_NoPanic(t *testing.T) {
 func TestRecovery_CatchesPanic(t *testing.T) {
 	middleware := Recovery()
 
-	handler := middleware(func(ctx transport.Context) {
+	handler := middleware(func(_ transport.Context) {
 		panic("test panic")
 	})
 
@@ -81,7 +81,7 @@ func TestRecoveryWithConfig_StackTrace(t *testing.T) {
 			}
 			middleware := RecoveryWithConfig(config)
 
-			handler := middleware(func(ctx transport.Context) {
+			handler := middleware(func(_ transport.Context) {
 				panic("test panic with stack")
 			})
 
@@ -111,7 +111,7 @@ func TestRecoveryWithConfig_OnPanicCallback(t *testing.T) {
 
 	config := RecoveryConfig{
 		EnableStackTrace: false,
-		OnPanic: func(ctx transport.Context, err interface{}, stack []byte) {
+		OnPanic: func(_ transport.Context, err interface{}, stack []byte) {
 			panicCalled = true
 			panicErr = err
 			panicStack = stack
@@ -119,7 +119,7 @@ func TestRecoveryWithConfig_OnPanicCallback(t *testing.T) {
 	}
 
 	middleware := RecoveryWithConfig(config)
-	handler := middleware(func(ctx transport.Context) {
+	handler := middleware(func(_ transport.Context) {
 		panic("callback test panic")
 	})
 
@@ -177,7 +177,7 @@ func TestRecoveryWithConfig_PanicWithDifferentTypes(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			middleware := Recovery()
-			handler := middleware(func(ctx transport.Context) {
+			handler := middleware(func(_ transport.Context) {
 				panic(tt.panicVal)
 			})
 
@@ -199,7 +199,7 @@ func TestRecovery_DefaultConfig(t *testing.T) {
 	middleware := Recovery()
 
 	// Verify default config is applied
-	handler := middleware(func(ctx transport.Context) {
+	handler := middleware(func(_ transport.Context) {
 		panic("default config test")
 	})
 

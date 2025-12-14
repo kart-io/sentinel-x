@@ -94,7 +94,7 @@
 //	    }
 //
 //	    // Extract storage error details
-//	    if storageErr, ok := storage.GetStorageError(err); ok {
+//	    if storageErr, ok := storage.GetError(err); ok {
 //	        log.Printf("error code: %s", storageErr.Code)
 //	        log.Printf("message: %s", storageErr.Message)
 //	        if ctx, ok := storageErr.GetContext("operation"); ok {

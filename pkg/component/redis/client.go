@@ -1,3 +1,4 @@
+// Package redis provides Redis database implementation.
 package redis
 
 import (

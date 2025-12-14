@@ -81,9 +81,22 @@ func (c *RequestContext) Bind(v interface{}) error {
 	return json.NewDecoder(c.request.Body).Decode(v)
 }
 
-// Validate validates the given struct using the global validator.
-// Returns nil if validation passes, or *validator.ValidationErrors if validation fails.
+// Validator is an interface for types that can validate themselves.
+type Validator interface {
+	Validate() error
+}
+
+// Validate validates the given struct using the global validator or the struct's Validate method.
+// Returns nil if validation passes, or error/ValidationErrors if validation fails.
 func (c *RequestContext) Validate(v interface{}) error {
+	// Check if the struct implements the Validator interface (e.g. Proto messages)
+	if validator, ok := v.(Validator); ok {
+		if err := validator.Validate(); err != nil {
+			return err
+		}
+	}
+
+	// Fallback to tag-based validation
 	verr := validator.Global().ValidateWithLang(v, c.Lang())
 	if verr == nil || !verr.HasErrors() {
 		return nil

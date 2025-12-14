@@ -13,7 +13,7 @@ type mockInitializer struct {
 
 func (m *mockInitializer) Name() string           { return m.name }
 func (m *mockInitializer) Dependencies() []string { return m.deps }
-func (m *mockInitializer) Initialize(ctx context.Context) error {
+func (m *mockInitializer) Initialize(_ context.Context) error {
 	return nil
 }
 

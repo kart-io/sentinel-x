@@ -1,3 +1,4 @@
+// Package observability provides observability middleware.
 package observability
 
 import (
@@ -6,7 +7,7 @@ import (
 	"time"
 
 	"github.com/kart-io/logger"
-	"github.com/kart-io/sentinel-x/pkg/infra/middleware/common"
+	"github.com/kart-io/sentinel-x/pkg/infra/middleware/requestutil"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 )
 
@@ -85,7 +86,7 @@ func LoggerWithConfig(config LoggerConfig) transport.MiddlewareFunc {
 			start := time.Now()
 
 			// Get request ID if available
-			requestID := common.GetRequestID(c.Request())
+			requestID := requestutil.GetRequestID(c.Request())
 
 			// Process request
 			next(c)

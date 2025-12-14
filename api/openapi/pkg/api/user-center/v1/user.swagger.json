@@ -7,6 +7,9 @@
   "tags": [
     {
       "name": "UserService"
+    },
+    {
+      "name": "RoleService"
     }
   ],
   "consumes": [
@@ -45,6 +48,80 @@
         }
       }
     },
+    "v1GetUserRolesResponse": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Role"
+          }
+        }
+      }
+    },
+    "v1ListRolesResponse": {
+      "type": "object",
+      "properties": {
+        "total": {
+          "type": "string",
+          "format": "int64"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Role"
+          }
+        }
+      }
+    },
+    "v1ListUsersResponse": {
+      "type": "object",
+      "properties": {
+        "total": {
+          "type": "string",
+          "format": "int64"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1UserResponse"
+          }
+        }
+      }
+    },
+    "v1LoginResponse": {
+      "type": "object",
+      "properties": {
+        "token": {
+          "type": "string"
+        },
+        "expireAt": {
+          "type": "string",
+          "format": "int64"
+        }
+      }
+    },
+    "v1Role": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
     "v1UserResponse": {
       "type": "object",
       "properties": {
@@ -54,8 +131,22 @@
         "username": {
           "type": "string"
         },
+        "email": {
+          "type": "string"
+        },
+        "mobile": {
+          "type": "string"
+        },
         "role": {
           "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "int64"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "int64"
         }
       }
     }

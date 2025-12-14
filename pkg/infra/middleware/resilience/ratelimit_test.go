@@ -425,7 +425,7 @@ func TestExtractKey(t *testing.T) {
 	}{
 		{
 			name: "custom key function",
-			keyFunc: func(c transport.Context) string {
+			keyFunc: func(_ transport.Context) string {
 				return "custom-key"
 			},
 			config:      RateLimitConfig{},
@@ -433,7 +433,7 @@ func TestExtractKey(t *testing.T) {
 		},
 		{
 			name: "empty key falls back to RemoteAddr",
-			keyFunc: func(c transport.Context) string {
+			keyFunc: func(_ transport.Context) string {
 				return ""
 			},
 			config:      RateLimitConfig{},
@@ -508,7 +508,7 @@ func TestCheckRateLimit(t *testing.T) {
 
 	t.Run("allowed request", func(t *testing.T) {
 		limiter := newMockRateLimiter()
-		limiter.allowFunc = func(ctx context.Context, key string) (bool, error) {
+		limiter.allowFunc = func(_ context.Context, _ string) (bool, error) {
 			return true, nil
 		}
 
@@ -523,7 +523,7 @@ func TestCheckRateLimit(t *testing.T) {
 
 	t.Run("denied request", func(t *testing.T) {
 		limiter := newMockRateLimiter()
-		limiter.allowFunc = func(ctx context.Context, key string) (bool, error) {
+		limiter.allowFunc = func(_ context.Context, _ string) (bool, error) {
 			return false, nil
 		}
 
@@ -538,7 +538,7 @@ func TestCheckRateLimit(t *testing.T) {
 
 	t.Run("limiter error", func(t *testing.T) {
 		limiter := newMockRateLimiter()
-		limiter.allowFunc = func(ctx context.Context, key string) (bool, error) {
+		limiter.allowFunc = func(_ context.Context, _ string) (bool, error) {
 			return false, fmt.Errorf("limiter error")
 		}
 
@@ -556,7 +556,7 @@ func TestCheckRateLimit(t *testing.T) {
 func TestRateLimitMiddleware(t *testing.T) {
 	t.Run("request within limit", func(t *testing.T) {
 		limiter := newMockRateLimiter()
-		limiter.allowFunc = func(ctx context.Context, key string) (bool, error) {
+		limiter.allowFunc = func(_ context.Context, _ string) (bool, error) {
 			return true, nil
 		}
 
@@ -581,7 +581,7 @@ func TestRateLimitMiddleware(t *testing.T) {
 
 	t.Run("request exceeds limit", func(t *testing.T) {
 		limiter := newMockRateLimiter()
-		limiter.allowFunc = func(ctx context.Context, key string) (bool, error) {
+		limiter.allowFunc = func(_ context.Context, _ string) (bool, error) {
 			return false, nil
 		}
 
@@ -606,7 +606,7 @@ func TestRateLimitMiddleware(t *testing.T) {
 
 	t.Run("skip configured paths", func(t *testing.T) {
 		limiter := newMockRateLimiter()
-		limiter.allowFunc = func(ctx context.Context, key string) (bool, error) {
+		limiter.allowFunc = func(_ context.Context, _ string) (bool, error) {
 			return false, nil // Always deny
 		}
 
@@ -642,7 +642,7 @@ func TestRateLimitMiddleware(t *testing.T) {
 		config := RateLimitConfig{
 			Limit:  10,
 			Window: 1 * time.Minute,
-			KeyFunc: func(c transport.Context) string {
+			KeyFunc: func(_ transport.Context) string {
 				return "user-123"
 			},
 			Limiter: limiter,
@@ -664,7 +664,7 @@ func TestRateLimitMiddleware(t *testing.T) {
 	t.Run("OnLimitReached callback", func(t *testing.T) {
 		callbackCalled := false
 		limiter := newMockRateLimiter()
-		limiter.allowFunc = func(ctx context.Context, key string) (bool, error) {
+		limiter.allowFunc = func(_ context.Context, _ string) (bool, error) {
 			return false, nil
 		}
 
@@ -672,7 +672,7 @@ func TestRateLimitMiddleware(t *testing.T) {
 			Limit:   10,
 			Window:  1 * time.Minute,
 			Limiter: limiter,
-			OnLimitReached: func(c transport.Context) {
+			OnLimitReached: func(_ transport.Context) {
 				callbackCalled = true
 			},
 		}
@@ -692,7 +692,7 @@ func TestRateLimitMiddleware(t *testing.T) {
 
 	t.Run("limiter error allows request", func(t *testing.T) {
 		limiter := newMockRateLimiter()
-		limiter.allowFunc = func(ctx context.Context, key string) (bool, error) {
+		limiter.allowFunc = func(_ context.Context, _ string) (bool, error) {
 			return false, fmt.Errorf("redis connection error")
 		}
 
@@ -914,7 +914,7 @@ func TestHandleRateLimitExceeded(t *testing.T) {
 
 	t.Run("calls callback", func(t *testing.T) {
 		callbackCalled := false
-		callback := func(c transport.Context) {
+		callback := func(_ transport.Context) {
 			callbackCalled = true
 		}
 

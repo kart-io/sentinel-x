@@ -20,7 +20,7 @@ func (m *mockBridge) Name() string {
 }
 
 func (m *mockBridge) Handler() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
 }
@@ -319,28 +319,28 @@ func TestBridgeAdapterBridge(t *testing.T) {
 	}
 }
 
-func TestBridgeAdapterSetNotFoundHandler(t *testing.T) {
+func TestBridgeAdapterSetNotFoundHandler(_ *testing.T) {
 	bridge := &mockBridge{name: "test-bridge"}
 	adapter := newBridgeAdapter(bridge)
 
 	// Should not panic
-	adapter.SetNotFoundHandler(func(ctx transport.Context) {})
+	adapter.SetNotFoundHandler(func(_ transport.Context) {})
 }
 
-func TestBridgeAdapterSetErrorHandler(t *testing.T) {
+func TestBridgeAdapterSetErrorHandler(_ *testing.T) {
 	bridge := &mockBridge{name: "test-bridge"}
 	adapter := newBridgeAdapter(bridge)
 
 	// Should not panic
-	adapter.SetErrorHandler(func(err error, c transport.Context) {})
+	adapter.SetErrorHandler(func(_ error, _ transport.Context) {})
 }
 
-func TestBridgeRouterHandle(t *testing.T) {
+func TestBridgeRouterHandle(_ *testing.T) {
 	group := &mockRouteGroup{}
 	router := &bridgeRouter{group: group}
 
 	// Should not panic
-	router.Handle("GET", "/test", func(ctx transport.Context) {})
+	router.Handle("GET", "/test", func(_ transport.Context) {})
 }
 
 func TestBridgeRouterGroup(t *testing.T) {
@@ -353,7 +353,7 @@ func TestBridgeRouterGroup(t *testing.T) {
 	}
 }
 
-func TestBridgeRouterUse(t *testing.T) {
+func TestBridgeRouterUse(_ *testing.T) {
 	group := &mockRouteGroup{}
 	router := &bridgeRouter{group: group}
 
@@ -367,7 +367,7 @@ func TestBridgeRouterUse(t *testing.T) {
 	router.Use(middleware)
 }
 
-func TestConcurrentReadWrite(t *testing.T) {
+func TestConcurrentReadWrite(_ *testing.T) {
 	// Clear existing state
 	bridgesMu.Lock()
 	bridges = make(map[httpopts.AdapterType]BridgeFactory)
@@ -506,4 +506,4 @@ func (m *mockResponseWriter) Write([]byte) (int, error) {
 	return 0, nil
 }
 
-func (m *mockResponseWriter) WriteHeader(statusCode int) {}
+func (m *mockResponseWriter) WriteHeader(_ int) {}

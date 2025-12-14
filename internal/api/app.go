@@ -72,7 +72,7 @@ func Run(opts *Options) error {
 	printBanner(opts)
 
 	// Create bootstrap options
-	bootstrapOpts := &bootstrap.BootstrapOptions{
+	bootstrapOpts := &bootstrap.Options{
 		AppName:      appName,
 		AppVersion:   app.GetVersion(),
 		ServerMode:   opts.Server.Mode.String(),

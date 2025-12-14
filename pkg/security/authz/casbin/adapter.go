@@ -51,17 +51,17 @@ func (a *Adapter) SavePolicy(model model.Model) error {
 }
 
 // AddPolicy adds a policy rule to the storage.
-func (a *Adapter) AddPolicy(sec string, ptype string, rule []string) error {
+func (a *Adapter) AddPolicy(_ string, ptype string, rule []string) error {
 	return a.repo.AddPolicy(context.Background(), stringToPolicy(ptype, rule))
 }
 
 // RemovePolicy removes a policy rule from the storage.
-func (a *Adapter) RemovePolicy(sec string, ptype string, rule []string) error {
+func (a *Adapter) RemovePolicy(_ string, ptype string, rule []string) error {
 	return a.repo.RemovePolicy(context.Background(), stringToPolicy(ptype, rule))
 }
 
 // RemoveFilteredPolicy removes policy rules that match the filter from the storage.
-func (a *Adapter) RemoveFilteredPolicy(sec string, ptype string, fieldIndex int, fieldValues ...string) error {
+func (a *Adapter) RemoveFilteredPolicy(_ string, ptype string, fieldIndex int, fieldValues ...string) error {
 	return a.repo.RemoveFilteredPolicy(context.Background(), ptype, fieldIndex, fieldValues...)
 }
 

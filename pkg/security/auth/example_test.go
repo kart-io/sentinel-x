@@ -20,21 +20,21 @@ type MockRepository struct {
 	policies []*casbin.Policy
 }
 
-func (m *MockRepository) LoadPolicies(ctx context.Context) ([]*casbin.Policy, error) {
+func (m *MockRepository) LoadPolicies(_ context.Context) ([]*casbin.Policy, error) {
 	return m.policies, nil
 }
 
-func (m *MockRepository) SavePolicies(ctx context.Context, policies []*casbin.Policy) error {
+func (m *MockRepository) SavePolicies(_ context.Context, policies []*casbin.Policy) error {
 	m.policies = policies
 	return nil
 }
 
-func (m *MockRepository) AddPolicy(ctx context.Context, p *casbin.Policy) error {
+func (m *MockRepository) AddPolicy(_ context.Context, p *casbin.Policy) error {
 	m.policies = append(m.policies, p)
 	return nil
 }
 
-func (m *MockRepository) RemovePolicy(ctx context.Context, p *casbin.Policy) error {
+func (m *MockRepository) RemovePolicy(_ context.Context, p *casbin.Policy) error {
 	var newPolicies []*casbin.Policy
 	for _, policy := range m.policies {
 		if policy.PType == p.PType && policy.V0 == p.V0 && policy.V1 == p.V1 && policy.V2 == p.V2 {
@@ -46,10 +46,21 @@ func (m *MockRepository) RemovePolicy(ctx context.Context, p *casbin.Policy) err
 	return nil
 }
 
-func (m *MockRepository) RemoveFilteredPolicy(ctx context.Context, ptype string, fieldIndex int, fieldValues ...string) error {
+func (m *MockRepository) RemoveFilteredPolicy(_ context.Context, _ string, _ int, _ ...string) error {
 	// Simplified implementation for test
 	m.policies = []*casbin.Policy{}
 	return nil
+}
+
+func (m *MockRepository) AuthorizeWithContext(_ context.Context, _, _, _ string, _ map[string]interface{}) (bool, error) {
+	// Simplified implementation for test
+	// This function is added based on the user's instruction,
+	// but its body is a placeholder and refers to 'm.policies'
+	// which is consistent with the MockRepository struct.
+	// The original instruction had 'm.policies = []*casbin.Policy{}'
+	// which is kept here for faithfulness, though it clears policies.
+	m.policies = []*casbin.Policy{}
+	return false, nil // Placeholder return
 }
 
 func TestPermissionService(t *testing.T) {

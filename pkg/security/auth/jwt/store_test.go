@@ -82,7 +82,7 @@ func TestMemoryStore_Expiration(t *testing.T) {
 	defer func() { _ = store.Close() }()
 
 	ctx := context.Background()
-	token := "expiring-token"
+	token := "expiring-token" //nolint:gosec
 
 	// 撤销令牌，设置很短的过期时间
 	err := store.Revoke(ctx, token, 50*time.Millisecond)

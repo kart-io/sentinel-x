@@ -10,7 +10,7 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
 	"go.opentelemetry.io/otel/trace"
 
-	"github.com/kart-io/sentinel-x/pkg/infra/middleware/common"
+	"github.com/kart-io/sentinel-x/pkg/infra/middleware/requestutil"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 	"github.com/kart-io/sentinel-x/pkg/infra/tracing"
 )
@@ -207,7 +207,7 @@ func Tracing(opts ...TracingOption) transport.MiddlewareFunc {
 			}
 
 			// Add request ID if present
-			if requestID := ctx.Header(common.HeaderXRequestID); requestID != "" {
+			if requestID := ctx.Header(requestutil.HeaderXRequestID); requestID != "" {
 				attrs = append(attrs, attribute.String(tracing.HTTPRequestID, requestID))
 			}
 

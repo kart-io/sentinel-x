@@ -11,7 +11,7 @@ import (
 )
 
 // Register 注册 API 服务的路由。
-func Register(mgr *server.Manager, jwtAuth *jwt.JWT, ds *datasource.Manager) error {
+func Register(mgr *server.Manager, _ *jwt.JWT, _ *datasource.Manager) error {
 	logger.Info("Registering API routes...")
 
 	// 初始化处理器

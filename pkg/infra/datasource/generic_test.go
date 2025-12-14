@@ -15,13 +15,19 @@ import (
 // Tests for TypedGetter[T]
 // =============================================================================
 
+const (
+	defaultHost = "localhost"
+	testDB      = "test"
+)
+
 func TestTypedGetter_MySQL(t *testing.T) {
 	mgr := NewManager()
 
 	opts := mysql.NewOptions()
-	opts.Host = "localhost"
-	opts.Database = "test"
-	opts.Username = "root"
+	opts.Host = defaultHost
+	opts.Database = testDB
+	const rootUser = "root"
+	opts.Username = rootUser
 
 	err := mgr.RegisterMySQL("primary", opts)
 	if err != nil {
@@ -46,7 +52,7 @@ func TestTypedGetter_Redis(t *testing.T) {
 	mgr := NewManager()
 
 	opts := redis.NewOptions()
-	opts.Host = "localhost"
+	opts.Host = defaultHost
 
 	err := mgr.RegisterRedis("cache", opts)
 	if err != nil {
@@ -70,8 +76,8 @@ func TestTypedGetter_Postgres(t *testing.T) {
 	mgr := NewManager()
 
 	opts := postgres.NewOptions()
-	opts.Host = "localhost"
-	opts.Database = "test"
+	opts.Host = defaultHost
+	opts.Database = testDB
 	opts.Username = "postgres"
 
 	err := mgr.RegisterPostgres("main", opts)
@@ -89,8 +95,8 @@ func TestTypedGetter_MongoDB(t *testing.T) {
 	mgr := NewManager()
 
 	opts := mongodb.NewOptions()
-	opts.Host = "localhost"
-	opts.Database = "test"
+	opts.Host = defaultHost
+	opts.Database = testDB
 
 	err := mgr.RegisterMongoDB("main", opts)
 	if err != nil {
@@ -124,9 +130,10 @@ func TestTypedGetter_GetWithContext(t *testing.T) {
 	mgr := NewManager()
 
 	opts := mysql.NewOptions()
-	opts.Host = "localhost"
-	opts.Database = "test"
-	opts.Username = "root"
+	opts.Host = defaultHost
+	opts.Database = testDB
+	const rootUser = "root"
+	opts.Username = rootUser
 
 	err := mgr.RegisterMySQL("primary", opts)
 	if err != nil {
@@ -149,9 +156,10 @@ func TestTypedGetter_MustGetPanics(t *testing.T) {
 	mgr := NewManager()
 
 	opts := mysql.NewOptions()
-	opts.Host = "localhost"
-	opts.Database = "test"
-	opts.Username = "root"
+	opts.Host = defaultHost
+	opts.Database = testDB
+	const rootUser = "root"
+	opts.Username = rootUser
 
 	err := mgr.RegisterMySQL("primary", opts)
 	if err != nil {
@@ -194,9 +202,10 @@ func TestBackwardCompatibility_GetMySQL(t *testing.T) {
 	mgr := NewManager()
 
 	opts := mysql.NewOptions()
-	opts.Host = "localhost"
-	opts.Database = "test"
-	opts.Username = "root"
+	opts.Host = defaultHost
+	opts.Database = testDB
+	const rootUser = "root"
+	opts.Username = rootUser
 
 	err := mgr.RegisterMySQL("primary", opts)
 	if err != nil {
@@ -215,7 +224,7 @@ func TestBackwardCompatibility_GetRedis(t *testing.T) {
 	mgr := NewManager()
 
 	opts := redis.NewOptions()
-	opts.Host = "localhost"
+	opts.Host = defaultHost
 
 	err := mgr.RegisterRedis("cache", opts)
 	if err != nil {
@@ -234,8 +243,8 @@ func TestBackwardCompatibility_GetWithContext(t *testing.T) {
 	mgr := NewManager()
 
 	opts := mysql.NewOptions()
-	opts.Host = "localhost"
-	opts.Database = "test"
+	opts.Host = defaultHost
+	opts.Database = testDB
 	opts.Username = "root"
 
 	err := mgr.RegisterMySQL("primary", opts)
@@ -257,8 +266,8 @@ func TestBackwardCompatibility_MustGet(t *testing.T) {
 	mgr := NewManager()
 
 	opts := mysql.NewOptions()
-	opts.Host = "localhost"
-	opts.Database = "test"
+	opts.Host = defaultHost
+	opts.Database = testDB
 	opts.Username = "root"
 
 	err := mgr.RegisterMySQL("primary", opts)
@@ -363,14 +372,14 @@ func TestAllStorageTypes_BackwardCompatibleMethods(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name+"_Get", func(t *testing.T) {
+		t.Run(tt.name+"_Get", func(_ *testing.T) {
 			// Get should return error but not panic
 			_, err := tt.getFunc("test")
 			// We expect error since there's no real database
 			_ = err
 		})
 
-		t.Run(tt.name+"_MustGet", func(t *testing.T) {
+		t.Run(tt.name+"_MustGet", func(_ *testing.T) {
 			// MustGet should be callable (will panic internally due to no DB)
 			_ = tt.mustGetFunc("test")
 		})

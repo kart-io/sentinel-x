@@ -1,3 +1,4 @@
+// Package router provides user-center routing.
 package router
 
 import (
@@ -27,7 +28,7 @@ func Register(mgr *server.Manager, jwtAuth *jwt.JWT, ds *datasource.Manager) err
 	roleBiz := biz.NewRoleService(storeFactory)
 	authBiz := biz.NewAuthService(jwtAuth, storeFactory)
 
-	userHandler := handler.NewUserHandler(userBiz, roleBiz)
+	userHandler := handler.NewUserHandler(userBiz, roleBiz, authBiz)
 	roleHandler := handler.NewRoleHandler(roleBiz)
 	authHandler := handler.NewAuthHandler(authBiz)
 
@@ -65,11 +66,11 @@ func Register(mgr *server.Manager, jwtAuth *jwt.JWT, ds *datasource.Manager) err
 				users.Handle("GET", "/:username", userHandler.Get)
 				users.Handle("PUT", "/:username", userHandler.Update)
 				users.Handle("DELETE", "/:username", userHandler.Delete)
-				users.Handle("POST", "/:username/password", userHandler.ChangePassword)
+				users.Handle("POST", "/:username/password", userHandler.UpdatePassword)
 
 				// User Role Assignment
-				users.Handle("POST", "/:username/roles", roleHandler.AssignRole)
-				users.Handle("GET", "/:username/roles", roleHandler.GetUserRoles)
+				users.Handle("POST", "/:username/roles", roleHandler.AssignUserRole)
+				users.Handle("GET", "/:username/roles", roleHandler.ListUserRoles)
 			}
 
 			// Role Routes
@@ -91,6 +92,7 @@ func Register(mgr *server.Manager, jwtAuth *jwt.JWT, ds *datasource.Manager) err
 	if grpcServer := mgr.GRPCServer(); grpcServer != nil {
 		// Register gRPC services here
 		v1.RegisterUserServiceServer(grpcServer.Server(), userHandler)
+		v1.RegisterRoleServiceServer(grpcServer.Server(), roleHandler)
 		logger.Info("gRPC services registered")
 	}
 

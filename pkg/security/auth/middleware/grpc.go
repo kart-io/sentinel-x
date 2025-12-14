@@ -1,3 +1,4 @@
+// Package middleware provides gRPC middleware.
 package middleware
 
 import (
@@ -8,7 +9,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// GrpcMiddleware returns a gRPC unary interceptor for authorization
+// GrpcUnaryInterceptor returns a gRPC unary interceptor for authorization
 // subFn: function to extract subject from context
 // objFn: function to extract object from full method name
 // actFn: function to extract action from full method name (or constant)

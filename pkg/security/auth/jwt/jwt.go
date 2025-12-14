@@ -172,7 +172,7 @@ func (j *JWT) IsDisabled() bool {
 }
 
 // Sign creates a new token for the given subject.
-func (j *JWT) Sign(ctx context.Context, subject string, opts ...auth.SignOption) (auth.Token, error) {
+func (j *JWT) Sign(_ context.Context, subject string, opts ...auth.SignOption) (auth.Token, error) {
 	signOpts := &auth.SignOptions{}
 	for _, opt := range opts {
 		opt(signOpts)

@@ -59,7 +59,7 @@ func TestConfigOptionsInterface(t *testing.T) {
 
 			// Verify that some flags were added by checking if FlagSet has flags
 			flagCount := 0
-			fs.VisitAll(func(f *pflag.Flag) {
+			fs.VisitAll(func(_ *pflag.Flag) {
 				flagCount++
 			})
 			if flagCount == 0 {

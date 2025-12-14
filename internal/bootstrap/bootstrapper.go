@@ -33,8 +33,8 @@ type AppBootstrapper struct {
 	serverInit     *ServerInitializer
 }
 
-// BootstrapOptions contains all the configuration needed for bootstrapping.
-type BootstrapOptions struct {
+// Options contains all the configuration needed for bootstrapping.
+type Options struct {
 	AppName    string
 	AppVersion string
 	ServerMode string
@@ -49,7 +49,7 @@ type BootstrapOptions struct {
 }
 
 // NewAppBootstrapper creates a new AppBootstrapper with all initializers configured.
-func NewAppBootstrapper(opts *BootstrapOptions) *AppBootstrapper {
+func NewAppBootstrapper(opts *Options) *AppBootstrapper {
 	b := &AppBootstrapper{}
 
 	// Create individual initializers

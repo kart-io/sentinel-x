@@ -1,0 +1,348 @@
+-test.shuffle 1765695726103345000
+=== RUN   TestTimeoutWithConfig_ZeroTimeout
+{"timestamp":"2025-12-14T15:02:06.1044+08:00","level":"info","message":"Worker pool created","service.name":"unknown","service.version":"unknown","engine":"slog","name":"timeout","capacity":5000,"preAlloc":true,"caller":"pool/pool.go:154"}
+{"timestamp":"2025-12-14T15:02:06.104616+08:00","level":"info","message":"Worker pool created","service.name":"unknown","service.version":"unknown","engine":"slog","name":"default","capacity":1000,"preAlloc":false,"caller":"pool/pool.go:154"}
+{"timestamp":"2025-12-14T15:02:06.104694+08:00","level":"info","message":"Worker pool created","service.name":"unknown","service.version":"unknown","engine":"slog","name":"health-check","capacity":100,"preAlloc":true,"caller":"pool/pool.go:154"}
+{"timestamp":"2025-12-14T15:02:06.104752+08:00","level":"info","message":"Worker pool created","service.name":"unknown","service.version":"unknown","engine":"slog","name":"background","capacity":50,"preAlloc":false,"caller":"pool/pool.go:154"}
+{"timestamp":"2025-12-14T15:02:06.104805+08:00","level":"info","message":"Worker pool created","service.name":"unknown","service.version":"unknown","engine":"slog","name":"callback","capacity":200,"preAlloc":false,"caller":"pool/pool.go:154"}
+{"timestamp":"2025-12-14T15:02:06.104851+08:00","level":"info","message":"全局池管理器初始化完成","service.name":"unknown","service.version":"unknown","engine":"slog","pools":[{"Name":"timeout","Type":"timeout","Running":0,"Free":0,"Capacity":0,"Waiting":0,"SubmittedTasks":0,"CompletedTasks":0,"FailedTasks":0,"RejectedTasks":0,"PanicRecovered":0},{"Name":"default","Type":"default","Running":0,"Free":0,"Capacity":0,"Waiting":0,"SubmittedTasks":0,"CompletedTasks":0,"FailedTasks":0,"RejectedTasks":0,"PanicRecovered":0},{"Name":"health-check","Type":"health-check","Running":0,"Free":0,"Capacity":0,"Waiting":0,"SubmittedTasks":0,"CompletedTasks":0,"FailedTasks":0,"RejectedTasks":0,"PanicRecovered":0},{"Name":"background","Type":"background","Running":0,"Free":0,"Capacity":0,"Waiting":0,"SubmittedTasks":0,"CompletedTasks":0,"FailedTasks":0,"RejectedTasks":0,"PanicRecovered":0},{"Name":"callback","Type":"callback","Running":0,"Free":0,"Capacity":0,"Waiting":0,"SubmittedTasks":0,"CompletedTasks":0,"FailedTasks":0,"RejectedTasks":0,"PanicRecovered":0}],"caller":"pool/global.go:101"}
+--- PASS: TestTimeoutWithConfig_ZeroTimeout (0.00s)
+=== RUN   TestHandleRateLimitExceeded
+=== RUN   TestHandleRateLimitExceeded/returns_rate_limit_error
+=== RUN   TestHandleRateLimitExceeded/calls_callback
+--- PASS: TestHandleRateLimitExceeded (0.00s)
+    --- PASS: TestHandleRateLimitExceeded/returns_rate_limit_error (0.00s)
+    --- PASS: TestHandleRateLimitExceeded/calls_callback (0.00s)
+=== RUN   TestTimeout_NormalRequest
+--- PASS: TestTimeout_NormalRequest (0.01s)
+=== RUN   TestRateLimit
+--- PASS: TestRateLimit (0.00s)
+=== RUN   TestTimeout_MultipleTimeouts
+--- PASS: TestTimeout_MultipleTimeouts (0.05s)
+=== RUN   TestIsTrustedProxy
+=== RUN   TestIsTrustedProxy/empty_trusted_proxies_returns_false
+=== RUN   TestIsTrustedProxy/exact_IP_match
+=== RUN   TestIsTrustedProxy/IP_not_in_list
+=== RUN   TestIsTrustedProxy/IP_in_CIDR_range
+=== RUN   TestIsTrustedProxy/IP_not_in_CIDR_range
+=== RUN   TestIsTrustedProxy/multiple_CIDR_ranges
+=== RUN   TestIsTrustedProxy/invalid_IP_returns_false
+=== RUN   TestIsTrustedProxy/invalid_CIDR_is_skipped
+{"timestamp":"2025-12-14T15:02:06.168923+08:00","level":"warn","message":"invalid CIDR in trusted proxies","service.name":"unknown","service.version":"unknown","engine":"slog","cidr":"invalid/cidr","error":"invalid CIDR address: invalid/cidr","caller":"resilience/ratelimit.go:251"}
+--- PASS: TestIsTrustedProxy (0.00s)
+    --- PASS: TestIsTrustedProxy/empty_trusted_proxies_returns_false (0.00s)
+    --- PASS: TestIsTrustedProxy/exact_IP_match (0.00s)
+    --- PASS: TestIsTrustedProxy/IP_not_in_list (0.00s)
+    --- PASS: TestIsTrustedProxy/IP_in_CIDR_range (0.00s)
+    --- PASS: TestIsTrustedProxy/IP_not_in_CIDR_range (0.00s)
+    --- PASS: TestIsTrustedProxy/multiple_CIDR_ranges (0.00s)
+    --- PASS: TestIsTrustedProxy/invalid_IP_returns_false (0.00s)
+    --- PASS: TestIsTrustedProxy/invalid_CIDR_is_skipped (0.00s)
+=== RUN   TestIsValidIP
+=== RUN   TestIsValidIP/192.168.1.1
+=== RUN   TestIsValidIP/127.0.0.1
+=== RUN   TestIsValidIP/10.0.0.1
+=== RUN   TestIsValidIP/2001:0db8:85a3:0000:0000:8a2e:0370:7334
+=== RUN   TestIsValidIP/::1
+=== RUN   TestIsValidIP/invalid-ip
+=== RUN   TestIsValidIP/#00
+=== RUN   TestIsValidIP/999.999.999.999
+=== RUN   TestIsValidIP/192.168.1
+--- PASS: TestIsValidIP (0.00s)
+    --- PASS: TestIsValidIP/192.168.1.1 (0.00s)
+    --- PASS: TestIsValidIP/127.0.0.1 (0.00s)
+    --- PASS: TestIsValidIP/10.0.0.1 (0.00s)
+    --- PASS: TestIsValidIP/2001:0db8:85a3:0000:0000:8a2e:0370:7334 (0.00s)
+    --- PASS: TestIsValidIP/::1 (0.00s)
+    --- PASS: TestIsValidIP/invalid-ip (0.00s)
+    --- PASS: TestIsValidIP/#00 (0.00s)
+    --- PASS: TestIsValidIP/999.999.999.999 (0.00s)
+    --- PASS: TestIsValidIP/192.168.1 (0.00s)
+=== RUN   TestTimeout_PanicInHandler
+{"timestamp":"2025-12-14T15:02:06.16997+08:00","level":"error","message":"panic recovered in timeout middleware","service.name":"unknown","service.version":"unknown","engine":"slog","panic":"test panic in timeout handler","path":"/test","stack":"goroutine 102 [running]:\nruntime/debug.Stack()\n\t/Users/costalong/.gvm/gos/go1.25.3/src/runtime/debug/stack.go:26 +0x6c\ngithub.com/kart-io/sentinel-x/pkg/infra/middleware/resilience.logPanic({0x1032961a0, 0x103407d00}, {0xc00043613c, 0x5})\n\t/Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/middleware/resilience/timeout.go:128 +0x84\ngithub.com/kart-io/sentinel-x/pkg/infra/middleware/resilience.TestTimeout_PanicInHandler.TestTimeout_PanicInHandler.Timeout.TimeoutWithConfig.func2.func3.1.1()\n\t/Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/middleware/resilience/timeout.go:81 +0xa0\npanic({0x1032961a0?, 0x103407d00?})\n\t/Users/costalong/.gvm/gos/go1.25.3/src/runtime/panic.go:783 +0x120\ngithub.com/kart-io/sentinel-x/pkg/infra/middleware/resilience.TestTimeout_PanicInHandler.func1({0xc000094e28?, 0x102506fb8?})\n\t/Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/middleware/resilience/timeout_test.go:250 +0x34\ngithub.com/kart-io/sentinel-x/pkg/infra/middleware/resilience.TestTimeout_PanicInHandler.TestTimeout_PanicInHandler.Timeout.TimeoutWithConfig.func2.func3.1()\n\t/Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/middleware/resilience/timeout.go:91 +0xc4\ngithub.com/kart-io/sentinel-x/pkg/infra/pool.(*Pool).Submit.func1()\n\t/Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/pool/pool.go:240 +0xe4\ngithub.com/panjf2000/ants/v2.(*goWorker).run.func1()\n\t/Users/costalong/code/go/src/github.com/kart/sentinel-x/vendor/github.com/panjf2000/ants/v2/worker.go:73 +0xc0\ncreated by github.com/panjf2000/ants/v2.(*goWorker).run in goroutine 101\n\t/Users/costalong/code/go/src/github.com/kart/sentinel-x/vendor/github.com/panjf2000/ants/v2/worker.go:50 +0xc0\n","caller":"resilience/timeout.go:129","stacktrace":"slog.(*SlogLogger).Errorw\\n\\tslog/slog.go:322\\nlogger.Errorw\\n\\tlogger/logger.go:175\\nresilience.logPanic\\n\\tresilience/timeout.go:129\\nresilience.TestTimeout_PanicInHandler.TestTimeout_PanicInHandler.Timeout.TimeoutWithConfig.func2.func3.1.1\\n\\tresilience/timeout.go:81\\nruntime.gopanic\\n\\truntime/panic.go:783\\nresilience.TestTimeout_PanicInHandler.func1\\n\\tresilience/timeout_test.go:250\\nresilience.TestTimeout_PanicInHandler.TestTimeout_PanicInHandler.Timeout.TimeoutWithConfig.func2.func3.1\\n\\tresilience/timeout.go:91\\npool.(*Pool).Submit.func1\\n\\tpool/pool.go:240\\nv2.(*goWorker).run.func1\\n\\tv2/worker.go:73\\nruntime.goexit\\n\\truntime/asm_arm64.s:1268"}
+--- PASS: TestTimeout_PanicInHandler (0.05s)
+=== RUN   TestRecovery_CatchesPanic
+{"timestamp":"2025-12-14T15:02:06.220633+08:00","level":"error","message":"panic recovered","service.name":"unknown","service.version":"unknown","engine":"slog","panic":"test panic","stack_trace":"goroutine 55 [running]:\nruntime/debug.Stack()\n\t/Users/costalong/.gvm/gos/go1.25.3/src/runtime/debug/stack.go:26 +0x6c\ngithub.com/kart-io/sentinel-x/pkg/infra/middleware/resilience.RecoveryWithConfig.func1.1.1()\n\t/Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/middleware/resilience/recovery.go:49 +0x7c\npanic({0x1032961a0?, 0x103407d30?})\n\t/Users/costalong/.gvm/gos/go1.25.3/src/runtime/panic.go:783 +0x120\ngithub.com/kart-io/sentinel-x/pkg/infra/middleware/resilience.TestRecovery_CatchesPanic.func1({0xc00007f008?, 0xc000294770?})\n\t/Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/middleware/resilience/recovery_test.go:38 +0x34\ngithub.com/kart-io/sentinel-x/pkg/infra/middleware/resilience.RecoveryWithConfig.func1.1({0x103421be8, 0xc000294770})\n\t/Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/middleware/resilience/recovery.go:65 +0xf0\ngithub.com/kart-io/sentinel-x/pkg/infra/middleware/resilience.TestRecovery_CatchesPanic(0xc0002b0a80)\n\t/Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/middleware/resilience/recovery_test.go:46 +0x378\ntesting.tRunner(0xc0002b0a80, 0x1034041e0)\n\t/Users/costalong/.gvm/gos/go1.25.3/src/testing/testing.go:1934 +0x168\ncreated by testing.(*T).Run in goroutine 1\n\t/Users/costalong/.gvm/gos/go1.25.3/src/testing/testing.go:1997 +0x6e4\n","path":"/test","method":"GET","caller":"resilience/recovery.go:103","stacktrace":"slog.(*SlogLogger).Errorw\\n\\tslog/slog.go:322\\nlogger.Errorw\\n\\tlogger/logger.go:175\\nresilience.logPanicWithStackTrace\\n\\tresilience/recovery.go:103\\nresilience.RecoveryWithConfig.func1.1.1\\n\\tresilience/recovery.go:52\\nruntime.gopanic\\n\\truntime/panic.go:783\\nresilience.TestRecovery_CatchesPanic.func1\\n\\tresilience/recovery_test.go:38\\nresilience.RecoveryWithConfig.func1.1\\n\\tresilience/recovery.go:65\\nresilience.TestRecovery_CatchesPanic\\n\\tresilience/recovery_test.go:46\\ntesting.tRunner\\n\\ttesting/testing.go:1934\\nruntime.goexit\\n\\truntime/asm_arm64.s:1268"}
+--- PASS: TestRecovery_CatchesPanic (0.00s)
+=== RUN   TestGetRemoteIP
+=== RUN   TestGetRemoteIP/standard_IP:port_format
+=== RUN   TestGetRemoteIP/IPv6_with_port
+=== RUN   TestGetRemoteIP/IP_without_port
+--- PASS: TestGetRemoteIP (0.00s)
+    --- PASS: TestGetRemoteIP/standard_IP:port_format (0.00s)
+    --- PASS: TestGetRemoteIP/IPv6_with_port (0.00s)
+    --- PASS: TestGetRemoteIP/IP_without_port (0.00s)
+=== RUN   TestRecovery_NoPanic
+--- PASS: TestRecovery_NoPanic (0.00s)
+=== RUN   TestValidateConfig
+=== RUN   TestValidateConfig/empty_config_gets_defaults
+=== RUN   TestValidateConfig/negative_limit_gets_default
+=== RUN   TestValidateConfig/custom_values_are_preserved
+--- PASS: TestValidateConfig (0.00s)
+    --- PASS: TestValidateConfig/empty_config_gets_defaults (0.00s)
+    --- PASS: TestValidateConfig/negative_limit_gets_default (0.00s)
+    --- PASS: TestValidateConfig/custom_values_are_preserved (0.00s)
+=== RUN   TestTimeout_CanceledContext
+==================
+WARNING: DATA RACE
+Read at 0x00c0002a266f by goroutine 81:
+  github.com/kart-io/sentinel-x/pkg/infra/middleware/resilience.TestTimeout_CanceledContext()
+      /Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/middleware/resilience/timeout_test.go:209 +0x578
+  testing.tRunner()
+      /Users/costalong/.gvm/gos/go1.25.3/src/testing/testing.go:1934 +0x164
+  testing.(*T).Run.gowrap1()
+      /Users/costalong/.gvm/gos/go1.25.3/src/testing/testing.go:1997 +0x3c
+
+Previous write at 0x00c0002a266f by goroutine 66:
+  github.com/kart-io/sentinel-x/pkg/infra/middleware/resilience.TestTimeout_CanceledContext.func1()
+      /Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/middleware/resilience/timeout_test.go:197 +0xa4
+  github.com/kart-io/sentinel-x/pkg/infra/middleware/resilience.TestTimeout_CanceledContext.TestTimeout_CanceledContext.Timeout.TimeoutWithConfig.func2.func3.1()
+      /Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/middleware/resilience/timeout.go:91 +0xc0
+  github.com/kart-io/sentinel-x/pkg/infra/pool.(*Pool).Submit.func1()
+      /Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/pool/pool.go:240 +0xe0
+  github.com/panjf2000/ants/v2.(*goWorker).run.func1()
+      /Users/costalong/code/go/src/github.com/kart/sentinel-x/vendor/github.com/panjf2000/ants/v2/worker.go:73 +0xbc
+  github.com/panjf2000/ants/v2.(*goWorker).run.func1()
+      /Users/costalong/code/go/src/github.com/kart/sentinel-x/vendor/github.com/panjf2000/ants/v2/worker.go:73 +0xbc
+
+Goroutine 81 (running) created at:
+  testing.(*T).Run()
+      /Users/costalong/.gvm/gos/go1.25.3/src/testing/testing.go:1997 +0x6e0
+  testing.runTests.func1()
+      /Users/costalong/.gvm/gos/go1.25.3/src/testing/testing.go:2477 +0x74
+  testing.tRunner()
+      /Users/costalong/.gvm/gos/go1.25.3/src/testing/testing.go:1934 +0x164
+  testing.runTests()
+      /Users/costalong/.gvm/gos/go1.25.3/src/testing/testing.go:2475 +0x734
+  testing.(*M).Run()
+      /Users/costalong/.gvm/gos/go1.25.3/src/testing/testing.go:2337 +0xaf4
+  main.main()
+      _testmain.go:135 +0x100
+
+Goroutine 66 (running) created at:
+  github.com/panjf2000/ants/v2.(*goWorker).run()
+      /Users/costalong/code/go/src/github.com/kart/sentinel-x/vendor/github.com/panjf2000/ants/v2/worker.go:50 +0xbc
+  github.com/panjf2000/ants/v2.(*poolCommon).retrieveWorker()
+      /Users/costalong/code/go/src/github.com/kart/sentinel-x/vendor/github.com/panjf2000/ants/v2/ants.go:477 +0x334
+  github.com/panjf2000/ants/v2.(*Pool).Submit()
+      /Users/costalong/code/go/src/github.com/kart/sentinel-x/vendor/github.com/panjf2000/ants/v2/pool.go:42 +0x60
+  github.com/kart-io/sentinel-x/pkg/infra/pool.(*Pool).Submit()
+      /Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/pool/pool.go:225 +0x13c
+  github.com/kart-io/sentinel-x/pkg/infra/pool.(*Manager).Submit()
+      /Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/pool/manager.go:89 +0x68
+  github.com/kart-io/sentinel-x/pkg/infra/pool.SubmitTo()
+      /Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/pool/global.go:199 +0x40
+  github.com/kart-io/sentinel-x/pkg/infra/pool.SubmitToType()
+      /Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/pool/global.go:204 +0x38
+  github.com/kart-io/sentinel-x/pkg/infra/middleware/resilience.TestTimeout_PanicInHandler.TestTimeout_PanicInHandler.Timeout.TimeoutWithConfig.func2.func3()
+      /Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/middleware/resilience/timeout.go:95 +0x24c
+  github.com/kart-io/sentinel-x/pkg/infra/middleware/resilience.TestTimeout_PanicInHandler()
+      /Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/middleware/resilience/timeout_test.go:259 +0x480
+  testing.tRunner()
+      /Users/costalong/.gvm/gos/go1.25.3/src/testing/testing.go:1934 +0x164
+  testing.(*T).Run.gowrap1()
+      /Users/costalong/.gvm/gos/go1.25.3/src/testing/testing.go:1997 +0x3c
+==================
+==================
+WARNING: DATA RACE
+Read at 0x00c00029c7f0 by goroutine 81:
+  github.com/kart-io/sentinel-x/pkg/infra/middleware/resilience.TestTimeout_CanceledContext()
+      /Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/middleware/resilience/timeout_test.go:214 +0x5c4
+  testing.tRunner()
+      /Users/costalong/.gvm/gos/go1.25.3/src/testing/testing.go:1934 +0x164
+  testing.(*T).Run.gowrap1()
+      /Users/costalong/.gvm/gos/go1.25.3/src/testing/testing.go:1997 +0x3c
+
+Previous write at 0x00c00029c7f0 by goroutine 66:
+  github.com/kart-io/sentinel-x/pkg/infra/middleware/resilience.TestTimeout_CanceledContext.func1()
+      /Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/middleware/resilience/timeout_test.go:196 +0x68
+  github.com/kart-io/sentinel-x/pkg/infra/middleware/resilience.TestTimeout_CanceledContext.TestTimeout_CanceledContext.Timeout.TimeoutWithConfig.func2.func3.1()
+      /Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/middleware/resilience/timeout.go:91 +0xc0
+  github.com/kart-io/sentinel-x/pkg/infra/pool.(*Pool).Submit.func1()
+      /Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/pool/pool.go:240 +0xe0
+  github.com/panjf2000/ants/v2.(*goWorker).run.func1()
+      /Users/costalong/code/go/src/github.com/kart/sentinel-x/vendor/github.com/panjf2000/ants/v2/worker.go:73 +0xbc
+  github.com/panjf2000/ants/v2.(*goWorker).run.func1()
+      /Users/costalong/code/go/src/github.com/kart/sentinel-x/vendor/github.com/panjf2000/ants/v2/worker.go:73 +0xbc
+
+Goroutine 81 (running) created at:
+  testing.(*T).Run()
+      /Users/costalong/.gvm/gos/go1.25.3/src/testing/testing.go:1997 +0x6e0
+  testing.runTests.func1()
+      /Users/costalong/.gvm/gos/go1.25.3/src/testing/testing.go:2477 +0x74
+  testing.tRunner()
+      /Users/costalong/.gvm/gos/go1.25.3/src/testing/testing.go:1934 +0x164
+  testing.runTests()
+      /Users/costalong/.gvm/gos/go1.25.3/src/testing/testing.go:2475 +0x734
+  testing.(*M).Run()
+      /Users/costalong/.gvm/gos/go1.25.3/src/testing/testing.go:2337 +0xaf4
+  main.main()
+      _testmain.go:135 +0x100
+
+Goroutine 66 (running) created at:
+  github.com/panjf2000/ants/v2.(*goWorker).run()
+      /Users/costalong/code/go/src/github.com/kart/sentinel-x/vendor/github.com/panjf2000/ants/v2/worker.go:50 +0xbc
+  github.com/panjf2000/ants/v2.(*poolCommon).retrieveWorker()
+      /Users/costalong/code/go/src/github.com/kart/sentinel-x/vendor/github.com/panjf2000/ants/v2/ants.go:477 +0x334
+  github.com/panjf2000/ants/v2.(*Pool).Submit()
+      /Users/costalong/code/go/src/github.com/kart/sentinel-x/vendor/github.com/panjf2000/ants/v2/pool.go:42 +0x60
+  github.com/kart-io/sentinel-x/pkg/infra/pool.(*Pool).Submit()
+      /Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/pool/pool.go:225 +0x13c
+  github.com/kart-io/sentinel-x/pkg/infra/pool.(*Manager).Submit()
+      /Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/pool/manager.go:89 +0x68
+  github.com/kart-io/sentinel-x/pkg/infra/pool.SubmitTo()
+      /Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/pool/global.go:199 +0x40
+  github.com/kart-io/sentinel-x/pkg/infra/pool.SubmitToType()
+      /Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/pool/global.go:204 +0x38
+  github.com/kart-io/sentinel-x/pkg/infra/middleware/resilience.TestTimeout_PanicInHandler.TestTimeout_PanicInHandler.Timeout.TimeoutWithConfig.func2.func3()
+      /Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/middleware/resilience/timeout.go:95 +0x24c
+  github.com/kart-io/sentinel-x/pkg/infra/middleware/resilience.TestTimeout_PanicInHandler()
+      /Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/middleware/resilience/timeout_test.go:259 +0x480
+  testing.tRunner()
+      /Users/costalong/.gvm/gos/go1.25.3/src/testing/testing.go:1934 +0x164
+  testing.(*T).Run.gowrap1()
+      /Users/costalong/.gvm/gos/go1.25.3/src/testing/testing.go:1997 +0x3c
+==================
+    testing.go:1617: race detected during execution of test
+--- FAIL: TestTimeout_CanceledContext (0.21s)
+=== RUN   TestTimeout_SlowRequest
+--- PASS: TestTimeout_SlowRequest (0.05s)
+=== RUN   TestCheckRateLimit
+=== RUN   TestCheckRateLimit/allowed_request
+=== RUN   TestCheckRateLimit/denied_request
+=== RUN   TestCheckRateLimit/limiter_error
+--- PASS: TestCheckRateLimit (0.00s)
+    --- PASS: TestCheckRateLimit/allowed_request (0.00s)
+    --- PASS: TestCheckRateLimit/denied_request (0.00s)
+    --- PASS: TestCheckRateLimit/limiter_error (0.00s)
+=== RUN   TestRateLimitMiddleware
+=== RUN   TestRateLimitMiddleware/request_within_limit
+=== RUN   TestRateLimitMiddleware/request_exceeds_limit
+=== RUN   TestRateLimitMiddleware/skip_configured_paths
+=== RUN   TestRateLimitMiddleware/custom_key_function
+=== RUN   TestRateLimitMiddleware/OnLimitReached_callback
+=== RUN   TestRateLimitMiddleware/limiter_error_allows_request
+{"timestamp":"2025-12-14T15:02:06.479759+08:00","level":"error","message":"rate limiter error","service.name":"unknown","service.version":"unknown","engine":"slog","error":"redis connection error","key":"192.168.1.1","caller":"resilience/ratelimit.go:320","stacktrace":"slog.(*SlogLogger).Errorw\\n\\tslog/slog.go:322\\nlogger.Errorw\\n\\tlogger/logger.go:175\\nresilience.logRateLimitError\\n\\tresilience/ratelimit.go:320\\nresilience.RateLimitWithConfig.func1.1\\n\\tresilience/ratelimit.go:109\\nresilience.TestRateLimitMiddleware.func6\\n\\tresilience/ratelimit_test.go:711\\ntesting.tRunner\\n\\ttesting/testing.go:1934\\nruntime.goexit\\n\\truntime/asm_arm64.s:1268"}
+--- PASS: TestRateLimitMiddleware (0.00s)
+    --- PASS: TestRateLimitMiddleware/request_within_limit (0.00s)
+    --- PASS: TestRateLimitMiddleware/request_exceeds_limit (0.00s)
+    --- PASS: TestRateLimitMiddleware/skip_configured_paths (0.00s)
+    --- PASS: TestRateLimitMiddleware/custom_key_function (0.00s)
+    --- PASS: TestRateLimitMiddleware/OnLimitReached_callback (0.00s)
+    --- PASS: TestRateLimitMiddleware/limiter_error_allows_request (0.00s)
+=== RUN   TestExtractClientIP
+=== RUN   TestExtractClientIP/extracts_from_RemoteAddr_when_proxy_headers_not_trusted
+=== RUN   TestExtractClientIP/extracts_from_X-Forwarded-For_when_request_from_trusted_proxy
+=== RUN   TestExtractClientIP/extracts_from_X-Real-IP_when_request_from_trusted_proxy
+=== RUN   TestExtractClientIP/ignores_proxy_headers_when_not_from_trusted_proxy
+=== RUN   TestExtractClientIP/supports_CIDR_ranges_for_trusted_proxies
+=== RUN   TestExtractClientIP/validates_IP_format_from_proxy_headers
+=== RUN   TestExtractClientIP/X-Forwarded-For_takes_precedence_over_X-Real-IP
+=== RUN   TestExtractClientIP/extracts_from_RemoteAddr_when_no_proxy_headers
+--- PASS: TestExtractClientIP (0.00s)
+    --- PASS: TestExtractClientIP/extracts_from_RemoteAddr_when_proxy_headers_not_trusted (0.00s)
+    --- PASS: TestExtractClientIP/extracts_from_X-Forwarded-For_when_request_from_trusted_proxy (0.00s)
+    --- PASS: TestExtractClientIP/extracts_from_X-Real-IP_when_request_from_trusted_proxy (0.00s)
+    --- PASS: TestExtractClientIP/ignores_proxy_headers_when_not_from_trusted_proxy (0.00s)
+    --- PASS: TestExtractClientIP/supports_CIDR_ranges_for_trusted_proxies (0.00s)
+    --- PASS: TestExtractClientIP/validates_IP_format_from_proxy_headers (0.00s)
+    --- PASS: TestExtractClientIP/X-Forwarded-For_takes_precedence_over_X-Real-IP (0.00s)
+    --- PASS: TestExtractClientIP/extracts_from_RemoteAddr_when_no_proxy_headers (0.00s)
+=== RUN   TestRecoveryWithConfig_OnPanicCallback
+{"timestamp":"2025-12-14T15:02:06.481331+08:00","level":"error","message":"panic recovered","service.name":"unknown","service.version":"unknown","engine":"slog","panic":"callback test panic","stack_trace":"goroutine 152 [running]:\nruntime/debug.Stack()\n\t/Users/costalong/.gvm/gos/go1.25.3/src/runtime/debug/stack.go:26 +0x6c\ngithub.com/kart-io/sentinel-x/pkg/infra/middleware/resilience.RecoveryWithConfig.func1.1.1()\n\t/Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/middleware/resilience/recovery.go:49 +0x7c\npanic({0x1032961a0?, 0x103407bf0?})\n\t/Users/costalong/.gvm/gos/go1.25.3/src/runtime/panic.go:783 +0x120\ngithub.com/kart-io/sentinel-x/pkg/infra/middleware/resilience.TestRecoveryWithConfig_OnPanicCallback.func2({0xc000400008?, 0xc0003b2a10?})\n\t/Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/middleware/resilience/recovery_test.go:123 +0x34\ngithub.com/kart-io/sentinel-x/pkg/infra/middleware/resilience.RecoveryWithConfig.func1.1({0x103421be8, 0xc0003b2a10})\n\t/Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/middleware/resilience/recovery.go:65 +0xf0\ngithub.com/kart-io/sentinel-x/pkg/infra/middleware/resilience.TestRecoveryWithConfig_OnPanicCallback(0xc0003f2540)\n\t/Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/middleware/resilience/recovery_test.go:130 +0x460\ntesting.tRunner(0xc0003f2540, 0x1034041c8)\n\t/Users/costalong/.gvm/gos/go1.25.3/src/testing/testing.go:1934 +0x168\ncreated by testing.(*T).Run in goroutine 1\n\t/Users/costalong/.gvm/gos/go1.25.3/src/testing/testing.go:1997 +0x6e4\n","path":"/test","method":"GET","caller":"resilience/recovery.go:103","stacktrace":"slog.(*SlogLogger).Errorw\\n\\tslog/slog.go:322\\nlogger.Errorw\\n\\tlogger/logger.go:175\\nresilience.logPanicWithStackTrace\\n\\tresilience/recovery.go:103\\nresilience.RecoveryWithConfig.func1.1.1\\n\\tresilience/recovery.go:52\\nruntime.gopanic\\n\\truntime/panic.go:783\\nresilience.TestRecoveryWithConfig_OnPanicCallback.func2\\n\\tresilience/recovery_test.go:123\\nresilience.RecoveryWithConfig.func1.1\\n\\tresilience/recovery.go:65\\nresilience.TestRecoveryWithConfig_OnPanicCallback\\n\\tresilience/recovery_test.go:130\\ntesting.tRunner\\n\\ttesting/testing.go:1934\\nruntime.goexit\\n\\truntime/asm_arm64.s:1268"}
+--- PASS: TestRecoveryWithConfig_OnPanicCallback (0.00s)
+=== RUN   TestBuildSkipPathsMap
+--- PASS: TestBuildSkipPathsMap (0.00s)
+=== RUN   TestMemoryRateLimiterConcurrency
+--- PASS: TestMemoryRateLimiterConcurrency (0.00s)
+=== RUN   TestTimeout_GoroutineDoesNotLeak
+--- PASS: TestTimeout_GoroutineDoesNotLeak (0.11s)
+=== RUN   TestRecoveryWithConfig_StackTrace
+=== RUN   TestRecoveryWithConfig_StackTrace/with_stack_trace_enabled
+{"timestamp":"2025-12-14T15:02:06.590837+08:00","level":"error","message":"panic recovered","service.name":"unknown","service.version":"unknown","engine":"slog","panic":"test panic with stack","stack_trace":"goroutine 357 [running]:\nruntime/debug.Stack()\n\t/Users/costalong/.gvm/gos/go1.25.3/src/runtime/debug/stack.go:26 +0x6c\ngithub.com/kart-io/sentinel-x/pkg/infra/middleware/resilience.RecoveryWithConfig.func1.1.1()\n\t/Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/middleware/resilience/recovery.go:49 +0x7c\npanic({0x1032961a0?, 0x103407d20?})\n\t/Users/costalong/.gvm/gos/go1.25.3/src/runtime/panic.go:783 +0x120\ngithub.com/kart-io/sentinel-x/pkg/infra/middleware/resilience.TestRecoveryWithConfig_StackTrace.func1.1({0xc000400808?, 0xc0003b2ee0?})\n\t/Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/middleware/resilience/recovery_test.go:85 +0x34\ngithub.com/kart-io/sentinel-x/pkg/infra/middleware/resilience.RecoveryWithConfig.func1.1({0x103421be8, 0xc0003b2ee0})\n\t/Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/middleware/resilience/recovery.go:65 +0xf0\ngithub.com/kart-io/sentinel-x/pkg/infra/middleware/resilience.TestRecoveryWithConfig_StackTrace.func1(0xc0004d8e00)\n\t/Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/middleware/resilience/recovery_test.go:92 +0x314\ntesting.tRunner(0xc0004d8e00, 0xc00038ca80)\n\t/Users/costalong/.gvm/gos/go1.25.3/src/testing/testing.go:1934 +0x168\ncreated by testing.(*T).Run in goroutine 356\n\t/Users/costalong/.gvm/gos/go1.25.3/src/testing/testing.go:1997 +0x6e4\n","path":"/test","method":"GET","caller":"resilience/recovery.go:103","stacktrace":"slog.(*SlogLogger).Errorw\\n\\tslog/slog.go:322\\nlogger.Errorw\\n\\tlogger/logger.go:175\\nresilience.logPanicWithStackTrace\\n\\tresilience/recovery.go:103\\nresilience.RecoveryWithConfig.func1.1.1\\n\\tresilience/recovery.go:52\\nruntime.gopanic\\n\\truntime/panic.go:783\\nresilience.TestRecoveryWithConfig_StackTrace.func1.1\\n\\tresilience/recovery_test.go:85\\nresilience.RecoveryWithConfig.func1.1\\n\\tresilience/recovery.go:65\\nresilience.TestRecoveryWithConfig_StackTrace.func1\\n\\tresilience/recovery_test.go:92\\ntesting.tRunner\\n\\ttesting/testing.go:1934\\nruntime.goexit\\n\\truntime/asm_arm64.s:1268"}
+=== RUN   TestRecoveryWithConfig_StackTrace/with_stack_trace_disabled
+{"timestamp":"2025-12-14T15:02:06.591969+08:00","level":"error","message":"panic recovered","service.name":"unknown","service.version":"unknown","engine":"slog","panic":"test panic with stack","stack_trace":"goroutine 358 [running]:\nruntime/debug.Stack()\n\t/Users/costalong/.gvm/gos/go1.25.3/src/runtime/debug/stack.go:26 +0x6c\ngithub.com/kart-io/sentinel-x/pkg/infra/middleware/resilience.RecoveryWithConfig.func1.1.1()\n\t/Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/middleware/resilience/recovery.go:49 +0x7c\npanic({0x1032961a0?, 0x103407d20?})\n\t/Users/costalong/.gvm/gos/go1.25.3/src/runtime/panic.go:783 +0x120\ngithub.com/kart-io/sentinel-x/pkg/infra/middleware/resilience.TestRecoveryWithConfig_StackTrace.func1.1({0xc000400808?, 0xc0003b2f50?})\n\t/Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/middleware/resilience/recovery_test.go:85 +0x34\ngithub.com/kart-io/sentinel-x/pkg/infra/middleware/resilience.RecoveryWithConfig.func1.1({0x103421be8, 0xc0003b2f50})\n\t/Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/middleware/resilience/recovery.go:65 +0xf0\ngithub.com/kart-io/sentinel-x/pkg/infra/middleware/resilience.TestRecoveryWithConfig_StackTrace.func1(0xc0004d8fc0)\n\t/Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/middleware/resilience/recovery_test.go:92 +0x314\ntesting.tRunner(0xc0004d8fc0, 0xc00038cb20)\n\t/Users/costalong/.gvm/gos/go1.25.3/src/testing/testing.go:1934 +0x168\ncreated by testing.(*T).Run in goroutine 356\n\t/Users/costalong/.gvm/gos/go1.25.3/src/testing/testing.go:1997 +0x6e4\n","path":"/test","method":"GET","caller":"resilience/recovery.go:103","stacktrace":"slog.(*SlogLogger).Errorw\\n\\tslog/slog.go:322\\nlogger.Errorw\\n\\tlogger/logger.go:175\\nresilience.logPanicWithStackTrace\\n\\tresilience/recovery.go:103\\nresilience.RecoveryWithConfig.func1.1.1\\n\\tresilience/recovery.go:52\\nruntime.gopanic\\n\\truntime/panic.go:783\\nresilience.TestRecoveryWithConfig_StackTrace.func1.1\\n\\tresilience/recovery_test.go:85\\nresilience.RecoveryWithConfig.func1.1\\n\\tresilience/recovery.go:65\\nresilience.TestRecoveryWithConfig_StackTrace.func1\\n\\tresilience/recovery_test.go:92\\ntesting.tRunner\\n\\ttesting/testing.go:1934\\nruntime.goexit\\n\\truntime/asm_arm64.s:1268"}
+--- PASS: TestRecoveryWithConfig_StackTrace (0.00s)
+    --- PASS: TestRecoveryWithConfig_StackTrace/with_stack_trace_enabled (0.00s)
+    --- PASS: TestRecoveryWithConfig_StackTrace/with_stack_trace_disabled (0.00s)
+=== RUN   TestTimeoutWithConfig_DefaultTimeout
+--- PASS: TestTimeoutWithConfig_DefaultTimeout (0.00s)
+=== RUN   TestRecovery_DefaultConfig
+{"timestamp":"2025-12-14T15:02:06.592951+08:00","level":"error","message":"panic recovered","service.name":"unknown","service.version":"unknown","engine":"slog","panic":"default config test","stack_trace":"goroutine 360 [running]:\nruntime/debug.Stack()\n\t/Users/costalong/.gvm/gos/go1.25.3/src/runtime/debug/stack.go:26 +0x6c\ngithub.com/kart-io/sentinel-x/pkg/infra/middleware/resilience.RecoveryWithConfig.func1.1.1()\n\t/Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/middleware/resilience/recovery.go:49 +0x7c\npanic({0x1032961a0?, 0x103407d10?})\n\t/Users/costalong/.gvm/gos/go1.25.3/src/runtime/panic.go:783 +0x120\ngithub.com/kart-io/sentinel-x/pkg/infra/middleware/resilience.TestRecovery_DefaultConfig.func1({0xc000400808?, 0xc0003b3110?})\n\t/Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/middleware/resilience/recovery_test.go:203 +0x34\ngithub.com/kart-io/sentinel-x/pkg/infra/middleware/resilience.RecoveryWithConfig.func1.1({0x103421be8, 0xc0003b3110})\n\t/Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/middleware/resilience/recovery.go:65 +0xf0\ngithub.com/kart-io/sentinel-x/pkg/infra/middleware/resilience.TestRecovery_DefaultConfig(0xc0004d9340)\n\t/Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/middleware/resilience/recovery_test.go:210 +0x378\ntesting.tRunner(0xc0004d9340, 0x1034041e8)\n\t/Users/costalong/.gvm/gos/go1.25.3/src/testing/testing.go:1934 +0x168\ncreated by testing.(*T).Run in goroutine 1\n\t/Users/costalong/.gvm/gos/go1.25.3/src/testing/testing.go:1997 +0x6e4\n","path":"/test","method":"GET","caller":"resilience/recovery.go:103","stacktrace":"slog.(*SlogLogger).Errorw\\n\\tslog/slog.go:322\\nlogger.Errorw\\n\\tlogger/logger.go:175\\nresilience.logPanicWithStackTrace\\n\\tresilience/recovery.go:103\\nresilience.RecoveryWithConfig.func1.1.1\\n\\tresilience/recovery.go:52\\nruntime.gopanic\\n\\truntime/panic.go:783\\nresilience.TestRecovery_DefaultConfig.func1\\n\\tresilience/recovery_test.go:203\\nresilience.RecoveryWithConfig.func1.1\\n\\tresilience/recovery.go:65\\nresilience.TestRecovery_DefaultConfig\\n\\tresilience/recovery_test.go:210\\ntesting.tRunner\\n\\ttesting/testing.go:1934\\nruntime.goexit\\n\\truntime/asm_arm64.s:1268"}
+--- PASS: TestRecovery_DefaultConfig (0.00s)
+=== RUN   TestTimeout_VeryShortTimeout
+--- PASS: TestTimeout_VeryShortTimeout (0.00s)
+=== RUN   TestTimeout_ContextDeadline
+--- PASS: TestTimeout_ContextDeadline (0.00s)
+=== RUN   TestMemoryRateLimiter
+=== RUN   TestMemoryRateLimiter/allows_requests_within_limit
+=== RUN   TestMemoryRateLimiter/denies_requests_exceeding_limit
+=== RUN   TestMemoryRateLimiter/resets_after_time_window
+=== RUN   TestMemoryRateLimiter/different_keys_are_independent
+=== RUN   TestMemoryRateLimiter/reset_clears_counter
+--- PASS: TestMemoryRateLimiter (0.20s)
+    --- PASS: TestMemoryRateLimiter/allows_requests_within_limit (0.00s)
+    --- PASS: TestMemoryRateLimiter/denies_requests_exceeding_limit (0.00s)
+    --- PASS: TestMemoryRateLimiter/resets_after_time_window (0.20s)
+    --- PASS: TestMemoryRateLimiter/different_keys_are_independent (0.00s)
+    --- PASS: TestMemoryRateLimiter/reset_clears_counter (0.00s)
+=== RUN   TestExtractKey
+=== RUN   TestExtractKey/custom_key_function
+=== RUN   TestExtractKey/empty_key_falls_back_to_RemoteAddr
+--- PASS: TestExtractKey (0.00s)
+    --- PASS: TestExtractKey/custom_key_function (0.00s)
+    --- PASS: TestExtractKey/empty_key_falls_back_to_RemoteAddr (0.00s)
+=== RUN   TestShouldSkipPath
+=== RUN   TestShouldSkipPath//health
+=== RUN   TestShouldSkipPath//metrics
+=== RUN   TestShouldSkipPath//api/users
+=== RUN   TestShouldSkipPath//health/check
+--- PASS: TestShouldSkipPath (0.00s)
+    --- PASS: TestShouldSkipPath//health (0.00s)
+    --- PASS: TestShouldSkipPath//metrics (0.00s)
+    --- PASS: TestShouldSkipPath//api/users (0.00s)
+    --- PASS: TestShouldSkipPath//health/check (0.00s)
+=== RUN   TestRecoveryWithConfig_PanicWithDifferentTypes
+=== RUN   TestRecoveryWithConfig_PanicWithDifferentTypes/panic_with_string
+{"timestamp":"2025-12-14T15:02:06.79768+08:00","level":"error","message":"panic recovered","service.name":"unknown","service.version":"unknown","engine":"slog","panic":"string panic","stack_trace":"goroutine 387 [running]:\nruntime/debug.Stack()\n\t/Users/costalong/.gvm/gos/go1.25.3/src/runtime/debug/stack.go:26 +0x6c\ngithub.com/kart-io/sentinel-x/pkg/infra/middleware/resilience.RecoveryWithConfig.func1.1.1()\n\t/Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/middleware/resilience/recovery.go:49 +0x7c\npanic({0x1032961a0?, 0x103407c10?})\n\t/Users/costalong/.gvm/gos/go1.25.3/src/runtime/panic.go:783 +0x120\ngithub.com/kart-io/sentinel-x/pkg/infra/middleware/resilience.TestRecoveryWithConfig_PanicWithDifferentTypes.func1.1({0xc000400808?, 0xc0006a8850?})\n\t/Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/middleware/resilience/recovery_test.go:181 +0x30\ngithub.com/kart-io/sentinel-x/pkg/infra/middleware/resilience.RecoveryWithConfig.func1.1({0x103421be8, 0xc0006a8850})\n\t/Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/middleware/resilience/recovery.go:65 +0xf0\ngithub.com/kart-io/sentinel-x/pkg/infra/middleware/resilience.TestRecoveryWithConfig_PanicWithDifferentTypes.func1(0xc000695dc0)\n\t/Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/middleware/resilience/recovery_test.go:189 +0x404\ntesting.tRunner(0xc000695dc0, 0xc000681740)\n\t/Users/costalong/.gvm/gos/go1.25.3/src/testing/testing.go:1934 +0x168\ncreated by testing.(*T).Run in goroutine 386\n\t/Users/costalong/.gvm/gos/go1.25.3/src/testing/testing.go:1997 +0x6e4\n","path":"/test","method":"GET","caller":"resilience/recovery.go:103","stacktrace":"slog.(*SlogLogger).Errorw\\n\\tslog/slog.go:322\\nlogger.Errorw\\n\\tlogger/logger.go:175\\nresilience.logPanicWithStackTrace\\n\\tresilience/recovery.go:103\\nresilience.RecoveryWithConfig.func1.1.1\\n\\tresilience/recovery.go:52\\nruntime.gopanic\\n\\truntime/panic.go:783\\nresilience.TestRecoveryWithConfig_PanicWithDifferentTypes.func1.1\\n\\tresilience/recovery_test.go:181\\nresilience.RecoveryWithConfig.func1.1\\n\\tresilience/recovery.go:65\\nresilience.TestRecoveryWithConfig_PanicWithDifferentTypes.func1\\n\\tresilience/recovery_test.go:189\\ntesting.tRunner\\n\\ttesting/testing.go:1934\\nruntime.goexit\\n\\truntime/asm_arm64.s:1268"}
+=== RUN   TestRecoveryWithConfig_PanicWithDifferentTypes/panic_with_error
+{"timestamp":"2025-12-14T15:02:06.797998+08:00","level":"error","message":"panic recovered","service.name":"unknown","service.version":"unknown","engine":"slog","panic":"error panic","stack_trace":"goroutine 388 [running]:\nruntime/debug.Stack()\n\t/Users/costalong/.gvm/gos/go1.25.3/src/runtime/debug/stack.go:26 +0x6c\ngithub.com/kart-io/sentinel-x/pkg/infra/middleware/resilience.RecoveryWithConfig.func1.1.1()\n\t/Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/middleware/resilience/recovery.go:49 +0x7c\npanic({0x1032d5a60?, 0xc0006827d0?})\n\t/Users/costalong/.gvm/gos/go1.25.3/src/runtime/panic.go:783 +0x120\ngithub.com/kart-io/sentinel-x/pkg/infra/middleware/resilience.TestRecoveryWithConfig_PanicWithDifferentTypes.func1.1({0xc000400808?, 0xc0006a88c0?})\n\t/Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/middleware/resilience/recovery_test.go:181 +0x30\ngithub.com/kart-io/sentinel-x/pkg/infra/middleware/resilience.RecoveryWithConfig.func1.1({0x103421be8, 0xc0006a88c0})\n\t/Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/middleware/resilience/recovery.go:65 +0xf0\ngithub.com/kart-io/sentinel-x/pkg/infra/middleware/resilience.TestRecoveryWithConfig_PanicWithDifferentTypes.func1(0xc0006f0000)\n\t/Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/middleware/resilience/recovery_test.go:189 +0x404\ntesting.tRunner(0xc0006f0000, 0xc000681b00)\n\t/Users/costalong/.gvm/gos/go1.25.3/src/testing/testing.go:1934 +0x168\ncreated by testing.(*T).Run in goroutine 386\n\t/Users/costalong/.gvm/gos/go1.25.3/src/testing/testing.go:1997 +0x6e4\n","path":"/test","method":"GET","caller":"resilience/recovery.go:103","stacktrace":"slog.(*SlogLogger).Errorw\\n\\tslog/slog.go:322\\nlogger.Errorw\\n\\tlogger/logger.go:175\\nresilience.logPanicWithStackTrace\\n\\tresilience/recovery.go:103\\nresilience.RecoveryWithConfig.func1.1.1\\n\\tresilience/recovery.go:52\\nruntime.gopanic\\n\\truntime/panic.go:783\\nresilience.TestRecoveryWithConfig_PanicWithDifferentTypes.func1.1\\n\\tresilience/recovery_test.go:181\\nresilience.RecoveryWithConfig.func1.1\\n\\tresilience/recovery.go:65\\nresilience.TestRecoveryWithConfig_PanicWithDifferentTypes.func1\\n\\tresilience/recovery_test.go:189\\ntesting.tRunner\\n\\ttesting/testing.go:1934\\nruntime.goexit\\n\\truntime/asm_arm64.s:1268"}
+=== RUN   TestRecoveryWithConfig_PanicWithDifferentTypes/panic_with_integer
+{"timestamp":"2025-12-14T15:02:06.798273+08:00","level":"error","message":"panic recovered","service.name":"unknown","service.version":"unknown","engine":"slog","panic":42,"stack_trace":"goroutine 389 [running]:\nruntime/debug.Stack()\n\t/Users/costalong/.gvm/gos/go1.25.3/src/runtime/debug/stack.go:26 +0x6c\ngithub.com/kart-io/sentinel-x/pkg/infra/middleware/resilience.RecoveryWithConfig.func1.1.1()\n\t/Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/middleware/resilience/recovery.go:49 +0x7c\npanic({0x1032963e0?, 0x103208d10?})\n\t/Users/costalong/.gvm/gos/go1.25.3/src/runtime/panic.go:783 +0x120\ngithub.com/kart-io/sentinel-x/pkg/infra/middleware/resilience.TestRecoveryWithConfig_PanicWithDifferentTypes.func1.1({0xc000400808?, 0xc0006a8930?})\n\t/Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/middleware/resilience/recovery_test.go:181 +0x30\ngithub.com/kart-io/sentinel-x/pkg/infra/middleware/resilience.RecoveryWithConfig.func1.1({0x103421be8, 0xc0006a8930})\n\t/Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/middleware/resilience/recovery.go:65 +0xf0\ngithub.com/kart-io/sentinel-x/pkg/infra/middleware/resilience.TestRecoveryWithConfig_PanicWithDifferentTypes.func1(0xc0006f01c0)\n\t/Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/middleware/resilience/recovery_test.go:189 +0x404\ntesting.tRunner(0xc0006f01c0, 0xc000681ef0)\n\t/Users/costalong/.gvm/gos/go1.25.3/src/testing/testing.go:1934 +0x168\ncreated by testing.(*T).Run in goroutine 386\n\t/Users/costalong/.gvm/gos/go1.25.3/src/testing/testing.go:1997 +0x6e4\n","path":"/test","method":"GET","caller":"resilience/recovery.go:103","stacktrace":"slog.(*SlogLogger).Errorw\\n\\tslog/slog.go:322\\nlogger.Errorw\\n\\tlogger/logger.go:175\\nresilience.logPanicWithStackTrace\\n\\tresilience/recovery.go:103\\nresilience.RecoveryWithConfig.func1.1.1\\n\\tresilience/recovery.go:52\\nruntime.gopanic\\n\\truntime/panic.go:783\\nresilience.TestRecoveryWithConfig_PanicWithDifferentTypes.func1.1\\n\\tresilience/recovery_test.go:181\\nresilience.RecoveryWithConfig.func1.1\\n\\tresilience/recovery.go:65\\nresilience.TestRecoveryWithConfig_PanicWithDifferentTypes.func1\\n\\tresilience/recovery_test.go:189\\ntesting.tRunner\\n\\ttesting/testing.go:1934\\nruntime.goexit\\n\\truntime/asm_arm64.s:1268"}
+=== RUN   TestRecoveryWithConfig_PanicWithDifferentTypes/panic_with_nil
+{"timestamp":"2025-12-14T15:02:06.79853+08:00","level":"error","message":"panic recovered","service.name":"unknown","service.version":"unknown","engine":"slog","panic":"panic called with nil argument","stack_trace":"goroutine 390 [running]:\nruntime/debug.Stack()\n\t/Users/costalong/.gvm/gos/go1.25.3/src/runtime/debug/stack.go:26 +0x6c\ngithub.com/kart-io/sentinel-x/pkg/infra/middleware/resilience.RecoveryWithConfig.func1.1.1()\n\t/Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/middleware/resilience/recovery.go:49 +0x7c\npanic({0x0?, 0x0?})\n\t/Users/costalong/.gvm/gos/go1.25.3/src/runtime/panic.go:783 +0x120\ngithub.com/kart-io/sentinel-x/pkg/infra/middleware/resilience.TestRecoveryWithConfig_PanicWithDifferentTypes.func1.1({0xc000400808?, 0xc0006a89a0?})\n\t/Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/middleware/resilience/recovery_test.go:181 +0x30\ngithub.com/kart-io/sentinel-x/pkg/infra/middleware/resilience.RecoveryWithConfig.func1.1({0x103421be8, 0xc0006a89a0})\n\t/Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/middleware/resilience/recovery.go:65 +0xf0\ngithub.com/kart-io/sentinel-x/pkg/infra/middleware/resilience.TestRecoveryWithConfig_PanicWithDifferentTypes.func1(0xc0006f0380)\n\t/Users/costalong/code/go/src/github.com/kart/sentinel-x/pkg/infra/middleware/resilience/recovery_test.go:189 +0x404\ntesting.tRunner(0xc0006f0380, 0xc0006f4360)\n\t/Users/costalong/.gvm/gos/go1.25.3/src/testing/testing.go:1934 +0x168\ncreated by testing.(*T).Run in goroutine 386\n\t/Users/costalong/.gvm/gos/go1.25.3/src/testing/testing.go:1997 +0x6e4\n","path":"/test","method":"GET","caller":"resilience/recovery.go:103","stacktrace":"slog.(*SlogLogger).Errorw\\n\\tslog/slog.go:322\\nlogger.Errorw\\n\\tlogger/logger.go:175\\nresilience.logPanicWithStackTrace\\n\\tresilience/recovery.go:103\\nresilience.RecoveryWithConfig.func1.1.1\\n\\tresilience/recovery.go:52\\nruntime.gopanic\\n\\truntime/panic.go:783\\nresilience.TestRecoveryWithConfig_PanicWithDifferentTypes.func1.1\\n\\tresilience/recovery_test.go:181\\nresilience.RecoveryWithConfig.func1.1\\n\\tresilience/recovery.go:65\\nresilience.TestRecoveryWithConfig_PanicWithDifferentTypes.func1\\n\\tresilience/recovery_test.go:189\\ntesting.tRunner\\n\\ttesting/testing.go:1934\\nruntime.goexit\\n\\truntime/asm_arm64.s:1268"}
+--- PASS: TestRecoveryWithConfig_PanicWithDifferentTypes (0.00s)
+    --- PASS: TestRecoveryWithConfig_PanicWithDifferentTypes/panic_with_string (0.00s)
+    --- PASS: TestRecoveryWithConfig_PanicWithDifferentTypes/panic_with_error (0.00s)
+    --- PASS: TestRecoveryWithConfig_PanicWithDifferentTypes/panic_with_integer (0.00s)
+    --- PASS: TestRecoveryWithConfig_PanicWithDifferentTypes/panic_with_nil (0.00s)
+=== RUN   TestTimeoutWithConfig_SkipPaths
+=== RUN   TestTimeoutWithConfig_SkipPaths/skipped_path_-_no_timeout
+=== RUN   TestTimeoutWithConfig_SkipPaths/skipped_path_/metrics_-_no_timeout
+=== RUN   TestTimeoutWithConfig_SkipPaths/normal_path_-_timeout
+--- PASS: TestTimeoutWithConfig_SkipPaths (0.25s)
+    --- PASS: TestTimeoutWithConfig_SkipPaths/skipped_path_-_no_timeout (0.10s)
+    --- PASS: TestTimeoutWithConfig_SkipPaths/skipped_path_/metrics_-_no_timeout (0.10s)
+    --- PASS: TestTimeoutWithConfig_SkipPaths/normal_path_-_timeout (0.05s)
+=== RUN   Example_rateLimit
+--- PASS: Example_rateLimit (0.00s)
+=== RUN   Example_rateLimitWithConfig
+--- PASS: Example_rateLimitWithConfig (0.00s)
+=== RUN   Example_rateLimitByUserID
+--- PASS: Example_rateLimitByUserID (0.00s)
+=== RUN   Example_rateLimitWithCallback
+--- PASS: Example_rateLimitWithCallback (0.00s)
+=== RUN   Example_memoryRateLimiter
+--- PASS: Example_memoryRateLimiter (0.00s)
+=== RUN   Example_redisRateLimiter
+--- PASS: Example_redisRateLimiter (0.00s)
+=== RUN   Example_rateLimitByAPIKey
+--- PASS: Example_rateLimitByAPIKey (0.00s)
+=== RUN   Example_rateLimitPerEndpoint
+--- PASS: Example_rateLimitPerEndpoint (0.00s)
+=== RUN   Example_customRateLimiter
+--- PASS: Example_customRateLimiter (0.00s)
+FAIL
+coverage: 85.2% of statements
+FAIL	github.com/kart-io/sentinel-x/pkg/infra/middleware/resilience	1.777s
+FAIL

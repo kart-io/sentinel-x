@@ -1,3 +1,4 @@
+// Package auth provides authentication middleware.
 package auth
 
 import (
@@ -10,8 +11,8 @@ import (
 	"github.com/kart-io/sentinel-x/pkg/utils/response"
 )
 
-// AuthOptions defines authentication middleware options.
-type AuthOptions struct {
+// Options defines authentication middleware options.
+type Options struct {
 	// Authenticator is the authenticator to use.
 	Authenticator auth.Authenticator
 
@@ -39,12 +40,12 @@ type AuthOptions struct {
 	SuccessHandler func(ctx transport.Context, claims *auth.Claims)
 }
 
-// AuthOption is a functional option for auth middleware.
-type AuthOption func(*AuthOptions)
+// Option is a functional option for auth middleware.
+type Option func(*Options)
 
-// NewAuthOptions creates default auth options.
-func NewAuthOptions() *AuthOptions {
-	return &AuthOptions{
+// NewOptions creates default auth options.
+func NewOptions() *Options {
+	return &Options{
 		TokenLookup:      "header:Authorization",
 		AuthScheme:       "Bearer",
 		SkipPaths:        []string{},
@@ -52,58 +53,58 @@ func NewAuthOptions() *AuthOptions {
 	}
 }
 
-// AuthWithAuthenticator sets the authenticator.
-func AuthWithAuthenticator(a auth.Authenticator) AuthOption {
-	return func(o *AuthOptions) {
+// WithAuthenticator sets the authenticator.
+func WithAuthenticator(a auth.Authenticator) Option {
+	return func(o *Options) {
 		o.Authenticator = a
 	}
 }
 
-// AuthWithTokenLookup sets how to extract the token.
-func AuthWithTokenLookup(lookup string) AuthOption {
-	return func(o *AuthOptions) {
+// WithTokenLookup sets how to extract the token.
+func WithTokenLookup(lookup string) Option {
+	return func(o *Options) {
 		o.TokenLookup = lookup
 	}
 }
 
-// AuthWithAuthScheme sets the authorization scheme.
-func AuthWithAuthScheme(scheme string) AuthOption {
-	return func(o *AuthOptions) {
+// WithAuthScheme sets the authorization scheme.
+func WithAuthScheme(scheme string) Option {
+	return func(o *Options) {
 		o.AuthScheme = scheme
 	}
 }
 
-// AuthWithSkipPaths sets paths to skip authentication.
-func AuthWithSkipPaths(paths ...string) AuthOption {
-	return func(o *AuthOptions) {
+// WithSkipPaths sets paths to skip authentication.
+func WithSkipPaths(paths ...string) Option {
+	return func(o *Options) {
 		o.SkipPaths = paths
 	}
 }
 
-// AuthWithSkipPathPrefixes sets path prefixes to skip authentication.
-func AuthWithSkipPathPrefixes(prefixes ...string) AuthOption {
-	return func(o *AuthOptions) {
+// WithSkipPathPrefixes sets path prefixes to skip authentication.
+func WithSkipPathPrefixes(prefixes ...string) Option {
+	return func(o *Options) {
 		o.SkipPathPrefixes = prefixes
 	}
 }
 
-// AuthWithErrorHandler sets the error handler.
-func AuthWithErrorHandler(handler func(ctx transport.Context, err error)) AuthOption {
-	return func(o *AuthOptions) {
+// WithErrorHandler sets the error handler.
+func WithErrorHandler(handler func(ctx transport.Context, err error)) Option {
+	return func(o *Options) {
 		o.ErrorHandler = handler
 	}
 }
 
-// AuthWithSuccessHandler sets the success handler.
-func AuthWithSuccessHandler(handler func(ctx transport.Context, claims *auth.Claims)) AuthOption {
-	return func(o *AuthOptions) {
+// WithSuccessHandler sets the success handler.
+func WithSuccessHandler(handler func(ctx transport.Context, claims *auth.Claims)) Option {
+	return func(o *Options) {
 		o.SuccessHandler = handler
 	}
 }
 
 // Auth creates an authentication middleware.
-func Auth(opts ...AuthOption) transport.MiddlewareFunc {
-	options := NewAuthOptions()
+func Auth(opts ...Option) transport.MiddlewareFunc {
+	options := NewOptions()
 	for _, opt := range opts {
 		opt(options)
 	}
@@ -195,10 +196,12 @@ func extractToken(ctx transport.Context, lookup tokenLookup, scheme string) stri
 		}
 	}
 
-	// Sanitize token - only trim whitespace
-	// Note: JWT tokens are already URL-safe Base64 encoded (RFC 7519)
-	// Do NOT convert base64 characters as this would corrupt the signature
-	return strings.TrimSpace(token)
+	// Sanitize token
+	token = strings.ReplaceAll(token, " ", "")
+	token = strings.ReplaceAll(token, "+", "-")
+	token = strings.ReplaceAll(token, "/", "_")
+	token = strings.TrimRight(token, "=")
+	return token
 }
 
 // shouldSkipAuth checks if the path should skip authentication.
@@ -221,7 +224,7 @@ func shouldSkipAuth(path string, skipPaths, skipPrefixes []string) bool {
 }
 
 // handleAuthError handles authentication errors.
-func handleAuthError(ctx transport.Context, options *AuthOptions, err error) {
+func handleAuthError(ctx transport.Context, options *Options, err error) {
 	if options.ErrorHandler != nil {
 		options.ErrorHandler(ctx, err)
 		return

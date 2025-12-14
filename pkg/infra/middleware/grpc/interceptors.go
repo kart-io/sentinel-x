@@ -367,7 +367,7 @@ func authorize(ctx context.Context, fullMethod string, req interface{}, opts *Au
 }
 
 // defaultGRPCResourceExtractor extracts the service name from the full method.
-func defaultGRPCResourceExtractor(fullMethod string, req interface{}) string {
+func defaultGRPCResourceExtractor(fullMethod string, _ interface{}) string {
 	// Full method format: "/package.Service/Method"
 	parts := strings.Split(fullMethod, "/")
 	if len(parts) >= 2 {
@@ -381,7 +381,7 @@ func defaultGRPCResourceExtractor(fullMethod string, req interface{}) string {
 }
 
 // defaultGRPCActionExtractor extracts the method name from the full method.
-func defaultGRPCActionExtractor(fullMethod string, req interface{}) string {
+func defaultGRPCActionExtractor(fullMethod string, _ interface{}) string {
 	// Full method format: "/package.Service/Method"
 	parts := strings.Split(fullMethod, "/")
 	if len(parts) >= 3 {

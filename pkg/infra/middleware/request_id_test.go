@@ -6,13 +6,13 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/kart-io/sentinel-x/pkg/infra/middleware/common"
+	"github.com/kart-io/sentinel-x/pkg/infra/middleware/requestutil"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 )
 
 func TestRequestID_GeneratesID(t *testing.T) {
 	middleware := RequestID()
-	handler := middleware(func(ctx transport.Context) {})
+	handler := middleware(func(_ transport.Context) {})
 
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 	w := httptest.NewRecorder()
@@ -34,7 +34,7 @@ func TestRequestID_GeneratesID(t *testing.T) {
 
 func TestRequestID_PreservesExistingID(t *testing.T) {
 	middleware := RequestID()
-	handler := middleware(func(ctx transport.Context) {})
+	handler := middleware(func(_ transport.Context) {})
 
 	existingID := "existing-request-id-12345"
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
@@ -57,7 +57,7 @@ func TestRequestIDWithConfig_CustomHeader(t *testing.T) {
 	}
 
 	middleware := RequestIDWithConfig(config)
-	handler := middleware(func(ctx transport.Context) {})
+	handler := middleware(func(_ transport.Context) {})
 
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 	w := httptest.NewRecorder()
@@ -86,7 +86,7 @@ func TestRequestIDWithConfig_CustomGenerator(t *testing.T) {
 	}
 
 	middleware := RequestIDWithConfig(config)
-	handler := middleware(func(ctx transport.Context) {})
+	handler := middleware(func(_ transport.Context) {})
 
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 	w := httptest.NewRecorder()
@@ -138,7 +138,7 @@ func TestGetRequestID_NotFound(t *testing.T) {
 }
 
 func TestGetRequestID_WrongType(t *testing.T) {
-	ctx := context.WithValue(context.Background(), common.RequestIDKey{}, 12345) // Wrong type
+	ctx := context.WithValue(context.Background(), requestutil.RequestIDKey{}, 12345) // Wrong type
 	requestID := GetRequestID(ctx)
 
 	if requestID != "" {
@@ -151,7 +151,7 @@ func TestRequestIDWithConfig_Defaults(t *testing.T) {
 	config := RequestIDConfig{}
 
 	middleware := RequestIDWithConfig(config)
-	handler := middleware(func(ctx transport.Context) {})
+	handler := middleware(func(_ transport.Context) {})
 
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 	w := httptest.NewRecorder()
@@ -177,7 +177,7 @@ func TestGenerateRequestID_Uniqueness(t *testing.T) {
 	iterations := 100
 
 	for i := 0; i < iterations; i++ {
-		id := common.GenerateRequestID()
+		id := requestutil.GenerateRequestID()
 		if ids[id] {
 			t.Errorf("Generated duplicate request ID: %s", id)
 		}
@@ -201,7 +201,7 @@ func TestRequestID_MultipleRequests(t *testing.T) {
 	ids := make(map[string]bool)
 
 	for i := 0; i < 10; i++ {
-		handler := middleware(func(ctx transport.Context) {})
+		handler := middleware(func(_ transport.Context) {})
 
 		req := httptest.NewRequest(http.MethodGet, "/test", nil)
 		w := httptest.NewRecorder()
@@ -223,7 +223,7 @@ func TestRequestIDWithConfig_EmptyHeader(t *testing.T) {
 	}
 
 	middleware := RequestIDWithConfig(config)
-	handler := middleware(func(ctx transport.Context) {})
+	handler := middleware(func(_ transport.Context) {})
 
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 	w := httptest.NewRecorder()

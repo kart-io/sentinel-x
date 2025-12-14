@@ -68,7 +68,7 @@ func (u *users) Get(ctx context.Context, username string) (*model.User, error) {
 }
 
 // GetByUserId 根据用户 ID 检索用户
-func (u *users) GetByUserId(ctx context.Context, userID uint64) (*model.User, error) {
+func (u *users) GetByUserID(ctx context.Context, userID uint64) (*model.User, error) {
 	var user model.User
 	if err := u.db.WithContext(ctx).Where("id = ?", userID).First(&user).Error; err != nil {
 		if stderrors.Is(err, gorm.ErrRecordNotFound) {

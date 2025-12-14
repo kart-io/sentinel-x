@@ -9,7 +9,7 @@ import (
 // Run initializes and runs the application components.
 // It handles the lifecycle of the application, including initialization,
 // execution, and graceful shutdown.
-func Run(opts *BootstrapOptions) error {
+func Run(opts *Options) error {
 	b := NewAppBootstrapper(opts)
 
 	// Use a background context for initialization and lifecycle management

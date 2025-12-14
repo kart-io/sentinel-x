@@ -603,7 +603,7 @@ func TestRegisterTranslator(t *testing.T) {
 }
 
 // TestRegisterTranslations tests the RegisterTranslations() method.
-func TestRegisterTranslations(t *testing.T) {
+func TestRegisterTranslations(_ *testing.T) {
 	v := New()
 
 	overrides := []TranslationOverride{
@@ -619,7 +619,7 @@ func TestRegisterTranslations(t *testing.T) {
 }
 
 // TestRegisterTranslation_Single tests the RegisterTranslation() method.
-func TestRegisterTranslation_Single(t *testing.T) {
+func TestRegisterTranslation_Single(_ *testing.T) {
 	v := New()
 
 	// Register a custom translation

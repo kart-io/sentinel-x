@@ -110,13 +110,13 @@ var (
 	WithAttributeExtractor      = observability.WithAttributeExtractor
 )
 
-// MetricsMiddleware creates a middleware that collects metrics.
+// MetricsMiddlewareWithOptions creates a middleware that collects metrics.
 // This is a wrapper to convert MetricsOptions to observability.MetricsOptions.
 func MetricsMiddlewareWithOptions(opts MetricsOptions) transport.MiddlewareFunc {
 	return observability.MetricsMiddleware(opts)
 }
 
-// RegisterMetricsRoutes registers metrics endpoint.
+// RegisterMetricsRoutesWithOptions registers metrics endpoint.
 // This is a wrapper to convert MetricsOptions to observability.MetricsOptions.
 func RegisterMetricsRoutesWithOptions(router transport.Router, opts MetricsOptions) {
 	observability.RegisterMetricsRoutes(router, opts)
@@ -136,7 +136,7 @@ var (
 	ExtractSpanID  = observability.ExtractSpanID
 )
 
-// TracerName re-exports the tracer name constant.
+// TracerNameFromObservability re-exports the tracer name constant.
 const TracerNameFromObservability = observability.TracerName
 
 // ============================================================================
@@ -205,8 +205,8 @@ type (
 	// CORSConfig is an alias for security.CORSConfig.
 	CORSConfig = security.CORSConfig
 
-	// SecurityHeadersConfig is an alias for security.SecurityHeadersConfig.
-	SecurityHeadersConfig = security.SecurityHeadersConfig
+	// SecurityHeadersConfig is an alias for security.HeadersConfig.
+	SecurityHeadersConfig = security.HeadersConfig
 )
 
 // CORS functions re-exports.
@@ -224,13 +224,13 @@ var (
 // SecurityHeaders functions re-exports.
 var (
 	// SecurityHeaders returns a middleware that adds security headers.
-	SecurityHeaders = security.SecurityHeaders
+	SecurityHeaders = security.Headers
 
 	// SecurityHeadersWithConfig returns a SecurityHeaders middleware with custom config.
-	SecurityHeadersWithConfig = security.SecurityHeadersWithConfig
+	SecurityHeadersWithConfig = security.HeadersWithConfig
 
 	// DefaultSecurityHeadersConfig is the default SecurityHeaders middleware config.
-	DefaultSecurityHeadersConfig = security.DefaultSecurityHeadersConfig
+	DefaultSecurityHeadersConfig = security.DefaultHeadersConfig
 )
 
 // ============================================================================
@@ -244,8 +244,8 @@ type (
 	// AuthOptions is an alias for options.AuthOptions (configuration struct).
 	AuthOptions = options.AuthOptions
 
-	// AuthOption is an alias for mwauth.AuthOption (middleware option).
-	AuthOption = mwauth.AuthOption
+	// AuthOption is an alias for mwauth.Option (middleware option).
+	AuthOption = mwauth.Option
 
 	// AuthzOptions is an alias for options.AuthzOptions (configuration struct).
 	AuthzOptions = options.AuthzOptions
@@ -263,16 +263,28 @@ var (
 	Auth = mwauth.Auth
 
 	// NewAuthOptions creates default auth options.
-	NewAuthOptions = mwauth.NewAuthOptions
+	NewAuthOptions = mwauth.NewOptions
 
 	// AuthWithAuthenticator sets the authenticator.
-	AuthWithAuthenticator = mwauth.AuthWithAuthenticator
+	AuthWithAuthenticator = mwauth.WithAuthenticator
+
+	// AuthWithTokenLookup sets how to extract the token.
+	AuthWithTokenLookup = mwauth.WithTokenLookup
+
+	// AuthWithAuthScheme sets the authorization scheme.
+	AuthWithAuthScheme = mwauth.WithAuthScheme
 
 	// AuthWithSkipPaths sets paths to skip authentication.
-	AuthWithSkipPaths = mwauth.AuthWithSkipPaths
+	AuthWithSkipPaths = mwauth.WithSkipPaths
 
 	// AuthWithSkipPathPrefixes sets path prefixes to skip authentication.
-	AuthWithSkipPathPrefixes = mwauth.AuthWithSkipPathPrefixes
+	AuthWithSkipPathPrefixes = mwauth.WithSkipPathPrefixes
+
+	// AuthWithErrorHandler sets the error handler.
+	AuthWithErrorHandler = mwauth.WithErrorHandler
+
+	// AuthWithSuccessHandler sets the success handler.
+	AuthWithSuccessHandler = mwauth.WithSuccessHandler
 )
 
 // Authz functions re-exports.

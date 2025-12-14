@@ -5,39 +5,45 @@ import (
 	"net/http"
 
 	"github.com/kart-io/sentinel-x/pkg/infra/middleware"
+	"github.com/kart-io/sentinel-x/pkg/infra/middleware/security"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 )
 
 // ExampleSecurityHeaders demonstrates the basic usage of security headers middleware.
 func ExampleSecurityHeaders() {
-	// Create middleware with default security headers
-	securityMiddleware := middleware.SecurityHeaders()
+	// Create default security headers middleware
+	mw := security.Headers()
 
 	// Apply middleware to a handler
-	handler := securityMiddleware(func(c transport.Context) {
+	handler := mw(func(c transport.Context) {
 		c.String(http.StatusOK, "Secure response")
 	})
 
-	// Use the handler in your router
+	// Use the handler (pseudo-code)
 	_ = handler
-	fmt.Println("Security headers middleware applied with defaults")
-	// Output: Security headers middleware applied with defaults
+	fmt.Println("Security headers middleware applied")
+	// Output: Security headers middleware applied
 }
 
 // ExampleSecurityHeadersWithConfig demonstrates custom configuration for security headers.
 func ExampleSecurityHeadersWithConfig() {
 	// Create custom configuration
 	config := middleware.SecurityHeadersConfig{
-		XFrameOptions:           "SAMEORIGIN", // Allow same-origin framing
-		XContentTypeOptions:     "nosniff",
-		XXSSProtection:          "1; mode=block",
-		ContentSecurityPolicy:   "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'",
-		ReferrerPolicy:          "no-referrer",
-		StrictTransportSecurity: "max-age=63072000; includeSubDomains; preload",
-		EnableHSTS:              true, // Enable HSTS for production HTTPS sites
+		FrameOptionsValue:        "SAMEORIGIN",
+		XSSProtectionValue:       "0",
+		ContentSecurityPolicy:    "default-src 'self'",
+		ReferrerPolicy:           "no-referrer",
+		HSTSMaxAge:               31536000,
+		HSTSIncludeSubdomains:    true,
+		HSTSPreload:              true,
+		EnableHSTS:               true,
+		EnableFrameOptions:       true,
+		EnableContentTypeOptions: true,
+		EnableXSSProtection:      true,
 	}
 
 	// Create middleware with custom configuration
+	// Note: middleware.SecurityHeadersWithConfig is an alias to security.HeadersWithConfig
 	securityMiddleware := middleware.SecurityHeadersWithConfig(config)
 
 	// Apply middleware to a handler
@@ -45,7 +51,7 @@ func ExampleSecurityHeadersWithConfig() {
 		c.String(http.StatusOK, "Secure response with custom headers")
 	})
 
-	// Use the handler in your router
+	// Use the handler
 	_ = handler
 	fmt.Println("Security headers middleware applied with custom configuration")
 	// Output: Security headers middleware applied with custom configuration
@@ -55,12 +61,14 @@ func ExampleSecurityHeadersWithConfig() {
 func ExampleSecurityHeadersWithConfig_development() {
 	// Development configuration (more relaxed)
 	config := middleware.SecurityHeadersConfig{
-		XFrameOptions:         "SAMEORIGIN",
-		XContentTypeOptions:   "nosniff",
-		XXSSProtection:        "1; mode=block",
-		ContentSecurityPolicy: "default-src 'self' 'unsafe-inline' 'unsafe-eval'", // Allow inline scripts/styles for development
-		ReferrerPolicy:        "strict-origin-when-cross-origin",
-		EnableHSTS:            false, // Disable HSTS in development
+		FrameOptionsValue:        "SAMEORIGIN",
+		XSSProtectionValue:       "1; mode=block",
+		ContentSecurityPolicy:    "default-src 'self' 'unsafe-inline' 'unsafe-eval'", // Allow inline scripts/styles for development
+		ReferrerPolicy:           "strict-origin-when-cross-origin",
+		EnableHSTS:               false, // Disable HSTS in development
+		EnableFrameOptions:       true,
+		EnableContentTypeOptions: true,
+		EnableXSSProtection:      true,
 	}
 
 	securityMiddleware := middleware.SecurityHeadersWithConfig(config)
@@ -73,13 +81,17 @@ func ExampleSecurityHeadersWithConfig_development() {
 func ExampleSecurityHeadersWithConfig_production() {
 	// Production configuration (strict security)
 	config := middleware.SecurityHeadersConfig{
-		XFrameOptions:           "DENY",
-		XContentTypeOptions:     "nosniff",
-		XXSSProtection:          "1; mode=block",
-		ContentSecurityPolicy:   "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'",
-		ReferrerPolicy:          "no-referrer",
-		StrictTransportSecurity: "max-age=63072000; includeSubDomains; preload",
-		EnableHSTS:              true, // Enable HSTS with preload for maximum security
+		FrameOptionsValue:        "DENY",
+		XSSProtectionValue:       "1; mode=block",
+		ContentSecurityPolicy:    "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'",
+		ReferrerPolicy:           "no-referrer",
+		HSTSMaxAge:               63072000,
+		HSTSIncludeSubdomains:    true,
+		HSTSPreload:              true,
+		EnableHSTS:               true, // Enable HSTS with preload for maximum security
+		EnableFrameOptions:       true,
+		EnableContentTypeOptions: true,
+		EnableXSSProtection:      true,
 	}
 
 	securityMiddleware := middleware.SecurityHeadersWithConfig(config)
@@ -92,13 +104,16 @@ func ExampleSecurityHeadersWithConfig_production() {
 func ExampleSecurityHeadersWithConfig_api() {
 	// API server configuration
 	config := middleware.SecurityHeadersConfig{
-		XFrameOptions:           "DENY",
-		XContentTypeOptions:     "nosniff",
-		XXSSProtection:          "1; mode=block",
-		ContentSecurityPolicy:   "default-src 'none'; frame-ancestors 'none'", // Minimal CSP for APIs
-		ReferrerPolicy:          "no-referrer",
-		StrictTransportSecurity: "max-age=31536000; includeSubDomains",
-		EnableHSTS:              true,
+		FrameOptionsValue:        "DENY",
+		XSSProtectionValue:       "1; mode=block",
+		ContentSecurityPolicy:    "default-src 'none'; frame-ancestors 'none'", // Minimal CSP for APIs
+		ReferrerPolicy:           "no-referrer",
+		HSTSMaxAge:               31536000,
+		HSTSIncludeSubdomains:    true,
+		EnableHSTS:               true,
+		EnableFrameOptions:       true,
+		EnableContentTypeOptions: true,
+		EnableXSSProtection:      true,
 	}
 
 	securityMiddleware := middleware.SecurityHeadersWithConfig(config)

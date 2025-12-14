@@ -38,7 +38,7 @@ func (li *LoggingInitializer) Dependencies() []string {
 }
 
 // Initialize initializes the logging system.
-func (li *LoggingInitializer) Initialize(ctx context.Context) error {
+func (li *LoggingInitializer) Initialize(_ context.Context) error {
 	// Inject service metadata into logger options
 	li.opts.AddInitialField("service.name", li.appName)
 	li.opts.AddInitialField("service.version", li.appVersion)

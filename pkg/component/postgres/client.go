@@ -1,3 +1,4 @@
+// Package postgres provides PostgreSQL database implementation.
 package postgres
 
 import (
@@ -107,9 +108,9 @@ func (c *Client) DB() *gorm.DB {
 	return c.db
 }
 
-// SqlDB returns the underlying sql.DB instance.
+// SQLDB returns the underlying sql.DB instance.
 // This allows access to the raw database/sql functionality.
-func (c *Client) SqlDB() (*sql.DB, error) {
+func (c *Client) SQLDB() (*sql.DB, error) {
 	if c.db == nil {
 		return nil, fmt.Errorf("gorm.DB is nil")
 	}
@@ -127,7 +128,7 @@ func (c *Client) Ping(ctx context.Context) error {
 		return fmt.Errorf("database connection is nil")
 	}
 
-	sqlDB, err := c.SqlDB()
+	sqlDB, err := c.SQLDB()
 	if err != nil {
 		return fmt.Errorf("failed to get sql.DB: %w", err)
 	}
@@ -149,7 +150,7 @@ func (c *Client) Close() error {
 		return nil
 	}
 
-	sqlDB, err := c.SqlDB()
+	sqlDB, err := c.SQLDB()
 	if err != nil {
 		return fmt.Errorf("failed to get sql.DB for closing: %w", err)
 	}

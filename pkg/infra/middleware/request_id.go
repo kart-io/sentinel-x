@@ -1,12 +1,12 @@
 package middleware
 
 import (
-	"github.com/kart-io/sentinel-x/pkg/infra/middleware/common"
+	"github.com/kart-io/sentinel-x/pkg/infra/middleware/requestutil"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 )
 
 // HeaderXRequestID is re-exported from common for backward compatibility.
-const HeaderXRequestID = common.HeaderXRequestID
+const HeaderXRequestID = requestutil.HeaderXRequestID
 
 // RequestIDConfig defines the config for RequestID middleware.
 type RequestIDConfig struct {
@@ -26,7 +26,7 @@ type RequestIDConfig struct {
 // DefaultRequestIDConfig is the default RequestID middleware config.
 var DefaultRequestIDConfig = RequestIDConfig{
 	Header:     HeaderXRequestID,
-	Generator:  common.GenerateRequestID,
+	Generator:  requestutil.GenerateRequestID,
 	ContextKey: "request_id",
 }
 
@@ -45,7 +45,7 @@ func RequestIDWithConfig(config RequestIDConfig) transport.MiddlewareFunc {
 		config.Header = HeaderXRequestID
 	}
 	if config.Generator == nil {
-		config.Generator = common.GenerateRequestID
+		config.Generator = requestutil.GenerateRequestID
 	}
 	if config.ContextKey == "" {
 		config.ContextKey = "request_id"
@@ -63,7 +63,7 @@ func RequestIDWithConfig(config RequestIDConfig) transport.MiddlewareFunc {
 			c.SetHeader(config.Header, requestID)
 
 			// Store request ID in context using common package
-			ctx := common.WithRequestID(c.Request(), requestID)
+			ctx := requestutil.WithRequestID(c.Request(), requestID)
 			c.SetRequest(ctx)
 
 			next(c)
@@ -74,4 +74,4 @@ func RequestIDWithConfig(config RequestIDConfig) transport.MiddlewareFunc {
 // GetRequestID returns the request ID from the context.
 // Returns empty string if not found.
 // This is re-exported from common for backward compatibility.
-var GetRequestID = common.GetRequestID
+var GetRequestID = requestutil.GetRequestID

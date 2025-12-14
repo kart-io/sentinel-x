@@ -149,7 +149,7 @@ func TestMemoryCache_Filter(t *testing.T) {
 	}
 }
 
-func TestMemoryCache_Concurrency(t *testing.T) {
+func TestMemoryCache_Concurrency(_ *testing.T) {
 	c := NewMemoryCache[int, int]()
 	c.AddIndex("mod", func(v int) any { return v % 2 })
 
@@ -179,7 +179,7 @@ func TestMemoryCache_Concurrency(t *testing.T) {
 			defer wg.Done()
 			for i := 0; i < ops; i++ {
 				c.Get(1)
-				c.Find("mod", 0)
+				_, _ = c.Find("mod", 0)
 			}
 		}()
 	}

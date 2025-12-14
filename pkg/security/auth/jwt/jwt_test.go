@@ -11,7 +11,10 @@ import (
 )
 
 // testKey is a secure test key that meets the minimum 64 character requirement
-const testKey = "test-secret-key-at-least-64-chars-long-for-security-purposes!!!!"
+const (
+	testKey  = "test-secret-key-at-least-64-chars-long-for-security-purposes!!!!"
+	testUser = "user-123"
+)
 
 // createTestJWT 创建一个用于测试的JWT实例
 func createTestJWT(t *testing.T, opts ...Option) *JWT {
@@ -26,7 +29,9 @@ func createTestJWT(t *testing.T, opts ...Option) *JWT {
 	}
 
 	// 合并自定义选项
-	allOpts := append(defaultOpts, opts...)
+	allOpts := make([]Option, 0, len(defaultOpts)+len(opts))
+	allOpts = append(allOpts, defaultOpts...)
+	allOpts = append(allOpts, opts...)
 
 	j, err := New(allOpts...)
 	if err != nil {
@@ -122,7 +127,7 @@ func TestJWT_Sign(t *testing.T) {
 	}{
 		{
 			name:    "Basic sign",
-			subject: "user-123",
+			subject: testUser,
 			opts:    nil,
 			wantErr: false,
 		},
@@ -194,7 +199,7 @@ func TestJWT_SignAndVerify(t *testing.T) {
 	j := createTestJWT(t)
 
 	// 签名令牌
-	token, err := j.Sign(ctx, "user-123")
+	token, err := j.Sign(ctx, testUser)
 	if err != nil {
 		t.Fatalf("Failed to sign token: %v", err)
 	}
@@ -206,7 +211,7 @@ func TestJWT_SignAndVerify(t *testing.T) {
 	}
 
 	// 检查声明
-	if claims.Subject != "user-123" {
+	if claims.Subject != testUser {
 		t.Errorf("Expected subject 'user-123', got '%s'", claims.Subject)
 	}
 	if claims.Issuer != "test-issuer" {
@@ -316,7 +321,7 @@ func TestJWT_Verify_InvalidSignature(t *testing.T) {
 	j2 := createTestJWT(t, WithKey("different-secret-key-64-chars-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"))
 
 	// 使用j2签名
-	token, err := j2.Sign(ctx, "user-123")
+	token, err := j2.Sign(ctx, testUser)
 	if err != nil {
 		t.Fatalf("Failed to sign token: %v", err)
 	}
@@ -339,7 +344,7 @@ func TestJWT_Verify_ExpiredToken(t *testing.T) {
 	j := createTestJWT(t, WithExpired(1*time.Millisecond))
 
 	// 签名令牌
-	token, err := j.Sign(ctx, "user-123")
+	token, err := j.Sign(ctx, testUser)
 	if err != nil {
 		t.Fatalf("Failed to sign token: %v", err)
 	}
@@ -377,7 +382,7 @@ func TestJWT_Refresh(t *testing.T) {
 	}
 
 	// 签名原始令牌
-	originalToken, err := j.Sign(ctx, "user-123", auth.WithExtra(map[string]interface{}{
+	originalToken, err := j.Sign(ctx, testUser, auth.WithExtra(map[string]interface{}{
 		"role": "user",
 	}))
 	if err != nil {
@@ -404,7 +409,7 @@ func TestJWT_Refresh(t *testing.T) {
 	}
 
 	// 检查声明是否保留
-	if claims.Subject != "user-123" {
+	if claims.Subject != testUser {
 		t.Errorf("Expected subject 'user-123', got '%s'", claims.Subject)
 	}
 
@@ -429,7 +434,7 @@ func TestJWT_Refresh_ExceedsMaxRefresh(t *testing.T) {
 	)
 
 	// 签名令牌
-	token, err := j.Sign(ctx, "user-123")
+	token, err := j.Sign(ctx, testUser)
 	if err != nil {
 		t.Fatalf("Failed to sign token: %v", err)
 	}
@@ -456,7 +461,7 @@ func TestJWT_Revoke(t *testing.T) {
 	j := createTestJWT(t, WithStore(store))
 
 	// 签名令牌
-	token, err := j.Sign(ctx, "user-123")
+	token, err := j.Sign(ctx, testUser)
 	if err != nil {
 		t.Fatalf("Failed to sign token: %v", err)
 	}
@@ -491,7 +496,7 @@ func TestJWT_Revoke_WithoutStore(t *testing.T) {
 	j := createTestJWT(t) // 没有 store
 
 	// 签名令牌
-	token, err := j.Sign(ctx, "user-123")
+	token, err := j.Sign(ctx, testUser)
 	if err != nil {
 		t.Fatalf("Failed to sign token: %v", err)
 	}
@@ -518,7 +523,7 @@ func TestJWT_Revoke_ExpiredToken(t *testing.T) {
 	)
 
 	// 签名令牌
-	token, err := j.Sign(ctx, "user-123")
+	token, err := j.Sign(ctx, testUser)
 	if err != nil {
 		t.Fatalf("Failed to sign token: %v", err)
 	}
@@ -543,7 +548,7 @@ func TestJWT_WithDifferentSigningMethods(t *testing.T) {
 			j := createTestJWT(t, WithSigningMethod(method))
 
 			// 签名
-			token, err := j.Sign(ctx, "user-123")
+			token, err := j.Sign(ctx, testUser)
 			if err != nil {
 				t.Fatalf("Failed to sign with %s: %v", method, err)
 			}
@@ -554,7 +559,7 @@ func TestJWT_WithDifferentSigningMethods(t *testing.T) {
 				t.Fatalf("Failed to verify with %s: %v", method, err)
 			}
 
-			if claims.Subject != "user-123" {
+			if claims.Subject != testUser {
 				t.Errorf("Subject mismatch with %s", method)
 			}
 		})
@@ -566,7 +571,7 @@ func TestJWT_WithAudience(t *testing.T) {
 	j := createTestJWT(t)
 
 	// 签名带 audience 的令牌
-	token, err := j.Sign(ctx, "user-123", auth.WithAudience("api", "web", "mobile"))
+	token, err := j.Sign(ctx, testUser, auth.WithAudience("api", "web", "mobile"))
 	if err != nil {
 		t.Fatalf("Failed to sign token: %v", err)
 	}
@@ -595,7 +600,7 @@ func TestJWT_TokenValidation(t *testing.T) {
 	j := createTestJWT(t)
 
 	// 创建一个令牌
-	token, err := j.Sign(ctx, "user-123")
+	token, err := j.Sign(ctx, testUser)
 	if err != nil {
 		t.Fatalf("Failed to sign token: %v", err)
 	}
@@ -659,7 +664,7 @@ func TestJWT_SigningMethodMismatch(t *testing.T) {
 	j384 := createTestJWT(t, WithSigningMethod("HS384"))
 
 	// 使用 HS256 签名
-	token, err := j256.Sign(ctx, "user-123")
+	token, err := j256.Sign(ctx, testUser)
 	if err != nil {
 		t.Fatalf("Failed to sign with HS256: %v", err)
 	}
@@ -679,7 +684,7 @@ func TestJWT_TokenJSON(t *testing.T) {
 	ctx := context.Background()
 	j := createTestJWT(t)
 
-	token, err := j.Sign(ctx, "user-123")
+	token, err := j.Sign(ctx, testUser)
 	if err != nil {
 		t.Fatalf("Failed to sign token: %v", err)
 	}

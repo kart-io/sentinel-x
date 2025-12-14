@@ -87,9 +87,15 @@ github.com/coreos/go-semver/semver
 # github.com/coreos/go-systemd/v22 v22.5.0
 ## explicit; go 1.12
 github.com/coreos/go-systemd/v22/journal
+# github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
+## explicit
+github.com/davecgh/go-spew/spew
 # github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f
 ## explicit
 github.com/dgryski/go-rendezvous
+# github.com/envoyproxy/protoc-gen-validate v1.2.1
+## explicit; go 1.21.1
+github.com/envoyproxy/protoc-gen-validate/validate
 # github.com/fatih/color v1.18.0
 ## explicit; go 1.17
 github.com/fatih/color
@@ -355,6 +361,9 @@ github.com/pelletier/go-toml/v2/internal/characters
 github.com/pelletier/go-toml/v2/internal/danger
 github.com/pelletier/go-toml/v2/internal/tracker
 github.com/pelletier/go-toml/v2/unstable
+# github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2
+## explicit
+github.com/pmezard/go-difflib/difflib
 # github.com/quic-go/qpack v0.5.1
 ## explicit; go 1.22
 github.com/quic-go/qpack
@@ -427,6 +436,10 @@ github.com/spf13/viper/internal/encoding/json
 github.com/spf13/viper/internal/encoding/toml
 github.com/spf13/viper/internal/encoding/yaml
 github.com/spf13/viper/internal/features
+# github.com/stretchr/testify v1.11.1
+## explicit; go 1.17
+github.com/stretchr/testify/assert
+github.com/stretchr/testify/assert/yaml
 # github.com/subosito/gotenv v1.6.0
 ## explicit; go 1.18
 github.com/subosito/gotenv
@@ -868,6 +881,7 @@ google.golang.org/protobuf/types/dynamicpb
 google.golang.org/protobuf/types/gofeaturespb
 google.golang.org/protobuf/types/known/anypb
 google.golang.org/protobuf/types/known/durationpb
+google.golang.org/protobuf/types/known/emptypb
 google.golang.org/protobuf/types/known/fieldmaskpb
 google.golang.org/protobuf/types/known/structpb
 google.golang.org/protobuf/types/known/timestamppb
@@ -899,20 +913,5 @@ gorm.io/gorm/logger
 gorm.io/gorm/migrator
 gorm.io/gorm/schema
 gorm.io/gorm/utils
-# gin-reload-example => ./staging/src/github.com/kart-io/logger/example/gin-reload
-# github.com/kart-io/logger/example/integrations => ./staging/src/github.com/kart-io/logger/example/integrations
-# github.com/kart-io/logger/example/integrations/gin => ./staging/src/github.com/kart-io/logger/example/integrations/gin
-# github.com/kart-io/logger/example/slog => ./staging/src/github.com/kart-io/logger/example/slog
-# github.com/kart-io/logger/example/performance => ./staging/src/github.com/kart-io/logger/example/performance
-# rotation-example => ./staging/src/github.com/kart-io/logger/example/rotation
-# github.com/kart-io/logger/example/zap => ./staging/src/github.com/kart-io/logger/example/zap
-# github.com/kart-io/logger/example/echo => ./staging/src/github.com/kart-io/logger/example/echo
-# github.com/kart-io/logger/example/reload => ./staging/src/github.com/kart-io/logger/example/reload
-# github.com/kart-io/logger/example/otlp => ./staging/src/github.com/kart-io/logger/example/otlp
-# github.com/kart-io/logger/example/configuration => ./staging/src/github.com/kart-io/logger/example/configuration
-# github.com/kart-io/logger/example/gin => ./staging/src/github.com/kart-io/logger/example/gin
-# github.com/kart-io/logger/example/comprehensive => ./staging/src/github.com/kart-io/logger/example/comprehensive
-# github.com/kart-io/logger/example/web-frameworks => ./staging/src/github.com/kart-io/logger/example/web-frameworks
-# github.com/kart-io/logger/e2e => ./staging/src/github.com/kart-io/logger/e2e
 # github.com/kart-io/logger => ./staging/src/github.com/kart-io/logger
 # google.golang.org/genproto => google.golang.org/genproto v0.0.0-20251202230838-ff82c1b0f217

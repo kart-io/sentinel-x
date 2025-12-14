@@ -30,14 +30,14 @@ func (s *mockService) ServiceName() string {
 	return s.name
 }
 
-func (s *mockService) Init(ctx context.Context) error {
+func (s *mockService) Init(_ context.Context) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.initCalled = true
 	return s.initErr
 }
 
-func (s *mockService) Close(ctx context.Context) error {
+func (s *mockService) Close(_ context.Context) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.closeCalled = true
@@ -79,14 +79,14 @@ func (r *mockRunnable) Name() string {
 	return r.name
 }
 
-func (r *mockRunnable) Start(ctx context.Context) error {
+func (r *mockRunnable) Start(_ context.Context) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.startCalled = true
 	return r.startErr
 }
 
-func (r *mockRunnable) Stop(ctx context.Context) error {
+func (r *mockRunnable) Stop(_ context.Context) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.stopCalled = true
@@ -337,7 +337,7 @@ func TestManagerAddServerConcurrent(t *testing.T) {
 	// Add servers concurrently
 	for i := 0; i < 100; i++ {
 		wg.Add(1)
-		go func(id int) {
+		go func(_ int) {
 			defer wg.Done()
 			runnable := &mockRunnable{name: "server"}
 			mgr.AddServer(runnable)

@@ -1,3 +1,4 @@
+// Package app provides application configuration options.
 package app
 
 import "github.com/spf13/pflag"
