@@ -8,7 +8,7 @@ PROJ_ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 source "${PROJ_ROOT_DIR}/scripts/lib/init.sh"
 
 if [ $# -ne 2 ];then
-    onex::log::error "Usage: gen-dockerfile.sh ${DOCKERFILE_DIR} ${IMAGE_NAME}"
+    sentinel::log::error "Usage: gen-dockerfile.sh ${DOCKERFILE_DIR} ${IMAGE_NAME}"
     exit 1
 fi
 
@@ -16,7 +16,7 @@ DOCKERFILE_DIR=$1/$2
 IMAGE_NAME=$2
 
 # Sentinel-X generic config
-ONEX_ALL_IN_ONE_IMAGE_NAME=sentinel-allinone
+SENTINEL_ALL_IN_ONE_IMAGE_NAME=sentinel-allinone
 
 MOUNT_STAGING=""
 COPY_STAGING=""
@@ -90,7 +90,7 @@ function get_base_image() {
   local base_image="debian:bookworm-slim"
 
   case "${image_name}" in
-    "${ONEX_ALL_IN_ONE_IMAGE_NAME}")
+    "${SENTINEL_ALL_IN_ONE_IMAGE_NAME}")
       base_image="debian:bookworm-slim"
       ;;
   esac
@@ -104,6 +104,6 @@ cat_func=cat_multistage_dockerfile
 BASE_IMAGE=$(get_base_image ${IMAGE_NAME})
 
 # generate dockerfile
-# onex-allinone does not need multiple stages? (Simplified logic here, assuming multi-stage for all)
+# sentinel-allinone does not need multiple stages? (Simplified logic here, assuming multi-stage for all)
 cat_multistage_dockerfile | \
     sed -e "s/BASE_IMAGE/${BASE_IMAGE}/g" -e "s/IMAGE_NAME/${IMAGE_NAME}/g" > ${DOCKERFILE_DIR}/Dockerfile

@@ -13,7 +13,7 @@ PROJ_ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 source "${PROJ_ROOT_DIR}/scripts/lib/init.sh"
 
 if [ "$#" -lt 2 ]; then
-    onex::log::error "Usage: $0 <local_path> <remote_repo> [branch]"
+    sentinel::log::error "Usage: $0 <local_path> <remote_repo> [branch]"
     exit 1
 fi
 
@@ -24,18 +24,18 @@ TMP_DIR=$(mktemp -d)
 
 TARGET_DIR="${PROJ_ROOT_DIR}/${SOURCE_MODULE_PATH}"
 
-onex::log::info "==> Updating ${SOURCE_MODULE_PATH} from ${REMOTE_REPO} (${BRANCH})..."
+sentinel::log::info "==> Updating ${SOURCE_MODULE_PATH} from ${REMOTE_REPO} (${BRANCH})..."
 
 # 1. Clone the remote repository to a temporary location
-onex::log::info "-> Cloning remote repository to temporary directory..."
+sentinel::log::info "-> Cloning remote repository to temporary directory..."
 if ! git -c http.proxy= -c https.proxy= clone --depth 1 --branch "${BRANCH}" "${REMOTE_REPO}" "${TMP_DIR}"; then
-    onex::log::error "Error: Failed to clone ${REMOTE_REPO}. Please check your network connection or repository access."
+    sentinel::log::error "Error: Failed to clone ${REMOTE_REPO}. Please check your network connection or repository access."
     rm -rf "${TMP_DIR}"
     exit 1
 fi
 
 # 2. Clear current staging content (preserving .git if it existed, though it shouldn't)
-onex::log::info "-> Clearing existing content in ${TARGET_DIR}..."
+sentinel::log::info "-> Clearing existing content in ${TARGET_DIR}..."
 # Create target dir if it doesn't exist
 mkdir -p "${TARGET_DIR}"
 
@@ -46,21 +46,21 @@ mkdir -p "${TARGET_DIR}"
 )
 
 # 3. Copy new content from temporary clone to staging
-onex::log::info "-> Copying new content into ${TARGET_DIR}..."
+sentinel::log::info "-> Copying new content into ${TARGET_DIR}..."
 # Copy contents of TMP_DIR to TARGET_DIR, excluding .git
 # rsync is safer but cp -a is standard. We want to exclude .git from source.
 # The clone has .git. We don't want to copy it.
 find "${TMP_DIR}" -mindepth 1 -maxdepth 1 -not -name '.git' -exec cp -R {} "${TARGET_DIR}/" \;
 
 # 4. Run go mod tidy and go mod vendor from the root to ensure consistency
-onex::log::info "-> Running go mod tidy and go mod vendor..."
+sentinel::log::info "-> Running go mod tidy and go mod vendor..."
 (
     cd "${PROJ_ROOT_DIR}" || exit 1
     go mod tidy
     go mod vendor
 )
 
-onex::log::info "==> ${SOURCE_MODULE_PATH} updated successfully."
+sentinel::log::info "==> ${SOURCE_MODULE_PATH} updated successfully."
 
 # Cleanup
 rm -rf "${TMP_DIR}"

@@ -5,19 +5,19 @@
 # license that can be found in the LICENSE file.
 
 #
-function onex::util::sourced_variable {
+function sentinel::util::sourced_variable {
   # Call this function to tell shellcheck that a variable is supposed to
   # be used from other calling context. This helps quiet an "unused
   # variable" warning from shellcheck and also document your code.
   true
 }
 
-function onex::util::sortable_date() {
+function sentinel::util::sortable_date() {
   date "+%Y%m%d-%H%M%S"
 }
 
 # returns 0 if target is in the given items, 1 otherwise.
-function onex::util::array_contains() {
+function sentinel::util::array_contains() {
   local search="$1"
   local element
   shift
@@ -29,7 +29,7 @@ function onex::util::array_contains() {
   return 1
 }
 
-function onex::util::wait_for_url() {
+function sentinel::util::wait_for_url() {
   local url=$1
   local prefix=${2:-}
   local wait=${3:-1}
@@ -37,7 +37,7 @@ function onex::util::wait_for_url() {
   local maxtime=${5:-1}
 
   command -v curl >/dev/null || {
-    onex::log::usage "curl must be installed"
+    sentinel::log::usage "curl must be installed"
     exit 1
   }
 
@@ -45,16 +45,16 @@ function onex::util::wait_for_url() {
   for i in $(seq 1 "${times}"); do
     local out
     if out=$(curl --max-time "${maxtime}" -gkfs "${url}" 2>/dev/null); then
-      onex::log::status "On try ${i}, ${prefix}: ${out}"
+      sentinel::log::status "On try ${i}, ${prefix}: ${out}"
       return 0
     fi
     sleep "${wait}"
   done
-  onex::log::error "Timed out waiting for ${prefix} to answer at ${url}; tried ${times} waiting ${wait} between each"
+  sentinel::log::error "Timed out waiting for ${prefix} to answer at ${url}; tried ${times} waiting ${wait} between each"
   return 1
 }
 
-function onex::util::wait_for_url_with_bearer_token() {
+function sentinel::util::wait_for_url_with_bearer_token() {
   local url=$1
   local token=$2
   local prefix=${3:-}
@@ -62,11 +62,11 @@ function onex::util::wait_for_url_with_bearer_token() {
   local times=${5:-30}
   local maxtime=${6:-1}
 
-  onex::util::wait_for_url "${url}" "${prefix}" "${wait}" "${times}" "${maxtime}" -H "Authorization: Bearer ${token}"
+  sentinel::util::wait_for_url "${url}" "${prefix}" "${wait}" "${times}" "${maxtime}" -H "Authorization: Bearer ${token}"
 }
 
 # returns 0 if the shell command get output, 1 otherwise.
-function onex::util::wait_for_success(){
+function sentinel::util::wait_for_success(){
   local wait_time="$1"
   local sleep_time="$2"
   local cmd="$3"
@@ -82,7 +82,7 @@ function onex::util::wait_for_success(){
 }
 
 # See: http://stackoverflow.com/questions/3338030/multiple-bash-traps-for-the-same-signal
-function onex::util::trap_add() {
+function sentinel::util::trap_add() {
   local trap_add_cmd
   trap_add_cmd=$1
   shift
@@ -109,29 +109,29 @@ function onex::util::trap_add() {
   done
 }
 
-# Opposite of onex::util::ensure-temp-dir()
-function onex::util::cleanup-temp-dir() {
-  rm -rf "${ONEX_TEMP}"
+# Opposite of sentinel::util::ensure-temp-dir()
+function sentinel::util::cleanup-temp-dir() {
+  rm -rf "${SENTINEL_TEMP}"
 }
 
-# ONEX_TEMP
-function onex::util::ensure-temp-dir() {
-  if [[ -z ${ONEX_TEMP-} ]]; then
-    ONEX_TEMP=$(mktemp -d 2>/dev/null || mktemp -d -t onex.XXXXXX)
-    onex::util::trap_add onex::util::cleanup-temp-dir EXIT
+# SENTINEL_TEMP
+function sentinel::util::ensure-temp-dir() {
+  if [[ -z ${SENTINEL_TEMP-} ]]; then
+    SENTINEL_TEMP=$(mktemp -d 2>/dev/null || mktemp -d -t sentinel.XXXXXX)
+    sentinel::util::trap_add sentinel::util::cleanup-temp-dir EXIT
   fi
 }
 
-function onex::util::ensure-bash-version() {
+function sentinel::util::ensure-bash-version() {
   if [ "${BASH_VERSINFO[0]}" -lt 3 ]; then
-    onex::log::error "Bash version must be 3 or higher"
+    sentinel::log::error "Bash version must be 3 or higher"
     exit 1
   fi
 }
 
-function onex::util::ensure-gnu-date() {
+function sentinel::util::ensure-gnu-date() {
   if ! command -v date >/dev/null; then
-    onex::log::error "date command not found"
+    sentinel::log::error "date command not found"
     exit 1
   fi
   if date --version 2>&1 | grep -q "GNU coreutils"; then
@@ -139,12 +139,12 @@ function onex::util::ensure-gnu-date() {
   elif command -v gdate >/dev/null; then
     DATE=gdate
   else
-    onex::log::error "GNU date not found. Please install coreutils (brew install coreutils on Mac)."
+    sentinel::log::error "GNU date not found. Please install coreutils (brew install coreutils on Mac)."
     exit 1
   fi
 }
 
-function onex::util::host_os() {
+function sentinel::util::host_os() {
   local host_os
   case "$(uname -s)" in
     Darwin)
@@ -154,14 +154,14 @@ function onex::util::host_os() {
       host_os=linux
       ;;
     *)
-      onex::log::error "Unsupported host OS.  Must be Linux or Mac OS X."
+      sentinel::log::error "Unsupported host OS.  Must be Linux or Mac OS X."
       exit 1
       ;;
   esac
   echo "${host_os}"
 }
 
-function onex::util::host_arch() {
+function sentinel::util::host_arch() {
   local host_arch
   case "$(uname -m)" in
     x86_64*)
@@ -192,7 +192,7 @@ function onex::util::host_arch() {
       host_arch=ppc64le
       ;;
     *)
-      onex::log::error "Unsupported host arch. Must be x86_64, 386, arm, arm64, s390x or ppc64le."
+      sentinel::log::error "Unsupported host arch. Must be x86_64, 386, arm, arm64, s390x or ppc64le."
       exit 1
       ;;
   esac
@@ -200,12 +200,12 @@ function onex::util::host_arch() {
 }
 
 # this info to figure out where the final binaries are placed.
-function onex::util::host_platform() {
-  echo "$(onex::util::host_os)/$(onex::util::host_arch)"
+function sentinel::util::host_platform() {
+  echo "$(sentinel::util::host_os)/$(sentinel::util::host_arch)"
 }
 
 # $PROJ_ROOT_DIR must be set
-function onex::util::find-binary-for-platform() {
+function sentinel::util::find-binary-for-platform() {
   local -r lookfor="$1"
   local -r platform="$2"
   local locations=(
@@ -216,7 +216,7 @@ function onex::util::find-binary-for-platform() {
   )
 
   # if we're looking for the host platform, add local non-platform-qualified search paths
-  if [[ "${platform}" = "$(onex::util::host_platform)" ]]; then
+  if [[ "${platform}" = "$(sentinel::util::host_platform)" ]]; then
     locations+=(
       "${PROJ_ROOT_DIR}/_output/local/go/bin/${lookfor}"
       "${PROJ_ROOT_DIR}/_output/dockerized/go/bin/${lookfor}"
@@ -233,7 +233,7 @@ function onex::util::find-binary-for-platform() {
   local -r bin=$( (ls -t "${locations[@]}" 2>/dev/null || true) | head -1 )
 
   if [[ -z "${bin}" ]]; then
-    onex::log::error "Failed to find binary ${lookfor} for platform ${platform}"
+    sentinel::log::error "Failed to find binary ${lookfor} for platform ${platform}"
     return 1
   fi
 
@@ -241,12 +241,12 @@ function onex::util::find-binary-for-platform() {
 }
 
 # $PROJ_ROOT_DIR must be set
-function onex::util::find-binary() {
-  onex::util::find-binary-for-platform "$1" "$(onex::util::host_platform)"
+function sentinel::util::find-binary() {
+  sentinel::util::find-binary-for-platform "$1" "$(sentinel::util::host_platform)"
 }
 
 # UPDATEME: When add new api group.
-function onex::util::group-version-to-pkg-path() {
+function sentinel::util::group-version-to-pkg-path() {
   local group_version="$1"
 
   # Special cases first.
@@ -273,7 +273,7 @@ function onex::util::group-version-to-pkg-path() {
 }
 
 # special case for v1: v1 -> v1
-function onex::util::gv-to-swagger-name() {
+function sentinel::util::gv-to-swagger-name() {
   local group_version="$1"
   case "${group_version}" in
     v1)
@@ -286,14 +286,14 @@ function onex::util::gv-to-swagger-name() {
 }
 
 # repo, e.g. "upstream" or "origin".
-function onex::util::git_upstream_remote_name() {
+function sentinel::util::git_upstream_remote_name() {
   git remote -v | grep fetch |\
-    grep -E 'github.com[/:]onexstack/onex|onexstack.io/onex' |\
+    grep -E 'github.com[/:]kart-io/sentinel-x|kart-io/sentinel-x' |\
     head -n 1 | awk '{print $1}'
 }
 
 # the user can commit changes in a second terminal. This script will wait.
-function onex::util::ensure_clean_working_dir() {
+function sentinel::util::ensure_clean_working_dir() {
   while ! git diff HEAD --exit-code &>/dev/null; do
     echo -e "\nUnexpected dirty working directory:\n"
     if tty -s; then
@@ -308,7 +308,7 @@ function onex::util::ensure_clean_working_dir() {
 }
 
 # current ref from the remote upstream branch
-function onex::util::base_ref() {
+function sentinel::util::base_ref() {
   local -r git_branch=$1
 
   if [[ -n ${PULL_BASE_SHA:-} ]]; then
@@ -316,7 +316,7 @@ function onex::util::base_ref() {
     return
   fi
 
-  full_branch="$(onex::util::git_upstream_remote_name)/${git_branch}"
+  full_branch="$(sentinel::util::git_upstream_remote_name)/${git_branch}"
 
   # make sure the branch is valid, otherwise the check will pass erroneously.
   if ! git describe "${full_branch}" >/dev/null; then
@@ -328,13 +328,13 @@ function onex::util::base_ref() {
 }
 
 # 0 (true) if there are changes detected.
-function onex::util::has_changes() {
+function sentinel::util::has_changes() {
   local -r git_branch=$1
   local -r pattern=$2
   local -r not_pattern=${3:-totallyimpossiblepattern}
 
   local base_ref
-  base_ref=$(onex::util::base_ref "${git_branch}")
+  base_ref=$(sentinel::util::base_ref "${git_branch}")
   echo "Checking for '${pattern}' changes against '${base_ref}'"
 
   # notice this uses ... to find the first shared ancestor
@@ -350,7 +350,7 @@ function onex::util::has_changes() {
   return 1
 }
 
-function onex::util::download_file() {
+function sentinel::util::download_file() {
   local -r url=$1
   local -r destination_file=$2
 
@@ -370,7 +370,7 @@ function onex::util::download_file() {
 }
 
 # OPENSSL_BIN: The path to the openssl binary to use
-function onex::util::test_openssl_installed {
+function sentinel::util::test_openssl_installed {
     if ! openssl version >& /dev/null; then
       echo "Failed to run openssl. Please ensure openssl is installed"
       exit 1
@@ -389,17 +389,17 @@ if [[ -z "${color_start-}" ]]; then
   declare -r color_cyan="${color_start}1;36m"
   declare -r color_norm="${color_start}0m"
 
-  onex::util::sourced_variable "${color_start}"
-  onex::util::sourced_variable "${color_red}"
-  onex::util::sourced_variable "${color_yellow}"
-  onex::util::sourced_variable "${color_green}"
-  onex::util::sourced_variable "${color_blue}"
-  onex::util::sourced_variable "${color_cyan}"
-  onex::util::sourced_variable "${color_norm}"
+  sentinel::util::sourced_variable "${color_start}"
+  sentinel::util::sourced_variable "${color_red}"
+  sentinel::util::sourced_variable "${color_yellow}"
+  sentinel::util::sourced_variable "${color_green}"
+  sentinel::util::sourced_variable "${color_blue}"
+  sentinel::util::sourced_variable "${color_cyan}"
+  sentinel::util::sourced_variable "${color_norm}"
 fi
 
 # 2. 兼容 Linux/macOS 获取相对路径函数
-function onex::util::get_relpath() {
+function sentinel::util::get_relpath() {
   local target="$1"
   local base="$2"
 

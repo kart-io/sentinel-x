@@ -5,36 +5,36 @@
 # license that can be found in the LICENSE file.
 
 # The golang package that we are building.
-ONEX_GO_PACKAGE=github.com/kart-io/sentinel-x
+SENTINEL_GO_PACKAGE=github.com/kart-io/sentinel-x
 
 # Returns a sorted newline-separated list containing only duplicated items.
-onex::golang::dups() {
+sentinel::golang::dups() {
   # We use printf to insert newlines, which are required by sort.
   printf "%s\n" "$@" | sort | uniq -d
 }
 
 # Returns a sorted newline-separated list with duplicated items removed.
-onex::golang::dedup() {
+sentinel::golang::dedup() {
   # We use printf to insert newlines, which are required by sort.
   printf "%s\n" "$@" | sort -u
 }
 
 # slightly different things when the target platform matches the host platform.
-onex::golang::host_platform() {
+sentinel::golang::host_platform() {
   echo "$(go env GOHOSTOS)_$(go env GOHOSTARCH)"
 }
 
 # for that platform.
-onex::golang::set_platform_envs() {
+sentinel::golang::set_platform_envs() {
   [[ -n ${1-} ]] || {
-    onex::log::error_exit "!!! Internal error. No platform set in onex::golang::set_platform_envs"
+    sentinel::log::error_exit "!!! Internal error. No platform set in sentinel::golang::set_platform_envs"
   }
 
   export GOOS=${platform%_*}
   export GOARCH=${platform##*_}
 
   # Do not set CC when building natively on a platform, only if cross-compiling
-  if [[ $(onex::golang::host_platform) != "$platform" ]]; then
+  if [[ $(sentinel::golang::host_platform) != "$platform" ]]; then
     # Dynamic CGO linking for other server architectures than host architecture goes here
     # If you want to include support for more server platforms than these, add arch-specific gcc names here
     case "${platform}" in
@@ -62,7 +62,7 @@ onex::golang::set_platform_envs() {
   fi
 
   # if CC is defined for platform then always enable it
-  ccenv=$(echo "$platform" | awk -F/ '{print "ONEX_" toupper($1) "_" toupper($2) "_CC"}')
+  ccenv=$(echo "$platform" | awk -F/ '{print "SENTINEL_" toupper($1) "_" toupper($2) "_CC"}')
   if [ -n "${!ccenv-}" ]; then
     export CGO_ENABLED=1
     export CC="${!ccenv}"
@@ -70,7 +70,7 @@ onex::golang::set_platform_envs() {
 }
 
 # env-var FORCE_HOST_GO set to a non-empty value uses the go version in the $PATH and skips ensuring $GO_VERSION is used
-onex::golang::verify_go_version() {
+sentinel::golang::verify_go_version() {
   # default GO_VERSION to content of .go-version
   GO_VERSION="${GO_VERSION:-"$(cat "${PROJ_ROOT_DIR}/.go-version")"}"
   if [ "${GOTOOLCHAIN:-auto}" != 'auto' ]; then
@@ -93,7 +93,7 @@ onex::golang::verify_go_version() {
   fi
 
   if [[ -z "$(command -v go)" ]]; then
-    onex::log::usage_from_stdin <<EOF
+    sentinel::log::usage_from_stdin <<EOF
 Can't find 'go' in PATH, please fix and retry.
 See http://golang.org/doc/install for installation instructions.
 EOF
@@ -105,9 +105,9 @@ EOF
   local minimum_go_version
   minimum_go_version=go1.25
   if [[ "${minimum_go_version}" != $(echo -e "${minimum_go_version}\n${go_version[2]}" | sort -s -t. -k 1,1 -k 2,2n -k 3,3n | head -n1) && "${go_version[2]}" != "devel" ]]; then
-    onex::log::usage_from_stdin <<EOF
+    sentinel::log::usage_from_stdin <<EOF
 Detected go version: ${go_version[*]}.
-OneX requires ${minimum_go_version} or greater.
+Sentinel requires ${minimum_go_version} or greater.
 Please install ${minimum_go_version} or later.
 EOF
     return 2
@@ -115,8 +115,8 @@ EOF
 }
 
 # current directory is within GOPATH
-onex::golang::setup_env() {
-  onex::golang::verify_go_version
+sentinel::golang::setup_env() {
+  sentinel::golang::verify_go_version
 
   # Set GOROOT so binaries that parse code can work properly.
   GOROOT=$(go env GOROOT)
@@ -137,16 +137,16 @@ onex::golang::setup_env() {
 }
 
 # $1: platform (e.g. linux_amd64)
-onex::golang::build_binaries_for_platform() {
+sentinel::golang::build_binaries_for_platform() {
  # This is for sanity.  Without it, user umasks can leak through.
   umask 0022
 
   local platform=$1
   local command=$2
 
-  V=2 onex::log::info "Env for ${command}/${platform}: GOOS=${GOOS-} GOARCH=${GOARCH-} GOFLAGS=${GOFLAGS-} CGO_ENABLED=${CGO_ENABLED-} CC=${CC-}"
-  V=2 onex::log::info "Env for ${command}/${platform}: GOROOT=${GOROOT-}"
-  V=3 onex::log::info "Building binaries with GCFLAGS=${gogcflags} ASMFLAGS=${goasmflags} LDFLAGS=${goldflags}"
+  V=2 sentinel::log::info "Env for ${command}/${platform}: GOOS=${GOOS-} GOARCH=${GOARCH-} GOFLAGS=${GOFLAGS-} CGO_ENABLED=${CGO_ENABLED-} CC=${CC-}"
+  V=2 sentinel::log::info "Env for ${command}/${platform}: GOROOT=${GOROOT-}"
+  V=3 sentinel::log::info "Building binaries with GCFLAGS=${gogcflags} ASMFLAGS=${goasmflags} LDFLAGS=${goldflags}"
 
   local -a build_args
   build_args=(
@@ -167,18 +167,18 @@ onex::golang::build_binaries_for_platform() {
 
   # Execute compilation command
   go build "${build_args[@]}" -o "${out_dir}/${command}${ext}" "${PROJ_ROOT_DIR}/cmd/${command}"
-  V=2 onex::log::info "Output file is: ${out_dir}/${command}${ext}"
+  V=2 sentinel::log::info "Output file is: ${out_dir}/${command}${ext}"
 }
 
 # $2: platform (e.g. linux_amd64) (optional)
-onex::golang::build_binaries() {
+sentinel::golang::build_binaries() {
   # Create a sub-shell so that we don't pollute the outer environment
   (
     # Check for `go` binary and set ${GOPATH}.
-    onex::golang::setup_env
+    sentinel::golang::setup_env
 
     local command=$1
-    local host_platform=$(onex::golang::host_platform)
+    local host_platform=$(sentinel::golang::host_platform)
     local platform=${2:-${host_platform}}
 
     # These are "local" but are visible to and relied on by functions this
@@ -200,8 +200,8 @@ onex::golang::build_binaries() {
         goasmflags=""
     fi
 
-    goldflags="all=$(onex::version::ldflags) ${GOLDFLAGS:-}"
-    #goldflags="all=$(onex::version::ldflags) ${GOLDFLAGS:-}"
+    goldflags="all=$(sentinel::version::ldflags) ${GOLDFLAGS:-}"
+    #goldflags="all=$(sentinel::version::ldflags) ${GOLDFLAGS:-}"
     if [[ "${DBG:-}" != 1 ]]; then
         # Not debugging - disable symbols and DWARF.
         goldflags="${goldflags} -s -w"
@@ -210,9 +210,9 @@ onex::golang::build_binaries() {
     # Extract tags if any specified in GOFLAGS
     gotags="selinux,notest,$(echo "${GOFLAGS:-}" | sed -ne 's|.*-tags=\([^-\]*\).*|\1|p')"
 
-    onex::golang::set_platform_envs "${platform}"
-    onex::log::status "${platform}: build started"
-    onex::golang::build_binaries_for_platform "${platform}" "${command}"
-    onex::log::status "${platform}: build finished"
+    sentinel::golang::set_platform_envs "${platform}"
+    sentinel::log::status "${platform}: build started"
+    sentinel::golang::build_binaries_for_platform "${platform}" "${command}"
+    sentinel::log::status "${platform}: build finished"
   )
 }

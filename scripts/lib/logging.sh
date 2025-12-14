@@ -8,7 +8,7 @@
 KUBE_VERBOSE="${KUBE_VERBOSE:-2}"
 
 # Borrowed from https://gist.github.com/ahendrix/7030300
-function onex::log::errexit() {
+function sentinel::log::errexit() {
   local err="${PIPESTATUS[*]}"
 
   # If the shell we are in doesn't have errexit set (common in subshells) then
@@ -20,19 +20,19 @@ function onex::log::errexit() {
   # Print out the stack trace described by $function_stack
   if [ ${#FUNCNAME[@]} -gt 2 ]
   then
-    onex::log::error "Call tree:"
+    sentinel::log::error "Call tree:"
     for ((i=1;i<${#FUNCNAME[@]}-1;i++))
     do
-      onex::log::error " ${i}: ${BASH_SOURCE[${i}+1]}:${BASH_LINENO[${i}]} ${FUNCNAME[${i}]}(...)"
+      sentinel::log::error " ${i}: ${BASH_SOURCE[${i}+1]}:${BASH_LINENO[${i}]} ${FUNCNAME[${i}]}(...)"
     done
   fi
-  onex::log::error_exit "Error in ${BASH_SOURCE[1]}:${BASH_LINENO[0]}. '${BASH_COMMAND}' exited with status ${err}" "${1:-1}" 1
+  sentinel::log::error_exit "Error in ${BASH_SOURCE[1]}:${BASH_LINENO[0]}. '${BASH_COMMAND}' exited with status ${err}" "${1:-1}" 1
 }
 
-function onex::log::install_errexit() {
+function sentinel::log::install_errexit() {
   # trap ERR to provide an error handler whenever a command exits nonzero  this
   # is a more verbose version of set -o errexit
-  trap 'onex::log::errexit' ERR
+  trap 'sentinel::log::errexit' ERR
 
   # setting errtrace allows our ERR trap handler to be propagated to functions,
   # expansions and subshells
@@ -40,7 +40,7 @@ function onex::log::install_errexit() {
 }
 
 # $1 The number of stack frames to skip when printing.
-function onex::log::stack() {
+function sentinel::log::stack() {
   local stack_skip=${1:-0}
   stack_skip=$((stack_skip + 1))
   if [[ ${#FUNCNAME[@]} -gt ${stack_skip} ]]; then
@@ -58,7 +58,7 @@ function onex::log::stack() {
 }
 
 # $3 The number of stack frames to skip when printing.
-function onex::log::error_exit() {
+function sentinel::log::error_exit() {
   local message="${1:-}"
   local code="${2:-1}"
   local stack_skip="${3:-0}"
@@ -72,7 +72,7 @@ function onex::log::error_exit() {
       echo "  ${1}" >&2
     }
 
-    onex::log::stack ${stack_skip}
+    sentinel::log::stack ${stack_skip}
 
     echo "Exiting with status ${code}" >&2
   fi
@@ -81,7 +81,7 @@ function onex::log::error_exit() {
 }
 
 # Log an error but keep going.  Don't dump the stack or exit.
-function onex::log::error() {
+function sentinel::log::error() {
   timestamp=$(date +"[%m%d %H:%M:%S]")
   echo "!!! ${timestamp} ${1-}" >&2
   shift
@@ -91,7 +91,7 @@ function onex::log::error() {
 }
 
 # Print an usage message to stderr.  The arguments are printed directly.
-function onex::log::usage() {
+function sentinel::log::usage() {
   echo >&2
   local message
   for message; do
@@ -100,19 +100,19 @@ function onex::log::usage() {
   echo >&2
 }
 
-function onex::log::usage_from_stdin() {
+function sentinel::log::usage_from_stdin() {
   local messages=()
   while read -r line; do
     messages+=("${line}")
   done
 
-  onex::log::usage "${messages[@]}"
+  sentinel::log::usage "${messages[@]}"
 }
 
 # Print out some info that isn't a top level status line
-function onex::log::info() {
+function sentinel::log::info() {
   local V="${V:-0}"
-  if (( ONEX_VERBOSE < V )) || (( KUBE_VERBOSE < V )); then
+  if (( SENTINEL_VERBOSE < V )) || (( KUBE_VERBOSE < V )); then
     return
   fi
 
@@ -121,24 +121,24 @@ function onex::log::info() {
   done
 }
 
-# Just like onex::log::info, but no \n, so you can make a progress bar
-function onex::log::progress() {
+# Just like sentinel::log::info, but no \n, so you can make a progress bar
+function sentinel::log::progress() {
   for message; do
     echo -e -n "${message}"
   done
 }
 
-function onex::log::info_from_stdin() {
+function sentinel::log::info_from_stdin() {
   local messages=()
   while read -r line; do
     messages+=("${line}")
   done
 
-  onex::log::info "${messages[@]}"
+  sentinel::log::info "${messages[@]}"
 }
 
 # Print a status line.  Formatted to show up in a stream of output.
-function onex::log::status() {
+function sentinel::log::status() {
   local V="${V:-0}"
   if (( KUBE_VERBOSE < V )); then
     return

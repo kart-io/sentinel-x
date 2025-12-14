@@ -9,7 +9,7 @@ source "${PROJ_ROOT_DIR}/scripts/lib/init.sh"
 
 STAGING_DIR="${PROJ_ROOT_DIR}/staging/src"
 
-onex::log::info "===> Updating replace directives..."
+sentinel::log::info "===> Updating replace directives..."
 
 MOD_DIRS=$(find "${STAGING_DIR}" -name go.mod -exec dirname {} \;)
 
@@ -23,15 +23,15 @@ done
 # 2. 添加新的 replace 指令 (Using common utility for path calculation)
 for mod in ${MOD_DIRS}; do
   module=$(grep '^module ' "${mod}/go.mod" | awk '{print $2}')
-  relpath=$(onex::util::get_relpath "$mod" "$PROJ_ROOT_DIR")
+  relpath=$(sentinel::util::get_relpath "$mod" "$PROJ_ROOT_DIR")
   # 使用 go mod edit 添加 replace，避免重复
   go mod edit -replace="${module}=./${relpath}" "${PROJ_ROOT_DIR}/go.mod"
 done
 
-onex::log::info "===> Running go mod tidy..."
+sentinel::log::info "===> Running go mod tidy..."
 (cd "${PROJ_ROOT_DIR}" && go mod tidy)
 
-onex::log::info "===> Running go mod vendor..."
+sentinel::log::info "===> Running go mod vendor..."
 (cd "${PROJ_ROOT_DIR}" && go mod vendor)
 
-onex::log::info "Update vendor done."
+sentinel::log::info "Update vendor done."

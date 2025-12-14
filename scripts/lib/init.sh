@@ -3,7 +3,7 @@
 # Copyright 2022 Lingfei Kong <colin404@foxmail.com>. All rights reserved.
 # Use of this source code is governed by a MIT style
 # license that can be found in the LICENSE file. The original repo for
-# this file is https://github.com/onexstack/onex.
+# this file is https://github.com/kart-io/sentinel-x.
 #
 
 set -o errexit
@@ -11,7 +11,7 @@ set +o nounset
 set -o pipefail
 
 # Short-circuit if init.sh has already been sourced
-[[ $(type -t onex::init::loaded) == function ]] && return 0
+[[ $(type -t sentinel::init::loaded) == function ]] && return 0
 
 # Unset CDPATH so that path interpolation can work correctly
 # https://github.com/minerrnetes/minerrnetes/issues/52255
@@ -24,15 +24,15 @@ export GO111MODULE=on
 PROJ_ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
 SCRIPTS_DIR="${PROJ_ROOT_DIR}/scripts"
 
-ONEX_OUTPUT_SUBPATH="${ONEX_OUTPUT_SUBPATH:-_output}"
-ONEX_OUTPUT="${PROJ_ROOT_DIR}/${ONEX_OUTPUT_SUBPATH}"
+SENTINEL_OUTPUT_SUBPATH="${SENTINEL_OUTPUT_SUBPATH:-_output}"
+SENTINEL_OUTPUT="${PROJ_ROOT_DIR}/${SENTINEL_OUTPUT_SUBPATH}"
 
 source "${SCRIPTS_DIR}/lib/util.sh"
 source "${SCRIPTS_DIR}/lib/logging.sh"
 source "${SCRIPTS_DIR}/lib/color.sh"
 
-onex::log::install_errexit
-onex::util::ensure-bash-version
+sentinel::log::install_errexit
+sentinel::util::ensure-bash-version
 
 source "${SCRIPTS_DIR}/lib/version.sh"
 source "${SCRIPTS_DIR}/lib/golang.sh"
@@ -41,7 +41,7 @@ source "${SCRIPTS_DIR}/lib/golang.sh"
 # or when starting an API server that you want to have everything.
 # most preferred version for a group should appear first
 # UPDATEME: New group need to update here.
-ONEX_AVAILABLE_GROUP_VERSIONS="${ONEX_AVAILABLE_GROUP_VERSIONS:-\
+SENTINEL_AVAILABLE_GROUP_VERSIONS="${SENTINEL_AVAILABLE_GROUP_VERSIONS:-\
 apps/v1beta1 \
 batch/v1beta1 \
 }"
@@ -56,7 +56,7 @@ batch/v1beta1 \
 # ln -s $T/dir $T/linkdir
 # function testone() {
 #   X=$(readlink -f $1 2>&1)
-#   Y=$(onex::readlinkdashf $1 2>&1)
+#   Y=$(sentinel::readlinkdashf $1 2>&1)
 #   if [ "$X" != "$Y" ]; then
 #     echo readlinkdashf $1: expected "$X", got "$Y"
 #   fi
@@ -73,7 +73,7 @@ batch/v1beta1 \
 # testone $T/linkdir/dir
 # testone $T/linkdir/linkfile
 # testone $T/linkdir/linkdir
-function onex::readlinkdashf {
+function sentinel::readlinkdashf {
   # run in a subshell for simpler 'cd'
   (
     if [[ -d "${1}" ]]; then # This also catch symlinks to dirs.
@@ -93,15 +93,15 @@ function onex::readlinkdashf {
 }
 
 # This emulates "realpath" which is not available on MacOS X
-onex::realpath() {
+sentinel::realpath() {
   if [[ ! -e "${1}" ]]; then
     echo "${1}: No such file or directory" >&2
     return 1
   fi
-  onex::readlinkdashf "${1}"
+  sentinel::readlinkdashf "${1}"
 }
 
 # Marker function to indicate init.sh has been fully sourced
-onex::init::loaded() {
+sentinel::init::loaded() {
   return 0
 }

@@ -15,12 +15,12 @@ command=${1:-build}
 shift
 
 if [ "$command" == "build" ]; then
-    onex::log::info "Building image..."
+    sentinel::log::info "Building image..."
     make -C "${PROJ_ROOT_DIR}" image.build "$@"
 elif [ "$command" == "push" ]; then
-    onex::log::info "Pushing image..."
+    sentinel::log::info "Pushing image..."
     make -C "${PROJ_ROOT_DIR}" image.push "$@"
 else
-    onex::log::error "Usage: $0 [build|push]"
+    sentinel::log::error "Usage: $0 [build|push]"
     exit 1
 fi

@@ -3,7 +3,7 @@
 # Copyright 2022 Lingfei Kong <colin404@foxmail.com>. All rights reserved.
 # Use of this source code is governed by a MIT style
 # license that can be found in the LICENSE file. The original repo for
-# this file is https://github.com/onexstack/onex.
+# this file is https://github.com/kart-io/sentinel-x.
 #
 
 #Define color variables
@@ -24,7 +24,7 @@ C_BBLUE='\033[44m';C_BMAGENTA='\033[45m';
 C_BCYAN='\033[46m';C_BWHITE='\033[47m';
 
 # Print colors you can use
-onex::color::print_color()
+sentinel::color::print_color()
 {
   echo
   echo -e ${bmagenta}--back-color:${normal}
@@ -39,7 +39,7 @@ onex::color::print_color()
   echo
 }
 
-onex::color::color_print() {
+sentinel::color::color_print() {
   local color=$1
   shift
   # if stdout is a terminal, turn on color output.
@@ -52,12 +52,12 @@ onex::color::color_print() {
   fi
 }
 
-onex::color::red()
+sentinel::color::red()
 {
-  onex::color::color_print 31 "$@"
+  sentinel::color::color_print 31 "$@"
 }
 
-onex::color::green()
+sentinel::color::green()
 {
-  onex::color::color_print 32 "$@"
+  sentinel::color::color_print 32 "$@"
 }

@@ -14,12 +14,12 @@ command=${1:-build}
 shift
 
 if [ "$command" == "build" ]; then
-    onex::log::info "Building multiarch image..."
+    sentinel::log::info "Building multiarch image..."
     make -C "${PROJ_ROOT_DIR}" image.build.multiarch "$@"
 elif [ "$command" == "push" ]; then
-    onex::log::info "Pushing multiarch image..."
+    sentinel::log::info "Pushing multiarch image..."
     make -C "${PROJ_ROOT_DIR}" image.push.multiarch "$@"
 else
-    onex::log::error "Usage: $0 [build|push]"
+    sentinel::log::error "Usage: $0 [build|push]"
     exit 1
 fi

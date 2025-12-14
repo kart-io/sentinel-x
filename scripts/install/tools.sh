@@ -12,57 +12,57 @@ fi
 
 function install_golangci_lint() {
   if ! command -v golangci-lint &> /dev/null; then
-      onex::log::info "Installing golangci-lint..."
+      sentinel::log::info "Installing golangci-lint..."
       go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
   else
-      onex::log::info "golangci-lint is already installed"
+      sentinel::log::info "golangci-lint is already installed"
   fi
 }
 
 function install_gofumpt() {
   if ! command -v gofumpt &> /dev/null; then
-      onex::log::info "Installing gofumpt..."
+      sentinel::log::info "Installing gofumpt..."
       go install mvdan.cc/gofumpt@latest
   fi
 }
 
 function install_gci() {
   if ! command -v gci &> /dev/null; then
-      onex::log::info "Installing gci..."
+      sentinel::log::info "Installing gci..."
       go install github.com/daixiang0/gci@latest
   fi
 }
 
 function install_gotests() {
   if ! command -v gotests &> /dev/null; then
-      onex::log::info "Installing gotests..."
+      sentinel::log::info "Installing gotests..."
       go install github.com/cweill/gotests/gotests@latest
   fi
 }
 
 function install_mockgen() {
   if ! command -v mockgen &> /dev/null; then
-      onex::log::info "Installing mockgen..."
+      sentinel::log::info "Installing mockgen..."
       go install go.uber.org/mock/mockgen@latest
   fi
 }
 
 function install_wire() {
   if ! command -v wire &> /dev/null; then
-      onex::log::info "Installing wire..."
+      sentinel::log::info "Installing wire..."
       go install github.com/google/wire/cmd/wire@latest
   fi
 }
 
 function install_grpcurl() {
   if ! command -v grpcurl &> /dev/null; then
-      onex::log::info "Installing grpcurl..."
+      sentinel::log::info "Installing grpcurl..."
       go install github.com/fullstorydev/grpcurl/cmd/grpcurl@latest
   fi
 }
 
 function install_tools() {
-  onex::log::info "Installing utility tools..."
+  sentinel::log::info "Installing utility tools..."
   install_golangci_lint
   install_gofumpt
   install_gci
@@ -70,13 +70,13 @@ function install_tools() {
   install_mockgen
   install_wire
   install_grpcurl
-  onex::log::info "Utility tools installed successfully"
+  sentinel::log::info "Utility tools installed successfully"
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   if [[ "$1" == "-h" ]] || [[ "$1" == "--help" ]]; then
-    onex::log::info "Usage: $0"
-    onex::log::info "Install development tools (golangci-lint, gofumpt, gci, etc.)"
+    sentinel::log::info "Usage: $0"
+    sentinel::log::info "Install development tools (golangci-lint, gofumpt, gci, etc.)"
     exit 0
   fi
   install_tools
