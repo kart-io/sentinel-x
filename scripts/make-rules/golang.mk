@@ -37,9 +37,10 @@ go.test.cover: go.test
 	@$(GO) tool cover -func=coverage.out | awk -v target=$(COVERAGE) -f $(SCRIPTS_DIR)/lib/coverage.awk
 
 .PHONY: go.fmt
-go.fmt: tools.verify.gofumpt tools.verify.gci
+go.fmt: tools.verify.gofumpt tools.verify.gci tools.verify.goimports
 	@echo "===========> Formating codes"
 	@gofumpt -w $(shell find . -type f -name '*.go' -not -path "*/vendor/*" -not -name '*.pb.go')
+	@goimports -w -local $(GO_MOD_NAME) $(shell find . -type f -name '*.go' -not -path "*/vendor/*" -not -name '*.pb.go')
 	@gci write -s standard -s default -s 'Prefix($(GO_MOD_DOMAIN))' --skip-generated $(shell find . -type f -name '*.go' -not -path "*/vendor/*" -not -name '*.pb.go') > /dev/null
 
 .PHONY: go.lint

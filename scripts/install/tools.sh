@@ -61,6 +61,13 @@ function install_grpcurl() {
   fi
 }
 
+function install_goimports() {
+  if ! command -v goimports &> /dev/null; then
+      sentinel::log::info "Installing goimports..."
+      go install golang.org/x/tools/cmd/goimports@latest
+  fi
+}
+
 function install_tools() {
   sentinel::log::info "Installing utility tools..."
   install_golangci_lint
@@ -70,6 +77,7 @@ function install_tools() {
   install_mockgen
   install_wire
   install_grpcurl
+  install_goimports
   sentinel::log::info "Utility tools installed successfully"
 }
 
