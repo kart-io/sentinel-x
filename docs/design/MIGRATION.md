@@ -2,7 +2,7 @@
 
 ## 概述
 
-本文档提供从旧版错误码体系迁移到新版错误码体系的完整指南。新版错误码体系参考 [onex 项目](https://github.com/onexstack/onex) 设计规范，提供更强大、更规范的错误处理能力。
+本文档提供从旧版错误码体系迁移到新版错误码体系的完整指南。新版错误码体系参考 [sentinel-x 项目](https://github.com/kart-io/sentinel-x) 设计规范，提供更强大、更规范的错误处理能力。
 
 ## 迁移目标
 
@@ -432,6 +432,6 @@ docs/design/
 ---
 
 **参考资料：**
-- [onex 错误码设计规范](https://github.com/onexstack/onex)
+- [sentinel-x 错误码设计规范](https://github.com/kart-io/sentinel-x)
 - [腾讯云 API 3.0 错误码设计](https://cloud.tencent.com/document/api/213/15694)
 - [gRPC 状态码](https://grpc.io/docs/guides/status-codes/)

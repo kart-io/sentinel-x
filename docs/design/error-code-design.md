@@ -1,6 +1,6 @@
 # Sentinel-X 错误码设计规范
 
-> 参考 [onex 项目](https://github.com/onexstack/onex) 错误码设计规范
+> 参考 [sentinel-x 项目](https://github.com/kart-io/sentinel-x) 错误码设计规范
 
 ## 1. 概述
 
