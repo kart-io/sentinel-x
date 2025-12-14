@@ -82,12 +82,16 @@ sentinel::version::get_version_vars() {
         fi
       fi
 
+    else
+      # If git describe failed (no tags), use a default dev version
+      SENTINEL_GIT_VERSION="v0.0.0-master+${SENTINEL_GIT_COMMIT:0:14}"
+    fi
+
       # If SENTINEL_GIT_VERSION is not a valid Semantic Version, then refuse to build.
-      if ! [[ "${SENTINEL_GIT_VERSION}" =~ ^v([0-9]+)\.([0-9]+)(\.[0-9]+)?(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
-          sentinel::log::error "SENTINEL_GIT_VERSION should be a valid Semantic Version. Current value: ${SENTINEL_GIT_VERSION}"
-          sentinel::log::error "Please see more details here: https://semver.org"
-          exit 1
-      fi
+    if ! [[ "${SENTINEL_GIT_VERSION}" =~ ^v([0-9]+)\.([0-9]+)(\.[0-9]+)?(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
+        sentinel::log::error "SENTINEL_GIT_VERSION should be a valid Semantic Version. Current value: ${SENTINEL_GIT_VERSION}"
+        sentinel::log::error "Please see more details here: https://semver.org"
+        exit 1
     fi
   fi
 }
@@ -129,7 +133,7 @@ sentinel::version::ldflags() {
     local key=${1}
     local val=${2}
     ldflags+=(
-      "-X '${SENTINEL_GO_PACKAGE}/pkg/version.${key}=${val}'"
+      "-X 'github.com/kart-io/version.${key}=${val}'"
     )
   }
 

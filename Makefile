@@ -28,6 +28,8 @@ include scripts/make-rules/golang.mk
 include scripts/make-rules/image.mk
 include scripts/make-rules/tools.mk
 include scripts/make-rules/gen.mk
+include scripts/make-rules/run.mk
+include scripts/make-rules/update.mk
 
 # ==============================================================================
 # Targets
@@ -51,70 +53,7 @@ deps: tidy tools.install ## Install dependencies and tools.
 tidy: ## Tidy go.mod and vendor.
 	$(GO) mod tidy && $(GO) mod vendor
 
-.PHONY: update
-update: ## Update vendor dependencies.
-	bash hack/update-vendor.sh
-
-## @ Image
-
-.PHONY: image
-image: image.build ## Build docker images.
-
-.PHONY: image.multiarch
-image.multiarch: image.build.multiarch ## Build docker images for multiple platforms.
-
-.PHONY: push
-push: image.push ## Build docker images and push to registry.
-
-.PHONY: push.multiarch
-push.multiarch: image.push.multiarch ## Build docker images for multiple platforms and push to registry.
-
-## @ Test & Quality
-
-.PHONY: test
-test: go.test ## Run unit tests.
-
-.PHONY: test-coverage
-test-coverage: go.test.cover ## Run unit tests with coverage.
-
-.PHONY: lint
-lint: tidy go.lint ## Run linters.
-
-.PHONY: fmt
-fmt: go.fmt ## Format source code.
-
-.PHONY: verify-sonic
-verify-sonic: ## Verify Sonic JSON integration.
-	bash scripts/verify-sonic.sh
-
-## @ Code Generation
-
-.PHONY: clean.proto
-clean.proto: gen.clean ## Clean generated protobuf files.
-
 ## @ Development
-
-.PHONY: run-api
-run-api: go.build.api ## Run API server (Dev).
-	@echo "Starting sentinel-api..."
-	./bin/api -c configs/sentinel-api-dev.yaml
-
-.PHONY: run-user-center
-run-user-center: go.build.user-center ## Run User Center (Dev).
-	@echo "Starting sentinel-user-center..."
-	./bin/user-center -c configs/user-center.yaml
-
-.PHONY: update-goagent
-update-goagent: ## Sync goagent from upstream (Staging).
-	bash hack/sync-from-upstream.sh staging/src/github.com/kart-io/goagent https://github.com/kart-io/goagent master
-
-.PHONY: update-logger
-update-logger: ## Sync logger from upstream (Staging).
-	bash hack/sync-from-upstream.sh staging/src/github.com/kart-io/logger https://github.com/kart-io/logger main
-
-.PHONY: run-example
-run-example: ## Run example server.
-	go run example/server/example/main.go -c example/server/example/configs/sentinel-example.yaml
 
 ## @ Help
 

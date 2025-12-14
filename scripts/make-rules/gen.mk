@@ -9,7 +9,7 @@ gen.proto: tools.verify.buf tools.verify.protoc-gen-go tools.verify.protoc-gen-g
 
 .PHONY: gen.clean
 gen.clean: ## Clean generated protobuf files.
-	@rm -rf pkg/api/**/*.pb.go
-	@rm -rf pkg/api/**/*.pb.validate.go
-	@rm -rf pkg/api/**/*.pb.gw.go
-	@rm -rf pkg/api/**/*.swagger.json
+	@find pkg/api -name "*.pb.go" -delete
+	@find pkg/api -name "*.pb.validate.go" -delete
+	@find pkg/api -name "*.pb.gw.go" -delete
+	@find pkg/api -name "*.swagger.json" -delete
