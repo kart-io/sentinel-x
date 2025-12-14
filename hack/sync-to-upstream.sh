@@ -1,13 +1,18 @@
 #!/usr/bin/env bash
 
+# Copyright 2022 Lingfei Kong <colin404@foxmail.com>. All rights reserved.
+# Use of this source code is governed by a MIT style
+# license that can be found in the LICENSE file.
+
 # sync-to-upstream.sh
 # This script syncs the local staging directory content to the remote upstream repository.
-# Usage: ./sync-to-upstream.sh <local_path> <remote_repo> [branch]
+# Usage: ./hack/sync-to-upstream.sh <local_path> <remote_repo> [branch]
 
-set -euo pipefail
+PROJ_ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
+source "${PROJ_ROOT_DIR}/scripts/lib/init.sh"
 
 if [ "$#" -lt 2 ]; then
-    echo "Usage: $0 <local_path> <remote_repo> [branch]"
+    onex::log::error "Usage: $0 <local_path> <remote_repo> [branch]"
     exit 1
 fi
 
@@ -16,27 +21,25 @@ REMOTE_REPO="$2"
 BRANCH="${3:-master}"
 TMP_DIR=$(mktemp -d)
 
-# Ensure we are at the project root
-ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
-SOURCE_DIR="${ROOT_DIR}/${STAGING_PATH}"
+SOURCE_DIR="${PROJ_ROOT_DIR}/${STAGING_PATH}"
 
 if [ ! -d "${SOURCE_DIR}" ]; then
-    echo "Error: Source directory ${SOURCE_DIR} does not exist."
+    onex::log::error "Error: Source directory ${SOURCE_DIR} does not exist."
     exit 1
 fi
 
-echo "===> Publishing ${STAGING_PATH} to ${REMOTE_REPO} (${BRANCH})..."
+onex::log::info "===> Publishing ${STAGING_PATH} to ${REMOTE_REPO} (${BRANCH})..."
 
 # 1. Clone the remote repository to a temporary location
-echo "-> Cloning remote repository..."
+onex::log::info "-> Cloning remote repository..."
 if ! git -c http.proxy= -c https.proxy= clone --depth 1 --branch "${BRANCH}" "${REMOTE_REPO}" "${TMP_DIR}"; then
-     echo "Error: Failed to clone ${REMOTE_REPO}."
+     onex::log::error "Error: Failed to clone ${REMOTE_REPO}."
      rm -rf "${TMP_DIR}"
      exit 1
 fi
 
 # 2. Sync content
-echo "-> Syncing content..."
+onex::log::info "-> Syncing content..."
 # Remove all files in tmp dir except .git
 find "${TMP_DIR}" -mindepth 1 -maxdepth 1 -not -name '.git' -exec rm -rf {} +
 
@@ -48,24 +51,24 @@ cp -R "${SOURCE_DIR}/." "${TMP_DIR}/"
 cd "${TMP_DIR}"
 
 if [[ -z $(git status --porcelain) ]]; then
-    echo "-> No changes detected. Remote is up to date."
+    onex::log::info "-> No changes detected. Remote is up to date."
 else
     git add -A
-    
+
     # Create a commit message
     COMMIT_MSG="Sync from sentinel-x staging
 
-Synced from sentinel-x commit: $(git -C "${ROOT_DIR}" rev-parse --short HEAD)
+Synced from sentinel-x commit: $(git -C "${PROJ_ROOT_DIR}" rev-parse --short HEAD)
 Date: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 
     git commit -m "${COMMIT_MSG}"
-    
-    echo "-> Pushing changes to remote..."
+
+    onex::log::info "-> Pushing changes to remote..."
     git push origin "${BRANCH}"
-    
-    echo "===> Successfully published to ${REMOTE_REPO}"
+
+    onex::log::info "===> Successfully published to ${REMOTE_REPO}"
 fi
 
 # Cleanup
 rm -rf "${TMP_DIR}"
-echo "Done."
+onex::log::info "Done."

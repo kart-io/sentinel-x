@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
-set -euo pipefail
 
-ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
-STAGING_DIR="${ROOT}/staging/src"
+# Copyright 2022 Lingfei Kong <colin404@foxmail.com>. All rights reserved.
+# Use of this source code is governed by a MIT style
+# license that can be found in the LICENSE file.
 
-echo "===> Updating replace directives..."
+PROJ_ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
+source "${PROJ_ROOT_DIR}/scripts/lib/init.sh"
+
+STAGING_DIR="${PROJ_ROOT_DIR}/staging/src"
+
+onex::log::info "===> Updating replace directives..."
 
 MOD_DIRS=$(find "${STAGING_DIR}" -name go.mod -exec dirname {} \;)
 
@@ -12,37 +17,21 @@ MOD_DIRS=$(find "${STAGING_DIR}" -name go.mod -exec dirname {} \;)
 for mod in ${MOD_DIRS}; do
   module=$(grep '^module ' "${mod}/go.mod" | awk '{print $2}')
   # 删除现有的 replace 指令（如果存在）
-  go mod edit -dropreplace="${module}" "${ROOT}/go.mod" 2>/dev/null || true
+  go mod edit -dropreplace="${module}" "${PROJ_ROOT_DIR}/go.mod" 2>/dev/null || true
 done
 
-# 2. 兼容 Linux/macOS 获取相对路径函数
-get_relpath() {
-  local target="$1"
-  local base="$2"
-
-  # 优先使用 realpath 或 grealpath 的 --relative-to
-  if command -v realpath >/dev/null 2>&1 && realpath --help 2>&1 | grep -q -- '--relative-to'; then
-    realpath --relative-to="$base" "$target"
-  elif command -v grealpath >/dev/null 2>&1; then
-    grealpath --relative-to="$base" "$target"
-  else
-    # fallback：去掉 base 路径前缀，简单字符串截取
-    echo "${target#$base/}"
-  fi
-}
-
-# 3. 添加新的 replace 指令
+# 2. 添加新的 replace 指令 (Using common utility for path calculation)
 for mod in ${MOD_DIRS}; do
   module=$(grep '^module ' "${mod}/go.mod" | awk '{print $2}')
-  relpath=$(get_relpath "$mod" "$ROOT")
+  relpath=$(onex::util::get_relpath "$mod" "$PROJ_ROOT_DIR")
   # 使用 go mod edit 添加 replace，避免重复
-  go mod edit -replace="${module}=./${relpath}" "${ROOT}/go.mod"
+  go mod edit -replace="${module}=./${relpath}" "${PROJ_ROOT_DIR}/go.mod"
 done
 
-echo "===> Running go mod tidy..."
-(cd "${ROOT}" && go mod tidy)
+onex::log::info "===> Running go mod tidy..."
+(cd "${PROJ_ROOT_DIR}" && go mod tidy)
 
-echo "===> Running go mod vendor..."
-(cd "${ROOT}" && go mod vendor)
+onex::log::info "===> Running go mod vendor..."
+(cd "${PROJ_ROOT_DIR}" && go mod vendor)
 
-echo "Update vendor done."
+onex::log::info "Update vendor done."

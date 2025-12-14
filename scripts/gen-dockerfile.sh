@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 
-PROJ_ROOT_DIR=$(dirname "${BASH_SOURCE[0]}")/..
+# Copyright 2022 Lingfei Kong <colin404@foxmail.com>. All rights reserved.
+# Use of this source code is governed by a MIT style
+# license that can be found in the LICENSE file.
+
+PROJ_ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 source "${PROJ_ROOT_DIR}/scripts/lib/init.sh"
 
 if [ $# -ne 2 ];then
@@ -103,4 +107,3 @@ BASE_IMAGE=$(get_base_image ${IMAGE_NAME})
 # onex-allinone does not need multiple stages? (Simplified logic here, assuming multi-stage for all)
 cat_multistage_dockerfile | \
     sed -e "s/BASE_IMAGE/${BASE_IMAGE}/g" -e "s/IMAGE_NAME/${IMAGE_NAME}/g" > ${DOCKERFILE_DIR}/Dockerfile
-

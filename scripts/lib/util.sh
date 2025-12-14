@@ -1,3 +1,9 @@
+#!/usr/bin/env bash
+
+# Copyright 2022 Lingfei Kong <colin404@foxmail.com>. All rights reserved.
+# Use of this source code is governed by a MIT style
+# license that can be found in the LICENSE file.
+
 #
 function onex::util::sourced_variable {
   # Call this function to tell shellcheck that a variable is supposed to
@@ -391,3 +397,19 @@ if [[ -z "${color_start-}" ]]; then
   onex::util::sourced_variable "${color_cyan}"
   onex::util::sourced_variable "${color_norm}"
 fi
+
+# 2. 兼容 Linux/macOS 获取相对路径函数
+function onex::util::get_relpath() {
+  local target="$1"
+  local base="$2"
+
+  # 优先使用 realpath 或 grealpath 的 --relative-to
+  if command -v realpath >/dev/null 2>&1 && realpath --help 2>&1 | grep -q -- '--relative-to'; then
+    realpath --relative-to="$base" "$target"
+  elif command -v grealpath >/dev/null 2>&1; then
+    grealpath --relative-to="$base" "$target"
+  else
+    # fallback：去掉 base 路径前缀，简单字符串截取
+    echo "${target#$base/}"
+  fi
+}

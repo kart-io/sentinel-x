@@ -93,32 +93,6 @@ function onex::readlinkdashf {
 }
 
 # This emulates "realpath" which is not available on MacOS X
-# Test:
-# T=/tmp/$$.$RANDOM
-# mkdir $T
-# touch $T/file
-# mkdir $T/dir
-# ln -s $T/file $T/linkfile
-# ln -s $T/dir $T/linkdir
-# function testone() {
-#   X=$(realpath $1 2>&1)
-#   Y=$(onex::realpath $1 2>&1)
-#   if [ "$X" != "$Y" ]; then
-#     echo realpath $1: expected "$X", got "$Y"
-#   fi
-# }
-# testone /
-# testone /tmp
-# testone $T
-# testone $T/file
-# testone $T/dir
-# testone $T/linkfile
-# testone $T/linkdir
-# testone $T/nonexistant
-# testone $T/linkdir/file
-# testone $T/linkdir/dir
-# testone $T/linkdir/linkfile
-# testone $T/linkdir/linkdir
 onex::realpath() {
   if [[ ! -e "${1}" ]]; then
     echo "${1}: No such file or directory" >&2

@@ -1,3 +1,9 @@
+#!/usr/bin/env bash
+
+# Copyright 2022 Lingfei Kong <colin404@foxmail.com>. All rights reserved.
+# Use of this source code is governed by a MIT style
+# license that can be found in the LICENSE file.
+
 # The golang package that we are building.
 ONEX_GO_PACKAGE=github.com/kart-io/sentinel-x
 
