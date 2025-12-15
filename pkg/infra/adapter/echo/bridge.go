@@ -5,6 +5,7 @@ package echo
 import (
 	"net/http"
 
+	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 	httpserver "github.com/kart-io/sentinel-x/pkg/infra/server/transport/http"
 	httpopts "github.com/kart-io/sentinel-x/pkg/options/server/http"
 	"github.com/labstack/echo/v4"
@@ -79,6 +80,19 @@ func (b *Bridge) SetErrorHandler(handler httpserver.BridgeErrorHandler) {
 		ctx := b.createContext(c)
 		handler(err, ctx)
 	}
+}
+
+// SetValidator sets the global validator.
+func (b *Bridge) SetValidator(v transport.Validator) {
+	b.engine.Validator = &echoValidator{validator: v}
+}
+
+type echoValidator struct {
+	validator transport.Validator
+}
+
+func (v *echoValidator) Validate(i interface{}) error {
+	return v.validator.Validate(i)
 }
 
 // Static serves static files from the given root directory.

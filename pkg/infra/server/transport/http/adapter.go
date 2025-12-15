@@ -28,6 +28,9 @@ type Adapter interface {
 
 	// Bridge returns the underlying FrameworkBridge (optional, for advanced use).
 	Bridge() FrameworkBridge
+
+	// SetValidator sets the global validator.
+	SetValidator(v transport.Validator)
 }
 
 // bridgeAdapter wraps a FrameworkBridge to implement the Adapter interface.
@@ -67,6 +70,10 @@ func (a *bridgeAdapter) SetErrorHandler(handler func(err error, c transport.Cont
 	a.bridge.SetErrorHandler(func(err error, ctx *RequestContext) {
 		handler(err, ctx)
 	})
+}
+
+func (a *bridgeAdapter) SetValidator(v transport.Validator) {
+	a.bridge.SetValidator(v)
 }
 
 func (a *bridgeAdapter) Bridge() FrameworkBridge {

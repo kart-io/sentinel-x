@@ -6,6 +6,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
+	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 	httpserver "github.com/kart-io/sentinel-x/pkg/infra/server/transport/http"
 	httpopts "github.com/kart-io/sentinel-x/pkg/options/server/http"
 )
@@ -74,6 +76,23 @@ func (b *Bridge) SetErrorHandler(handler httpserver.BridgeErrorHandler) {
 			handler(c.Errors.Last(), ctx)
 		}
 	})
+}
+
+// SetValidator sets the global validator.
+func (b *Bridge) SetValidator(v transport.Validator) {
+	binding.Validator = &ginValidator{validator: v}
+}
+
+type ginValidator struct {
+	validator transport.Validator
+}
+
+func (v *ginValidator) ValidateStruct(obj interface{}) error {
+	return v.validator.Validate(obj)
+}
+
+func (v *ginValidator) Engine() interface{} {
+	return nil
 }
 
 // Static serves static files from the given root directory.

@@ -116,3 +116,9 @@ type GRPCServiceDesc struct {
 	// ServiceImpl is the gRPC service implementation.
 	ServiceImpl interface{}
 }
+
+// Validator is the interface for request validation.
+type Validator interface {
+	// Validate validates the given struct.
+	Validate(i interface{}) error
+}

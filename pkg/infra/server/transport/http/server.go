@@ -115,6 +115,13 @@ func (s *Server) Router() transport.Router {
 	return s.adapter.Router()
 }
 
+// SetValidator sets the global validator for the server.
+func (s *Server) SetValidator(v transport.Validator) {
+	if s.adapter != nil {
+		s.adapter.SetValidator(v)
+	}
+}
+
 // Adapter returns the underlying adapter.
 func (s *Server) Adapter() Adapter {
 	return s.adapter

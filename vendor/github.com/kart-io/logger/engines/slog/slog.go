@@ -514,7 +514,7 @@ func createManagedOutputWriters(paths []string) (*managedWriter, error) {
 		case "stderr":
 			writers = append(writers, os.Stderr)
 		default:
-			file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+			file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 			if err != nil {
 				// Close any already opened files on error
 				for _, closer := range closers {

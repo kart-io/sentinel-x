@@ -5,6 +5,8 @@ import (
 	"context"
 	"io"
 	"net/http"
+
+	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 )
 
 // FrameworkBridge abstracts HTTP framework-specific operations.
@@ -38,6 +40,9 @@ type FrameworkBridge interface {
 
 	// Mount mounts an http.Handler to the given prefix.
 	Mount(prefix string, handler http.Handler)
+
+	// SetValidator sets the global validator.
+	SetValidator(v transport.Validator)
 }
 
 // RouteGroup represents a route group within the framework.

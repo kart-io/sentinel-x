@@ -2,6 +2,7 @@
 package router
 
 import (
+	"github.com/go-playground/validator/v10"
 	"github.com/kart-io/logger"
 	"github.com/kart-io/sentinel-x/internal/user-center/biz"
 	"github.com/kart-io/sentinel-x/internal/user-center/handler"
@@ -34,6 +35,10 @@ func Register(mgr *server.Manager, jwtAuth *jwt.JWT, ds *datasource.Manager) err
 
 	// HTTP Server
 	if httpServer := mgr.HTTPServer(); httpServer != nil {
+		// 添加验证器
+		validate := validator.New()
+		httpServer.SetValidator(&CustomValidator{validator: validate})
+
 		router := httpServer.Router()
 
 		//  Auth Routes
@@ -96,5 +101,18 @@ func Register(mgr *server.Manager, jwtAuth *jwt.JWT, ds *datasource.Manager) err
 		logger.Info("gRPC services registered")
 	}
 
+	return nil
+}
+
+// CustomValidator implements echo.Validator interface
+type CustomValidator struct {
+	validator *validator.Validate
+}
+
+// Validate validates the struct data
+func (cv *CustomValidator) Validate(i interface{}) error {
+	if err := cv.validator.Struct(i); err != nil {
+		return err
+	}
 	return nil
 }

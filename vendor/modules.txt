@@ -914,19 +914,19 @@ gorm.io/gorm/migrator
 gorm.io/gorm/schema
 gorm.io/gorm/utils
 # google.golang.org/genproto => google.golang.org/genproto v0.0.0-20251202230838-ff82c1b0f217
-# github.com/kart-io/logger => ./staging/src/github.com/kart-io/logger
-# github.com/kart-io/logger/example/configuration => ./staging/src/github.com/kart-io/logger/example/configuration
-# github.com/kart-io/logger/example/echo => ./staging/src/github.com/kart-io/logger/example/echo
-# github.com/kart-io/logger/example/comprehensive => ./staging/src/github.com/kart-io/logger/example/comprehensive
-# github.com/kart-io/logger/example/zap => ./staging/src/github.com/kart-io/logger/example/zap
-# github.com/kart-io/logger/example/otlp => ./staging/src/github.com/kart-io/logger/example/otlp
-# github.com/kart-io/logger/example/reload => ./staging/src/github.com/kart-io/logger/example/reload
+# gin-reload-example => ./staging/src/github.com/kart-io/logger/example/gin-reload
 # github.com/kart-io/logger/example/integrations => ./staging/src/github.com/kart-io/logger/example/integrations
 # github.com/kart-io/logger/example/integrations/gin => ./staging/src/github.com/kart-io/logger/example/integrations/gin
-# gin-reload-example => ./staging/src/github.com/kart-io/logger/example/gin-reload
 # github.com/kart-io/logger/example/slog => ./staging/src/github.com/kart-io/logger/example/slog
 # github.com/kart-io/logger/example/performance => ./staging/src/github.com/kart-io/logger/example/performance
 # rotation-example => ./staging/src/github.com/kart-io/logger/example/rotation
-# github.com/kart-io/logger/example/web-frameworks => ./staging/src/github.com/kart-io/logger/example/web-frameworks
+# github.com/kart-io/logger/example/zap => ./staging/src/github.com/kart-io/logger/example/zap
+# github.com/kart-io/logger/example/echo => ./staging/src/github.com/kart-io/logger/example/echo
+# github.com/kart-io/logger/example/reload => ./staging/src/github.com/kart-io/logger/example/reload
+# github.com/kart-io/logger/example/otlp => ./staging/src/github.com/kart-io/logger/example/otlp
+# github.com/kart-io/logger/example/configuration => ./staging/src/github.com/kart-io/logger/example/configuration
 # github.com/kart-io/logger/example/gin => ./staging/src/github.com/kart-io/logger/example/gin
+# github.com/kart-io/logger/example/comprehensive => ./staging/src/github.com/kart-io/logger/example/comprehensive
+# github.com/kart-io/logger/example/web-frameworks => ./staging/src/github.com/kart-io/logger/example/web-frameworks
 # github.com/kart-io/logger/e2e => ./staging/src/github.com/kart-io/logger/e2e
+# github.com/kart-io/logger => ./staging/src/github.com/kart-io/logger

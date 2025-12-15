@@ -139,25 +139,11 @@ require (
 
 replace google.golang.org/genproto => google.golang.org/genproto v0.0.0-20251202230838-ff82c1b0f217
 
-replace github.com/kart-io/logger => ./staging/src/github.com/kart-io/logger
-
-replace github.com/kart-io/logger/example/configuration => ./staging/src/github.com/kart-io/logger/example/configuration
-
-replace github.com/kart-io/logger/example/echo => ./staging/src/github.com/kart-io/logger/example/echo
-
-replace github.com/kart-io/logger/example/comprehensive => ./staging/src/github.com/kart-io/logger/example/comprehensive
-
-replace github.com/kart-io/logger/example/zap => ./staging/src/github.com/kart-io/logger/example/zap
-
-replace github.com/kart-io/logger/example/otlp => ./staging/src/github.com/kart-io/logger/example/otlp
-
-replace github.com/kart-io/logger/example/reload => ./staging/src/github.com/kart-io/logger/example/reload
+replace gin-reload-example => ./staging/src/github.com/kart-io/logger/example/gin-reload
 
 replace github.com/kart-io/logger/example/integrations => ./staging/src/github.com/kart-io/logger/example/integrations
 
 replace github.com/kart-io/logger/example/integrations/gin => ./staging/src/github.com/kart-io/logger/example/integrations/gin
-
-replace gin-reload-example => ./staging/src/github.com/kart-io/logger/example/gin-reload
 
 replace github.com/kart-io/logger/example/slog => ./staging/src/github.com/kart-io/logger/example/slog
 
@@ -165,8 +151,22 @@ replace github.com/kart-io/logger/example/performance => ./staging/src/github.co
 
 replace rotation-example => ./staging/src/github.com/kart-io/logger/example/rotation
 
-replace github.com/kart-io/logger/example/web-frameworks => ./staging/src/github.com/kart-io/logger/example/web-frameworks
+replace github.com/kart-io/logger/example/zap => ./staging/src/github.com/kart-io/logger/example/zap
+
+replace github.com/kart-io/logger/example/echo => ./staging/src/github.com/kart-io/logger/example/echo
+
+replace github.com/kart-io/logger/example/reload => ./staging/src/github.com/kart-io/logger/example/reload
+
+replace github.com/kart-io/logger/example/otlp => ./staging/src/github.com/kart-io/logger/example/otlp
+
+replace github.com/kart-io/logger/example/configuration => ./staging/src/github.com/kart-io/logger/example/configuration
 
 replace github.com/kart-io/logger/example/gin => ./staging/src/github.com/kart-io/logger/example/gin
 
+replace github.com/kart-io/logger/example/comprehensive => ./staging/src/github.com/kart-io/logger/example/comprehensive
+
+replace github.com/kart-io/logger/example/web-frameworks => ./staging/src/github.com/kart-io/logger/example/web-frameworks
+
 replace github.com/kart-io/logger/e2e => ./staging/src/github.com/kart-io/logger/e2e
+
+replace github.com/kart-io/logger => ./staging/src/github.com/kart-io/logger
