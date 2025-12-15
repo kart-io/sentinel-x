@@ -8,18 +8,19 @@
 ENV ?= dev
 
 .PHONY: run
-run: run.api ## Run api server. Usage: make run BIN=api ENV=staging
+BIN ?= api
+run: run.$(BIN) ## Run specific binary. Usage: make run BIN=api ENV=staging
 
 .PHONY: run.%
-run.%: go.build.% ## Run specified binary.
+run.%: go.build.$(PLATFORM).% ## Run specified binary.
 	$(eval BINARY := $*)
 	@echo "===========> Running $(BINARY) in $(ENV) mode"
 	@if [ -f configs/sentinel-$(BINARY)-$(ENV).yaml ]; then \
-		./bin/$(BINARY) -c configs/sentinel-$(BINARY)-$(ENV).yaml; \
+		$(LOCALBIN)/$(BINARY) -c configs/sentinel-$(BINARY)-$(ENV).yaml; \
 	elif [ -f configs/$(BINARY)-$(ENV).yaml ]; then \
-		./bin/$(BINARY) -c configs/$(BINARY)-$(ENV).yaml; \
+		$(LOCALBIN)/$(BINARY) -c configs/$(BINARY)-$(ENV).yaml; \
 	elif [ -f configs/$(BINARY).yaml ]; then \
-		./bin/$(BINARY) -c configs/$(BINARY).yaml; \
+		$(LOCALBIN)/$(BINARY) -c configs/$(BINARY).yaml; \
 	elif [ -f example/server/example/configs/sentinel-$(BINARY).yaml ]; then \
 		go run example/server/example/main.go -c example/server/example/configs/sentinel-$(BINARY).yaml; \
 	else \

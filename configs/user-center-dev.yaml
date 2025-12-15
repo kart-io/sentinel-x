@@ -1,0 +1,207 @@
+# Sentinel-X API Server Configuration
+# This is an example configuration file for the API server
+
+# Server configuration
+server:
+  # Server mode: http, grpc, or both
+  mode: both
+  # Graceful shutdown timeout
+  shutdown-timeout: 30s
+
+  # HTTP server configuration
+  http:
+    # Listen address
+    addr: ":8081"
+    # Read timeout
+    read-timeout: 30s
+    # Write timeout
+    write-timeout: 30s
+    # Idle timeout
+    idle-timeout: 60s
+    # HTTP framework adapter: gin or echo
+    adapter: gin
+
+    # Middleware configuration
+    middleware:
+      # Recovery middleware (panic recovery)
+      disable-recovery: false
+      recovery:
+        enable-stack-trace: false
+
+      # Request ID middleware
+      disable-request-id: false
+      request-id:
+        header: X-Request-ID
+
+      # Logger middleware
+      disable-logger: false
+      logger:
+        skip-paths:
+          - /health
+          - /live
+          - /ready
+          - /metrics
+        use-structured-logger: true
+
+      # CORS middleware
+      disable-cors: false
+      cors:
+        # ⚠️ 安全警告：生产环境必须配置具体域名！
+        # 当前配置使用通配符仅适用于开发/测试环境
+        # 生产环境示例：
+        #   allow-origins:
+        #     - "https://example.com"
+        #     - "https://admin.example.com"
+        #     - "https://api.example.com"
+        allow-origins:
+          - "*"  # TODO: 生产环境替换为具体域名
+        allow-methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+          - HEAD
+          - OPTIONS
+        allow-headers:
+          - Origin
+          - Content-Type
+          - Accept
+          - Authorization
+          - X-Request-ID
+        allow-credentials: false
+        max-age: 86400
+
+      # Timeout middleware
+      disable-timeout: false
+      timeout:
+        timeout: 30s
+        skip-paths:
+          - /health
+          - /live
+          - /ready
+          - /metrics
+
+      # Health check endpoints
+      disable-health: false
+      health:
+        path: /health
+        liveness-path: /live
+        readiness-path: /ready
+
+      # Metrics endpoint
+      disable-metrics: false
+      metrics:
+        path: /metrics
+        namespace: sentinel
+        subsystem: api
+
+      # Pprof endpoints (disabled by default for security)
+      disable-pprof: true
+      pprof:
+        prefix: /debug/pprof
+        enable-cmdline: true
+        enable-profile: true
+        enable-symbol: true
+        enable-trace: true
+        block-profile-rate: 0
+        mutex-profile-fraction: 0
+
+      # Authentication middleware
+      disable-auth: false
+
+      # Authorization middleware
+      disable-authz: false
+
+  # gRPC server configuration
+  grpc:
+    # Listen address
+    addr: ":8101"
+    # Timeout
+    timeout: 30s
+    # Max receive message size (bytes)
+    max-recv-msg-size: 4194304
+    # Max send message size (bytes)
+    max-send-msg-size: 4194304
+    # Enable gRPC reflection
+    enable-reflection: true
+
+# Logger configuration
+log:
+  # Log level: debug, info, warn, error, fatal
+  level: info
+  # Log format: json, text
+  format: json
+  # Log output paths
+  output-paths:
+    - stdout
+  # Error output paths
+  error-output-paths:
+    - stderr
+  # Enable caller information
+  enable-caller: true
+  # Enable stacktrace for error level and above
+  enable-stacktrace: false
+  # Development mode (pretty print for text format)
+  development: false
+
+# JWT authentication configuration
+jwt:
+  # Disable authentication (set to true for development without auth)
+  disable-auth: true
+  # Secret key for signing tokens (min 64 characters for HMAC algorithms)
+  # 必须通过环境变量设置: USER_CENTER_JWT_KEY
+  # 不要在配置文件中硬编码密钥！
+  key: "your-super-secret-key-change-in-production-minimum-64-characters-required-here"
+  # Signing algorithm
+  signing-method: "HS256"
+  # Token issuer
+  issuer: "sentinel-x"
+  # Token expiration duration
+  expired: 2h
+  # Maximum refresh duration
+  max-refresh: 24h
+
+# MySQL database configuration
+mysql:
+  # Database host
+  # 通过环境变量设置: USER_CENTER_MYSQL_HOST
+  host: "localhost"
+  # Database port
+  port: 3306
+  # Database username
+  # 通过环境变量设置: USER_CENTER_MYSQL_USERNAME
+  username: "root"
+  # Database password
+  # 必须通过环境变量设置: USER_CENTER_MYSQL_PASSWORD
+  # 不要在配置文件中硬编码密码！
+  password: "root123"
+  # Database name
+  # 通过环境变量设置: USER_CENTER_MYSQL_DATABASE
+  database: "user_auth"
+  # Maximum idle connections
+  max-idle-connections: 10
+  # Maximum open connections
+  max-open-connections: 100
+  # Connection maximum lifetime
+  max-connection-life-time: 3600s
+
+# Redis configuration
+redis:
+  # Redis host
+  # 通过环境变量设置: USER_CENTER_REDIS_HOST
+  host: "localhost"
+  # Redis port
+  port: 6379
+  # Redis password (leave empty if no password)
+  # 必须通过环境变量设置: USER_CENTER_REDIS_PASSWORD
+  # 不要在配置文件中硬编码密码！
+  password: "redis_pass"
+  # Redis database number
+  database: 0
+  # Maximum retries
+  max-retries: 3
+  # Connection pool size
+  pool-size: 10
+  # Minimum idle connections
+  min-idle-conns: 5
