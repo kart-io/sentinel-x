@@ -24,6 +24,11 @@ func Register(mgr *server.Manager, jwtAuth *jwt.JWT, ds *datasource.Manager) err
 		return err
 	}
 
+	// Auto Migration
+	if err := storeFactory.AutoMigrate(); err != nil {
+		return err
+	}
+
 	// Initialize Biz and Handlers
 	userBiz := biz.NewUserService(storeFactory)
 	roleBiz := biz.NewRoleService(storeFactory)

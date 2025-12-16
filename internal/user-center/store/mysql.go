@@ -7,6 +7,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/kart-io/logger"
+	"github.com/kart-io/sentinel-x/internal/model"
 	"github.com/kart-io/sentinel-x/pkg/component/mysql"
 	"github.com/kart-io/sentinel-x/pkg/infra/datasource"
 )
@@ -54,6 +55,15 @@ func (ds *datastore) Users() UserStore {
 // Roles returns the role store.
 func (ds *datastore) Roles() RoleStore {
 	return newRoles(ds.db)
+}
+
+// AutoMigrate migrates the database schema.
+func (ds *datastore) AutoMigrate() error {
+	return ds.db.AutoMigrate(
+		&model.User{},
+		&model.Role{},
+		&model.UserRole{},
+	)
 }
 
 // Close closes the factory and underlying connections.

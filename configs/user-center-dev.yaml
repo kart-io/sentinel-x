@@ -178,7 +178,7 @@ mysql:
   password: "root123"
   # Database name
   # 通过环境变量设置: USER_CENTER_MYSQL_DATABASE
-  database: "user_auth"
+  database: "sentinel_user_center_dev_v6"
   # Maximum idle connections
   max-idle-connections: 10
   # Maximum open connections

@@ -11,6 +11,7 @@ import (
 type Factory interface {
 	Users() UserStore
 	Roles() RoleStore
+	AutoMigrate() error
 	Close() error
 }
 
