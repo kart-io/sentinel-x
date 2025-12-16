@@ -116,4 +116,23 @@ if is_generator_enabled "informer"; then
     ${INPUT_DIRS_SPACE}
 fi
 
+if is_generator_enabled "controller"; then
+  echo ">>> Generating controller (CRD, RBAC, etc.)..."
+  # Convert comma-separated to space-separated, ensure ./ prefix relative to module if needed, 
+  # but controller-gen works well with package paths.
+  INPUT_DIRS_SPACE="${INPUT_DIRS//,/ }"
+  
+  # Default output for CRDs
+  CRD_OUTPUT_DIR="deploy/crds"
+  mkdir -p "${CRD_OUTPUT_DIR}"
+
+  # Run controller-gen
+  # We generate CRDs. (rbac, webhook etc can be added if needed)
+  controller-gen \
+    crd \
+    paths="${INPUT_DIRS//,/;}" \
+    output:crd:dir="${CRD_OUTPUT_DIR}"
+fi
+
+
 echo ">>> Generation complete!"
