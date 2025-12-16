@@ -79,6 +79,10 @@ These options can be appended to `make` commands to customize behavior.
 | `run` | Run a server. Default is `api`. Usage: `make run BIN=user-center`. |
 | `run-api` | Run the API server locally with dev config. |
 | `run-user-center`| Run the User Center server locally with dev config. |
+| `run.go` | Run a server directly using `go run` (skips build). Usage: `make run.go BIN=user-center`. |
+| `deploy.infra` | Start infrastructure dependencies (MySQL, Redis). Usage: `make deploy.infra`. |
+| `deploy.run` | Start all services using Docker Compose. |
+| `deploy.down` | Stop and remove all Docker Compose services. |
 | `run-example` | Run the example server. |
 | `update-goagent` | Sync `goagent` code from upstream. |
 | `update-logger` | Sync `logger` code from upstream. |
@@ -172,6 +176,10 @@ These targets are available in sub-makefiles but are generally used by the main 
 | `image.push.<PLATFORM>.<IMAGE>` | Build and push specified docker image. | `image.mk` |
 | `run` | Run default server (api). Support `ENV`. | `run.mk` |
 | `run.<BINARY>` | Run specified server. Auto-detects config. | `run.mk` |
+| `run.go` | Run specified server directly (no build). | `run.mk` |
+| `deploy.run` | Start all services. | `deploy.mk` |
+| `deploy.down` | Stop all services. | `deploy.mk` |
+| `deploy.infra` | Start infrastructure services only. | `deploy.mk` |
 | `gen.proto` | Generate Proto codes. | `gen.mk` |
 | `gen.clean` | Clean generated protobuf files. | `gen.mk` |
 | `update` | Update vendor dependencies. | `update.mk` |

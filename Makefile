@@ -30,6 +30,7 @@ include scripts/make-rules/tools.mk
 include scripts/make-rules/gen.mk
 include scripts/make-rules/run.mk
 include scripts/make-rules/update.mk
+include scripts/make-rules/deploy.mk
 
 # ==============================================================================
 # Targets

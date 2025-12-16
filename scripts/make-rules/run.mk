@@ -11,23 +11,30 @@ ENV ?= dev
 BIN ?= api
 run: run.$(BIN) ## Run specific binary. Usage: make run BIN=api ENV=staging
 
-.PHONY: run.%
-run.%: go.build.$(PLATFORM).% ## Run specified binary.
-	$(eval BINARY := $*)
-	@echo "===========> Running $(BINARY) in $(ENV) mode"
-	@if [ -f configs/sentinel-$(BINARY)-$(ENV).yaml ]; then \
-		$(LOCALBIN)/$(BINARY) -c configs/sentinel-$(BINARY)-$(ENV).yaml; \
-	elif [ -f configs/$(BINARY)-$(ENV).yaml ]; then \
-		$(LOCALBIN)/$(BINARY) -c configs/$(BINARY)-$(ENV).yaml; \
-	elif [ -f configs/$(BINARY).yaml ]; then \
-		$(LOCALBIN)/$(BINARY) -c configs/$(BINARY).yaml; \
-	elif [ -f example/server/example/configs/sentinel-$(BINARY).yaml ]; then \
-		go run example/server/example/main.go -c example/server/example/configs/sentinel-$(BINARY).yaml; \
+# Define run_service macro parameter 1 is binary name, parameter 2 is run command
+define run_service
+	@echo "===========> Running $(1) in $(ENV) mode"
+	@if [ -f configs/sentinel-$(1)-$(ENV).yaml ]; then \
+		$(2) -c configs/sentinel-$(1)-$(ENV).yaml; \
+	elif [ -f configs/$(1)-$(ENV).yaml ]; then \
+		$(2) -c configs/$(1)-$(ENV).yaml; \
+	elif [ -f configs/$(1).yaml ]; then \
+		$(2) -c configs/$(1).yaml; \
+	elif [ -f example/server/example/configs/sentinel-$(1).yaml ]; then \
+		go run example/server/example/main.go -c example/server/example/configs/sentinel-$(1).yaml; \
 	else \
-		echo "Error: Config file not found for $(BINARY) in $(ENV) mode"; \
+		echo "Error: Config file not found for $(1) in $(ENV) mode"; \
 		exit 1; \
 	fi
+endef
 
-# Support old hyphenated targets for backward compatibility if needed,
-# or strictly switch to dot notation.
-# The user asked to "extract", so consistent dot notation is better.
+.PHONY: run.%
+run.%: go.build.$(PLATFORM).% ## Run specified binary.
+	$(call run_service,$*,$(LOCALBIN)/$*)
+
+.PHONY: run.go
+run.go: run.go.$(BIN) ## Run specific binary using go run. Usage: make run.go BIN=api ENV=staging
+
+.PHONY: run.go.%
+run.go.%: ## Run specified binary using go run.
+	$(call run_service,$*,go run ./cmd/$*)

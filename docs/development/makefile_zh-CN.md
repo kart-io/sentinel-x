@@ -79,6 +79,10 @@ make targets
 | `run` | 运行服务器。默认为 `api`。用法：`make run BIN=user-center`。 |
 | `run-api` | 使用开发配置在本地运行 API 服务器。 |
 | `run-user-center`| 使用开发配置在本地运行 User Center 服务器。 |
+| `run.go` | 直接使用 `go run` 运行服务（无需编译）。用法：`make run.go BIN=user-center`。 |
+| `deploy.infra` | 启动基础依赖服务（MySQL, Redis）。用法：`make deploy.infra`。 |
+| `deploy.run` | 使用 Docker Compose 启动所有服务。 |
+| `deploy.down` | 停止并移除所有 Docker Compose 服务。 |
 | `run-example` | 运行示例服务器。 |
 | `update-goagent` | 从上游同步 `goagent` 代码。 |
 | `update-logger` | 从上游同步 `logger` 代码。 |
@@ -171,6 +175,10 @@ make push.multiarch IMAGES="api"
 | `image.push.<PLATFORM>.<IMAGE>` | 构建并推送指定的 docker 镜像。 | `image.mk` |
 | `run` | 运行默认服务器 (api)。支持 `ENV`。 | `run.mk` |
 | `run.<BINARY>` | 运行指定服务器。自动检测配置文件。 | `run.mk` |
+| `run.go` | 直接运行指定服务器（无需编译）。 | `run.mk` |
+| `deploy.run` | 启动所有服务。 | `deploy.mk` |
+| `deploy.down` | 停止所有服务。 | `deploy.mk` |
+| `deploy.infra` | 仅启动基础服务。 | `deploy.mk` |
 | `gen.proto` | 生成 Proto 代码。 | `gen.mk` |
 | `gen.clean` | 清理生成的 protobuf 文件。 | `gen.mk` |
 | `update` | 更新 vendor 依赖。 | `update.mk` |
