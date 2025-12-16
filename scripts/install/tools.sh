@@ -79,6 +79,11 @@ function install_tools() {
   install_grpcurl
   install_goimports
   install_protoc_go_inject_tag
+  install_client_gen
+  install_lister_gen
+  install_informer_gen
+  install_deepcopy_gen
+  install_controller_gen
   sentinel::log::info "Utility tools installed successfully"
 }
 
@@ -86,6 +91,41 @@ function install_protoc_go_inject_tag() {
   if ! command -v protoc-go-inject-tag &> /dev/null; then
       sentinel::log::info "Installing protoc-go-inject-tag..."
       go install github.com/favadi/protoc-go-inject-tag@latest
+  fi
+}
+
+function install_client_gen() {
+  if ! command -v client-gen &> /dev/null; then
+      sentinel::log::info "Installing client-gen..."
+      go install k8s.io/code-generator/cmd/client-gen@latest
+  fi
+}
+
+function install_lister_gen() {
+  if ! command -v lister-gen &> /dev/null; then
+      sentinel::log::info "Installing lister-gen..."
+      go install k8s.io/code-generator/cmd/lister-gen@latest
+  fi
+}
+
+function install_informer_gen() {
+  if ! command -v informer-gen &> /dev/null; then
+      sentinel::log::info "Installing informer-gen..."
+      go install k8s.io/code-generator/cmd/informer-gen@latest
+  fi
+}
+
+function install_deepcopy_gen() {
+  if ! command -v deepcopy-gen &> /dev/null; then
+      sentinel::log::info "Installing deepcopy-gen..."
+      go install k8s.io/code-generator/cmd/deepcopy-gen@latest
+  fi
+}
+
+function install_controller_gen() {
+  if ! command -v controller-gen &> /dev/null; then
+      sentinel::log::info "Installing controller-gen..."
+      go install sigs.k8s.io/controller-tools/cmd/controller-gen@latest
   fi
 }
 

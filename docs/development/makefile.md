@@ -69,6 +69,7 @@ These options can be appended to `make` commands to customize behavior.
 | Target | Description |
 | :--- | :--- |
 | `gen.proto` | Generate Protobuf code. This command automatically checks and installs necessary tools (`buf`, `protoc-gen-go`, `protoc-gen-go-grpc`, `protoc-gen-validate`, `protoc-gen-openapiv2`, `protoc-go-inject-tag`). Additionally, it automatically runs `protoc-go-inject-tag` to inject tags into generated Go structs based on `@gotags` comments in `.proto` files. |
+| `gen.k8s` | Generate Kubernetes code (clientset, listers, informers, deepcopy). Requires `GROUPS_VERSIONS` argument. Optional `GENERATORS` to filter types (e.g. `GENERATORS="deepcopy,client"`). |
 | `gen.clean` | Remove generated protobuf files (`.pb.go`, `.swagger.json`, etc.). |
 | `clean.proto` | Alias for `gen.clean`. |
 
