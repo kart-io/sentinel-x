@@ -1,4 +1,48 @@
-// Package store provides a set of tools for database operations.
+/*
+Package store 提供了一套用于简化 GORM 数据库查询操作的工具库。
+
+核心功能 (Features):
+  - 链式调用 (Fluent Interface): 支持通过链式方法流畅地构建查询条件。
+  - 分页支持 (Pagination): 提供 P (Page/PageSize), L (Limit), O (Offset) 方法。
+  - 查询过滤 (Filtering): 提供 F (Map过滤), Q (SQL条件), C (GORM Clauses) 方法。
+  - 多租户支持 (Multi-tenancy): 提供 T 方法自动注入租户隔离条件。
+
+使用示例 (Usage Examples):
+
+ 1. 基础用法 (Basic Usage):
+    // 创建查询选项：第 1 页，每页 10 条，且 status = 'active'
+    opts := store.NewWhere().P(1, 10).F("status", "active")
+
+    // 应用到 GORM DB 并查询
+    var users []User
+    opts.Where(db).Find(&users)
+
+ 2. 快捷函数 (Convenience Functions):
+    // 使用 store.P 直接开始构建，效果同 store.NewWhere().P(...)
+    store.P(1, 10).F("role", "admin").Where(db).Find(&users)
+
+ 3. 复杂查询组合 (Complex Queries):
+    store.NewWhere().
+    P(1, 20).                     // 分页: 第1页, 20条
+    F("category", "books").       // 精确匹配: category = 'books'
+    Q("price > ?", 100).          // 自定义查询: price > 100
+    C(clause.OrderBy{             // 自定义 Clause: 按创建时间倒序
+    Expression: clause.Expr{SQL: "created_at DESC"},
+    }).
+    Where(db).
+    Find(&items)
+
+ 4. 多租户支持 (Multi-tenancy):
+    // 1. 初始化时注册租户键和获取租户ID的函数
+    store.RegisterTenant("tenant_id", func(ctx context.Context) string {
+    // 假设从 context 中获取
+    return GetTenantID(ctx)
+    })
+
+    // 2. 在业务代码中使用 T(ctx) 自动应用租户过滤条件
+    // 这会自动生成: WHERE tenant_id = 'value_from_ctx'
+    store.T(ctx).Where(db).Find(&data)
+*/
 package store
 
 import (
