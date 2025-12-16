@@ -78,7 +78,15 @@ function install_tools() {
   install_wire
   install_grpcurl
   install_goimports
+  install_protoc_go_inject_tag
   sentinel::log::info "Utility tools installed successfully"
+}
+
+function install_protoc_go_inject_tag() {
+  if ! command -v protoc-go-inject-tag &> /dev/null; then
+      sentinel::log::info "Installing protoc-go-inject-tag..."
+      go install github.com/favadi/protoc-go-inject-tag@latest
+  fi
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then

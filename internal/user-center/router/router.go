@@ -2,7 +2,6 @@
 package router
 
 import (
-	"github.com/go-playground/validator/v10"
 	"github.com/kart-io/logger"
 	"github.com/kart-io/sentinel-x/internal/user-center/biz"
 	"github.com/kart-io/sentinel-x/internal/user-center/handler"
@@ -12,6 +11,7 @@ import (
 	"github.com/kart-io/sentinel-x/pkg/infra/middleware"
 	"github.com/kart-io/sentinel-x/pkg/infra/server"
 	"github.com/kart-io/sentinel-x/pkg/security/auth/jwt"
+	"github.com/kart-io/sentinel-x/pkg/utils/validator"
 )
 
 // Register registers the user center routes and services.
@@ -40,9 +40,8 @@ func Register(mgr *server.Manager, jwtAuth *jwt.JWT, ds *datasource.Manager) err
 
 	// HTTP Server
 	if httpServer := mgr.HTTPServer(); httpServer != nil {
-		// 添加验证器
-		validate := validator.New()
-		httpServer.SetValidator(&CustomValidator{validator: validate})
+		// 使用全局验证器，确保统一的验证规则和 i18n
+		httpServer.SetValidator(validator.Global())
 
 		router := httpServer.Router()
 
@@ -106,18 +105,5 @@ func Register(mgr *server.Manager, jwtAuth *jwt.JWT, ds *datasource.Manager) err
 		logger.Info("gRPC services registered")
 	}
 
-	return nil
-}
-
-// CustomValidator implements echo.Validator interface
-type CustomValidator struct {
-	validator *validator.Validate
-}
-
-// Validate validates the struct data
-func (cv *CustomValidator) Validate(i interface{}) error {
-	if err := cv.validator.Struct(i); err != nil {
-		return err
-	}
 	return nil
 }
