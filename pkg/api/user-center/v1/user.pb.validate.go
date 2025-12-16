@@ -482,7 +482,6 @@ func (m *UpdateUserRequest) validate(all bool) error {
 	}
 
 	if m.GetEmail() != "" {
-
 		if err := m._validateEmail(m.GetEmail()); err != nil {
 			err = UpdateUserRequestValidationError{
 				field:  "Email",
@@ -494,11 +493,9 @@ func (m *UpdateUserRequest) validate(all bool) error {
 			}
 			errors = append(errors, err)
 		}
-
 	}
 
 	if m.GetMobile() != "" {
-
 		if !_UpdateUserRequest_Mobile_Pattern.MatchString(m.GetMobile()) {
 			err := UpdateUserRequestValidationError{
 				field:  "Mobile",
@@ -509,7 +506,6 @@ func (m *UpdateUserRequest) validate(all bool) error {
 			}
 			errors = append(errors, err)
 		}
-
 	}
 
 	if len(errors) > 0 {
@@ -1581,7 +1577,6 @@ func (m *RegisterRequest) validate(all bool) error {
 	}
 
 	if m.GetMobile() != "" {
-
 		if !_RegisterRequest_Mobile_Pattern.MatchString(m.GetMobile()) {
 			err := RegisterRequestValidationError{
 				field:  "Mobile",
@@ -1592,7 +1587,6 @@ func (m *RegisterRequest) validate(all bool) error {
 			}
 			errors = append(errors, err)
 		}
-
 	}
 
 	if len(errors) > 0 {
@@ -2102,7 +2096,6 @@ func (m *UpdateRoleRequest) validate(all bool) error {
 	}
 
 	if m.GetName() != "" {
-
 		if l := utf8.RuneCountInString(m.GetName()); l < 2 || l > 64 {
 			err := UpdateRoleRequestValidationError{
 				field:  "Name",
@@ -2113,11 +2106,9 @@ func (m *UpdateRoleRequest) validate(all bool) error {
 			}
 			errors = append(errors, err)
 		}
-
 	}
 
 	if m.GetDescription() != "" {
-
 		if utf8.RuneCountInString(m.GetDescription()) > 255 {
 			err := UpdateRoleRequestValidationError{
 				field:  "Description",
@@ -2128,7 +2119,6 @@ func (m *UpdateRoleRequest) validate(all bool) error {
 			}
 			errors = append(errors, err)
 		}
-
 	}
 
 	if all {

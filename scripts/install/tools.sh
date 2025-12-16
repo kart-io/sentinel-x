@@ -94,31 +94,33 @@ function install_protoc_go_inject_tag() {
   fi
 }
 
+K8S_CODEGEN_VERSION="v0.32.0"
+
 function install_client_gen() {
   if ! command -v client-gen &> /dev/null; then
       sentinel::log::info "Installing client-gen..."
-      go install k8s.io/code-generator/cmd/client-gen@latest
+      go install k8s.io/code-generator/cmd/client-gen@${K8S_CODEGEN_VERSION}
   fi
 }
 
 function install_lister_gen() {
   if ! command -v lister-gen &> /dev/null; then
       sentinel::log::info "Installing lister-gen..."
-      go install k8s.io/code-generator/cmd/lister-gen@latest
+      go install k8s.io/code-generator/cmd/lister-gen@${K8S_CODEGEN_VERSION}
   fi
 }
 
 function install_informer_gen() {
   if ! command -v informer-gen &> /dev/null; then
       sentinel::log::info "Installing informer-gen..."
-      go install k8s.io/code-generator/cmd/informer-gen@latest
+      go install k8s.io/code-generator/cmd/informer-gen@${K8S_CODEGEN_VERSION}
   fi
 }
 
 function install_deepcopy_gen() {
   if ! command -v deepcopy-gen &> /dev/null; then
       sentinel::log::info "Installing deepcopy-gen..."
-      go install k8s.io/code-generator/cmd/deepcopy-gen@latest
+      go install k8s.io/code-generator/cmd/deepcopy-gen@${K8S_CODEGEN_VERSION}
   fi
 }
 

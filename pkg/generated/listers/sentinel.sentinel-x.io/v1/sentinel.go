@@ -19,10 +19,10 @@ limitations under the License.
 package v1
 
 import (
-	v1 "github.com/kart-io/sentinel-x/pkg/apis/sentinel/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/client-go/tools/cache"
+	sentinelsentinelxiov1 "github.com/kart-io/sentinel-x/pkg/apis/sentinel.sentinel-x.io/v1"
+	labels "k8s.io/apimachinery/pkg/labels"
+	listers "k8s.io/client-go/listers"
+	cache "k8s.io/client-go/tools/cache"
 )
 
 // SentinelLister helps list Sentinels.
@@ -30,7 +30,7 @@ import (
 type SentinelLister interface {
 	// List lists all Sentinels in the indexer.
 	// Objects returned here must be treated as read-only.
-	List(selector labels.Selector) (ret []*v1.Sentinel, err error)
+	List(selector labels.Selector) (ret []*sentinelsentinelxiov1.Sentinel, err error)
 	// Sentinels returns an object that can list and get Sentinels.
 	Sentinels(namespace string) SentinelNamespaceLister
 	SentinelListerExpansion
@@ -38,25 +38,17 @@ type SentinelLister interface {
 
 // sentinelLister implements the SentinelLister interface.
 type sentinelLister struct {
-	indexer cache.Indexer
+	listers.ResourceIndexer[*sentinelsentinelxiov1.Sentinel]
 }
 
 // NewSentinelLister returns a new SentinelLister.
 func NewSentinelLister(indexer cache.Indexer) SentinelLister {
-	return &sentinelLister{indexer: indexer}
-}
-
-// List lists all Sentinels in the indexer.
-func (s *sentinelLister) List(selector labels.Selector) (ret []*v1.Sentinel, err error) {
-	err = cache.ListAll(s.indexer, selector, func(m interface{}) {
-		ret = append(ret, m.(*v1.Sentinel))
-	})
-	return ret, err
+	return &sentinelLister{listers.New[*sentinelsentinelxiov1.Sentinel](indexer, sentinelsentinelxiov1.Resource("sentinel"))}
 }
 
 // Sentinels returns an object that can list and get Sentinels.
 func (s *sentinelLister) Sentinels(namespace string) SentinelNamespaceLister {
-	return sentinelNamespaceLister{indexer: s.indexer, namespace: namespace}
+	return sentinelNamespaceLister{listers.NewNamespaced[*sentinelsentinelxiov1.Sentinel](s.ResourceIndexer, namespace)}
 }
 
 // SentinelNamespaceLister helps list and get Sentinels.
@@ -64,36 +56,15 @@ func (s *sentinelLister) Sentinels(namespace string) SentinelNamespaceLister {
 type SentinelNamespaceLister interface {
 	// List lists all Sentinels in the indexer for a given namespace.
 	// Objects returned here must be treated as read-only.
-	List(selector labels.Selector) (ret []*v1.Sentinel, err error)
+	List(selector labels.Selector) (ret []*sentinelsentinelxiov1.Sentinel, err error)
 	// Get retrieves the Sentinel from the indexer for a given namespace and name.
 	// Objects returned here must be treated as read-only.
-	Get(name string) (*v1.Sentinel, error)
+	Get(name string) (*sentinelsentinelxiov1.Sentinel, error)
 	SentinelNamespaceListerExpansion
 }
 
 // sentinelNamespaceLister implements the SentinelNamespaceLister
 // interface.
 type sentinelNamespaceLister struct {
-	indexer   cache.Indexer
-	namespace string
-}
-
-// List lists all Sentinels in the indexer for a given namespace.
-func (s sentinelNamespaceLister) List(selector labels.Selector) (ret []*v1.Sentinel, err error) {
-	err = cache.ListAllByNamespace(s.indexer, s.namespace, selector, func(m interface{}) {
-		ret = append(ret, m.(*v1.Sentinel))
-	})
-	return ret, err
-}
-
-// Get retrieves the Sentinel from the indexer for a given namespace and name.
-func (s sentinelNamespaceLister) Get(name string) (*v1.Sentinel, error) {
-	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
-	if err != nil {
-		return nil, err
-	}
-	if !exists {
-		return nil, errors.NewNotFound(v1.Resource("sentinel"), name)
-	}
-	return obj.(*v1.Sentinel), nil
+	listers.ResourceIndexer[*sentinelsentinelxiov1.Sentinel]
 }

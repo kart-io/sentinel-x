@@ -19,13 +19,13 @@ limitations under the License.
 package v1
 
 import (
-	"context"
+	context "context"
 	time "time"
 
-	sentinelv1 "github.com/kart-io/sentinel-x/pkg/apis/sentinel/v1"
+	apissentinelsentinelxiov1 "github.com/kart-io/sentinel-x/pkg/apis/sentinel.sentinel-x.io/v1"
 	versioned "github.com/kart-io/sentinel-x/pkg/generated/clientset/versioned"
 	internalinterfaces "github.com/kart-io/sentinel-x/pkg/generated/informers/externalversions/internalinterfaces"
-	v1 "github.com/kart-io/sentinel-x/pkg/generated/listers/sentinel/v1"
+	sentinelsentinelxiov1 "github.com/kart-io/sentinel-x/pkg/generated/listers/sentinel.sentinel-x.io/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
@@ -36,7 +36,7 @@ import (
 // Sentinels.
 type SentinelInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() v1.SentinelLister
+	Lister() sentinelsentinelxiov1.SentinelLister
 }
 
 type sentinelInformer struct {
@@ -71,7 +71,7 @@ func NewFilteredSentinelInformer(client versioned.Interface, namespace string, r
 				return client.SentinelV1().Sentinels(namespace).Watch(context.TODO(), options)
 			},
 		},
-		&sentinelv1.Sentinel{},
+		&apissentinelsentinelxiov1.Sentinel{},
 		resyncPeriod,
 		indexers,
 	)
@@ -82,9 +82,9 @@ func (f *sentinelInformer) defaultInformer(client versioned.Interface, resyncPer
 }
 
 func (f *sentinelInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&sentinelv1.Sentinel{}, f.defaultInformer)
+	return f.factory.InformerFor(&apissentinelsentinelxiov1.Sentinel{}, f.defaultInformer)
 }
 
-func (f *sentinelInformer) Lister() v1.SentinelLister {
-	return v1.NewSentinelLister(f.Informer().GetIndexer())
+func (f *sentinelInformer) Lister() sentinelsentinelxiov1.SentinelLister {
+	return sentinelsentinelxiov1.NewSentinelLister(f.Informer().GetIndexer())
 }

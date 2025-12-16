@@ -20,7 +20,7 @@ package sentinel
 
 import (
 	internalinterfaces "github.com/kart-io/sentinel-x/pkg/generated/informers/externalversions/internalinterfaces"
-	v1 "github.com/kart-io/sentinel-x/pkg/generated/informers/externalversions/sentinel/v1"
+	v1 "github.com/kart-io/sentinel-x/pkg/generated/informers/externalversions/sentinel.sentinel-x.io/v1"
 )
 
 // Interface provides access to each of this group's versions.

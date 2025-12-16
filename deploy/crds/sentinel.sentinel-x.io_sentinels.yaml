@@ -39,14 +39,10 @@ spec:
           spec:
             description: SentinelSpec is the spec for a Sentinel resource
             properties:
-              image:
+              foo:
                 type: string
-              replicas:
-                format: int32
-                type: integer
             required:
-            - image
-            - replicas
+            - foo
             type: object
           status:
             description: SentinelStatus is the status for a Sentinel resource

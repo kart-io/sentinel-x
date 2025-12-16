@@ -30,3 +30,13 @@ gen.k8s: tools.verify.client-gen tools.verify.lister-gen tools.verify.informer-g
 		echo "Warning: GROUPS_VERSIONS is empty. Skipping k8s generation."; \
 		echo "Usage: make gen.k8s GROUPS_VERSIONS=\"group:version\""; \
 	fi
+
+.PHONY: gen.controller
+gen.controller: ## Scaffold a Kubernetes controller. Usage: make gen.controller GROUP=group VERSION=v1 KIND=Kind
+	@echo "===========> Scaffolding controller"
+	@if [ -z "$(GROUP)" ] || [ -z "$(VERSION)" ] || [ -z "$(KIND)" ]; then \
+		echo "Error: GROUP, VERSION, and KIND variables are required."; \
+		echo "Usage: make gen.controller GROUP=sentinel VERSION=v1 KIND=Sentinel"; \
+		exit 1; \
+	fi
+	@bash hack/scaffold-controller.sh $(GROUP) $(VERSION) $(KIND)

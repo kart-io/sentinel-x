@@ -4,6 +4,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+
 export GOFLAGS="-mod=mod"
 
 # Project root
@@ -83,13 +84,25 @@ fi
 
 if is_generator_enabled "client"; then
   echo ">>> Generating client..."
+  # Transform fully qualified path to relative path for client-gen
+  # e.g. github.com/kart-io/sentinel-x/pkg/apis/sentinel/v1 -> sentinel/v1
+  CLIENT_INPUTS=""
+  for dir in ${INPUT_DIRS//,/ }; do
+    REL_DIR=${dir#${GO_MODULE}/pkg/apis/}
+    if [ -z "${CLIENT_INPUTS}" ]; then
+        CLIENT_INPUTS="${REL_DIR}"
+    else
+        CLIENT_INPUTS="${CLIENT_INPUTS},${REL_DIR}"
+    fi
+  done
+
   client-gen \
     --clientset-name "versioned" \
-    --input-base "" \
-    --input "${INPUT_DIRS}" \
+    --input-base "${GO_MODULE}/pkg/apis" \
     --output-pkg "${GENERATED_PKG}/clientset" \
     --output-dir "pkg/generated/clientset" \
-    --go-header-file "${BOILERPLATE_FILE}"
+    --go-header-file "${BOILERPLATE_FILE}" \
+    --input "${CLIENT_INPUTS}"
 fi
 
 if is_generator_enabled "lister"; then

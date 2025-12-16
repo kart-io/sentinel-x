@@ -19,9 +19,9 @@ limitations under the License.
 package externalversions
 
 import (
-	"fmt"
+	fmt "fmt"
 
-	v1 "github.com/kart-io/sentinel-x/pkg/apis/sentinel/v1"
+	v1 "github.com/kart-io/sentinel-x/pkg/apis/sentinel.sentinel-x.io/v1"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 )

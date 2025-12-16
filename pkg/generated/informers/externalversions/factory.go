@@ -25,7 +25,7 @@ import (
 
 	versioned "github.com/kart-io/sentinel-x/pkg/generated/clientset/versioned"
 	internalinterfaces "github.com/kart-io/sentinel-x/pkg/generated/informers/externalversions/internalinterfaces"
-	sentinel "github.com/kart-io/sentinel-x/pkg/generated/informers/externalversions/sentinel"
+	sentinelsentinelxio "github.com/kart-io/sentinel-x/pkg/generated/informers/externalversions/sentinel.sentinel-x.io"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -228,6 +228,7 @@ type SharedInformerFactory interface {
 
 	// Start initializes all requested informers. They are handled in goroutines
 	// which run until the stop channel gets closed.
+	// Warning: Start does not block. When run in a go-routine, it will race with a later WaitForCacheSync.
 	Start(stopCh <-chan struct{})
 
 	// Shutdown marks a factory as shutting down. At that point no new
@@ -253,9 +254,9 @@ type SharedInformerFactory interface {
 	// client.
 	InformerFor(obj runtime.Object, newFunc internalinterfaces.NewInformerFunc) cache.SharedIndexInformer
 
-	Sentinel() sentinel.Interface
+	Sentinel() sentinelsentinelxio.Interface
 }
 
-func (f *sharedInformerFactory) Sentinel() sentinel.Interface {
-	return sentinel.New(f, f.namespace, f.tweakListOptions)
+func (f *sharedInformerFactory) Sentinel() sentinelsentinelxio.Interface {
+	return sentinelsentinelxio.New(f, f.namespace, f.tweakListOptions)
 }
