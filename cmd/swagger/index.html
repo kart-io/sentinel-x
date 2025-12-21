@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentinel-X API Documentation</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; line-height: 1.6; }
+        h1 { color: #333; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .service-list { list-style: none; padding: 0; }
+        .service-item { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; transition: box-shadow 0.2s; }
+        .service-item:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .service-link { text-decoration: none; color: inherit; display: block; }
+        .service-title { font-size: 1.25rem; font-weight: 600; color: #2c3e50; margin-bottom: 8px; }
+        .service-desc { color: #666; font-size: 0.95rem; }
+    </style>
+</head>
+<body>
+    <h1>Sentinel-X API Documentation</h1>
+    <p>Select a service to view its API documentation:</p>
+
+    <ul class="service-list">
+        <li class="service-item">
+            <a href="/swagger/apisvc/index.html" class="service-link">
+                <div class="service-title">API Service</div>
+                <div class="service-desc">Public gateway API service</div>
+            </a>
+        </li>
+        <li class="service-item">
+            <a href="/swagger/user-center/index.html" class="service-link">
+                <div class="service-title">User Center Service</div>
+                <div class="service-desc">User management, authentication and authorization</div>
+            </a>
+        </li>
+    </ul>
+</body>
+</html>

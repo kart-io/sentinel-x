@@ -1,101 +1,15 @@
 basePath: /
 definitions:
-  github_com_kart-io_sentinel-x_pkg_api_user-center_v1.AssignRoleRequest:
+  handler.LoginResponse:
     properties:
-      role_code:
-        type: string
-      username:
+      expires_at:
+        example: 1735689600
+        type: integer
+      token:
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
         type: string
     type: object
-  github_com_kart-io_sentinel-x_pkg_api_user-center_v1.BatchDeleteRequest:
-    properties:
-      usernames:
-        items:
-          type: string
-        type: array
-    type: object
-  github_com_kart-io_sentinel-x_pkg_api_user-center_v1.ChangePasswordRequest:
-    properties:
-      confirm_password:
-        type: string
-      new_password:
-        type: string
-      old_password:
-        type: string
-      username:
-        description: From path or context
-        type: string
-    type: object
-  github_com_kart-io_sentinel-x_pkg_api_user-center_v1.CreateRoleRequest:
-    properties:
-      code:
-        type: string
-      description:
-        type: string
-      name:
-        type: string
-    type: object
-  github_com_kart-io_sentinel-x_pkg_api_user-center_v1.CreateUserRequest:
-    properties:
-      email:
-        type: string
-      mobile:
-        description: Optional mobile validation
-        type: string
-      password:
-        description: Simplified regex for now, can add pattern
-        type: string
-      username:
-        type: string
-    type: object
-  github_com_kart-io_sentinel-x_pkg_api_user-center_v1.LoginRequest:
-    properties:
-      password:
-        description: '@gotags: json:"password" validate:"required"'
-        type: string
-      username:
-        description: '@gotags: json:"username" validate:"required"'
-        type: string
-    required:
-    - password
-    - username
-    type: object
-  github_com_kart-io_sentinel-x_pkg_api_user-center_v1.RegisterRequest:
-    properties:
-      email:
-        type: string
-      mobile:
-        type: string
-      password:
-        type: string
-      username:
-        type: string
-    type: object
-  github_com_kart-io_sentinel-x_pkg_api_user-center_v1.UpdateRoleRequest:
-    properties:
-      code:
-        description: Path param
-        type: string
-      description:
-        type: string
-      name:
-        type: string
-      status:
-        allOf:
-        - $ref: '#/definitions/wrapperspb.Int32Value'
-        description: Use wrapper to allow setting 0 explicitly
-    type: object
-  github_com_kart-io_sentinel-x_pkg_api_user-center_v1.UpdateUserRequest:
-    properties:
-      email:
-        type: string
-      mobile:
-        type: string
-      username:
-        description: Path param usually
-        type: string
-    type: object
-  github_com_kart-io_sentinel-x_pkg_utils_response.Response:
+  response.Response:
     properties:
       code:
         description: Code is the business error code (0 = success)
@@ -115,66 +29,99 @@ definitions:
         description: Timestamp is the response timestamp (Unix milliseconds)
         type: integer
     type: object
-  handler.HelloResponse:
+  user.AssignRoleRequest:
     properties:
-      message:
-        example: Hello from Sentinel-X API!
+      role_code:
         type: string
-      version:
-        example: v1
+      username:
         type: string
     type: object
-  handler.ProfileResponse:
+  user.BatchDeleteRequest:
     properties:
-      expires_at:
-        example: 1735689600
-        type: integer
-      id:
-        example: user-123
-        type: string
-      issued_at:
-        example: 1735603200
-        type: integer
-      issuer:
-        example: sentinel-x
-        type: string
-      roles:
-        example:
-        - admin
-        - user
+      usernames:
         items:
           type: string
         type: array
-      username:
-        example: admin
-        type: string
     type: object
-  handler.ProtectedResponse:
+  user.ChangePasswordRequest:
     properties:
-      message:
-        example: This is a protected resource
+      confirm_password:
         type: string
-      roles:
-        example:
-        - admin
-        - user
-        items:
-          type: string
-        type: array
-      user_id:
-        example: user-123
+      new_password:
+        type: string
+      old_password:
         type: string
       username:
-        example: admin
+        description: From path or context
         type: string
     type: object
-  internal_user-center_handler.LoginResponse:
+  user.CreateRoleRequest:
     properties:
-      expires_at:
-        example: 1735689600
-        type: integer
-      token:
-        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+      code:
+        type: string
+      description:
+        type: string
+      name:
+        type: string
+    type: object
+  user.CreateUserRequest:
+    properties:
+      email:
+        type: string
+      mobile:
+        description: Optional mobile validation
+        type: string
+      password:
+        description: Simplified regex for now, can add pattern
+        type: string
+      username:
+        type: string
+    type: object
+  user.LoginRequest:
+    properties:
+      password:
+        description: '@gotags: json:"password" validate:"required"'
+        type: string
+      username:
+        description: '@gotags: json:"username" validate:"required"'
+        type: string
+    required:
+    - password
+    - username
+    type: object
+  user.RegisterRequest:
+    properties:
+      email:
+        type: string
+      mobile:
+        type: string
+      password:
+        type: string
+      username:
+        type: string
+    type: object
+  user.UpdateRoleRequest:
+    properties:
+      code:
+        description: Path param
+        type: string
+      description:
+        type: string
+      name:
+        type: string
+      status:
+        allOf:
+        - $ref: '#/definitions/wrapperspb.Int32Value'
+        description: Use wrapper to allow setting 0 explicitly
+    type: object
+  user.UpdateUserRequest:
+    properties:
+      email:
+        type: string
+      mobile:
+        type: string
+      username:
+        description: Path param usually
         type: string
     type: object
   wrapperspb.Int32Value:
@@ -208,14 +155,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_api_user-center_v1.LoginRequest'
+          $ref: '#/definitions/user.LoginRequest'
       produces:
       - application/json
       responses:
         "200":
           description: 成功响应
           schema:
-            $ref: '#/definitions/internal_user-center_handler.LoginResponse'
+            $ref: '#/definitions/handler.LoginResponse'
         "401":
           description: 认证失败
           schema:
@@ -259,11 +206,11 @@ paths:
         "200":
           description: 成功响应
           schema:
-            $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_utils_response.Response'
+            $ref: '#/definitions/response.Response'
         "401":
           description: 未授权
           schema:
-            $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_utils_response.Response'
+            $ref: '#/definitions/response.Response'
       security:
       - Bearer: []
       summary: 获取当前用户信息
@@ -280,7 +227,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_api_user-center_v1.RegisterRequest'
+          $ref: '#/definitions/user.RegisterRequest'
       produces:
       - application/json
       responses:
@@ -295,78 +242,6 @@ paths:
       summary: 用户注册
       tags:
       - Auth
-  /hello:
-    get:
-      consumes:
-      - application/json
-      description: 公开接口，返回欢迎消息（无需认证）
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 成功响应
-          schema:
-            allOf:
-            - $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_utils_response.Response'
-            - properties:
-                data:
-                  $ref: '#/definitions/handler.HelloResponse'
-              type: object
-      summary: Say Hello
-      tags:
-      - Demo
-  /profile:
-    get:
-      consumes:
-      - application/json
-      description: 获取当前登录用户的详细信息
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 成功响应
-          schema:
-            allOf:
-            - $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_utils_response.Response'
-            - properties:
-                data:
-                  $ref: '#/definitions/handler.ProfileResponse'
-              type: object
-        "401":
-          description: 未授权
-          schema:
-            $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_utils_response.Response'
-      security:
-      - Bearer: []
-      summary: Get Current User Profile
-      tags:
-      - Demo
-  /protected:
-    get:
-      consumes:
-      - application/json
-      description: 需要 JWT 认证的受保护资源
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 成功响应
-          schema:
-            allOf:
-            - $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_utils_response.Response'
-            - properties:
-                data:
-                  $ref: '#/definitions/handler.ProtectedResponse'
-              type: object
-        "401":
-          description: 未授权
-          schema:
-            $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_utils_response.Response'
-      security:
-      - Bearer: []
-      summary: Protected Resource
-      tags:
-      - Demo
   /v1/roles:
     get:
       consumes:
@@ -389,7 +264,7 @@ paths:
         "200":
           description: 成功响应
           schema:
-            $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_utils_response.Response'
+            $ref: '#/definitions/response.Response'
       security:
       - Bearer: []
       summary: 角色列表
@@ -405,18 +280,18 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_api_user-center_v1.CreateRoleRequest'
+          $ref: '#/definitions/user.CreateRoleRequest'
       produces:
       - application/json
       responses:
         "200":
           description: 成功响应
           schema:
-            $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_utils_response.Response'
+            $ref: '#/definitions/response.Response'
         "400":
           description: 请求错误
           schema:
-            $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_utils_response.Response'
+            $ref: '#/definitions/response.Response'
       security:
       - Bearer: []
       summary: 创建角色
@@ -439,11 +314,11 @@ paths:
         "200":
           description: 成功响应
           schema:
-            $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_utils_response.Response'
+            $ref: '#/definitions/response.Response'
         "404":
           description: 角色不存在
           schema:
-            $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_utils_response.Response'
+            $ref: '#/definitions/response.Response'
       security:
       - Bearer: []
       summary: 删除角色
@@ -465,11 +340,11 @@ paths:
         "200":
           description: 成功响应
           schema:
-            $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_utils_response.Response'
+            $ref: '#/definitions/response.Response'
         "404":
           description: 角色不存在
           schema:
-            $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_utils_response.Response'
+            $ref: '#/definitions/response.Response'
       security:
       - Bearer: []
       summary: 获取角色
@@ -490,22 +365,22 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_api_user-center_v1.UpdateRoleRequest'
+          $ref: '#/definitions/user.UpdateRoleRequest'
       produces:
       - application/json
       responses:
         "200":
           description: 成功响应
           schema:
-            $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_utils_response.Response'
+            $ref: '#/definitions/response.Response'
         "400":
           description: 请求错误
           schema:
-            $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_utils_response.Response'
+            $ref: '#/definitions/response.Response'
         "404":
           description: 角色不存在
           schema:
-            $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_utils_response.Response'
+            $ref: '#/definitions/response.Response'
       security:
       - Bearer: []
       summary: 更新角色
@@ -533,7 +408,7 @@ paths:
         "200":
           description: 成功响应
           schema:
-            $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_utils_response.Response'
+            $ref: '#/definitions/response.Response'
       security:
       - Bearer: []
       summary: 用户列表
@@ -549,18 +424,18 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_api_user-center_v1.CreateUserRequest'
+          $ref: '#/definitions/user.CreateUserRequest'
       produces:
       - application/json
       responses:
         "200":
           description: 成功响应
           schema:
-            $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_utils_response.Response'
+            $ref: '#/definitions/response.Response'
         "400":
           description: 请求错误
           schema:
-            $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_utils_response.Response'
+            $ref: '#/definitions/response.Response'
       summary: 创建用户
       tags:
       - Users
@@ -581,11 +456,11 @@ paths:
         "200":
           description: 成功响应
           schema:
-            $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_utils_response.Response'
+            $ref: '#/definitions/response.Response'
         "404":
           description: 用户不存在
           schema:
-            $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_utils_response.Response'
+            $ref: '#/definitions/response.Response'
       security:
       - Bearer: []
       summary: 删除用户
@@ -607,11 +482,11 @@ paths:
         "200":
           description: 成功响应
           schema:
-            $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_utils_response.Response'
+            $ref: '#/definitions/response.Response'
         "404":
           description: 用户不存在
           schema:
-            $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_utils_response.Response'
+            $ref: '#/definitions/response.Response'
       security:
       - Bearer: []
       summary: 获取用户
@@ -632,22 +507,22 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_api_user-center_v1.UpdateUserRequest'
+          $ref: '#/definitions/user.UpdateUserRequest'
       produces:
       - application/json
       responses:
         "200":
           description: 成功响应
           schema:
-            $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_utils_response.Response'
+            $ref: '#/definitions/response.Response'
         "400":
           description: 请求错误
           schema:
-            $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_utils_response.Response'
+            $ref: '#/definitions/response.Response'
         "404":
           description: 用户不存在
           schema:
-            $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_utils_response.Response'
+            $ref: '#/definitions/response.Response'
       security:
       - Bearer: []
       summary: 更新用户
@@ -669,18 +544,18 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_api_user-center_v1.ChangePasswordRequest'
+          $ref: '#/definitions/user.ChangePasswordRequest'
       produces:
       - application/json
       responses:
         "200":
           description: 成功响应
           schema:
-            $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_utils_response.Response'
+            $ref: '#/definitions/response.Response'
         "400":
           description: 请求错误
           schema:
-            $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_utils_response.Response'
+            $ref: '#/definitions/response.Response'
       security:
       - Bearer: []
       summary: 修改密码
@@ -703,11 +578,11 @@ paths:
         "200":
           description: 成功响应
           schema:
-            $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_utils_response.Response'
+            $ref: '#/definitions/response.Response'
         "404":
           description: 用户不存在
           schema:
-            $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_utils_response.Response'
+            $ref: '#/definitions/response.Response'
       security:
       - Bearer: []
       summary: 获取用户角色
@@ -728,18 +603,18 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_api_user-center_v1.AssignRoleRequest'
+          $ref: '#/definitions/user.AssignRoleRequest'
       produces:
       - application/json
       responses:
         "200":
           description: 成功响应
           schema:
-            $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_utils_response.Response'
+            $ref: '#/definitions/response.Response'
         "400":
           description: 请求错误
           schema:
-            $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_utils_response.Response'
+            $ref: '#/definitions/response.Response'
       security:
       - Bearer: []
       summary: 分配角色
@@ -756,18 +631,18 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_api_user-center_v1.BatchDeleteRequest'
+          $ref: '#/definitions/user.BatchDeleteRequest'
       produces:
       - application/json
       responses:
         "200":
           description: 成功响应
           schema:
-            $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_utils_response.Response'
+            $ref: '#/definitions/response.Response'
         "400":
           description: 请求错误
           schema:
-            $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_utils_response.Response'
+            $ref: '#/definitions/response.Response'
       security:
       - Bearer: []
       summary: 批量删除用户

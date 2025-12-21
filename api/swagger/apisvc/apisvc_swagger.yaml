@@ -1,26 +1,6 @@
 basePath: /api/v1
 definitions:
-  github_com_kart-io_sentinel-x_pkg_utils_response.Response:
-    properties:
-      code:
-        description: Code is the business error code (0 = success)
-        type: integer
-      data:
-        description: Data contains the response payload (nil for errors)
-      http_code:
-        description: HTTPCode is the HTTP status code (optional, for client convenience)
-        type: integer
-      message:
-        description: Message is a human-readable message
-        type: string
-      request_id:
-        description: RequestID is the unique request identifier for tracing
-        type: string
-      timestamp:
-        description: Timestamp is the response timestamp (Unix milliseconds)
-        type: integer
-    type: object
-  internal_api_handler.HelloResponse:
+  handler.HelloResponse:
     properties:
       message:
         example: Hello from Sentinel-X API!
@@ -29,7 +9,7 @@ definitions:
         example: v1
         type: string
     type: object
-  internal_api_handler.ProfileResponse:
+  handler.ProfileResponse:
     properties:
       expires_at:
         example: 1735689600
@@ -54,7 +34,7 @@ definitions:
         example: admin
         type: string
     type: object
-  internal_api_handler.ProtectedResponse:
+  handler.ProtectedResponse:
     properties:
       message:
         example: This is a protected resource
@@ -72,6 +52,26 @@ definitions:
       username:
         example: admin
         type: string
+    type: object
+  response.Response:
+    properties:
+      code:
+        description: Code is the business error code (0 = success)
+        type: integer
+      data:
+        description: Data contains the response payload (nil for errors)
+      http_code:
+        description: HTTPCode is the HTTP status code (optional, for client convenience)
+        type: integer
+      message:
+        description: Message is a human-readable message
+        type: string
+      request_id:
+        description: RequestID is the unique request identifier for tracing
+        type: string
+      timestamp:
+        description: Timestamp is the response timestamp (Unix milliseconds)
+        type: integer
     type: object
 host: localhost:8100
 info:
@@ -99,10 +99,10 @@ paths:
           description: 成功响应
           schema:
             allOf:
-            - $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_utils_response.Response'
+            - $ref: '#/definitions/response.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/internal_api_handler.HelloResponse'
+                  $ref: '#/definitions/handler.HelloResponse'
               type: object
       summary: Say Hello
       tags:
@@ -119,15 +119,15 @@ paths:
           description: 成功响应
           schema:
             allOf:
-            - $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_utils_response.Response'
+            - $ref: '#/definitions/response.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/internal_api_handler.ProfileResponse'
+                  $ref: '#/definitions/handler.ProfileResponse'
               type: object
         "401":
           description: 未授权
           schema:
-            $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_utils_response.Response'
+            $ref: '#/definitions/response.Response'
       security:
       - Bearer: []
       summary: Get Current User Profile
@@ -145,15 +145,15 @@ paths:
           description: 成功响应
           schema:
             allOf:
-            - $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_utils_response.Response'
+            - $ref: '#/definitions/response.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/internal_api_handler.ProtectedResponse'
+                  $ref: '#/definitions/handler.ProtectedResponse'
               type: object
         "401":
           description: 未授权
           schema:
-            $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_utils_response.Response'
+            $ref: '#/definitions/response.Response'
       security:
       - Bearer: []
       summary: Protected Resource
