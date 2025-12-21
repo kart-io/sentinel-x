@@ -41,7 +41,7 @@ func (m *mockBridge) Static(_, _ string) {}
 
 func (m *mockBridge) Mount(_ string, _ http.Handler) {}
 
-func (m *mockBridge) SetValidator(v transport.Validator) {}
+func (m *mockBridge) SetValidator(_ transport.Validator) {}
 
 // mockRouteGroup implements RouteGroup for testing.
 type mockRouteGroup struct{}

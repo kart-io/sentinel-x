@@ -23,14 +23,14 @@ func TestAuthHandler_Login_Validation(t *testing.T) {
 
 	tests := []struct {
 		name       string
-		req        v1.LoginRequest
+		req        *v1.LoginRequest
 		wantStatus int
 		wantCode   int // internal business error code
 		errMsg     string
 	}{
 		{
 			name: "Valid Request",
-			req: v1.LoginRequest{
+			req: &v1.LoginRequest{
 				Username: "validuser",
 				Password: "validpassword123", // min_len: 6 defined in proto
 			},
@@ -40,7 +40,7 @@ func TestAuthHandler_Login_Validation(t *testing.T) {
 		},
 		{
 			name: "Invalid Username - Too Short",
-			req: v1.LoginRequest{
+			req: &v1.LoginRequest{
 				Username: "ab", // min_len: 3
 				Password: "validpassword123",
 			},
@@ -50,7 +50,7 @@ func TestAuthHandler_Login_Validation(t *testing.T) {
 		},
 		{
 			name: "Invalid Password - Too Short",
-			req: v1.LoginRequest{
+			req: &v1.LoginRequest{
 				Username: "validuser",
 				Password: "123", // min_len: 6
 			},
