@@ -52,12 +52,12 @@ log:
   output-paths:
     - stdout
 
-# JWT configuration (disabled for development)
+# JWT configuration
 jwt:
-  disable-auth: true
-  key: "development-only-key-not-for-production-use-minimum-64-characters-here"
+  disable-auth: false
+  key: "your-super-secret-key-change-in-production-minimum-64-characters-required-here"
   signing-method: "HS256"
-  issuer: "sentinel-x-dev"
+  issuer: "sentinel-x"
   expired: 24h
   max-refresh: 168h
 

@@ -44,6 +44,13 @@ func (b *Bridge) Handler() http.Handler {
 	return b.engine
 }
 
+// Engine returns the underlying gin.Engine for direct access.
+// This is useful for registering routes that require framework-specific features
+// like Swagger UI that expects direct gin.HandlerFunc registration.
+func (b *Bridge) Engine() *gin.Engine {
+	return b.engine
+}
+
 // AddRoute adds a route handler.
 func (b *Bridge) AddRoute(method, path string, handler httpserver.BridgeHandler) {
 	b.engine.Handle(method, path, b.wrapHandler(handler))

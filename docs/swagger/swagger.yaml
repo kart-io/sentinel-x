@@ -1,0 +1,168 @@
+basePath: /api/v1
+definitions:
+  github_com_kart-io_sentinel-x_pkg_utils_response.Response:
+    properties:
+      code:
+        description: Code is the business error code (0 = success)
+        type: integer
+      data:
+        description: Data contains the response payload (nil for errors)
+      http_code:
+        description: HTTPCode is the HTTP status code (optional, for client convenience)
+        type: integer
+      message:
+        description: Message is a human-readable message
+        type: string
+      request_id:
+        description: RequestID is the unique request identifier for tracing
+        type: string
+      timestamp:
+        description: Timestamp is the response timestamp (Unix milliseconds)
+        type: integer
+    type: object
+  internal_api_handler.HelloResponse:
+    properties:
+      message:
+        example: Hello from Sentinel-X API!
+        type: string
+      version:
+        example: v1
+        type: string
+    type: object
+  internal_api_handler.ProfileResponse:
+    properties:
+      expires_at:
+        example: 1735689600
+        type: integer
+      id:
+        example: user-123
+        type: string
+      issued_at:
+        example: 1735603200
+        type: integer
+      issuer:
+        example: sentinel-x
+        type: string
+      roles:
+        example:
+        - admin
+        - user
+        items:
+          type: string
+        type: array
+      username:
+        example: admin
+        type: string
+    type: object
+  internal_api_handler.ProtectedResponse:
+    properties:
+      message:
+        example: This is a protected resource
+        type: string
+      roles:
+        example:
+        - admin
+        - user
+        items:
+          type: string
+        type: array
+      user_id:
+        example: user-123
+        type: string
+      username:
+        example: admin
+        type: string
+    type: object
+host: localhost:8100
+info:
+  contact:
+    email: support@sentinel-x.io
+    name: Sentinel-X Team
+    url: https://github.com/kart-io/sentinel-x
+  description: Sentinel-X 平台 API 服务
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: https://github.com/kart-io/sentinel-x
+  title: Sentinel-X API
+  version: "1.0"
+paths:
+  /hello:
+    get:
+      consumes:
+      - application/json
+      description: 公开接口，返回欢迎消息（无需认证）
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功响应
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_utils_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/internal_api_handler.HelloResponse'
+              type: object
+      summary: Say Hello
+      tags:
+      - Demo
+  /profile:
+    get:
+      consumes:
+      - application/json
+      description: 获取当前登录用户的详细信息
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功响应
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_utils_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/internal_api_handler.ProfileResponse'
+              type: object
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_utils_response.Response'
+      security:
+      - Bearer: []
+      summary: Get Current User Profile
+      tags:
+      - Demo
+  /protected:
+    get:
+      consumes:
+      - application/json
+      description: 需要 JWT 认证的受保护资源
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功响应
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_utils_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/internal_api_handler.ProtectedResponse'
+              type: object
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/github_com_kart-io_sentinel-x_pkg_utils_response.Response'
+      security:
+      - Bearer: []
+      summary: Protected Resource
+      tags:
+      - Demo
+securityDefinitions:
+  Bearer:
+    description: 'JWT Bearer token. Example: "Bearer {token}"'
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
