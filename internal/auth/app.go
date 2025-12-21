@@ -4,6 +4,7 @@ package auth
 import (
 	"fmt"
 
+	"github.com/kart-io/sentinel-x/internal/auth/router"
 	"github.com/kart-io/sentinel-x/internal/bootstrap"
 	"github.com/kart-io/sentinel-x/pkg/infra/app"
 )
@@ -43,8 +44,9 @@ func Run(opts *Options) error {
 		LogOpts:    opts.Log,
 		ServerOpts: opts.Server,
 		JWTOpts:    opts.JWT,
-		MySQLOpts:  opts.MySQL,
-		RedisOpts:  opts.Redis,
+		MySQLOpts:    opts.MySQL,
+		RedisOpts:    opts.Redis,
+		RegisterFunc: router.Register,
 	}
 
 	return bootstrap.Run(bootstrapOpts)

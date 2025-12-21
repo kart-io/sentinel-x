@@ -9,6 +9,7 @@ import (
 	"github.com/kart-io/sentinel-x/pkg/infra/datasource"
 	"github.com/kart-io/sentinel-x/pkg/infra/server"
 	"github.com/kart-io/sentinel-x/pkg/security/auth/jwt"
+	"github.com/kart-io/sentinel-x/pkg/utils/validator"
 )
 
 // Register registers the auth service routes.
@@ -21,12 +22,19 @@ func Register(mgr *server.Manager, jwtAuth *jwt.JWT, ds *datasource.Manager) err
 		return err
 	}
 
+	// Auto Migration
+	if err := storeFactory.AutoMigrate(); err != nil {
+		return err
+	}
 
 	// Initialize Biz and Handlers
 	authBiz := biz.NewAuthService(jwtAuth, storeFactory)
 	authHandler := handler.NewAuthHandler(authBiz)
 	// HTTP Server
 	if httpServer := mgr.HTTPServer(); httpServer != nil {
+		// 使用全局验证器，确保统一的验证规则和 i18n
+		httpServer.SetValidator(validator.Global())
+
 		router := httpServer.Router()
 
 		auth := router.Group("/auth")
