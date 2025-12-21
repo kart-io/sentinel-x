@@ -1,7 +1,10 @@
 package http
 
 import (
+	"io"
 	"net/http"
+	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin/binding"
@@ -72,13 +75,19 @@ func (c *RequestContext) Bind(v interface{}) error {
 		return binding.FormMultipart.Bind(c.request, v)
 	}
 
-	// Handle URL Encoded Form
+	// Handle URL Encoded Form - use custom bindForm to support json tags (for protobuf structs)
 	if strings.Contains(contentType, "application/x-www-form-urlencoded") {
-		return binding.Form.Bind(c.request, v)
+		return bindForm(c.request, v)
 	}
 
 	// Default to JSON
-	return json.NewDecoder(c.request.Body).Decode(v)
+	if err := json.NewDecoder(c.request.Body).Decode(v); err != nil {
+		if err == io.EOF {
+			return &bindingError{msg: "request body is empty"}
+		}
+		return err
+	}
+	return nil
 }
 
 // Validator is an interface for types that can validate themselves.
@@ -162,4 +171,150 @@ func (c *RequestContext) Lang() string {
 // SetLang sets the language for this request context.
 func (c *RequestContext) SetLang(lang string) {
 	c.lang = lang
+}
+
+// bindForm binds form data to the given struct.
+// It supports both 'form' and 'json' struct tags for field name lookup.
+// Priority: form tag > json tag > field name (lowercase).
+// This is useful for protobuf-generated structs which only have json tags.
+func bindForm(r *http.Request, v interface{}) error {
+	if err := r.ParseForm(); err != nil {
+		return err
+	}
+
+	val := reflect.ValueOf(v)
+	if val.Kind() != reflect.Ptr || val.IsNil() {
+		return &bindingError{msg: "bind target must be a non-nil pointer"}
+	}
+
+	val = val.Elem()
+	if val.Kind() != reflect.Struct {
+		return &bindingError{msg: "bind target must be a pointer to struct"}
+	}
+
+	return bindFormToStruct(r.Form, val)
+}
+
+// bindFormToStruct recursively binds form values to struct fields.
+func bindFormToStruct(form map[string][]string, val reflect.Value) error {
+	typ := val.Type()
+
+	for i := 0; i < val.NumField(); i++ {
+		field := val.Field(i)
+		structField := typ.Field(i)
+
+		// Skip unexported fields
+		if !field.CanSet() {
+			continue
+		}
+
+		// Handle embedded/anonymous structs
+		if structField.Anonymous && field.Kind() == reflect.Struct {
+			if err := bindFormToStruct(form, field); err != nil {
+				return err
+			}
+			continue
+		}
+
+		// Skip protobuf internal fields
+		if strings.HasPrefix(structField.Name, "XXX_") ||
+			structField.Name == "state" ||
+			structField.Name == "sizeCache" ||
+			structField.Name == "unknownFields" {
+			continue
+		}
+
+		// Get field name from tags (form > json > field name)
+		fieldName := getFormFieldName(structField)
+
+		// Get value from form
+		values, ok := form[fieldName]
+		if !ok || len(values) == 0 {
+			continue
+		}
+
+		// Set field value
+		if err := setFieldValue(field, values[0]); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// getFormFieldName returns the form field name for a struct field.
+// Priority: form tag > json tag > lowercase field name.
+func getFormFieldName(field reflect.StructField) string {
+	// Check form tag first
+	if tag := field.Tag.Get("form"); tag != "" && tag != "-" {
+		return strings.Split(tag, ",")[0]
+	}
+
+	// Check json tag
+	if tag := field.Tag.Get("json"); tag != "" && tag != "-" {
+		return strings.Split(tag, ",")[0]
+	}
+
+	// Fallback to lowercase field name
+	return strings.ToLower(field.Name)
+}
+
+// setFieldValue sets a struct field value from a string.
+func setFieldValue(field reflect.Value, value string) error {
+	switch field.Kind() {
+	case reflect.String:
+		field.SetString(value)
+
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		if value == "" {
+			return nil
+		}
+		intVal, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return err
+		}
+		field.SetInt(intVal)
+
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		if value == "" {
+			return nil
+		}
+		uintVal, err := strconv.ParseUint(value, 10, 64)
+		if err != nil {
+			return err
+		}
+		field.SetUint(uintVal)
+
+	case reflect.Float32, reflect.Float64:
+		if value == "" {
+			return nil
+		}
+		floatVal, err := strconv.ParseFloat(value, 64)
+		if err != nil {
+			return err
+		}
+		field.SetFloat(floatVal)
+
+	case reflect.Bool:
+		boolVal := value == "true" || value == "1" || value == "on"
+		field.SetBool(boolVal)
+
+	case reflect.Ptr:
+		// Handle pointer types - create new value and set it
+		if field.IsNil() {
+			field.Set(reflect.New(field.Type().Elem()))
+		}
+		return setFieldValue(field.Elem(), value)
+	}
+
+	return nil
+}
+
+// bindingError represents a form binding error.
+type bindingError struct {
+	msg string
+}
+
+func (e *bindingError) Error() string {
+	return e.msg
 }
