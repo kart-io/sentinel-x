@@ -19,10 +19,11 @@ limitations under the License.
 package v1
 
 import (
-	sentinelsentinelxiov1 "github.com/kart-io/sentinel-x/pkg/apis/sentinel.sentinel-x.io/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	listers "k8s.io/client-go/listers"
 	cache "k8s.io/client-go/tools/cache"
+
+	sentinelsentinelxiov1 "github.com/kart-io/sentinel-x/pkg/apis/sentinel.sentinel-x.io/v1"
 )
 
 // SentinelLister helps list Sentinels.

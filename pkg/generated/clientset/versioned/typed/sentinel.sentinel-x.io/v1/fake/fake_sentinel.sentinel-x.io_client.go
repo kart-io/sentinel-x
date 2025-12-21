@@ -19,9 +19,10 @@ limitations under the License.
 package fake
 
 import (
-	v1 "github.com/kart-io/sentinel-x/pkg/generated/clientset/versioned/typed/sentinel.sentinel-x.io/v1"
 	rest "k8s.io/client-go/rest"
 	testing "k8s.io/client-go/testing"
+
+	v1 "github.com/kart-io/sentinel-x/pkg/generated/clientset/versioned/typed/sentinel.sentinel-x.io/v1"
 )
 
 type FakeSentinelV1 struct {

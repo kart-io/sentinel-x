@@ -22,14 +22,15 @@ import (
 	context "context"
 	time "time"
 
-	apissentinelsentinelxiov1 "github.com/kart-io/sentinel-x/pkg/apis/sentinel.sentinel-x.io/v1"
-	versioned "github.com/kart-io/sentinel-x/pkg/generated/clientset/versioned"
-	internalinterfaces "github.com/kart-io/sentinel-x/pkg/generated/informers/externalversions/internalinterfaces"
-	sentinelsentinelxiov1 "github.com/kart-io/sentinel-x/pkg/generated/listers/sentinel.sentinel-x.io/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
 	cache "k8s.io/client-go/tools/cache"
+
+	apissentinelsentinelxiov1 "github.com/kart-io/sentinel-x/pkg/apis/sentinel.sentinel-x.io/v1"
+	versioned "github.com/kart-io/sentinel-x/pkg/generated/clientset/versioned"
+	internalinterfaces "github.com/kart-io/sentinel-x/pkg/generated/informers/externalversions/internalinterfaces"
+	sentinelsentinelxiov1 "github.com/kart-io/sentinel-x/pkg/generated/listers/sentinel.sentinel-x.io/v1"
 )
 
 // SentinelInformer provides access to a shared informer and lister for

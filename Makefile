@@ -50,6 +50,12 @@ clean: go.clean ## Clean build artifacts.
 .PHONY: deps
 deps: tidy tools.install ## Install dependencies and tools.
 
+.PHONY: fmt
+fmt: go.fmt ## Format source code.
+
+.PHONY: lint
+lint: go.lint ## Run lint.
+
 .PHONY: tidy
 tidy: ## Tidy go.mod and vendor.
 	$(GO) mod tidy && $(GO) mod vendor

@@ -21,9 +21,10 @@ package v1
 import (
 	http "net/http"
 
+	rest "k8s.io/client-go/rest"
+
 	sentinelsentinelxiov1 "github.com/kart-io/sentinel-x/pkg/apis/sentinel.sentinel-x.io/v1"
 	scheme "github.com/kart-io/sentinel-x/pkg/generated/clientset/versioned/scheme"
-	rest "k8s.io/client-go/rest"
 )
 
 type SentinelV1Interface interface {

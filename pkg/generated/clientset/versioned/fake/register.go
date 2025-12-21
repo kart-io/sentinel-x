@@ -19,16 +19,19 @@ limitations under the License.
 package fake
 
 import (
-	sentinelv1 "github.com/kart-io/sentinel-x/pkg/apis/sentinel.sentinel-x.io/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	serializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+
+	sentinelv1 "github.com/kart-io/sentinel-x/pkg/apis/sentinel.sentinel-x.io/v1"
 )
 
-var scheme = runtime.NewScheme()
-var codecs = serializer.NewCodecFactory(scheme)
+var (
+	scheme = runtime.NewScheme()
+	codecs = serializer.NewCodecFactory(scheme)
+)
 
 var localSchemeBuilder = runtime.SchemeBuilder{
 	sentinelv1.AddToScheme,

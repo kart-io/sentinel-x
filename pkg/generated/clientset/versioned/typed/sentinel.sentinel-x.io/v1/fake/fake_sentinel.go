@@ -19,9 +19,10 @@ limitations under the License.
 package fake
 
 import (
+	gentype "k8s.io/client-go/gentype"
+
 	v1 "github.com/kart-io/sentinel-x/pkg/apis/sentinel.sentinel-x.io/v1"
 	sentinelsentinelxiov1 "github.com/kart-io/sentinel-x/pkg/generated/clientset/versioned/typed/sentinel.sentinel-x.io/v1"
-	gentype "k8s.io/client-go/gentype"
 )
 
 // fakeSentinels implements SentinelInterface

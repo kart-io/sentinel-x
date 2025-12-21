@@ -19,20 +19,23 @@ limitations under the License.
 package scheme
 
 import (
-	sentinelv1 "github.com/kart-io/sentinel-x/pkg/apis/sentinel.sentinel-x.io/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	serializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+
+	sentinelv1 "github.com/kart-io/sentinel-x/pkg/apis/sentinel.sentinel-x.io/v1"
 )
 
-var Scheme = runtime.NewScheme()
-var Codecs = serializer.NewCodecFactory(Scheme)
-var ParameterCodec = runtime.NewParameterCodec(Scheme)
-var localSchemeBuilder = runtime.SchemeBuilder{
-	sentinelv1.AddToScheme,
-}
+var (
+	Scheme             = runtime.NewScheme()
+	Codecs             = serializer.NewCodecFactory(Scheme)
+	ParameterCodec     = runtime.NewParameterCodec(Scheme)
+	localSchemeBuilder = runtime.SchemeBuilder{
+		sentinelv1.AddToScheme,
+	}
+)
 
 // AddToScheme adds all types of this clientset into the given scheme. This allows composition
 // of clientsets, like in:

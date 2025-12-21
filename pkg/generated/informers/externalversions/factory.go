@@ -23,13 +23,14 @@ import (
 	sync "sync"
 	time "time"
 
-	versioned "github.com/kart-io/sentinel-x/pkg/generated/clientset/versioned"
-	internalinterfaces "github.com/kart-io/sentinel-x/pkg/generated/informers/externalversions/internalinterfaces"
-	sentinelsentinelxio "github.com/kart-io/sentinel-x/pkg/generated/informers/externalversions/sentinel.sentinel-x.io"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
+
+	versioned "github.com/kart-io/sentinel-x/pkg/generated/clientset/versioned"
+	internalinterfaces "github.com/kart-io/sentinel-x/pkg/generated/informers/externalversions/internalinterfaces"
+	sentinelsentinelxio "github.com/kart-io/sentinel-x/pkg/generated/informers/externalversions/sentinel.sentinel-x.io"
 )
 
 // SharedInformerOption defines the functional option type for SharedInformerFactory.

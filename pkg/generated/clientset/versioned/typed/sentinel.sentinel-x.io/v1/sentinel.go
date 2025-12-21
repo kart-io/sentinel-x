@@ -21,12 +21,13 @@ package v1
 import (
 	context "context"
 
-	sentinelsentinelxiov1 "github.com/kart-io/sentinel-x/pkg/apis/sentinel.sentinel-x.io/v1"
-	scheme "github.com/kart-io/sentinel-x/pkg/generated/clientset/versioned/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	gentype "k8s.io/client-go/gentype"
+
+	sentinelsentinelxiov1 "github.com/kart-io/sentinel-x/pkg/apis/sentinel.sentinel-x.io/v1"
+	scheme "github.com/kart-io/sentinel-x/pkg/generated/clientset/versioned/scheme"
 )
 
 // SentinelsGetter has a method to return a SentinelInterface.

@@ -22,10 +22,11 @@ import (
 	fmt "fmt"
 	http "net/http"
 
-	sentinelv1 "github.com/kart-io/sentinel-x/pkg/generated/clientset/versioned/typed/sentinel.sentinel-x.io/v1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"
+
+	sentinelv1 "github.com/kart-io/sentinel-x/pkg/generated/clientset/versioned/typed/sentinel.sentinel-x.io/v1"
 )
 
 type Interface interface {

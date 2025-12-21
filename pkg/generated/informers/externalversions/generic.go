@@ -21,9 +21,10 @@ package externalversions
 import (
 	fmt "fmt"
 
-	v1 "github.com/kart-io/sentinel-x/pkg/apis/sentinel.sentinel-x.io/v1"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
+
+	v1 "github.com/kart-io/sentinel-x/pkg/apis/sentinel.sentinel-x.io/v1"
 )
 
 // GenericInformer is type of SharedIndexInformer which will locate and delegate to other
@@ -55,7 +56,6 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 	// Group=sentinel.sentinel-x.io, Version=v1
 	case v1.SchemeGroupVersion.WithResource("sentinels"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Sentinel().V1().Sentinels().Informer()}, nil
-
 	}
 
 	return nil, fmt.Errorf("no informer found for %v", resource)

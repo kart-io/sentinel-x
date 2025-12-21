@@ -19,14 +19,15 @@ limitations under the License.
 package fake
 
 import (
-	clientset "github.com/kart-io/sentinel-x/pkg/generated/clientset/versioned"
-	sentinelv1 "github.com/kart-io/sentinel-x/pkg/generated/clientset/versioned/typed/sentinel.sentinel-x.io/v1"
-	fakesentinelv1 "github.com/kart-io/sentinel-x/pkg/generated/clientset/versioned/typed/sentinel.sentinel-x.io/v1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
 	fakediscovery "k8s.io/client-go/discovery/fake"
 	"k8s.io/client-go/testing"
+
+	clientset "github.com/kart-io/sentinel-x/pkg/generated/clientset/versioned"
+	sentinelv1 "github.com/kart-io/sentinel-x/pkg/generated/clientset/versioned/typed/sentinel.sentinel-x.io/v1"
+	fakesentinelv1 "github.com/kart-io/sentinel-x/pkg/generated/clientset/versioned/typed/sentinel.sentinel-x.io/v1/fake"
 )
 
 // NewSimpleClientset returns a clientset that will respond with the provided objects.
