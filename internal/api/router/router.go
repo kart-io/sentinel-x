@@ -2,19 +2,16 @@
 package router
 
 import (
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
-
-	_ "github.com/kart-io/sentinel-x/docs/swagger" // swagger docs
-
 	"github.com/kart-io/logger"
+	_ "github.com/kart-io/sentinel-x/docs/swagger" // swagger docs
 	"github.com/kart-io/sentinel-x/internal/api/handler"
 	"github.com/kart-io/sentinel-x/pkg/infra/adapter/gin"
 	"github.com/kart-io/sentinel-x/pkg/infra/datasource"
 	"github.com/kart-io/sentinel-x/pkg/infra/server"
-	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 	httpserver "github.com/kart-io/sentinel-x/pkg/infra/server/transport/http"
 	"github.com/kart-io/sentinel-x/pkg/security/auth/jwt"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 // Register 注册 API 服务的路由。
@@ -85,10 +82,4 @@ func registerSwagger(httpServer *httpserver.Server) {
 	// 直接在 Gin engine 上注册 Swagger 路由
 	ginBridge.Engine().GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	logger.Info("Swagger routes registered on Gin engine")
-}
-
-// bridgedRouter 包装 transport.Router 以便访问底层 Gin 功能
-type bridgedRouter interface {
-	transport.Router
-	GinEngine() interface{}
 }

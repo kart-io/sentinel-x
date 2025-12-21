@@ -22,7 +22,23 @@ func NewAuthHandler(svc *biz.AuthService) *AuthHandler {
 	return &AuthHandler{svc: svc}
 }
 
-// Login handles user login.
+// LoginResponse 登录响应
+type LoginResponse struct {
+	Token     string `json:"token" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
+	ExpiresAt int64  `json:"expires_at" example:"1735689600"`
+}
+
+// Login godoc
+//
+//	@Summary		用户登录
+//	@Description	通过用户名和密码登录，获取 JWT token
+//	@Tags			Auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			request	body		v1.LoginRequest							true	"登录请求"
+//	@Success		200		{object}	LoginResponse	"成功响应"
+//	@Failure		401		{object}	object			"认证失败"
+//	@Router			/auth/login [post]
 func (h *AuthHandler) Login(c transport.Context) {
 	var req v1.LoginRequest
 	if err := c.ShouldBindAndValidate(&req); err != nil {
@@ -43,7 +59,17 @@ func (h *AuthHandler) Login(c transport.Context) {
 	httputils.WriteResponse(c, nil, respData)
 }
 
-// Logout handles user logout.
+// Logout godoc
+//
+//	@Summary		用户登出
+//	@Description	使当前 JWT token 失效
+//	@Tags			Auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			Authorization	header		string				true	"Bearer token"
+//	@Success		200				{object}	object	"成功响应"
+//	@Failure		400				{object}	object	"请求错误"
+//	@Router			/auth/logout [post]
 func (h *AuthHandler) Logout(c transport.Context) {
 	token := c.Header("Authorization")
 	if len(token) > 7 && strings.ToUpper(token[:7]) == "BEARER " {
@@ -68,7 +94,17 @@ func (h *AuthHandler) Logout(c transport.Context) {
 	httputils.WriteResponse(c, nil, "logged out")
 }
 
-// Register handles user registration.
+// Register godoc
+//
+//	@Summary		用户注册
+//	@Description	创建新用户账号
+//	@Tags			Auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			request	body		v1.RegisterRequest	true	"注册请求"
+//	@Success		200		{object}	object	"成功响应"
+//	@Failure		400		{object}	object	"请求错误"
+//	@Router			/auth/register [post]
 func (h *AuthHandler) Register(c transport.Context) {
 	var req v1.RegisterRequest
 	if err := c.ShouldBindAndValidate(&req); err != nil {

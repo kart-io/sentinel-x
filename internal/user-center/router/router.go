@@ -3,15 +3,20 @@ package router
 
 import (
 	"github.com/kart-io/logger"
+	_ "github.com/kart-io/sentinel-x/docs/swagger/user-center" // swagger docs
 	"github.com/kart-io/sentinel-x/internal/user-center/biz"
 	"github.com/kart-io/sentinel-x/internal/user-center/handler"
 	"github.com/kart-io/sentinel-x/internal/user-center/store"
 	v1 "github.com/kart-io/sentinel-x/pkg/api/user-center/v1"
+	"github.com/kart-io/sentinel-x/pkg/infra/adapter/gin"
 	"github.com/kart-io/sentinel-x/pkg/infra/datasource"
 	"github.com/kart-io/sentinel-x/pkg/infra/middleware"
 	"github.com/kart-io/sentinel-x/pkg/infra/server"
+	httpserver "github.com/kart-io/sentinel-x/pkg/infra/server/transport/http"
 	"github.com/kart-io/sentinel-x/pkg/security/auth/jwt"
 	"github.com/kart-io/sentinel-x/pkg/utils/validator"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 // Register registers the user center routes and services.
@@ -44,6 +49,9 @@ func Register(mgr *server.Manager, jwtAuth *jwt.JWT, ds *datasource.Manager) err
 		httpServer.SetValidator(validator.Global())
 
 		router := httpServer.Router()
+
+		// Swagger UI - 访问地址: http://localhost:8081/swagger/index.html
+		registerSwagger(httpServer)
 
 		//  Auth Routes
 		auth := router.Group("/auth")
@@ -95,6 +103,7 @@ func Register(mgr *server.Manager, jwtAuth *jwt.JWT, ds *datasource.Manager) err
 		}
 
 		logger.Info("HTTP routes registered")
+		logger.Info("Swagger UI available at: http://localhost:8081/swagger/index.html")
 	}
 
 	// gRPC Server
@@ -106,4 +115,28 @@ func Register(mgr *server.Manager, jwtAuth *jwt.JWT, ds *datasource.Manager) err
 	}
 
 	return nil
+}
+
+// registerSwagger 注册 Swagger UI 路由。
+func registerSwagger(httpServer *httpserver.Server) {
+	adapter := httpServer.Adapter()
+	if adapter == nil {
+		logger.Warn("HTTP adapter is nil, skip swagger registration")
+		return
+	}
+
+	bridge := adapter.Bridge()
+	if bridge == nil {
+		logger.Warn("HTTP bridge is nil, skip swagger registration")
+		return
+	}
+
+	ginBridge, ok := bridge.(*gin.Bridge)
+	if !ok {
+		logger.Warn("HTTP bridge is not Gin, skip swagger registration")
+		return
+	}
+
+	ginBridge.Engine().GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	logger.Info("Swagger routes registered on Gin engine")
 }

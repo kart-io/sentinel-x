@@ -27,7 +27,6 @@ type UserHandler struct {
 }
 
 // NewUserHandler creates a new UserHandler.
-// NewUserHandler creates a new UserHandler.
 func NewUserHandler(svc *biz.UserService, roleSvc *biz.RoleService, authSvc *biz.AuthService) *UserHandler {
 	return &UserHandler{
 		svc:     svc,
@@ -36,7 +35,17 @@ func NewUserHandler(svc *biz.UserService, roleSvc *biz.RoleService, authSvc *biz
 	}
 }
 
-// Create handles user creation.
+// Create godoc
+//
+//	@Summary		创建用户
+//	@Description	创建新用户（公开接口，用于注册）
+//	@Tags			Users
+//	@Accept			json
+//	@Produce		json
+//	@Param			request	body		v1.CreateUserRequest	true	"创建用户请求"
+//	@Success		200		{object}	response.Response		"成功响应"
+//	@Failure		400		{object}	response.Response		"请求错误"
+//	@Router			/v1/users [post]
 func (h *UserHandler) Create(c transport.Context) {
 	var req v1.CreateUserRequest
 	if err := c.ShouldBindAndValidate(&req); err != nil {
@@ -59,7 +68,20 @@ func (h *UserHandler) Create(c transport.Context) {
 	httputils.WriteResponse(c, nil, user)
 }
 
-// Update handles user updates.
+// Update godoc
+//
+//	@Summary		更新用户
+//	@Description	更新用户信息
+//	@Tags			Users
+//	@Accept			json
+//	@Produce		json
+//	@Security		Bearer
+//	@Param			username	path		string					true	"用户名"
+//	@Param			request		body		v1.UpdateUserRequest	true	"更新用户请求"
+//	@Success		200			{object}	response.Response		"成功响应"
+//	@Failure		400			{object}	response.Response		"请求错误"
+//	@Failure		404			{object}	response.Response		"用户不存在"
+//	@Router			/v1/users/{username} [put]
 func (h *UserHandler) Update(c transport.Context) {
 	username := c.Param("username")
 	if username == "" {
@@ -94,7 +116,18 @@ func (h *UserHandler) Update(c transport.Context) {
 	httputils.WriteResponse(c, nil, user)
 }
 
-// Delete handles user deletion.
+// Delete godoc
+//
+//	@Summary		删除用户
+//	@Description	删除指定用户
+//	@Tags			Users
+//	@Accept			json
+//	@Produce		json
+//	@Security		Bearer
+//	@Param			username	path		string				true	"用户名"
+//	@Success		200			{object}	response.Response	"成功响应"
+//	@Failure		404			{object}	response.Response	"用户不存在"
+//	@Router			/v1/users/{username} [delete]
 func (h *UserHandler) Delete(c transport.Context) {
 	username := c.Param("username")
 	if username == "" {
@@ -112,7 +145,18 @@ func (h *UserHandler) Delete(c transport.Context) {
 	httputils.WriteResponse(c, nil, "user deleted")
 }
 
-// BatchDelete handles batch deletion of users.
+// BatchDelete godoc
+//
+//	@Summary		批量删除用户
+//	@Description	批量删除多个用户
+//	@Tags			Users
+//	@Accept			json
+//	@Produce		json
+//	@Security		Bearer
+//	@Param			request	body		v1.BatchDeleteRequest	true	"批量删除请求"
+//	@Success		200		{object}	response.Response		"成功响应"
+//	@Failure		400		{object}	response.Response		"请求错误"
+//	@Router			/v1/users/batch-delete [post]
 func (h *UserHandler) BatchDelete(c transport.Context) {
 	var req v1.BatchDeleteRequest
 	if err := c.ShouldBindAndValidate(&req); err != nil {
@@ -132,7 +176,18 @@ func (h *UserHandler) BatchDelete(c transport.Context) {
 	httputils.WriteResponse(c, nil, "users deleted")
 }
 
-// Get handles retrieving a user by username.
+// Get godoc
+//
+//	@Summary		获取用户
+//	@Description	获取指定用户信息
+//	@Tags			Users
+//	@Accept			json
+//	@Produce		json
+//	@Security		Bearer
+//	@Param			username	path		string				true	"用户名"
+//	@Success		200			{object}	response.Response	"成功响应"
+//	@Failure		404			{object}	response.Response	"用户不存在"
+//	@Router			/v1/users/{username} [get]
 func (h *UserHandler) Get(c transport.Context) {
 	username := c.Param("username")
 	if username == "" {
@@ -151,7 +206,18 @@ func (h *UserHandler) Get(c transport.Context) {
 	httputils.WriteResponse(c, nil, user)
 }
 
-// List handles listing users.
+// List godoc
+//
+//	@Summary		用户列表
+//	@Description	获取用户列表（分页）
+//	@Tags			Users
+//	@Accept			json
+//	@Produce		json
+//	@Security		Bearer
+//	@Param			page		query		int					false	"页码"	default(1)
+//	@Param			page_size	query		int					false	"每页数量"	default(10)
+//	@Success		200			{object}	response.Response	"成功响应"
+//	@Router			/v1/users [get]
 func (h *UserHandler) List(c transport.Context) {
 	var req v1.ListUsersRequest
 
@@ -177,7 +243,17 @@ func (h *UserHandler) List(c transport.Context) {
 	httputils.WriteResponse(c, nil, response.Page(users, count, page, pageSize))
 }
 
-// GetProfile handles retrieving the current user's profile.
+// GetProfile godoc
+//
+//	@Summary		获取当前用户信息
+//	@Description	获取当前登录用户的详细信息
+//	@Tags			Auth
+//	@Accept			json
+//	@Produce		json
+//	@Security		Bearer
+//	@Success		200	{object}	response.Response	"成功响应"
+//	@Failure		401	{object}	response.Response	"未授权"
+//	@Router			/auth/me [get]
 func (h *UserHandler) GetProfile(c transport.Context) {
 	username := auth.SubjectFromContext(c.Request())
 	if username == "" {
@@ -196,7 +272,19 @@ func (h *UserHandler) GetProfile(c transport.Context) {
 	httputils.WriteResponse(c, nil, user)
 }
 
-// UpdatePassword handles password change.
+// UpdatePassword godoc
+//
+//	@Summary		修改密码
+//	@Description	修改用户密码（需要提供旧密码）
+//	@Tags			Users
+//	@Accept			json
+//	@Produce		json
+//	@Security		Bearer
+//	@Param			username	path		string						true	"用户名"
+//	@Param			request		body		v1.ChangePasswordRequest	true	"修改密码请求"
+//	@Success		200			{object}	response.Response			"成功响应"
+//	@Failure		400			{object}	response.Response			"请求错误"
+//	@Router			/v1/users/{username}/password [post]
 func (h *UserHandler) UpdatePassword(c transport.Context) {
 	username := c.Param("username")
 	if username == "" {
@@ -234,18 +322,15 @@ func (h *UserHandler) UpdatePassword(c transport.Context) {
 	httputils.WriteResponse(c, nil, "password changed")
 }
 
+// ================= gRPC Methods =================
+
 // GetUser implements the gRPC method to get a user by ID.
 func (h *UserHandler) GetUser(ctx context.Context, req *v1.UserRequest) (*v1.UserResponse, error) {
-	// Note: The proto defines GetUser taking an ID, but our svc.Get takes a username.
-	// We might need to handle this mapping or if ID is passed as string.
-	// Assuming req.Id is the ID.
 	var user *model.User
 	id, err := strconv.ParseUint(req.Id, 10, 64)
 	if err == nil {
-		// Numeric ID, try get by ID
 		user, err = h.svc.GetByUserID(ctx, id)
 	} else {
-		// Non-numeric, treat as username
 		user, err = h.svc.Get(ctx, req.Id)
 	}
 
@@ -253,7 +338,6 @@ func (h *UserHandler) GetUser(ctx context.Context, req *v1.UserRequest) (*v1.Use
 		return nil, err
 	}
 
-	// Fetch roles
 	roles, err := h.roleSvc.GetUserRoles(ctx, user.Username)
 	var roleStr string
 	if err == nil && len(roles) > 0 {

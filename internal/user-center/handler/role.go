@@ -26,7 +26,18 @@ func NewRoleHandler(svc *biz.RoleService) *RoleHandler {
 	return &RoleHandler{svc: svc}
 }
 
-// Create handles role creation (HTTP).
+// Create godoc
+//
+//	@Summary		创建角色
+//	@Description	创建新角色
+//	@Tags			Roles
+//	@Accept			json
+//	@Produce		json
+//	@Security		Bearer
+//	@Param			request	body		v1.CreateRoleRequest	true	"创建角色请求"
+//	@Success		200		{object}	response.Response		"成功响应"
+//	@Failure		400		{object}	response.Response		"请求错误"
+//	@Router			/v1/roles [post]
 func (h *RoleHandler) Create(c transport.Context) {
 	var req v1.CreateRoleRequest
 	if err := c.ShouldBindAndValidate(&req); err != nil {
@@ -49,7 +60,20 @@ func (h *RoleHandler) Create(c transport.Context) {
 	httputils.WriteResponse(c, nil, role)
 }
 
-// Update handles role updates (HTTP).
+// Update godoc
+//
+//	@Summary		更新角色
+//	@Description	更新角色信息
+//	@Tags			Roles
+//	@Accept			json
+//	@Produce		json
+//	@Security		Bearer
+//	@Param			code	path		string					true	"角色代码"
+//	@Param			request	body		v1.UpdateRoleRequest	true	"更新角色请求"
+//	@Success		200		{object}	response.Response		"成功响应"
+//	@Failure		400		{object}	response.Response		"请求错误"
+//	@Failure		404		{object}	response.Response		"角色不存在"
+//	@Router			/v1/roles/{code} [put]
 func (h *RoleHandler) Update(c transport.Context) {
 	code := c.Param("code")
 	if code == "" {
@@ -76,8 +100,6 @@ func (h *RoleHandler) Update(c transport.Context) {
 	if req.Description != "" {
 		role.Description = req.Description
 	}
-	// Status update via HTTP might need explicit field handling if 0 is valid.
-	// For now, ignoring status update via this endpoint or assuming it's separate.
 
 	if err := h.svc.Update(c.Request(), role); err != nil {
 		httputils.WriteResponse(c, err, nil)
@@ -87,7 +109,18 @@ func (h *RoleHandler) Update(c transport.Context) {
 	httputils.WriteResponse(c, nil, role)
 }
 
-// Delete handles role deletion (HTTP).
+// Delete godoc
+//
+//	@Summary		删除角色
+//	@Description	删除指定角色
+//	@Tags			Roles
+//	@Accept			json
+//	@Produce		json
+//	@Security		Bearer
+//	@Param			code	path		string				true	"角色代码"
+//	@Success		200		{object}	response.Response	"成功响应"
+//	@Failure		404		{object}	response.Response	"角色不存在"
+//	@Router			/v1/roles/{code} [delete]
 func (h *RoleHandler) Delete(c transport.Context) {
 	code := c.Param("code")
 	if code == "" {
@@ -103,7 +136,18 @@ func (h *RoleHandler) Delete(c transport.Context) {
 	httputils.WriteResponse(c, nil, "role deleted")
 }
 
-// Get handles retrieving a role (HTTP).
+// Get godoc
+//
+//	@Summary		获取角色
+//	@Description	获取指定角色信息
+//	@Tags			Roles
+//	@Accept			json
+//	@Produce		json
+//	@Security		Bearer
+//	@Param			code	path		string				true	"角色代码"
+//	@Success		200		{object}	response.Response	"成功响应"
+//	@Failure		404		{object}	response.Response	"角色不存在"
+//	@Router			/v1/roles/{code} [get]
 func (h *RoleHandler) Get(c transport.Context) {
 	code := c.Param("code")
 	if code == "" {
@@ -120,7 +164,18 @@ func (h *RoleHandler) Get(c transport.Context) {
 	httputils.WriteResponse(c, nil, role)
 }
 
-// List handles listing roles (HTTP).
+// List godoc
+//
+//	@Summary		角色列表
+//	@Description	获取角色列表（分页）
+//	@Tags			Roles
+//	@Accept			json
+//	@Produce		json
+//	@Security		Bearer
+//	@Param			page		query		int					false	"页码"	default(1)
+//	@Param			page_size	query		int					false	"每页数量"	default(10)
+//	@Success		200			{object}	response.Response	"成功响应"
+//	@Router			/v1/roles [get]
 func (h *RoleHandler) List(c transport.Context) {
 	var req v1.ListRolesRequest
 	// Ignore bind error for optional params
@@ -144,7 +199,19 @@ func (h *RoleHandler) List(c transport.Context) {
 	httputils.WriteResponse(c, nil, response.Page(roles, count, page, pageSize))
 }
 
-// AssignUserRole handles assigning a role to a user (HTTP).
+// AssignUserRole godoc
+//
+//	@Summary		分配角色
+//	@Description	为用户分配角色
+//	@Tags			Users
+//	@Accept			json
+//	@Produce		json
+//	@Security		Bearer
+//	@Param			username	path		string					true	"用户名"
+//	@Param			request		body		v1.AssignRoleRequest	true	"分配角色请求"
+//	@Success		200			{object}	response.Response		"成功响应"
+//	@Failure		400			{object}	response.Response		"请求错误"
+//	@Router			/v1/users/{username}/roles [post]
 func (h *RoleHandler) AssignUserRole(c transport.Context) {
 	username := c.Param("username")
 	if username == "" {
@@ -172,7 +239,18 @@ func (h *RoleHandler) AssignUserRole(c transport.Context) {
 	httputils.WriteResponse(c, nil, "role assigned")
 }
 
-// ListUserRoles handles retrieving roles for a user (HTTP).
+// ListUserRoles godoc
+//
+//	@Summary		获取用户角色
+//	@Description	获取用户的所有角色
+//	@Tags			Users
+//	@Accept			json
+//	@Produce		json
+//	@Security		Bearer
+//	@Param			username	path		string				true	"用户名"
+//	@Success		200			{object}	response.Response	"成功响应"
+//	@Failure		404			{object}	response.Response	"用户不存在"
+//	@Router			/v1/users/{username}/roles [get]
 func (h *RoleHandler) ListUserRoles(c transport.Context) {
 	username := c.Param("username")
 	if username == "" {
@@ -191,7 +269,7 @@ func (h *RoleHandler) ListUserRoles(c transport.Context) {
 	httputils.WriteResponse(c, nil, roles)
 }
 
-// gRPC Methods
+// ================= gRPC Methods =================
 
 // CreateRole creates a new role (gRPC).
 func (h *RoleHandler) CreateRole(ctx context.Context, req *v1.CreateRoleRequest) (*v1.Role, error) {
