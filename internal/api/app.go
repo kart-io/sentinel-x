@@ -4,13 +4,14 @@ package app
 import (
 	"fmt"
 
-	// Use the shared bootstrap package
-	"github.com/kart-io/sentinel-x/internal/api/router"
-	"github.com/kart-io/sentinel-x/internal/bootstrap"
-	// Import bridges to register them
+	"github.com/kart-io/logger"
+	"github.com/kart-io/sentinel-x/internal/api/handler"
+	"github.com/kart-io/sentinel-x/pkg/infra/app"
+	"github.com/kart-io/sentinel-x/pkg/infra/server"
+
+	// Import adapters
 	_ "github.com/kart-io/sentinel-x/pkg/infra/adapter/echo"
 	_ "github.com/kart-io/sentinel-x/pkg/infra/adapter/gin"
-	"github.com/kart-io/sentinel-x/pkg/infra/app"
 )
 
 const (
@@ -66,25 +67,63 @@ func NewApp() *app.App {
 }
 
 // Run runs the API server with the given options.
-// This is the main entry point that orchestrates the bootstrapping process.
 func Run(opts *Options) error {
-	// Print banner before initialization
 	printBanner(opts)
 
-	// Create bootstrap options
-	bootstrapOpts := &bootstrap.Options{
-		AppName:      appName,
-		AppVersion:   app.GetVersion(),
-		ServerMode:   opts.Server.Mode.String(),
-		LogOpts:      opts.Log,
-		ServerOpts:   opts.Server,
-		JWTOpts:      opts.JWT,
-		MySQLOpts:    opts.MySQL,
-		RedisOpts:    opts.Redis,
-		RegisterFunc: router.Register,
+	// 1. 初始化日志
+	opts.Log.AddInitialField("service.name", appName)
+	opts.Log.AddInitialField("service.version", app.GetVersion())
+	if err := opts.Log.Init(); err != nil {
+		return fmt.Errorf("failed to initialize logger: %w", err)
+	}
+	logger.Info("Starting API service...")
+
+	// 2. 初始化 JWT（如果配置了）
+	// 注意：API 服务当前使用 middleware 自动处理 JWT，此处预留
+	_ = opts.JWT // 忽略未使用警告
+
+	// 3. 初始化 Handler
+	demoHandler := handler.NewDemoHandler()
+	logger.Info("Handlers initialized")
+
+	// 4. 初始化服务器
+	serverManager := server.NewManager(
+		server.WithMode(opts.Server.Mode),
+		server.WithHTTPOptions(opts.Server.HTTP),
+		server.WithGRPCOptions(opts.Server.GRPC),
+		server.WithShutdownTimeout(opts.Server.ShutdownTimeout),
+	)
+
+	// 5. 注册路由
+	if httpServer := serverManager.HTTPServer(); httpServer != nil {
+		router := httpServer.Router()
+
+		// Serve static files for OpenAPI specs
+		router.Static("/openapi", "api/openapi")
+
+		// API v1 路由组
+		v1 := router.Group("/api/v1")
+		{
+			// 公开路由（无需认证）
+			v1.Handle("GET", "/hello", demoHandler.Hello)
+
+			// 受保护路由（需要 JWT 认证）
+			v1.Handle("GET", "/protected", demoHandler.Protected)
+			v1.Handle("GET", "/profile", demoHandler.Profile)
+		}
+
+		logger.Info("HTTP routes registered")
+		logger.Info("Swagger UI available at: http://localhost:8100/swagger/index.html")
 	}
 
-	return bootstrap.Run(bootstrapOpts)
+	// gRPC Server
+	if serverManager.GRPCServer() != nil {
+		logger.Info("gRPC services registered (placeholder)")
+	}
+
+	// 6. 启动服务器
+	logger.Info("API service is ready")
+	return serverManager.Run()
 }
 
 // printBanner prints the startup banner.

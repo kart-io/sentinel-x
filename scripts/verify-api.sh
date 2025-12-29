@@ -34,7 +34,7 @@ echo -e "\n=== 4. List Users ==="
 curl -s -X GET "${BASE_URL}/v1/users" -H "${AUTH_HEADER}" | jq .
 
 echo -e "\n=== 5. Get User Details ==="
-curl -s -X GET "${BASE_URL}/v1/users/${USERNAME}" -H "${AUTH_HEADER}" | jq .
+curl -s -X GET "${BASE_URL}/v1/users/detail?username=${USERNAME}" -H "${AUTH_HEADER}" | jq .
 
 echo -e "\n=== 6. Create Role ${ROLE_CODE} ==="
 curl -s -X POST "${BASE_URL}/v1/roles" \
@@ -46,12 +46,12 @@ echo -e "\n=== 7. List Roles ==="
 curl -s -X GET "${BASE_URL}/v1/roles" -H "${AUTH_HEADER}" | jq .
 
 echo -e "\n=== 8. Assign Role to User ==="
-curl -s -X POST "${BASE_URL}/v1/users/${USERNAME}/roles" \
+curl -s -X POST "${BASE_URL}/v1/users/roles?username=${USERNAME}" \
   -H "${AUTH_HEADER}" \
   -H "Content-Type: application/json" \
   -d "{\"username\": \"${USERNAME}\", \"role_code\": \"${ROLE_CODE}\"}" | jq .
 
 echo -e "\n=== 9. Get User Roles ==="
-curl -s -X GET "${BASE_URL}/v1/users/${USERNAME}/roles" -H "${AUTH_HEADER}" | jq .
+curl -s -X GET "${BASE_URL}/v1/users/roles?username=${USERNAME}" -H "${AUTH_HEADER}" | jq .
 
 echo -e "\n=== Verification Complete ==="

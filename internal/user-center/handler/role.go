@@ -68,29 +68,22 @@ func (h *RoleHandler) Create(c transport.Context) {
 //	@Accept			json
 //	@Produce		json
 //	@Security		Bearer
-//	@Param			code	path		string					true	"角色代码"
+//	@Param			code	query		string					true	"角色代码"
 //	@Param			request	body		v1.UpdateRoleRequest	true	"更新角色请求"
 //	@Success		200		{object}	response.Response		"成功响应"
 //	@Failure		400		{object}	response.Response		"请求错误"
 //	@Failure		404		{object}	response.Response		"角色不存在"
-//	@Router			/v1/roles/{code} [put]
+//	@Router			/v1/roles/update [put]
 func (h *RoleHandler) Update(c transport.Context) {
-	code := c.Param("code")
-	if code == "" {
-		httputils.WriteResponse(c, errors.ErrBadRequest.WithMessage("role code is required"), nil)
-		return
-	}
-
-	// Fetch existing role first
-	role, err := h.svc.Get(c.Request(), code)
-	if err != nil {
-		httputils.WriteResponse(c, err, nil)
-		return
-	}
-
 	var req v1.UpdateRoleRequest
 	if err := c.ShouldBindAndValidate(&req); err != nil {
 		httputils.WriteResponse(c, errors.ErrBadRequest.WithMessage(err.Error()), nil)
+		return
+	}
+
+	role, err := h.svc.Get(c.Request(), req.Code)
+	if err != nil {
+		httputils.WriteResponse(c, err, nil)
 		return
 	}
 
@@ -117,18 +110,18 @@ func (h *RoleHandler) Update(c transport.Context) {
 //	@Accept			json
 //	@Produce		json
 //	@Security		Bearer
-//	@Param			code	path		string				true	"角色代码"
+//	@Param			code	query		string				true	"角色代码"
 //	@Success		200		{object}	response.Response	"成功响应"
 //	@Failure		404		{object}	response.Response	"角色不存在"
-//	@Router			/v1/roles/{code} [delete]
+//	@Router			/v1/roles/delete [delete]
 func (h *RoleHandler) Delete(c transport.Context) {
-	code := c.Param("code")
-	if code == "" {
-		httputils.WriteResponse(c, errors.ErrBadRequest.WithMessage("role code is required"), nil)
+	var req v1.DeleteRoleRequest
+	if err := c.ShouldBindAndValidate(&req); err != nil {
+		httputils.WriteResponse(c, errors.ErrBadRequest.WithMessage(err.Error()), nil)
 		return
 	}
 
-	if err := h.svc.Delete(c.Request(), code); err != nil {
+	if err := h.svc.Delete(c.Request(), req.Code); err != nil {
 		httputils.WriteResponse(c, err, nil)
 		return
 	}
@@ -144,18 +137,18 @@ func (h *RoleHandler) Delete(c transport.Context) {
 //	@Accept			json
 //	@Produce		json
 //	@Security		Bearer
-//	@Param			code	path		string				true	"角色代码"
+//	@Param			code	query		string				true	"角色代码"
 //	@Success		200		{object}	response.Response	"成功响应"
 //	@Failure		404		{object}	response.Response	"角色不存在"
-//	@Router			/v1/roles/{code} [get]
+//	@Router			/v1/roles/detail [get]
 func (h *RoleHandler) Get(c transport.Context) {
-	code := c.Param("code")
-	if code == "" {
-		httputils.WriteResponse(c, errors.ErrBadRequest.WithMessage("role code is required"), nil)
+	var req v1.GetRoleRequest
+	if err := c.ShouldBindAndValidate(&req); err != nil {
+		httputils.WriteResponse(c, errors.ErrBadRequest.WithMessage(err.Error()), nil)
 		return
 	}
 
-	role, err := h.svc.Get(c.Request(), code)
+	role, err := h.svc.Get(c.Request(), req.Code)
 	if err != nil {
 		httputils.WriteResponse(c, err, nil)
 		return
@@ -207,31 +200,19 @@ func (h *RoleHandler) List(c transport.Context) {
 //	@Accept			json
 //	@Produce		json
 //	@Security		Bearer
-//	@Param			username	path		string					true	"用户名"
+//	@Param			username	query		string					true	"用户名"
 //	@Param			request		body		v1.AssignRoleRequest	true	"分配角色请求"
 //	@Success		200			{object}	response.Response		"成功响应"
 //	@Failure		400			{object}	response.Response		"请求错误"
-//	@Router			/v1/users/{username}/roles [post]
+//	@Router			/v1/users/roles [post]
 func (h *RoleHandler) AssignUserRole(c transport.Context) {
-	username := c.Param("username")
-	if username == "" {
-		httputils.WriteResponse(c, errors.ErrBadRequest.WithMessage("username is required"), nil)
-		return
-	}
-
 	var req v1.AssignRoleRequest
 	if err := c.ShouldBindAndValidate(&req); err != nil {
 		httputils.WriteResponse(c, errors.ErrBadRequest.WithMessage(err.Error()), nil)
 		return
 	}
 
-	// Check consistency if username is also in body
-	if req.Username != "" && req.Username != username {
-		httputils.WriteResponse(c, errors.ErrBadRequest.WithMessage("username mismatch"), nil)
-		return
-	}
-
-	if err := h.svc.AssignRoleToUser(c.Request(), username, req.RoleCode); err != nil {
+	if err := h.svc.AssignRoleToUser(c.Request(), req.Username, req.RoleCode); err != nil {
 		httputils.WriteResponse(c, err, nil)
 		return
 	}
@@ -247,20 +228,18 @@ func (h *RoleHandler) AssignUserRole(c transport.Context) {
 //	@Accept			json
 //	@Produce		json
 //	@Security		Bearer
-//	@Param			username	path		string				true	"用户名"
+//	@Param			username	query		string				true	"用户名"
 //	@Success		200			{object}	response.Response	"成功响应"
 //	@Failure		404			{object}	response.Response	"用户不存在"
-//	@Router			/v1/users/{username}/roles [get]
+//	@Router			/v1/users/roles [get]
 func (h *RoleHandler) ListUserRoles(c transport.Context) {
-	username := c.Param("username")
-	if username == "" {
-		resp := response.Err(errors.ErrBadRequest.WithMessage("username is required"))
-		defer response.Release(resp)
-		c.JSON(resp.HTTPStatus(), resp)
+	var req v1.GetUserRolesRequest
+	if err := c.ShouldBindAndValidate(&req); err != nil {
+		httputils.WriteResponse(c, errors.ErrBadRequest.WithMessage(err.Error()), nil)
 		return
 	}
 
-	roles, err := h.svc.GetUserRoles(c.Request(), username)
+	roles, err := h.svc.GetUserRoles(c.Request(), req.Username)
 	if err != nil {
 		httputils.WriteResponse(c, err, nil)
 		return

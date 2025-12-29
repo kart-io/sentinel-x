@@ -49,14 +49,14 @@ func Register(mgr *server.Manager, jwtAuth *jwt.JWT, userHandler *handler.UserHa
 			{
 				users.Handle("GET", "", userHandler.List)
 				users.Handle("POST", "/batch-delete", userHandler.BatchDelete)
-				users.Handle("GET", "/:username", userHandler.Get)
-				users.Handle("PUT", "/:username", userHandler.Update)
-				users.Handle("DELETE", "/:username", userHandler.Delete)
-				users.Handle("POST", "/:username/password", userHandler.UpdatePassword)
+				users.Handle("GET", "/detail", userHandler.Get)
+				users.Handle("PUT", "/update", userHandler.Update)
+				users.Handle("DELETE", "/delete", userHandler.Delete)
+				users.Handle("POST", "/password", userHandler.UpdatePassword)
 
 				// User Role Assignment
-				users.Handle("POST", "/:username/roles", roleHandler.AssignUserRole)
-				users.Handle("GET", "/:username/roles", roleHandler.ListUserRoles)
+				users.Handle("POST", "/roles", roleHandler.AssignUserRole)
+				users.Handle("GET", "/roles", roleHandler.ListUserRoles)
 			}
 
 			// Role Routes
@@ -65,9 +65,9 @@ func Register(mgr *server.Manager, jwtAuth *jwt.JWT, userHandler *handler.UserHa
 			{
 				roles.Handle("POST", "", roleHandler.Create)
 				roles.Handle("GET", "", roleHandler.List)
-				roles.Handle("GET", "/:code", roleHandler.Get)
-				roles.Handle("PUT", "/:code", roleHandler.Update)
-				roles.Handle("DELETE", "/:code", roleHandler.Delete)
+				roles.Handle("GET", "/detail", roleHandler.Get)
+				roles.Handle("PUT", "/update", roleHandler.Update)
+				roles.Handle("DELETE", "/delete", roleHandler.Delete)
 			}
 		}
 

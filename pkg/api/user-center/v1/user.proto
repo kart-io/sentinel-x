@@ -52,6 +52,10 @@ message UpdateUserRequest {
   string mobile = 3 [(validate.rules).string = {pattern: "^$|^1[3-9]\\d{9}$", ignore_empty: true}];
 }
 
+message GetUserRequest {
+  string username = 1 [(validate.rules).string = {min_len: 1}];
+}
+
 message DeleteUserRequest {
   string username = 1 [(validate.rules).string = {min_len: 1}];
 }

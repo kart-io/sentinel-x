@@ -482,6 +482,7 @@ func (m *UpdateUserRequest) validate(all bool) error {
 	}
 
 	if m.GetEmail() != "" {
+
 		if err := m._validateEmail(m.GetEmail()); err != nil {
 			err = UpdateUserRequestValidationError{
 				field:  "Email",
@@ -493,9 +494,11 @@ func (m *UpdateUserRequest) validate(all bool) error {
 			}
 			errors = append(errors, err)
 		}
+
 	}
 
 	if m.GetMobile() != "" {
+
 		if !_UpdateUserRequest_Mobile_Pattern.MatchString(m.GetMobile()) {
 			err := UpdateUserRequestValidationError{
 				field:  "Mobile",
@@ -506,6 +509,7 @@ func (m *UpdateUserRequest) validate(all bool) error {
 			}
 			errors = append(errors, err)
 		}
+
 	}
 
 	if len(errors) > 0 {
@@ -639,6 +643,117 @@ var _ interface {
 } = UpdateUserRequestValidationError{}
 
 var _UpdateUserRequest_Mobile_Pattern = regexp.MustCompile("^$|^1[3-9]\\d{9}$")
+
+// Validate checks the field values on GetUserRequest with the rules defined in
+// the proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *GetUserRequest) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on GetUserRequest with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in GetUserRequestMultiError,
+// or nil if none found.
+func (m *GetUserRequest) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *GetUserRequest) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if utf8.RuneCountInString(m.GetUsername()) < 1 {
+		err := GetUserRequestValidationError{
+			field:  "Username",
+			reason: "value length must be at least 1 runes",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if len(errors) > 0 {
+		return GetUserRequestMultiError(errors)
+	}
+
+	return nil
+}
+
+// GetUserRequestMultiError is an error wrapping multiple validation errors
+// returned by GetUserRequest.ValidateAll() if the designated constraints
+// aren't met.
+type GetUserRequestMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m GetUserRequestMultiError) Error() string {
+	msgs := make([]string, 0, len(m))
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m GetUserRequestMultiError) AllErrors() []error { return m }
+
+// GetUserRequestValidationError is the validation error returned by
+// GetUserRequest.Validate if the designated constraints aren't met.
+type GetUserRequestValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e GetUserRequestValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e GetUserRequestValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e GetUserRequestValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e GetUserRequestValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e GetUserRequestValidationError) ErrorName() string { return "GetUserRequestValidationError" }
+
+// Error satisfies the builtin error interface
+func (e GetUserRequestValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sGetUserRequest.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = GetUserRequestValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = GetUserRequestValidationError{}
 
 // Validate checks the field values on DeleteUserRequest with the rules defined
 // in the proto definition for this message. If any rules are violated, the
@@ -1577,6 +1692,7 @@ func (m *RegisterRequest) validate(all bool) error {
 	}
 
 	if m.GetMobile() != "" {
+
 		if !_RegisterRequest_Mobile_Pattern.MatchString(m.GetMobile()) {
 			err := RegisterRequestValidationError{
 				field:  "Mobile",
@@ -1587,6 +1703,7 @@ func (m *RegisterRequest) validate(all bool) error {
 			}
 			errors = append(errors, err)
 		}
+
 	}
 
 	if len(errors) > 0 {
@@ -2096,6 +2213,7 @@ func (m *UpdateRoleRequest) validate(all bool) error {
 	}
 
 	if m.GetName() != "" {
+
 		if l := utf8.RuneCountInString(m.GetName()); l < 2 || l > 64 {
 			err := UpdateRoleRequestValidationError{
 				field:  "Name",
@@ -2106,9 +2224,11 @@ func (m *UpdateRoleRequest) validate(all bool) error {
 			}
 			errors = append(errors, err)
 		}
+
 	}
 
 	if m.GetDescription() != "" {
+
 		if utf8.RuneCountInString(m.GetDescription()) > 255 {
 			err := UpdateRoleRequestValidationError{
 				field:  "Description",
@@ -2119,6 +2239,7 @@ func (m *UpdateRoleRequest) validate(all bool) error {
 			}
 			errors = append(errors, err)
 		}
+
 	}
 
 	if all {

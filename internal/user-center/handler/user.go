@@ -76,27 +76,21 @@ func (h *UserHandler) Create(c transport.Context) {
 //	@Accept			json
 //	@Produce		json
 //	@Security		Bearer
-//	@Param			username	path		string					true	"用户名"
+//	@Param			username	query		string					true	"用户名"
 //	@Param			request		body		v1.UpdateUserRequest	true	"更新用户请求"
 //	@Success		200			{object}	response.Response		"成功响应"
 //	@Failure		400			{object}	response.Response		"请求错误"
 //	@Failure		404			{object}	response.Response		"用户不存在"
-//	@Router			/v1/users/{username} [put]
+//	@Router			/v1/users/update [put]
 func (h *UserHandler) Update(c transport.Context) {
-	username := c.Param("username")
-	if username == "" {
-		httputils.WriteResponse(c, errors.ErrBadRequest.WithMessage("username is required"), nil)
-		return
-	}
-
-	user, err := h.svc.Get(c.Request(), username)
-	if err != nil {
-		httputils.WriteResponse(c, err, nil)
-		return
-	}
-
 	var req v1.UpdateUserRequest
 	if err := c.ShouldBindAndValidate(&req); err != nil {
+		httputils.WriteResponse(c, errors.ErrBadRequest.WithMessage(err.Error()), nil)
+		return
+	}
+
+	user, err := h.svc.Get(c.Request(), req.Username)
+	if err != nil {
 		httputils.WriteResponse(c, err, nil)
 		return
 	}
@@ -124,20 +118,18 @@ func (h *UserHandler) Update(c transport.Context) {
 //	@Accept			json
 //	@Produce		json
 //	@Security		Bearer
-//	@Param			username	path		string				true	"用户名"
+//	@Param			username	query		string				true	"用户名"
 //	@Success		200			{object}	response.Response	"成功响应"
 //	@Failure		404			{object}	response.Response	"用户不存在"
-//	@Router			/v1/users/{username} [delete]
+//	@Router			/v1/users/delete [delete]
 func (h *UserHandler) Delete(c transport.Context) {
-	username := c.Param("username")
-	if username == "" {
-		resp := response.Err(errors.ErrBadRequest.WithMessage("username is required"))
-		defer response.Release(resp)
-		c.JSON(resp.HTTPStatus(), resp)
+	var req v1.DeleteUserRequest
+	if err := c.ShouldBindAndValidate(&req); err != nil {
+		httputils.WriteResponse(c, errors.ErrBadRequest.WithMessage(err.Error()), nil)
 		return
 	}
 
-	if err := h.svc.Delete(c.Request(), username); err != nil {
+	if err := h.svc.Delete(c.Request(), req.Username); err != nil {
 		httputils.WriteResponse(c, err, nil)
 		return
 	}
@@ -184,20 +176,18 @@ func (h *UserHandler) BatchDelete(c transport.Context) {
 //	@Accept			json
 //	@Produce		json
 //	@Security		Bearer
-//	@Param			username	path		string				true	"用户名"
+//	@Param			username	query		string				true	"用户名"
 //	@Success		200			{object}	response.Response	"成功响应"
 //	@Failure		404			{object}	response.Response	"用户不存在"
-//	@Router			/v1/users/{username} [get]
+//	@Router			/v1/users/detail [get]
 func (h *UserHandler) Get(c transport.Context) {
-	username := c.Param("username")
-	if username == "" {
-		resp := response.Err(errors.ErrBadRequest.WithMessage("username is required"))
-		defer response.Release(resp)
-		c.JSON(resp.HTTPStatus(), resp)
+	var req v1.GetUserRequest
+	if err := c.ShouldBindAndValidate(&req); err != nil {
+		httputils.WriteResponse(c, errors.ErrBadRequest.WithMessage(err.Error()), nil)
 		return
 	}
 
-	user, err := h.svc.Get(c.Request(), username)
+	user, err := h.svc.Get(c.Request(), req.Username)
 	if err != nil {
 		httputils.WriteResponse(c, err, nil)
 		return
@@ -280,25 +270,15 @@ func (h *UserHandler) GetProfile(c transport.Context) {
 //	@Accept			json
 //	@Produce		json
 //	@Security		Bearer
-//	@Param			username	path		string						true	"用户名"
+//	@Param			username	query		string						true	"用户名"
 //	@Param			request		body		v1.ChangePasswordRequest	true	"修改密码请求"
 //	@Success		200			{object}	response.Response			"成功响应"
 //	@Failure		400			{object}	response.Response			"请求错误"
-//	@Router			/v1/users/{username}/password [post]
+//	@Router			/v1/users/password [post]
 func (h *UserHandler) UpdatePassword(c transport.Context) {
-	username := c.Param("username")
-	if username == "" {
-		resp := response.Err(errors.ErrBadRequest.WithMessage("username is required"))
-		defer response.Release(resp)
-		c.JSON(resp.HTTPStatus(), resp)
-		return
-	}
-
 	var req v1.ChangePasswordRequest
 	if err := c.ShouldBindAndValidate(&req); err != nil {
-		resp := response.Err(errors.ErrBadRequest.WithMessage(err.Error()))
-		defer response.Release(resp)
-		c.JSON(resp.HTTPStatus(), resp)
+		httputils.WriteResponse(c, errors.ErrBadRequest.WithMessage(err.Error()), nil)
 		return
 	}
 
@@ -309,12 +289,12 @@ func (h *UserHandler) UpdatePassword(c transport.Context) {
 	}
 
 	// Verify old password
-	if err := h.svc.ValidatePassword(c.Request(), username, req.OldPassword); err != nil {
+	if err := h.svc.ValidatePassword(c.Request(), req.Username, req.OldPassword); err != nil {
 		httputils.WriteResponse(c, err, nil)
 		return
 	}
 
-	if err := h.svc.ChangePassword(c.Request(), username, req.NewPassword); err != nil {
+	if err := h.svc.ChangePassword(c.Request(), req.Username, req.NewPassword); err != nil {
 		httputils.WriteResponse(c, err, nil)
 		return
 	}

@@ -65,9 +65,17 @@ func (c *RequestContext) Redirect(code int, url string) {
 	c.written = true
 }
 
-// Bind binds the request body to the given struct.
-// Supports JSON and Form content types.
+// Bind binds the request to the given struct.
+// For GET/DELETE/HEAD requests, binds from query parameters.
+// For other requests, binds from body (JSON/Form).
 func (c *RequestContext) Bind(v interface{}) error {
+	method := c.request.Method
+
+	// For GET, DELETE, HEAD requests, bind from query parameters
+	if method == "GET" || method == "DELETE" || method == "HEAD" {
+		return bindForm(c.request, v)
+	}
+
 	contentType := c.Header("Content-Type")
 
 	// Handle Multipart Form
