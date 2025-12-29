@@ -15,22 +15,22 @@ import (
 
 // AuthService 处理认证业务逻辑
 type AuthService struct {
-	jwtAuth *jwt.JWT
-	store   store.Factory
+	jwtAuth   *jwt.JWT
+	userStore *store.UserStore
 }
 
 // NewAuthService 创建新的 AuthService
-func NewAuthService(jwtAuth *jwt.JWT, store store.Factory) *AuthService {
+func NewAuthService(jwtAuth *jwt.JWT, userStore *store.UserStore) *AuthService {
 	return &AuthService{
-		jwtAuth: jwtAuth,
-		store:   store,
+		jwtAuth:   jwtAuth,
+		userStore: userStore,
 	}
 }
 
 // Login 用户登录并返回访问令牌
 func (s *AuthService) Login(ctx context.Context, req *model.LoginRequest) (*model.LoginResponse, error) {
 	// 获取用户信息
-	user, err := s.store.Users().Get(ctx, req.Username)
+	user, err := s.userStore.Get(ctx, req.Username)
 	if err != nil {
 		return nil, errors.ErrUnauthorized.WithMessage("无效的用户名或密码")
 	}
@@ -71,7 +71,7 @@ func (s *AuthService) Logout(ctx context.Context, token string) error {
 // Register 注册新用户
 func (s *AuthService) Register(ctx context.Context, req *model.RegisterRequest) error {
 	// 检查用户名是否已存在
-	existingUser, err := s.store.Users().Get(ctx, req.Username)
+	existingUser, err := s.userStore.Get(ctx, req.Username)
 	if err != nil {
 		// 区分"用户不存在"和"数据库错误"两种情况
 		if !stderrors.Is(err, errors.ErrUserNotFound) {
@@ -96,5 +96,5 @@ func (s *AuthService) Register(ctx context.Context, req *model.RegisterRequest) 
 		Status:   1,
 	}
 
-	return s.store.Users().Create(ctx, user)
+	return s.userStore.Create(ctx, user)
 }

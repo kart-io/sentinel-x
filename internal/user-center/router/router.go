@@ -3,11 +3,8 @@ package router
 
 import (
 	"github.com/kart-io/logger"
-	"github.com/kart-io/sentinel-x/internal/user-center/biz"
 	"github.com/kart-io/sentinel-x/internal/user-center/handler"
-	"github.com/kart-io/sentinel-x/internal/user-center/store"
 	v1 "github.com/kart-io/sentinel-x/pkg/api/user-center/v1"
-	"github.com/kart-io/sentinel-x/pkg/infra/datasource"
 	"github.com/kart-io/sentinel-x/pkg/infra/middleware"
 	"github.com/kart-io/sentinel-x/pkg/infra/server"
 	"github.com/kart-io/sentinel-x/pkg/security/auth/jwt"
@@ -15,28 +12,8 @@ import (
 )
 
 // Register registers the user center routes and services.
-func Register(mgr *server.Manager, jwtAuth *jwt.JWT, ds *datasource.Manager) error {
+func Register(mgr *server.Manager, jwtAuth *jwt.JWT, userHandler *handler.UserHandler, roleHandler *handler.RoleHandler, authHandler *handler.AuthHandler) error {
 	logger.Info("Registering user center routes...")
-
-	// Initialize Store
-	storeFactory, err := store.GetFactory(ds)
-	if err != nil {
-		return err
-	}
-
-	// Auto Migration
-	if err := storeFactory.AutoMigrate(); err != nil {
-		return err
-	}
-
-	// Initialize Biz and Handlers
-	userBiz := biz.NewUserService(storeFactory)
-	roleBiz := biz.NewRoleService(storeFactory)
-	authBiz := biz.NewAuthService(jwtAuth, storeFactory)
-
-	userHandler := handler.NewUserHandler(userBiz, roleBiz, authBiz)
-	roleHandler := handler.NewRoleHandler(roleBiz)
-	authHandler := handler.NewAuthHandler(authBiz)
 
 	// HTTP Server
 	if httpServer := mgr.HTTPServer(); httpServer != nil {

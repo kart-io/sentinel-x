@@ -11,17 +11,19 @@ import (
 	"github.com/kart-io/sentinel-x/pkg/utils/errors"
 )
 
-type roles struct {
+// RoleStore 角色数据访问层
+type RoleStore struct {
 	db *gorm.DB
 }
 
-func newRoles(db *gorm.DB) *roles {
-	return &roles{db}
+// NewRoleStore 创建角色存储实例
+func NewRoleStore(db *gorm.DB) *RoleStore {
+	return &RoleStore{db: db}
 }
 
 // Create creates a new role.
-func (r *roles) Create(ctx context.Context, role *model.Role) error {
-	if err := r.db.WithContext(ctx).Create(role).Error; err != nil {
+func (s *RoleStore) Create(ctx context.Context, role *model.Role) error {
+	if err := s.db.WithContext(ctx).Create(role).Error; err != nil {
 		if stderrors.Is(err, gorm.ErrDuplicatedKey) {
 			return errors.ErrAlreadyExists.WithMessage("role code already exists")
 		}
@@ -31,8 +33,8 @@ func (r *roles) Create(ctx context.Context, role *model.Role) error {
 }
 
 // Update updates an existing role.
-func (r *roles) Update(ctx context.Context, role *model.Role) error {
-	result := r.db.WithContext(ctx).Save(role)
+func (s *RoleStore) Update(ctx context.Context, role *model.Role) error {
+	result := s.db.WithContext(ctx).Save(role)
 	if result.Error != nil {
 		return errors.ErrDatabase.WithCause(result.Error)
 	}
@@ -43,8 +45,8 @@ func (r *roles) Update(ctx context.Context, role *model.Role) error {
 }
 
 // Delete deletes a role by code.
-func (r *roles) Delete(ctx context.Context, code string) error {
-	result := r.db.WithContext(ctx).Where("code = ?", code).Delete(&model.Role{})
+func (s *RoleStore) Delete(ctx context.Context, code string) error {
+	result := s.db.WithContext(ctx).Where("code = ?", code).Delete(&model.Role{})
 	if result.Error != nil {
 		return errors.ErrDatabase.WithCause(result.Error)
 	}
@@ -55,9 +57,9 @@ func (r *roles) Delete(ctx context.Context, code string) error {
 }
 
 // Get retrieves a role by code.
-func (r *roles) Get(ctx context.Context, code string) (*model.Role, error) {
+func (s *RoleStore) Get(ctx context.Context, code string) (*model.Role, error) {
 	var role model.Role
-	if err := r.db.WithContext(ctx).Where("code = ?", code).First(&role).Error; err != nil {
+	if err := s.db.WithContext(ctx).Where("code = ?", code).First(&role).Error; err != nil {
 		if stderrors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.ErrNotFound.WithMessage("role not found")
 		}
@@ -67,11 +69,11 @@ func (r *roles) Get(ctx context.Context, code string) (*model.Role, error) {
 }
 
 // List lists roles with pagination.
-func (r *roles) List(ctx context.Context, opts ...store.Option) (int64, []*model.Role, error) {
+func (s *RoleStore) List(ctx context.Context, opts ...store.Option) (int64, []*model.Role, error) {
 	var count int64
 	var roles []*model.Role
 
-	db := store.NewWhere(opts...).Where(r.db.WithContext(ctx))
+	db := store.NewWhere(opts...).Where(s.db.WithContext(ctx))
 
 	if err := db.Model(&model.Role{}).Count(&count).Error; err != nil {
 		return 0, nil, errors.ErrDatabase.WithCause(err)
@@ -86,12 +88,12 @@ func (r *roles) List(ctx context.Context, opts ...store.Option) (int64, []*model
 }
 
 // AssignRole assigns a role to a user.
-func (r *roles) AssignRole(ctx context.Context, userID, roleID uint64) error {
+func (s *RoleStore) AssignRole(ctx context.Context, userID, roleID uint64) error {
 	userRole := &model.UserRole{
 		UserID: userID,
 		RoleID: roleID,
 	}
-	if err := r.db.WithContext(ctx).Create(userRole).Error; err != nil {
+	if err := s.db.WithContext(ctx).Create(userRole).Error; err != nil {
 		if stderrors.Is(err, gorm.ErrDuplicatedKey) {
 			return errors.ErrAlreadyExists.WithMessage("user already has this role")
 		}
@@ -101,8 +103,8 @@ func (r *roles) AssignRole(ctx context.Context, userID, roleID uint64) error {
 }
 
 // RevokeRole revokes a role from a user.
-func (r *roles) RevokeRole(ctx context.Context, userID, roleID uint64) error {
-	result := r.db.WithContext(ctx).Where("user_id = ? AND role_id = ?", userID, roleID).Delete(&model.UserRole{})
+func (s *RoleStore) RevokeRole(ctx context.Context, userID, roleID uint64) error {
+	result := s.db.WithContext(ctx).Where("user_id = ? AND role_id = ?", userID, roleID).Delete(&model.UserRole{})
 	if result.Error != nil {
 		return errors.ErrDatabase.WithCause(result.Error)
 	}
@@ -113,9 +115,9 @@ func (r *roles) RevokeRole(ctx context.Context, userID, roleID uint64) error {
 }
 
 // ListByUserID lists roles assigned to a user.
-func (r *roles) ListByUserID(ctx context.Context, userID uint64) ([]*model.Role, error) {
+func (s *RoleStore) ListByUserID(ctx context.Context, userID uint64) ([]*model.Role, error) {
 	var roles []*model.Role
-	err := r.db.WithContext(ctx).
+	err := s.db.WithContext(ctx).
 		Joins("JOIN user_roles ON user_roles.role_id = roles.id").
 		Where("user_roles.user_id = ?", userID).
 		Find(&roles).Error

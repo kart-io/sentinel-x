@@ -13,12 +13,12 @@ import (
 
 // UserService 处理用户业务逻辑
 type UserService struct {
-	store store.Factory
+	userStore *store.UserStore
 }
 
 // NewUserService 创建新的 UserService
-func NewUserService(store store.Factory) *UserService {
-	return &UserService{store: store}
+func NewUserService(userStore *store.UserStore) *UserService {
+	return &UserService{userStore: userStore}
 }
 
 // Create 创建新用户并加密密码
@@ -28,37 +28,37 @@ func (s *UserService) Create(ctx context.Context, user *model.User) error {
 		return errors.ErrInternal.WithCause(err)
 	}
 	user.Password = string(hashedPassword)
-	return s.store.Users().Create(ctx, user)
+	return s.userStore.Create(ctx, user)
 }
 
 // Update 更新现有用户
 func (s *UserService) Update(ctx context.Context, user *model.User) error {
-	return s.store.Users().Update(ctx, user)
+	return s.userStore.Update(ctx, user)
 }
 
 // Delete 删除用户
 func (s *UserService) Delete(ctx context.Context, username string) error {
-	return s.store.Users().Delete(ctx, username)
+	return s.userStore.Delete(ctx, username)
 }
 
 // Get 检索用户
 func (s *UserService) Get(ctx context.Context, username string) (*model.User, error) {
-	return s.store.Users().Get(ctx, username)
+	return s.userStore.Get(ctx, username)
 }
 
 // GetByUserID retrieves a user by ID.
 func (s *UserService) GetByUserID(ctx context.Context, userID uint64) (*model.User, error) {
-	return s.store.Users().GetByUserID(ctx, userID)
+	return s.userStore.GetByUserID(ctx, userID)
 }
 
 // List 列出用户
 func (s *UserService) List(ctx context.Context, opts ...storepkg.Option) (int64, []*model.User, error) {
-	return s.store.Users().List(ctx, opts...)
+	return s.userStore.List(ctx, opts...)
 }
 
 // ChangePassword 更改用户密码
 func (s *UserService) ChangePassword(ctx context.Context, username, newPassword string) error {
-	user, err := s.store.Users().Get(ctx, username)
+	user, err := s.userStore.Get(ctx, username)
 	if err != nil {
 		return err
 	}
@@ -69,12 +69,12 @@ func (s *UserService) ChangePassword(ctx context.Context, username, newPassword 
 	}
 
 	user.Password = string(hashedPassword)
-	return s.store.Users().Update(ctx, user)
+	return s.userStore.Update(ctx, user)
 }
 
 // ValidatePassword 验证提供的密码是否与存储的哈希匹配
 func (s *UserService) ValidatePassword(ctx context.Context, username, password string) error {
-	user, err := s.store.Users().Get(ctx, username)
+	user, err := s.userStore.Get(ctx, username)
 	if err != nil {
 		return err
 	}

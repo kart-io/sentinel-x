@@ -10,75 +10,79 @@ import (
 
 // RoleService handles role-related business logic.
 type RoleService struct {
-	store store.Factory
+	roleStore *store.RoleStore
+	userStore *store.UserStore
 }
 
 // NewRoleService creates a new RoleService.
-func NewRoleService(store store.Factory) *RoleService {
-	return &RoleService{store: store}
+func NewRoleService(roleStore *store.RoleStore, userStore *store.UserStore) *RoleService {
+	return &RoleService{
+		roleStore: roleStore,
+		userStore: userStore,
+	}
 }
 
 // Create creates a new role.
 func (s *RoleService) Create(ctx context.Context, role *model.Role) error {
-	return s.store.Roles().Create(ctx, role)
+	return s.roleStore.Create(ctx, role)
 }
 
 // Update updates an existing role.
 func (s *RoleService) Update(ctx context.Context, role *model.Role) error {
-	return s.store.Roles().Update(ctx, role)
+	return s.roleStore.Update(ctx, role)
 }
 
 // Delete deletes a role by code.
 func (s *RoleService) Delete(ctx context.Context, code string) error {
-	return s.store.Roles().Delete(ctx, code)
+	return s.roleStore.Delete(ctx, code)
 }
 
 // Get retrieves a role by code.
 func (s *RoleService) Get(ctx context.Context, code string) (*model.Role, error) {
-	return s.store.Roles().Get(ctx, code)
+	return s.roleStore.Get(ctx, code)
 }
 
 // List lists roles with pagination.
 func (s *RoleService) List(ctx context.Context, opts ...storepkg.Option) (int64, []*model.Role, error) {
-	return s.store.Roles().List(ctx, opts...)
+	return s.roleStore.List(ctx, opts...)
 }
 
 // AssignRoleToUser assigns a specific role to a user.
 func (s *RoleService) AssignRoleToUser(ctx context.Context, username, roleCode string) error {
-	user, err := s.store.Users().Get(ctx, username)
+	user, err := s.userStore.Get(ctx, username)
 	if err != nil {
 		return err
 	}
 
-	role, err := s.store.Roles().Get(ctx, roleCode)
+	role, err := s.roleStore.Get(ctx, roleCode)
 	if err != nil {
 		return err
 	}
 
-	return s.store.Roles().AssignRole(ctx, user.ID, role.ID)
+	return s.roleStore.AssignRole(ctx, user.ID, role.ID)
 }
 
 // RevokeRoleFromUser revokes a role from a user.
 func (s *RoleService) RevokeRoleFromUser(ctx context.Context, username, roleCode string) error {
-	user, err := s.store.Users().Get(ctx, username)
+	user, err := s.userStore.Get(ctx, username)
 	if err != nil {
 		return err
 	}
 
-	role, err := s.store.Roles().Get(ctx, roleCode)
+	role, err := s.roleStore.Get(ctx, roleCode)
 	if err != nil {
 		return err
 	}
 
-	return s.store.Roles().RevokeRole(ctx, user.ID, role.ID)
+	return s.roleStore.RevokeRole(ctx, user.ID, role.ID)
 }
 
 // GetUserRoles retrieves all roles assigned to a user.
 func (s *RoleService) GetUserRoles(ctx context.Context, username string) ([]*model.Role, error) {
-	user, err := s.store.Users().Get(ctx, username)
+	user, err := s.userStore.Get(ctx, username)
 	if err != nil {
 		return nil, err
 	}
 
-	return s.store.Roles().ListByUserID(ctx, user.ID)
+	return s.roleStore.ListByUserID(ctx, user.ID)
 }

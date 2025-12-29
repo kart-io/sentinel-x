@@ -11,17 +11,19 @@ import (
 	"github.com/kart-io/sentinel-x/pkg/utils/errors"
 )
 
-type users struct {
+// UserStore 用户数据访问层
+type UserStore struct {
 	db *gorm.DB
 }
 
-func newUsers(db *gorm.DB) *users {
-	return &users{db}
+// NewUserStore 创建用户存储实例
+func NewUserStore(db *gorm.DB) *UserStore {
+	return &UserStore{db: db}
 }
 
 // Create 创建新用户
-func (u *users) Create(ctx context.Context, user *model.User) error {
-	if err := u.db.WithContext(ctx).Create(user).Error; err != nil {
+func (s *UserStore) Create(ctx context.Context, user *model.User) error {
+	if err := s.db.WithContext(ctx).Create(user).Error; err != nil {
 		// 检查唯一键冲突
 		if stderrors.Is(err, gorm.ErrDuplicatedKey) {
 			return errors.ErrAlreadyExists.WithMessage("用户名或邮箱已存在")
@@ -32,8 +34,8 @@ func (u *users) Create(ctx context.Context, user *model.User) error {
 }
 
 // Update 更新现有用户
-func (u *users) Update(ctx context.Context, user *model.User) error {
-	result := u.db.WithContext(ctx).Save(user)
+func (s *UserStore) Update(ctx context.Context, user *model.User) error {
+	result := s.db.WithContext(ctx).Save(user)
 	if result.Error != nil {
 		return errors.ErrDatabase.WithCause(result.Error)
 	}
@@ -44,8 +46,8 @@ func (u *users) Update(ctx context.Context, user *model.User) error {
 }
 
 // Delete 根据用户名删除用户
-func (u *users) Delete(ctx context.Context, username string) error {
-	result := u.db.WithContext(ctx).Where("username = ?", username).Delete(&model.User{})
+func (s *UserStore) Delete(ctx context.Context, username string) error {
+	result := s.db.WithContext(ctx).Where("username = ?", username).Delete(&model.User{})
 	if result.Error != nil {
 		return errors.ErrDatabase.WithCause(result.Error)
 	}
@@ -56,9 +58,9 @@ func (u *users) Delete(ctx context.Context, username string) error {
 }
 
 // Get 根据用户名检索用户
-func (u *users) Get(ctx context.Context, username string) (*model.User, error) {
+func (s *UserStore) Get(ctx context.Context, username string) (*model.User, error) {
 	var user model.User
-	if err := u.db.WithContext(ctx).Where("username = ?", username).First(&user).Error; err != nil {
+	if err := s.db.WithContext(ctx).Where("username = ?", username).First(&user).Error; err != nil {
 		if stderrors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.ErrUserNotFound
 		}
@@ -68,9 +70,9 @@ func (u *users) Get(ctx context.Context, username string) (*model.User, error) {
 }
 
 // GetByUserId 根据用户 ID 检索用户
-func (u *users) GetByUserID(ctx context.Context, userID uint64) (*model.User, error) {
+func (s *UserStore) GetByUserID(ctx context.Context, userID uint64) (*model.User, error) {
 	var user model.User
-	if err := u.db.WithContext(ctx).Where("id = ?", userID).First(&user).Error; err != nil {
+	if err := s.db.WithContext(ctx).Where("id = ?", userID).First(&user).Error; err != nil {
 		if stderrors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.ErrUserNotFound
 		}
@@ -92,13 +94,13 @@ func (u *users) GetByUserID(ctx context.Context, userID uint64) (*model.User, er
 //   - int64: 符合条件的总记录数
 //   - []*model.User: 当前页的用户列表（不包含 password 字段）
 //   - error: 查询失败时返回的错误
-func (u *users) List(ctx context.Context, opts ...store.Option) (int64, []*model.User, error) {
+func (s *UserStore) List(ctx context.Context, opts ...store.Option) (int64, []*model.User, error) {
 	var results []struct {
 		model.User
 		TotalCount int64 `gorm:"column:total_count"`
 	}
 
-	db := store.NewWhere(opts...).Where(u.db.WithContext(ctx))
+	db := store.NewWhere(opts...).Where(s.db.WithContext(ctx))
 
 	// 使用窗口函数 COUNT(*) OVER() 在单次查询中获取总数和分页数据
 	// 明确指定字段列表，排除 password 和 deleted_at 等敏感字段
