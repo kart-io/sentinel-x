@@ -68,12 +68,11 @@ func (h *RoleHandler) Create(c transport.Context) {
 //	@Accept			json
 //	@Produce		json
 //	@Security		Bearer
-//	@Param			code	query		string					true	"角色代码"
 //	@Param			request	body		v1.UpdateRoleRequest	true	"更新角色请求"
 //	@Success		200		{object}	response.Response		"成功响应"
 //	@Failure		400		{object}	response.Response		"请求错误"
 //	@Failure		404		{object}	response.Response		"角色不存在"
-//	@Router			/v1/roles/update [put]
+//	@Router			/v1/roles [put]
 func (h *RoleHandler) Update(c transport.Context) {
 	var req v1.UpdateRoleRequest
 	if err := c.ShouldBindAndValidate(&req); err != nil {
@@ -87,11 +86,15 @@ func (h *RoleHandler) Update(c transport.Context) {
 		return
 	}
 
-	if req.Name != "" {
-		role.Name = req.Name
+	// 只有字段不为 nil 时才更新（nil = 不更新，非 nil = 更新包括空值）
+	if req.Name != nil {
+		role.Name = req.Name.Value
 	}
-	if req.Description != "" {
-		role.Description = req.Description
+	if req.Description != nil {
+		role.Description = req.Description.Value
+	}
+	if req.Status != nil {
+		role.Status = int(req.Status.Value)
 	}
 
 	if err := h.svc.Update(c.Request(), role); err != nil {
@@ -113,7 +116,7 @@ func (h *RoleHandler) Update(c transport.Context) {
 //	@Param			code	query		string				true	"角色代码"
 //	@Success		200		{object}	response.Response	"成功响应"
 //	@Failure		404		{object}	response.Response	"角色不存在"
-//	@Router			/v1/roles/delete [delete]
+//	@Router			/v1/roles [delete]
 func (h *RoleHandler) Delete(c transport.Context) {
 	var req v1.DeleteRoleRequest
 	if err := c.ShouldBindAndValidate(&req); err != nil {
@@ -200,8 +203,7 @@ func (h *RoleHandler) List(c transport.Context) {
 //	@Accept			json
 //	@Produce		json
 //	@Security		Bearer
-//	@Param			username	query		string					true	"用户名"
-//	@Param			request		body		v1.AssignRoleRequest	true	"分配角色请求"
+//	@Param			request	body		v1.AssignRoleRequest	true	"分配角色请求"
 //	@Success		200			{object}	response.Response		"成功响应"
 //	@Failure		400			{object}	response.Response		"请求错误"
 //	@Router			/v1/users/roles [post]
@@ -278,11 +280,11 @@ func (h *RoleHandler) UpdateRole(ctx context.Context, req *v1.UpdateRoleRequest)
 		return nil, err
 	}
 
-	if req.Name != "" {
-		role.Name = req.Name
+	if req.Name != nil {
+		role.Name = req.Name.Value
 	}
-	if req.Description != "" {
-		role.Description = req.Description
+	if req.Description != nil {
+		role.Description = req.Description.Value
 	}
 	if req.Status != nil {
 		role.Status = int(req.Status.Value)

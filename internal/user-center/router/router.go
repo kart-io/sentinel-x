@@ -50,8 +50,8 @@ func Register(mgr *server.Manager, jwtAuth *jwt.JWT, userHandler *handler.UserHa
 				users.Handle("GET", "", userHandler.List)
 				users.Handle("POST", "/batch-delete", userHandler.BatchDelete)
 				users.Handle("GET", "/detail", userHandler.Get)
-				users.Handle("PUT", "/update", userHandler.Update)
-				users.Handle("DELETE", "/delete", userHandler.Delete)
+				users.Handle("PUT", "", userHandler.Update)
+				users.Handle("DELETE", "", userHandler.Delete)
 				users.Handle("POST", "/password", userHandler.UpdatePassword)
 
 				// User Role Assignment
@@ -66,8 +66,8 @@ func Register(mgr *server.Manager, jwtAuth *jwt.JWT, userHandler *handler.UserHa
 				roles.Handle("POST", "", roleHandler.Create)
 				roles.Handle("GET", "", roleHandler.List)
 				roles.Handle("GET", "/detail", roleHandler.Get)
-				roles.Handle("PUT", "/update", roleHandler.Update)
-				roles.Handle("DELETE", "/delete", roleHandler.Delete)
+				roles.Handle("PUT", "", roleHandler.Update)
+				roles.Handle("DELETE", "", roleHandler.Delete)
 			}
 		}
 

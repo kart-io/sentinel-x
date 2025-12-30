@@ -229,10 +229,10 @@ func (x *CreateUserRequest) GetMobile() string {
 }
 
 type UpdateUserRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Username      string                 `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"` // Path param usually
-	Email         string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
-	Mobile        string                 `protobuf:"bytes,3,opt,name=mobile,proto3" json:"mobile,omitempty"`
+	state         protoimpl.MessageState  `protogen:"open.v1"`
+	Username      string                  `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"` // Path param usually
+	Email         *wrapperspb.StringValue `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
+	Mobile        *wrapperspb.StringValue `protobuf:"bytes,3,opt,name=mobile,proto3" json:"mobile,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -274,18 +274,18 @@ func (x *UpdateUserRequest) GetUsername() string {
 	return ""
 }
 
-func (x *UpdateUserRequest) GetEmail() string {
+func (x *UpdateUserRequest) GetEmail() *wrapperspb.StringValue {
 	if x != nil {
 		return x.Email
 	}
-	return ""
+	return nil
 }
 
-func (x *UpdateUserRequest) GetMobile() string {
+func (x *UpdateUserRequest) GetMobile() *wrapperspb.StringValue {
 	if x != nil {
 		return x.Mobile
 	}
-	return ""
+	return nil
 }
 
 type GetUserRequest struct {
@@ -534,7 +534,7 @@ func (x *BatchDeleteRequest) GetUsernames() []string {
 
 type ChangePasswordRequest struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
-	Username        string                 `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"` // From path or context
+	Username        string                 `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
 	OldPassword     string                 `protobuf:"bytes,2,opt,name=old_password,json=oldPassword,proto3" json:"old_password,omitempty"`
 	NewPassword     string                 `protobuf:"bytes,3,opt,name=new_password,json=newPassword,proto3" json:"new_password,omitempty"`
 	ConfirmPassword string                 `protobuf:"bytes,4,opt,name=confirm_password,json=confirmPassword,proto3" json:"confirm_password,omitempty"`
@@ -947,11 +947,11 @@ func (x *CreateRoleRequest) GetDescription() string {
 }
 
 type UpdateRoleRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Code          string                 `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"` // Path param
-	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Description   string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
-	Status        *wrapperspb.Int32Value `protobuf:"bytes,4,opt,name=status,proto3" json:"status,omitempty"` // Use wrapper to allow setting 0 explicitly
+	state         protoimpl.MessageState  `protogen:"open.v1"`
+	Code          string                  `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
+	Name          *wrapperspb.StringValue `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Description   *wrapperspb.StringValue `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
+	Status        *wrapperspb.Int32Value  `protobuf:"bytes,4,opt,name=status,proto3" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -993,18 +993,18 @@ func (x *UpdateRoleRequest) GetCode() string {
 	return ""
 }
 
-func (x *UpdateRoleRequest) GetName() string {
+func (x *UpdateRoleRequest) GetName() *wrapperspb.StringValue {
 	if x != nil {
 		return x.Name
 	}
-	return ""
+	return nil
 }
 
-func (x *UpdateRoleRequest) GetDescription() string {
+func (x *UpdateRoleRequest) GetDescription() *wrapperspb.StringValue {
 	if x != nil {
 		return x.Description
 	}
-	return ""
+	return nil
 }
 
 func (x *UpdateRoleRequest) GetStatus() *wrapperspb.Int32Value {
@@ -1367,12 +1367,11 @@ const file_pkg_api_user_center_v1_user_proto_rawDesc = "" +
 	"\busername\x18\x01 \x01(\tB\t\xfaB\x06r\x04\x10\x03\x18 R\busername\x12%\n" +
 	"\bpassword\x18\x02 \x01(\tB\t\xfaB\x06r\x04\x10\b\x18@R\bpassword\x12\x1d\n" +
 	"\x05email\x18\x03 \x01(\tB\a\xfaB\x04r\x02`\x01R\x05email\x12/\n" +
-	"\x06mobile\x18\x04 \x01(\tB\x17\xfaB\x14r\x122\x10^$|^1[3-9]\\d{9}$R\x06mobile\"\x8e\x01\n" +
+	"\x06mobile\x18\x04 \x01(\tB\x17\xfaB\x14r\x122\x10^$|^1[3-9]\\d{9}$R\x06mobile\"\xa2\x01\n" +
 	"\x11UpdateUserRequest\x12#\n" +
-	"\busername\x18\x01 \x01(\tB\a\xfaB\x04r\x02\x10\x01R\busername\x12 \n" +
-	"\x05email\x18\x02 \x01(\tB\n" +
-	"\xfaB\ar\x05\xd0\x01\x01`\x01R\x05email\x122\n" +
-	"\x06mobile\x18\x03 \x01(\tB\x1a\xfaB\x17r\x152\x10^$|^1[3-9]\\d{9}$\xd0\x01\x01R\x06mobile\"5\n" +
+	"\busername\x18\x01 \x01(\tB\a\xfaB\x04r\x02\x10\x01R\busername\x122\n" +
+	"\x05email\x18\x02 \x01(\v2\x1c.google.protobuf.StringValueR\x05email\x124\n" +
+	"\x06mobile\x18\x03 \x01(\v2\x1c.google.protobuf.StringValueR\x06mobile\"5\n" +
 	"\x0eGetUserRequest\x12#\n" +
 	"\busername\x18\x01 \x01(\tB\a\xfaB\x04r\x02\x10\x01R\busername\"8\n" +
 	"\x11DeleteUserRequest\x12#\n" +
@@ -1385,9 +1384,9 @@ const file_pkg_api_user_center_v1_user_proto_rawDesc = "" +
 	"\x05total\x18\x01 \x01(\x03R\x05total\x12/\n" +
 	"\x05items\x18\x02 \x03(\v2\x19.api.user.v1.UserResponseR\x05items\"@\n" +
 	"\x12BatchDeleteRequest\x12*\n" +
-	"\tusernames\x18\x01 \x03(\tB\f\xfaB\t\x92\x01\x06\b\x01\x10d\x18\x01R\tusernames\"\xc5\x01\n" +
-	"\x15ChangePasswordRequest\x12\x1a\n" +
-	"\busername\x18\x01 \x01(\tR\busername\x12,\n" +
+	"\tusernames\x18\x01 \x03(\tB\f\xfaB\t\x92\x01\x06\b\x01\x10d\x18\x01R\tusernames\"\xce\x01\n" +
+	"\x15ChangePasswordRequest\x12#\n" +
+	"\busername\x18\x01 \x01(\tB\a\xfaB\x04r\x02\x10\x01R\busername\x12,\n" +
 	"\fold_password\x18\x02 \x01(\tB\t\xfaB\x06r\x04\x10\x06\x18@R\voldPassword\x12,\n" +
 	"\fnew_password\x18\x03 \x01(\tB\t\xfaB\x06r\x04\x10\b\x18@R\vnewPassword\x124\n" +
 	"\x10confirm_password\x18\x04 \x01(\tB\t\xfaB\x06r\x04\x10\b\x18@R\x0fconfirmPassword\"\\\n" +
@@ -1412,11 +1411,11 @@ const file_pkg_api_user_center_v1_user_proto_rawDesc = "" +
 	"\x11CreateRoleRequest\x12\x1d\n" +
 	"\x04code\x18\x01 \x01(\tB\t\xfaB\x06r\x04\x10\x03\x18 R\x04code\x12\x1d\n" +
 	"\x04name\x18\x02 \x01(\tB\t\xfaB\x06r\x04\x10\x02\x18@R\x04name\x12*\n" +
-	"\vdescription\x18\x03 \x01(\tB\b\xfaB\x05r\x03\x18\xff\x01R\vdescription\"\xb6\x01\n" +
+	"\vdescription\x18\x03 \x01(\tB\b\xfaB\x05r\x03\x18\xff\x01R\vdescription\"\xd7\x01\n" +
 	"\x11UpdateRoleRequest\x12\x1b\n" +
-	"\x04code\x18\x01 \x01(\tB\a\xfaB\x04r\x02\x10\x01R\x04code\x12 \n" +
-	"\x04name\x18\x02 \x01(\tB\f\xfaB\tr\a\x10\x02\x18@\xd0\x01\x01R\x04name\x12-\n" +
-	"\vdescription\x18\x03 \x01(\tB\v\xfaB\br\x06\x18\xff\x01\xd0\x01\x01R\vdescription\x123\n" +
+	"\x04code\x18\x01 \x01(\tB\a\xfaB\x04r\x02\x10\x01R\x04code\x120\n" +
+	"\x04name\x18\x02 \x01(\v2\x1c.google.protobuf.StringValueR\x04name\x12>\n" +
+	"\vdescription\x18\x03 \x01(\v2\x1c.google.protobuf.StringValueR\vdescription\x123\n" +
 	"\x06status\x18\x04 \x01(\v2\x1b.google.protobuf.Int32ValueR\x06status\"0\n" +
 	"\x11DeleteRoleRequest\x12\x1b\n" +
 	"\x04code\x18\x01 \x01(\tB\a\xfaB\x04r\x02\x10\x01R\x04code\"-\n" +
@@ -1476,77 +1475,82 @@ func file_pkg_api_user_center_v1_user_proto_rawDescGZIP() []byte {
 
 var file_pkg_api_user_center_v1_user_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
 var file_pkg_api_user_center_v1_user_proto_goTypes = []any{
-	(*UserRequest)(nil),           // 0: api.user.v1.UserRequest
-	(*UserResponse)(nil),          // 1: api.user.v1.UserResponse
-	(*CreateUserRequest)(nil),     // 2: api.user.v1.CreateUserRequest
-	(*UpdateUserRequest)(nil),     // 3: api.user.v1.UpdateUserRequest
-	(*GetUserRequest)(nil),        // 4: api.user.v1.GetUserRequest
-	(*DeleteUserRequest)(nil),     // 5: api.user.v1.DeleteUserRequest
-	(*ListUsersRequest)(nil),      // 6: api.user.v1.ListUsersRequest
-	(*ListUsersResponse)(nil),     // 7: api.user.v1.ListUsersResponse
-	(*BatchDeleteRequest)(nil),    // 8: api.user.v1.BatchDeleteRequest
-	(*ChangePasswordRequest)(nil), // 9: api.user.v1.ChangePasswordRequest
-	(*LoginRequest)(nil),          // 10: api.user.v1.LoginRequest
-	(*LoginResponse)(nil),         // 11: api.user.v1.LoginResponse
-	(*RegisterRequest)(nil),       // 12: api.user.v1.RegisterRequest
-	(*LogoutRequest)(nil),         // 13: api.user.v1.LogoutRequest
-	(*Role)(nil),                  // 14: api.user.v1.Role
-	(*CreateRoleRequest)(nil),     // 15: api.user.v1.CreateRoleRequest
-	(*UpdateRoleRequest)(nil),     // 16: api.user.v1.UpdateRoleRequest
-	(*DeleteRoleRequest)(nil),     // 17: api.user.v1.DeleteRoleRequest
-	(*GetRoleRequest)(nil),        // 18: api.user.v1.GetRoleRequest
-	(*ListRolesRequest)(nil),      // 19: api.user.v1.ListRolesRequest
-	(*ListRolesResponse)(nil),     // 20: api.user.v1.ListRolesResponse
-	(*AssignRoleRequest)(nil),     // 21: api.user.v1.AssignRoleRequest
-	(*GetUserRolesRequest)(nil),   // 22: api.user.v1.GetUserRolesRequest
-	(*GetUserRolesResponse)(nil),  // 23: api.user.v1.GetUserRolesResponse
-	(*wrapperspb.Int32Value)(nil), // 24: google.protobuf.Int32Value
-	(*emptypb.Empty)(nil),         // 25: google.protobuf.Empty
+	(*UserRequest)(nil),            // 0: api.user.v1.UserRequest
+	(*UserResponse)(nil),           // 1: api.user.v1.UserResponse
+	(*CreateUserRequest)(nil),      // 2: api.user.v1.CreateUserRequest
+	(*UpdateUserRequest)(nil),      // 3: api.user.v1.UpdateUserRequest
+	(*GetUserRequest)(nil),         // 4: api.user.v1.GetUserRequest
+	(*DeleteUserRequest)(nil),      // 5: api.user.v1.DeleteUserRequest
+	(*ListUsersRequest)(nil),       // 6: api.user.v1.ListUsersRequest
+	(*ListUsersResponse)(nil),      // 7: api.user.v1.ListUsersResponse
+	(*BatchDeleteRequest)(nil),     // 8: api.user.v1.BatchDeleteRequest
+	(*ChangePasswordRequest)(nil),  // 9: api.user.v1.ChangePasswordRequest
+	(*LoginRequest)(nil),           // 10: api.user.v1.LoginRequest
+	(*LoginResponse)(nil),          // 11: api.user.v1.LoginResponse
+	(*RegisterRequest)(nil),        // 12: api.user.v1.RegisterRequest
+	(*LogoutRequest)(nil),          // 13: api.user.v1.LogoutRequest
+	(*Role)(nil),                   // 14: api.user.v1.Role
+	(*CreateRoleRequest)(nil),      // 15: api.user.v1.CreateRoleRequest
+	(*UpdateRoleRequest)(nil),      // 16: api.user.v1.UpdateRoleRequest
+	(*DeleteRoleRequest)(nil),      // 17: api.user.v1.DeleteRoleRequest
+	(*GetRoleRequest)(nil),         // 18: api.user.v1.GetRoleRequest
+	(*ListRolesRequest)(nil),       // 19: api.user.v1.ListRolesRequest
+	(*ListRolesResponse)(nil),      // 20: api.user.v1.ListRolesResponse
+	(*AssignRoleRequest)(nil),      // 21: api.user.v1.AssignRoleRequest
+	(*GetUserRolesRequest)(nil),    // 22: api.user.v1.GetUserRolesRequest
+	(*GetUserRolesResponse)(nil),   // 23: api.user.v1.GetUserRolesResponse
+	(*wrapperspb.StringValue)(nil), // 24: google.protobuf.StringValue
+	(*wrapperspb.Int32Value)(nil),  // 25: google.protobuf.Int32Value
+	(*emptypb.Empty)(nil),          // 26: google.protobuf.Empty
 }
 var file_pkg_api_user_center_v1_user_proto_depIdxs = []int32{
-	1,  // 0: api.user.v1.ListUsersResponse.items:type_name -> api.user.v1.UserResponse
-	24, // 1: api.user.v1.UpdateRoleRequest.status:type_name -> google.protobuf.Int32Value
-	14, // 2: api.user.v1.ListRolesResponse.items:type_name -> api.user.v1.Role
-	14, // 3: api.user.v1.GetUserRolesResponse.items:type_name -> api.user.v1.Role
-	0,  // 4: api.user.v1.UserService.GetUser:input_type -> api.user.v1.UserRequest
-	2,  // 5: api.user.v1.UserService.CreateUser:input_type -> api.user.v1.CreateUserRequest
-	3,  // 6: api.user.v1.UserService.UpdateUser:input_type -> api.user.v1.UpdateUserRequest
-	5,  // 7: api.user.v1.UserService.DeleteUser:input_type -> api.user.v1.DeleteUserRequest
-	6,  // 8: api.user.v1.UserService.ListUsers:input_type -> api.user.v1.ListUsersRequest
-	8,  // 9: api.user.v1.UserService.BatchDeleteUsers:input_type -> api.user.v1.BatchDeleteRequest
-	9,  // 10: api.user.v1.UserService.ChangePassword:input_type -> api.user.v1.ChangePasswordRequest
-	10, // 11: api.user.v1.UserService.Login:input_type -> api.user.v1.LoginRequest
-	12, // 12: api.user.v1.UserService.Register:input_type -> api.user.v1.RegisterRequest
-	13, // 13: api.user.v1.UserService.Logout:input_type -> api.user.v1.LogoutRequest
-	15, // 14: api.user.v1.RoleService.CreateRole:input_type -> api.user.v1.CreateRoleRequest
-	16, // 15: api.user.v1.RoleService.UpdateRole:input_type -> api.user.v1.UpdateRoleRequest
-	17, // 16: api.user.v1.RoleService.DeleteRole:input_type -> api.user.v1.DeleteRoleRequest
-	18, // 17: api.user.v1.RoleService.GetRole:input_type -> api.user.v1.GetRoleRequest
-	19, // 18: api.user.v1.RoleService.ListRoles:input_type -> api.user.v1.ListRolesRequest
-	21, // 19: api.user.v1.RoleService.AssignRole:input_type -> api.user.v1.AssignRoleRequest
-	22, // 20: api.user.v1.RoleService.GetUserRoles:input_type -> api.user.v1.GetUserRolesRequest
-	1,  // 21: api.user.v1.UserService.GetUser:output_type -> api.user.v1.UserResponse
-	1,  // 22: api.user.v1.UserService.CreateUser:output_type -> api.user.v1.UserResponse
-	1,  // 23: api.user.v1.UserService.UpdateUser:output_type -> api.user.v1.UserResponse
-	25, // 24: api.user.v1.UserService.DeleteUser:output_type -> google.protobuf.Empty
-	7,  // 25: api.user.v1.UserService.ListUsers:output_type -> api.user.v1.ListUsersResponse
-	25, // 26: api.user.v1.UserService.BatchDeleteUsers:output_type -> google.protobuf.Empty
-	25, // 27: api.user.v1.UserService.ChangePassword:output_type -> google.protobuf.Empty
-	11, // 28: api.user.v1.UserService.Login:output_type -> api.user.v1.LoginResponse
-	25, // 29: api.user.v1.UserService.Register:output_type -> google.protobuf.Empty
-	25, // 30: api.user.v1.UserService.Logout:output_type -> google.protobuf.Empty
-	14, // 31: api.user.v1.RoleService.CreateRole:output_type -> api.user.v1.Role
-	14, // 32: api.user.v1.RoleService.UpdateRole:output_type -> api.user.v1.Role
-	25, // 33: api.user.v1.RoleService.DeleteRole:output_type -> google.protobuf.Empty
-	14, // 34: api.user.v1.RoleService.GetRole:output_type -> api.user.v1.Role
-	20, // 35: api.user.v1.RoleService.ListRoles:output_type -> api.user.v1.ListRolesResponse
-	25, // 36: api.user.v1.RoleService.AssignRole:output_type -> google.protobuf.Empty
-	23, // 37: api.user.v1.RoleService.GetUserRoles:output_type -> api.user.v1.GetUserRolesResponse
-	21, // [21:38] is the sub-list for method output_type
-	4,  // [4:21] is the sub-list for method input_type
-	4,  // [4:4] is the sub-list for extension type_name
-	4,  // [4:4] is the sub-list for extension extendee
-	0,  // [0:4] is the sub-list for field type_name
+	24, // 0: api.user.v1.UpdateUserRequest.email:type_name -> google.protobuf.StringValue
+	24, // 1: api.user.v1.UpdateUserRequest.mobile:type_name -> google.protobuf.StringValue
+	1,  // 2: api.user.v1.ListUsersResponse.items:type_name -> api.user.v1.UserResponse
+	24, // 3: api.user.v1.UpdateRoleRequest.name:type_name -> google.protobuf.StringValue
+	24, // 4: api.user.v1.UpdateRoleRequest.description:type_name -> google.protobuf.StringValue
+	25, // 5: api.user.v1.UpdateRoleRequest.status:type_name -> google.protobuf.Int32Value
+	14, // 6: api.user.v1.ListRolesResponse.items:type_name -> api.user.v1.Role
+	14, // 7: api.user.v1.GetUserRolesResponse.items:type_name -> api.user.v1.Role
+	0,  // 8: api.user.v1.UserService.GetUser:input_type -> api.user.v1.UserRequest
+	2,  // 9: api.user.v1.UserService.CreateUser:input_type -> api.user.v1.CreateUserRequest
+	3,  // 10: api.user.v1.UserService.UpdateUser:input_type -> api.user.v1.UpdateUserRequest
+	5,  // 11: api.user.v1.UserService.DeleteUser:input_type -> api.user.v1.DeleteUserRequest
+	6,  // 12: api.user.v1.UserService.ListUsers:input_type -> api.user.v1.ListUsersRequest
+	8,  // 13: api.user.v1.UserService.BatchDeleteUsers:input_type -> api.user.v1.BatchDeleteRequest
+	9,  // 14: api.user.v1.UserService.ChangePassword:input_type -> api.user.v1.ChangePasswordRequest
+	10, // 15: api.user.v1.UserService.Login:input_type -> api.user.v1.LoginRequest
+	12, // 16: api.user.v1.UserService.Register:input_type -> api.user.v1.RegisterRequest
+	13, // 17: api.user.v1.UserService.Logout:input_type -> api.user.v1.LogoutRequest
+	15, // 18: api.user.v1.RoleService.CreateRole:input_type -> api.user.v1.CreateRoleRequest
+	16, // 19: api.user.v1.RoleService.UpdateRole:input_type -> api.user.v1.UpdateRoleRequest
+	17, // 20: api.user.v1.RoleService.DeleteRole:input_type -> api.user.v1.DeleteRoleRequest
+	18, // 21: api.user.v1.RoleService.GetRole:input_type -> api.user.v1.GetRoleRequest
+	19, // 22: api.user.v1.RoleService.ListRoles:input_type -> api.user.v1.ListRolesRequest
+	21, // 23: api.user.v1.RoleService.AssignRole:input_type -> api.user.v1.AssignRoleRequest
+	22, // 24: api.user.v1.RoleService.GetUserRoles:input_type -> api.user.v1.GetUserRolesRequest
+	1,  // 25: api.user.v1.UserService.GetUser:output_type -> api.user.v1.UserResponse
+	1,  // 26: api.user.v1.UserService.CreateUser:output_type -> api.user.v1.UserResponse
+	1,  // 27: api.user.v1.UserService.UpdateUser:output_type -> api.user.v1.UserResponse
+	26, // 28: api.user.v1.UserService.DeleteUser:output_type -> google.protobuf.Empty
+	7,  // 29: api.user.v1.UserService.ListUsers:output_type -> api.user.v1.ListUsersResponse
+	26, // 30: api.user.v1.UserService.BatchDeleteUsers:output_type -> google.protobuf.Empty
+	26, // 31: api.user.v1.UserService.ChangePassword:output_type -> google.protobuf.Empty
+	11, // 32: api.user.v1.UserService.Login:output_type -> api.user.v1.LoginResponse
+	26, // 33: api.user.v1.UserService.Register:output_type -> google.protobuf.Empty
+	26, // 34: api.user.v1.UserService.Logout:output_type -> google.protobuf.Empty
+	14, // 35: api.user.v1.RoleService.CreateRole:output_type -> api.user.v1.Role
+	14, // 36: api.user.v1.RoleService.UpdateRole:output_type -> api.user.v1.Role
+	26, // 37: api.user.v1.RoleService.DeleteRole:output_type -> google.protobuf.Empty
+	14, // 38: api.user.v1.RoleService.GetRole:output_type -> api.user.v1.Role
+	20, // 39: api.user.v1.RoleService.ListRoles:output_type -> api.user.v1.ListRolesResponse
+	26, // 40: api.user.v1.RoleService.AssignRole:output_type -> google.protobuf.Empty
+	23, // 41: api.user.v1.RoleService.GetUserRoles:output_type -> api.user.v1.GetUserRolesResponse
+	25, // [25:42] is the sub-list for method output_type
+	8,  // [8:25] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_pkg_api_user_center_v1_user_proto_init() }

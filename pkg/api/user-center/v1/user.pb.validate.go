@@ -481,35 +481,62 @@ func (m *UpdateUserRequest) validate(all bool) error {
 		errors = append(errors, err)
 	}
 
-	if m.GetEmail() != "" {
-
-		if err := m._validateEmail(m.GetEmail()); err != nil {
-			err = UpdateUserRequestValidationError{
+	if all {
+		switch v := interface{}(m.GetEmail()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, UpdateUserRequestValidationError{
+					field:  "Email",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, UpdateUserRequestValidationError{
+					field:  "Email",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetEmail()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return UpdateUserRequestValidationError{
 				field:  "Email",
-				reason: "value must be a valid email address",
+				reason: "embedded message failed validation",
 				cause:  err,
 			}
-			if !all {
-				return err
-			}
-			errors = append(errors, err)
 		}
-
 	}
 
-	if m.GetMobile() != "" {
-
-		if !_UpdateUserRequest_Mobile_Pattern.MatchString(m.GetMobile()) {
-			err := UpdateUserRequestValidationError{
-				field:  "Mobile",
-				reason: "value does not match regex pattern \"^$|^1[3-9]\\\\d{9}$\"",
+	if all {
+		switch v := interface{}(m.GetMobile()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, UpdateUserRequestValidationError{
+					field:  "Mobile",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
 			}
-			if !all {
-				return err
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, UpdateUserRequestValidationError{
+					field:  "Mobile",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
 			}
-			errors = append(errors, err)
 		}
-
+	} else if v, ok := interface{}(m.GetMobile()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return UpdateUserRequestValidationError{
+				field:  "Mobile",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
 	}
 
 	if len(errors) > 0 {
@@ -517,56 +544,6 @@ func (m *UpdateUserRequest) validate(all bool) error {
 	}
 
 	return nil
-}
-
-func (m *UpdateUserRequest) _validateHostname(host string) error {
-	s := strings.ToLower(strings.TrimSuffix(host, "."))
-
-	if len(host) > 253 {
-		return errors.New("hostname cannot exceed 253 characters")
-	}
-
-	for _, part := range strings.Split(s, ".") {
-		if l := len(part); l == 0 || l > 63 {
-			return errors.New("hostname part must be non-empty and cannot exceed 63 characters")
-		}
-
-		if part[0] == '-' {
-			return errors.New("hostname parts cannot begin with hyphens")
-		}
-
-		if part[len(part)-1] == '-' {
-			return errors.New("hostname parts cannot end with hyphens")
-		}
-
-		for _, r := range part {
-			if (r < 'a' || r > 'z') && (r < '0' || r > '9') && r != '-' {
-				return fmt.Errorf("hostname parts can only contain alphanumeric characters or hyphens, got %q", string(r))
-			}
-		}
-	}
-
-	return nil
-}
-
-func (m *UpdateUserRequest) _validateEmail(addr string) error {
-	a, err := mail.ParseAddress(addr)
-	if err != nil {
-		return err
-	}
-	addr = a.Address
-
-	if len(addr) > 254 {
-		return errors.New("email addresses cannot exceed 254 characters")
-	}
-
-	parts := strings.SplitN(addr, "@", 2)
-
-	if len(parts[0]) > 64 {
-		return errors.New("email address local phrase cannot exceed 64 characters")
-	}
-
-	return m._validateHostname(parts[1])
 }
 
 // UpdateUserRequestMultiError is an error wrapping multiple validation errors
@@ -641,8 +618,6 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = UpdateUserRequestValidationError{}
-
-var _UpdateUserRequest_Mobile_Pattern = regexp.MustCompile("^$|^1[3-9]\\d{9}$")
 
 // Validate checks the field values on GetUserRequest with the rules defined in
 // the proto definition for this message. If any rules are violated, the first
@@ -1295,7 +1270,16 @@ func (m *ChangePasswordRequest) validate(all bool) error {
 
 	var errors []error
 
-	// no validation rules for Username
+	if utf8.RuneCountInString(m.GetUsername()) < 1 {
+		err := ChangePasswordRequestValidationError{
+			field:  "Username",
+			reason: "value length must be at least 1 runes",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
 	if l := utf8.RuneCountInString(m.GetOldPassword()); l < 6 || l > 64 {
 		err := ChangePasswordRequestValidationError{
@@ -2212,34 +2196,62 @@ func (m *UpdateRoleRequest) validate(all bool) error {
 		errors = append(errors, err)
 	}
 
-	if m.GetName() != "" {
-
-		if l := utf8.RuneCountInString(m.GetName()); l < 2 || l > 64 {
-			err := UpdateRoleRequestValidationError{
-				field:  "Name",
-				reason: "value length must be between 2 and 64 runes, inclusive",
+	if all {
+		switch v := interface{}(m.GetName()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, UpdateRoleRequestValidationError{
+					field:  "Name",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
 			}
-			if !all {
-				return err
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, UpdateRoleRequestValidationError{
+					field:  "Name",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
 			}
-			errors = append(errors, err)
 		}
-
+	} else if v, ok := interface{}(m.GetName()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return UpdateRoleRequestValidationError{
+				field:  "Name",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
 	}
 
-	if m.GetDescription() != "" {
-
-		if utf8.RuneCountInString(m.GetDescription()) > 255 {
-			err := UpdateRoleRequestValidationError{
-				field:  "Description",
-				reason: "value length must be at most 255 runes",
+	if all {
+		switch v := interface{}(m.GetDescription()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, UpdateRoleRequestValidationError{
+					field:  "Description",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
 			}
-			if !all {
-				return err
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, UpdateRoleRequestValidationError{
+					field:  "Description",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
 			}
-			errors = append(errors, err)
 		}
-
+	} else if v, ok := interface{}(m.GetDescription()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return UpdateRoleRequestValidationError{
+				field:  "Description",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
 	}
 
 	if all {

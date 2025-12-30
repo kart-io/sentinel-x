@@ -76,13 +76,13 @@ func (h *UserHandler) Create(c transport.Context) {
 //	@Accept			json
 //	@Produce		json
 //	@Security		Bearer
-//	@Param			username	query		string					true	"用户名"
-//	@Param			request		body		v1.UpdateUserRequest	true	"更新用户请求"
+//	@Param			request	body		v1.UpdateUserRequest	true	"更新用户请求"
 //	@Success		200			{object}	response.Response		"成功响应"
 //	@Failure		400			{object}	response.Response		"请求错误"
 //	@Failure		404			{object}	response.Response		"用户不存在"
-//	@Router			/v1/users/update [put]
+//	@Router			/v1/users [put]
 func (h *UserHandler) Update(c transport.Context) {
+	// All parameters from request body (JSON)
 	var req v1.UpdateUserRequest
 	if err := c.ShouldBindAndValidate(&req); err != nil {
 		httputils.WriteResponse(c, errors.ErrBadRequest.WithMessage(err.Error()), nil)
@@ -95,11 +95,12 @@ func (h *UserHandler) Update(c transport.Context) {
 		return
 	}
 
-	if req.Email != "" {
-		user.Email = &req.Email
+	// 只有字段不为 nil 时才更新（nil = 不更新，非 nil = 更新包括空值）
+	if req.Email != nil {
+		user.Email = &req.Email.Value
 	}
-	if req.Mobile != "" {
-		user.Mobile = req.Mobile
+	if req.Mobile != nil {
+		user.Mobile = req.Mobile.Value
 	}
 
 	if err := h.svc.Update(c.Request(), user); err != nil {
@@ -121,7 +122,7 @@ func (h *UserHandler) Update(c transport.Context) {
 //	@Param			username	query		string				true	"用户名"
 //	@Success		200			{object}	response.Response	"成功响应"
 //	@Failure		404			{object}	response.Response	"用户不存在"
-//	@Router			/v1/users/delete [delete]
+//	@Router			/v1/users [delete]
 func (h *UserHandler) Delete(c transport.Context) {
 	var req v1.DeleteUserRequest
 	if err := c.ShouldBindAndValidate(&req); err != nil {
@@ -270,18 +271,17 @@ func (h *UserHandler) GetProfile(c transport.Context) {
 //	@Accept			json
 //	@Produce		json
 //	@Security		Bearer
-//	@Param			username	query		string						true	"用户名"
-//	@Param			request		body		v1.ChangePasswordRequest	true	"修改密码请求"
+//	@Param			request	body		v1.ChangePasswordRequest	true	"修改密码请求"
 //	@Success		200			{object}	response.Response			"成功响应"
 //	@Failure		400			{object}	response.Response			"请求错误"
 //	@Router			/v1/users/password [post]
 func (h *UserHandler) UpdatePassword(c transport.Context) {
+	// All parameters from request body (JSON) - secure
 	var req v1.ChangePasswordRequest
 	if err := c.ShouldBindAndValidate(&req); err != nil {
 		httputils.WriteResponse(c, errors.ErrBadRequest.WithMessage(err.Error()), nil)
 		return
 	}
-
 	// Manual cross-field validation not supported by base proto-validate
 	if req.NewPassword != req.ConfirmPassword {
 		httputils.WriteResponse(c, errors.ErrBadRequest.WithMessage("passwords do not match"), nil)
@@ -368,11 +368,11 @@ func (h *UserHandler) UpdateUser(ctx context.Context, req *v1.UpdateUserRequest)
 		return nil, err
 	}
 
-	if req.Email != "" {
-		user.Email = &req.Email
+	if req.Email != nil {
+		user.Email = &req.Email.Value
 	}
-	if req.Mobile != "" {
-		user.Mobile = req.Mobile
+	if req.Mobile != nil {
+		user.Mobile = req.Mobile.Value
 	}
 
 	if err := h.svc.Update(ctx, user); err != nil {
