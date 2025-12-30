@@ -57,6 +57,17 @@ fmt: go.fmt ## Format source code.
 .PHONY: lint
 lint: go.lint ## Run lint.
 
+.PHONY: test
+test: go.test ## Run unit tests.
+
+.PHONY: test-cover
+test-cover: go.test.cover ## Run unit tests with coverage report.
+
+.PHONY: bench
+bench: ## Run benchmark tests.
+	@echo "===========> Running benchmark tests"
+	@$(GO) test -bench=. -benchmem ./...
+
 .PHONY: tidy
 tidy: ## Tidy go.mod and vendor.
 	$(GO) mod tidy && $(GO) mod vendor

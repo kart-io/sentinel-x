@@ -69,7 +69,7 @@ func (s *UserStore) Get(ctx context.Context, username string) (*model.User, erro
 	return &user, nil
 }
 
-// GetByUserId 根据用户 ID 检索用户
+// GetByUserID 根据用户 ID 检索用户
 func (s *UserStore) GetByUserID(ctx context.Context, userID uint64) (*model.User, error) {
 	var user model.User
 	if err := s.db.WithContext(ctx).Where("id = ?", userID).First(&user).Error; err != nil {

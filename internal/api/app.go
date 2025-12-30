@@ -6,12 +6,11 @@ import (
 
 	"github.com/kart-io/logger"
 	"github.com/kart-io/sentinel-x/internal/api/handler"
-	"github.com/kart-io/sentinel-x/pkg/infra/app"
-	"github.com/kart-io/sentinel-x/pkg/infra/server"
-
 	// Import adapters
 	_ "github.com/kart-io/sentinel-x/pkg/infra/adapter/echo"
 	_ "github.com/kart-io/sentinel-x/pkg/infra/adapter/gin"
+	"github.com/kart-io/sentinel-x/pkg/infra/app"
+	"github.com/kart-io/sentinel-x/pkg/infra/server"
 )
 
 const (
