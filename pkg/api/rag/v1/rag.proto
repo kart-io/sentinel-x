@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+package rag.v1;
+
+option go_package = "github.com/kart/sentinel-x/pkg/api/rag/v1;v1";
+
+import "google/api/annotations.proto";
+import "google/protobuf/empty.proto";
+
+service RAGService {
+  rpc IndexFromURL(IndexFromURLRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/v1/rag/index/url"
+      body: "*"
+    };
+  }
+
+  rpc Query(QueryRequest) returns (QueryResponse) {
+    option (google.api.http) = {
+      post: "/v1/rag/query"
+      body: "*"
+    };
+  }
+
+  rpc GetStats(google.protobuf.Empty) returns (GetStatsResponse) {
+    option (google.api.http) = {
+      get: "/v1/rag/stats"
+    };
+  }
+}
+
+message IndexFromURLRequest {
+  string url = 1;
+}
+
+message QueryRequest {
+  string question = 1;
+}
+
+message QueryResponse {
+  string answer = 1;
+  repeated ChunkSource sources = 2;
+}
+
+message ChunkSource {
+  string document_id = 1;
+  string document_name = 2;
+  string section = 3;
+  string content = 4;
+  float score = 5;
+}
+
+message GetStatsResponse {
+  string collection = 1;
+  int64 chunk_count = 2;
+  int32 embedding_dim = 3;
+}

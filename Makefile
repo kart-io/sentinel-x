@@ -8,7 +8,7 @@ GO_MOD_NAME := "github.com/kart-io/sentinel-x"
 GO_MOD_DOMAIN := $(shell echo $(GO_MOD_NAME) | awk -F '/' '{print $$1}')
 
 # BINS can be overridden by "make build BINS=sentinel-api"
-BINS ?= api user-center
+BINS ?= api user-center rag
 
 # Options
 define USAGE_OPTIONS

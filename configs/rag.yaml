@@ -1,0 +1,168 @@
+# Sentinel-X RAG Service Configuration
+# RAG 知识库服务配置文件
+
+# Server configuration
+server:
+  # Server mode: http, grpc, or both
+  mode: http
+  # Graceful shutdown timeout
+  shutdown-timeout: 30s
+
+  # HTTP server configuration
+  http:
+    # Listen address
+    addr: ":8082"
+    # Read timeout
+    read-timeout: 60s
+    # Write timeout (longer for RAG queries)
+    write-timeout: 120s
+    # Idle timeout
+    idle-timeout: 60s
+    # HTTP framework adapter: gin or echo
+    adapter: gin
+
+    # Middleware configuration
+    middleware:
+      # Recovery middleware (panic recovery)
+      disable-recovery: false
+      recovery:
+        enable-stack-trace: false
+
+      # Request ID middleware
+      disable-request-id: false
+      request-id:
+        header: X-Request-ID
+
+      # Logger middleware
+      disable-logger: false
+      logger:
+        skip-paths:
+          - /health
+          - /live
+          - /ready
+          - /metrics
+        use-structured-logger: true
+
+      # CORS middleware
+      disable-cors: false
+      cors:
+        allow-origins:
+          - "*"
+        allow-methods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - OPTIONS
+        allow-headers:
+          - Origin
+          - Content-Type
+          - Accept
+          - Authorization
+          - X-Request-ID
+        allow-credentials: false
+        max-age: 86400
+
+      # Timeout middleware (disabled for long RAG operations)
+      disable-timeout: true
+
+      # Health check endpoints
+      disable-health: false
+      health:
+        path: /health
+        liveness-path: /live
+        readiness-path: /ready
+
+      # Metrics endpoint
+      disable-metrics: false
+      metrics:
+        path: /metrics
+        namespace: sentinel
+        subsystem: rag
+
+      # Pprof endpoints (disabled by default for security)
+      disable-pprof: true
+
+      # Authentication middleware (disabled for RAG service)
+      disable-auth: true
+
+      # Authorization middleware
+      disable-authz: true
+
+  # gRPC server configuration (optional)
+  grpc:
+    addr: ":8102"
+    timeout: 30s
+    max-recv-msg-size: 4194304
+    max-send-msg-size: 4194304
+    enable-reflection: true
+
+# Logger configuration
+log:
+  level: info
+  format: json
+  output-paths:
+    - stdout
+  error-output-paths:
+    - stderr
+  enable-caller: true
+  enable-stacktrace: false
+  development: false
+
+# Milvus configuration
+milvus:
+  # Milvus server address
+  address: "localhost:19530"
+  # Database name
+  database: "default"
+  # Username (leave empty if no auth)
+  username: ""
+  # Password (leave empty if no auth)
+  password: ""
+  # Connection timeout
+  timeout: 30s
+  # Connection pool size
+  pool-size: 10
+
+# Ollama configuration
+ollama:
+  # Ollama API base URL
+  base-url: "http://localhost:11434"
+  # Model for generating embeddings
+  # Options: nomic-embed-text (768d), all-minilm (384d), mxbai-embed-large (1024d)
+  embed-model: "nomic-embed-text"
+  # Model for chat/generation
+  # Options: deepseek-r1:7b, deepseek-coder, llama3.2, qwen2.5
+  chat-model: "deepseek-r1:7b"
+  # Request timeout (longer for LLM generation)
+  timeout: 120s
+  # Max retries for failed requests
+  max-retries: 3
+
+# RAG-specific configuration
+rag:
+  # Size of text chunks (in characters)
+  chunk-size: 512
+  # Overlap between chunks
+  chunk-overlap: 50
+  # Number of results from similarity search
+  top-k: 5
+  # Milvus collection name
+  collection: "milvus_docs"
+  # Embedding vector dimension (must match embed-model)
+  # nomic-embed-text: 768, all-minilm: 384, mxbai-embed-large: 1024
+  embedding-dim: 768
+  # Directory for storing downloaded documents
+  data-dir: "_output/rag-data"
+  # System prompt template for RAG queries
+  system-prompt: |
+    You are a helpful assistant that answers questions based on the provided context.
+    Use the following context to answer the question. If you cannot find the answer in the context, say so.
+    Always cite the source documents when providing information.
+
+    Context:
+    {{context}}
+
+    Question: {{question}}
+
+    Answer:

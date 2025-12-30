@@ -36,3 +36,4 @@ go.work.sum
 vendor
 bin
 staging
+_output
