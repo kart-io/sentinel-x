@@ -79,7 +79,7 @@ jobs:
 
       # 创建 GitHub Release
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
           draft: false
