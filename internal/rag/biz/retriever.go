@@ -56,7 +56,13 @@ func NewRetriever(
 func (r *Retriever) Retrieve(ctx context.Context, question string) (*RetrievalResult, error) {
 	logger.Infof("Processing query: %s", question)
 
+	// 检查 context 是否已取消
+	if ctx.Err() != nil {
+		return nil, fmt.Errorf("context cancelled before retrieval: %w", ctx.Err())
+	}
+
 	// 1. 增强查询（查询重写 + HyDE）
+	logger.Info("Step 1: Enhancing query...")
 	enhancedQuery, embeddings, err := r.enhancer.EnhanceQuery(ctx, question)
 	if err != nil {
 		logger.Warnw("查询增强失败，使用原始查询", "error", err.Error())
@@ -67,15 +73,18 @@ func (r *Retriever) Retrieve(ctx context.Context, question string) (*RetrievalRe
 		embeddings = [][]float32{questionEmbed}
 		enhancedQuery = question
 	}
+	logger.Infof("Query enhanced: %s (embeddings: %d)", enhancedQuery, len(embeddings))
 
 	// 2. 执行检索（支持多嵌入检索）
+	logger.Info("Step 2: Searching vector store...")
 	var allResults []enhancer.SearchResult
-	for _, embedding := range embeddings {
+	for idx, embedding := range embeddings {
 		results, err := r.store.Search(ctx, r.config.Collection, embedding, r.config.TopK)
 		if err != nil {
-			logger.Warnw("检索失败", "error", err.Error())
+			logger.Warnw("检索失败", "embedding_index", idx, "error", err.Error())
 			continue
 		}
+		logger.Infof("Found %d results for embedding %d", len(results), idx)
 
 		for _, res := range results {
 			allResults = append(allResults, enhancer.SearchResult{
@@ -97,20 +106,25 @@ func (r *Retriever) Retrieve(ctx context.Context, question string) (*RetrievalRe
 	}
 
 	if len(allResults) == 0 {
+		logger.Warn("No results found from vector search")
 		return &RetrievalResult{
 			Query:   enhancedQuery,
 			Results: []*store.SearchResult{},
 		}, nil
 	}
+	logger.Infof("Total results before reranking: %d", len(allResults))
 
 	// 3. 重排序检索结果
+	logger.Info("Step 3: Reranking results...")
 	rerankedResults, err := r.enhancer.RerankResults(ctx, enhancedQuery, allResults)
 	if err != nil {
 		logger.Warnw("重排序失败，使用原始结果", "error", err.Error())
 		rerankedResults = allResults
 	}
+	logger.Infof("Reranked %d results", len(rerankedResults))
 
 	// 4. 文档重组（高置信度放首尾）
+	logger.Info("Step 4: Repacking documents...")
 	repackedResults := r.enhancer.RepackDocuments(rerankedResults)
 
 	// 转换为 store.SearchResult

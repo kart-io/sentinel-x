@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/kart-io/logger"
 	"github.com/kart-io/sentinel-x/internal/rag/store"
 	"github.com/kart-io/sentinel-x/pkg/llm"
 )
@@ -35,6 +36,11 @@ func (g *Generator) GenerateAnswer(ctx context.Context, question string, results
 		return "I couldn't find any relevant information in the knowledge base.", nil
 	}
 
+	// 检查 context 是否已取消
+	if ctx.Err() != nil {
+		return "", fmt.Errorf("context cancelled before generation: %w", ctx.Err())
+	}
+
 	// 构建上下文
 	var contextBuilder strings.Builder
 	for i, result := range results {
@@ -47,10 +53,13 @@ func (g *Generator) GenerateAnswer(ctx context.Context, question string, results
 	prompt = strings.ReplaceAll(prompt, "{{question}}", question)
 
 	// 调用 LLM 生成答案
+	logger.Info("Calling LLM to generate answer...")
 	answer, err := g.chatProvider.Generate(ctx, prompt, "")
 	if err != nil {
+		logger.Errorf("LLM generation failed: %v", err)
 		return "", fmt.Errorf("failed to generate answer: %w", err)
 	}
+	logger.Infof("LLM answer generated (length: %d)", len(answer))
 
 	return answer, nil
 }

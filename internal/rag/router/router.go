@@ -33,6 +33,9 @@ func Register(mgr *server.Manager, ragHandler *handler.RAGHandler, ragGRPCHandle
 				// Stats endpoint
 				rag.Handle("GET", "/stats", ragHandler.Stats)
 
+				// Collections endpoint
+				rag.Handle("GET", "/collections", ragHandler.ListCollections)
+
 				// Evaluation endpoints (Ragas metrics)
 				rag.Handle("POST", "/evaluate", ragHandler.Evaluate)
 				rag.Handle("POST", "/query-evaluate", ragHandler.QueryAndEvaluate)

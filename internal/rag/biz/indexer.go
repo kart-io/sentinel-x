@@ -119,10 +119,13 @@ func (i *Indexer) indexFiles(ctx context.Context, files []string) error {
 			continue
 		}
 
+		// 清理无效的 UTF-8 字符
+		sanitizedContent := textutil.SanitizeUTF8(string(content))
+
 		docID := textutil.HashString(file)
 		docName := filepath.Base(file)
 
-		chunks := i.parseAndChunk(string(content), docID, docName)
+		chunks := i.parseAndChunk(sanitizedContent, docID, docName)
 		allChunks = append(allChunks, chunks...)
 	}
 
@@ -172,11 +175,15 @@ func (i *Indexer) parseAndChunk(content, docID, docName string) []*store.Chunk {
 			if len(strings.TrimSpace(chunkContent)) < 20 {
 				continue
 			}
+			// 清理并截断文本字段
+			sanitizedSection := textutil.SanitizeUTF8(currentSection)
+			sanitizedContent := textutil.SanitizeUTF8(chunkContent)
+
 			chunks = append(chunks, &store.Chunk{
 				DocumentID:   docID,
 				DocumentName: docName,
-				Section:      textutil.TruncateString(currentSection, 250),
-				Content:      textutil.TruncateString(chunkContent, 65000),
+				Section:      textutil.TruncateString(sanitizedSection, 250),
+				Content:      textutil.TruncateString(sanitizedContent, 65000),
 			})
 		}
 	}

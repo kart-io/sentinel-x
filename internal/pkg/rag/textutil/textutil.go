@@ -53,6 +53,16 @@ func TruncateString(s string, maxLen int) string {
 	return string(runes[:maxLen])
 }
 
+// SanitizeUTF8 清理字符串中的无效 UTF-8 字符。
+// 将无效的 UTF-8 字节序列替换为 Unicode 替换字符 (U+FFFD)。
+func SanitizeUTF8(s string) string {
+	if utf8.ValidString(s) {
+		return s
+	}
+	// 使用 Unicode 替换字符替换无效的 UTF-8 序列
+	return strings.ToValidUTF8(s, "�")
+}
+
 // SplitIntoChunks 将文本分割成重叠的块。
 // chunkSize 是每个块的大小（Unicode 字符数），overlap 是块之间的重叠大小。
 func SplitIntoChunks(text string, chunkSize, overlap int) []string {

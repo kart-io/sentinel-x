@@ -2,7 +2,9 @@
 package handler
 
 import (
+	"context"
 	"net/http"
+	"time"
 
 	"github.com/kart-io/sentinel-x/internal/pkg/rag/evaluator"
 	"github.com/kart-io/sentinel-x/internal/rag/biz"
@@ -112,8 +114,20 @@ func (h *RAGHandler) Query(c transport.Context) {
 		return
 	}
 
-	result, err := h.service.Query(c.Request(), req.Question)
+	// 添加 30 秒超时控制
+	ctx, cancel := context.WithTimeout(c.Request(), 30*time.Second)
+	defer cancel()
+
+	result, err := h.service.Query(ctx, req.Question)
 	if err != nil {
+		// 检查是否超时
+		if ctx.Err() == context.DeadlineExceeded {
+			c.JSON(http.StatusRequestTimeout, ErrorResponse{
+				Code:    408,
+				Message: "Query timeout: the request took too long to process. Please try again or simplify your question.",
+			})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, ErrorResponse{Code: 500, Message: err.Error()})
 		return
 	}
@@ -130,6 +144,38 @@ func (h *RAGHandler) Stats(c transport.Context) {
 	}
 
 	c.JSON(http.StatusOK, SuccessResponse{Code: 0, Message: "success", Data: stats})
+}
+
+// CollectionInfo 集合信息。
+type CollectionInfo struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Count       int64  `json:"count"`
+}
+
+// ListCollections 列出所有集合。
+func (h *RAGHandler) ListCollections(c transport.Context) {
+	// 获取统计信息
+	stats, err := h.service.GetStats(c.Request())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Code: 500, Message: err.Error()})
+		return
+	}
+
+	// 从 stats 中提取信息
+	collectionName, _ := stats["collection"].(string)
+	chunkCount, _ := stats["chunk_count"].(int64)
+
+	// 返回集合列表(目前只有一个默认集合)
+	collections := []CollectionInfo{
+		{
+			Name:        collectionName,
+			Description: "RAG knowledge base collection",
+			Count:       chunkCount,
+		},
+	}
+
+	c.JSON(http.StatusOK, SuccessResponse{Code: 0, Message: "success", Data: collections})
 }
 
 // EvaluateRequest 评估请求。
