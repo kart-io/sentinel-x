@@ -32,6 +32,7 @@ include scripts/make-rules/run.mk
 include scripts/make-rules/update.mk
 include scripts/make-rules/deploy.mk
 include scripts/make-rules/swagger.mk
+include scripts/make-rules/data.mk
 
 # ==============================================================================
 # Targets

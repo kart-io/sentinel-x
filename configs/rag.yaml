@@ -124,16 +124,37 @@ milvus:
   # Connection pool size
   pool-size: 10
 
-# Ollama configuration
-ollama:
-  # Ollama API base URL
+# Embedding provider configuration
+# 支持的供应商: ollama, openai
+embedding:
+  # Provider name
+  provider: "ollama"
+  # API base URL
   base-url: "http://localhost:11434"
-  # Model for generating embeddings
-  # Options: nomic-embed-text (768d), all-minilm (384d), mxbai-embed-large (1024d)
-  embed-model: "nomic-embed-text"
-  # Model for chat/generation
-  # Options: deepseek-r1:7b, deepseek-coder, llama3.2, qwen2.5
-  chat-model: "deepseek-r1:7b"
+  # API key (required for openai)
+  api-key: ""
+  # Embedding model name
+  # Ollama options: nomic-embed-text (768d), all-minilm (384d), mxbai-embed-large (1024d)
+  # OpenAI options: text-embedding-3-small (1536d), text-embedding-3-large (3072d), text-embedding-ada-002 (1536d)
+  model: "nomic-embed-text"
+  # Request timeout
+  timeout: 120s
+  # Max retries for failed requests
+  max-retries: 3
+
+# Chat provider configuration
+# 支持的供应商: ollama, openai
+chat:
+  # Provider name
+  provider: "deepseek"
+  # API base URL
+  base-url: "https://api.deepseek.com"
+  # API key (required for openai)
+  api-key: "${DEEPSEEK_API_KEY}"
+  # Chat model name
+  # Ollama options: deepseek-r1:7b, deepseek-coder, llama3.2, qwen2.5
+  # OpenAI options: gpt-4o, gpt-4o-mini, gpt-4-turbo, gpt-3.5-turbo
+  model: "deepseek-chat"
   # Request timeout (longer for LLM generation)
   timeout: 120s
   # Max retries for failed requests
@@ -149,8 +170,9 @@ rag:
   top-k: 5
   # Milvus collection name
   collection: "milvus_docs"
-  # Embedding vector dimension (must match embed-model)
+  # Embedding vector dimension (must match embedding model)
   # nomic-embed-text: 768, all-minilm: 384, mxbai-embed-large: 1024
+  # text-embedding-3-small: 1536, text-embedding-3-large: 3072
   embedding-dim: 768
   # Directory for storing downloaded documents
   data-dir: "_output/rag-data"

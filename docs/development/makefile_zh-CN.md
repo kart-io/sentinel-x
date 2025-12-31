@@ -72,6 +72,15 @@ make targets
 | `gen.clean` | 删除生成的 protobuf 文件（`.pb.go`、`.swagger.json` 等）。 |
 | `clean.proto` | `gen.clean` 的别名。 |
 
+### 数据管理 (Data Management)
+
+| 目标 | 描述 |
+| :--- | :--- |
+| `data.download.milvus` | 下载 Milvus 文档压缩包。 |
+| `data.extract.milvus` | 解压 Milvus 文档到项目目录。 |
+| `data.setup.milvus` | 一键下载并解压 Milvus 文档（推荐）。 |
+| `data.clean.milvus` | 清理已下载的 Milvus 文档和压缩包。 |
+
 ### 开发 (Development)
 
 | 目标 | 描述 |
@@ -184,6 +193,10 @@ make push.multiarch IMAGES="api"
 | `update` | 更新 vendor 依赖。 | `update.mk` |
 | `update-goagent` | 从上游同步 goagent。 | `update.mk` |
 | `update-logger` | 从上游同步 logger。 | `update.mk` |
+| `data.download.milvus` | 下载 Milvus 文档。 | `data.mk` |
+| `data.extract.milvus` | 解压 Milvus 文档。 | `data.mk` |
+| `data.setup.milvus` | 下载并解压 Milvus 文档。 | `data.mk` |
+| `data.clean.milvus` | 清理 Milvus 文档。 | `data.mk` |
 
 ### 辅助脚本 (Helper Scripts)
 

@@ -74,6 +74,15 @@ These options can be appended to `make` commands to customize behavior.
 | `gen.clean` | Remove generated protobuf files (`.pb.go`, `.swagger.json`, etc.). |
 | `clean.proto` | Alias for `gen.clean`. |
 
+### Data Management
+
+| Target | Description |
+| :--- | :--- |
+| `data.download.milvus` | Download Milvus documentation archive. |
+| `data.extract.milvus` | Extract Milvus documentation to project directory. |
+| `data.setup.milvus` | Download and extract Milvus documentation (recommended). |
+| `data.clean.milvus` | Clean downloaded Milvus documentation and archive. |
+
 ### Development
 
 | Target | Description |
@@ -187,6 +196,10 @@ These targets are available in sub-makefiles but are generally used by the main 
 | `update` | Update vendor dependencies. | `update.mk` |
 | `update-goagent` | Sync goagent from upstream. | `update.mk` |
 | `update-logger` | Sync logger from upstream. | `update.mk` |
+| `data.download.milvus` | Download Milvus documentation. | `data.mk` |
+| `data.extract.milvus` | Extract Milvus documentation. | `data.mk` |
+| `data.setup.milvus` | Download and extract Milvus documentation. | `data.mk` |
+| `data.clean.milvus` | Clean Milvus documentation. | `data.mk` |
 
 ### Helper Scripts
 

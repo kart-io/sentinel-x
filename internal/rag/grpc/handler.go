@@ -12,11 +12,11 @@ import (
 // Handler implements the ragv1.RAGServiceServer interface.
 type Handler struct {
 	ragv1.UnimplementedRAGServiceServer
-	service *biz.RAGService
+	service biz.Service
 }
 
 // NewHandler creates a new gRPC handler.
-func NewHandler(service *biz.RAGService) *Handler {
+func NewHandler(service biz.Service) *Handler {
 	return &Handler{
 		service: service,
 	}
@@ -67,9 +67,6 @@ func (h *Handler) GetStats(ctx context.Context, _ *emptypb.Empty) (*ragv1.GetSta
 	}
 	if val, ok := stats["chunk_count"].(int64); ok {
 		resp.ChunkCount = val
-	}
-	if val, ok := stats["embedding_dim"].(int); ok {
-		resp.EmbeddingDim = int32(val)
 	}
 
 	return resp, nil

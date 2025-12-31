@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	options "github.com/kart-io/sentinel-x/pkg/options/app"
@@ -231,6 +232,9 @@ func (a *App) loadConfig(cmd *cobra.Command) error {
 		// Config file not found, continue without it
 	}
 
+	// Expand environment variables in config values
+	expandEnvVars()
+
 	// Bind environment variables
 	viper.SetEnvPrefix(strings.ToUpper(strings.ReplaceAll(a.name, "-", "_")))
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
@@ -259,6 +263,33 @@ func (a *App) loadConfig(cmd *cobra.Command) error {
 	}
 
 	return nil
+}
+
+// expandEnvVars expands ${VAR} and $VAR style environment variables in config values.
+func expandEnvVars() {
+	// Pattern for ${VAR} or $VAR
+	envPattern := regexp.MustCompile(`\$\{([^}]+)\}|\$([A-Za-z_][A-Za-z0-9_]*)`)
+
+	for _, key := range viper.AllKeys() {
+		val := viper.Get(key)
+		if strVal, ok := val.(string); ok {
+			expanded := envPattern.ReplaceAllStringFunc(strVal, func(match string) string {
+				var varName string
+				if strings.HasPrefix(match, "${") {
+					varName = match[2 : len(match)-1]
+				} else {
+					varName = match[1:]
+				}
+				if envVal := os.Getenv(varName); envVal != "" {
+					return envVal
+				}
+				return match // 保留原样，如果环境变量不存在
+			})
+			if expanded != strVal {
+				viper.Set(key, expanded)
+			}
+		}
+	}
 }
 
 // Run executes the application.
