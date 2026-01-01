@@ -119,8 +119,9 @@ func (c *Client) CreateCollection(ctx context.Context, schema *CollectionSchema)
 		return fmt.Errorf("failed to create collection: %w", err)
 	}
 
-	// Create index for vector field - using IVF_FLAT
-	idx := index.NewIvfFlatIndex(entity.L2, 128)
+	// Create index for vector field - using HNSW for better performance
+	// HNSW parameters: M=16 (connections per node), efConstruction=200 (build quality)
+	idx := index.NewHNSWIndex(entity.L2, 16, 200)
 	createIdxTask, err := c.client.CreateIndex(ctx, milvusclient.NewCreateIndexOption(schema.Name, "embedding", idx))
 	if err != nil {
 		return fmt.Errorf("failed to create index: %w", err)
@@ -222,7 +223,7 @@ func (c *Client) Search(ctx context.Context, collectionName string, vector []flo
 		topK,
 		searchVectors,
 	).WithANNSField("embedding").
-		WithSearchParam("nprobe", "16").
+		WithSearchParam("ef", "64").
 		WithOutputFields(outputFields...))
 	if err != nil {
 		return nil, fmt.Errorf("failed to search: %w", err)

@@ -129,7 +129,6 @@ sentinel-x/
 │   │   ├── biz/            # 业务逻辑
 │   │   ├── store/          # 数据访问
 │   │   └── router/         # 路由注册
-│   ├── bootstrap/          # 启动引导
 │   └── model/              # 数据模型
 ├── pkg/                    # 公共库代码
 │   ├── infra/              # 基础设施

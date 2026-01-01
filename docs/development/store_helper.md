@@ -61,7 +61,7 @@ store.NewWhere().
 
 如果系统需要支持多租户数据隔离，可以全局注册租户键和获取逻辑：
 
-**初始化 (通常在 bootstrap 阶段):**
+**初始化（通常在应用启动阶段）:**
 
 ```go
 store.RegisterTenant("tenant_id", func(ctx context.Context) string {

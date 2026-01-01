@@ -214,14 +214,6 @@ internal/model/
 ├── user.go                          # 用户模型
 └── auth.go                          # 认证模型
 
-internal/bootstrap/
-├── bootstrapper.go                  # 启动编排器
-├── logging.go                       # 日志初始化
-├── datasource.go                    # 数据源初始化
-├── auth.go                          # 认证初始化
-├── middleware.go                    # 中间件初始化
-└── server.go                        # 服务器初始化
-
 pkg/infra/adapter/
 ├── gin/
 │   └── bridge.go                    # Gin 适配器实现
@@ -257,7 +249,7 @@ func (o *Options) AddFlags(fs *pflag.FlagSet) { /* 添加命令行标志 */ }
 3. 配置文件（YAML）
 4. 默认值
 
-### 4.2 Bootstrap 启动流程
+### 4.2 应用启动流程
 
 ```text
 main.go
@@ -269,31 +261,32 @@ NewApp()
     │
     └── Run(opts)
            │
-           ▼
-         bootstrap.Run(bootstrapOpts)
-           │
-           ├── AppBootstrapper.Initialize()
-           │   │
-           │   ├── 1. LoggingInitializer      # 日志初始化
-           │   ├── 2. DatasourceInitializer   # MySQL + Redis 连接
-           │   ├── 3. AuthInitializer         # JWT 认证初始化
-           │   ├── 4. MiddlewareInitializer   # HTTP 中间件初始化
-           │   └── 5. ServerInitializer       # HTTP/gRPC 服务初始化
+           ├── 1. 初始化日志                 # 日志初始化
+           ├── 2. 初始化 MySQL               # MySQL 连接与数据库迁移
+           ├── 3. 初始化 Store 层           # UserStore, RoleStore
+           ├── 4. 初始化 JWT 认证            # JWT 认证初始化
+           ├── 5. 初始化 Biz 层             # UserService, RoleService, AuthService
+           ├── 6. 初始化 Handler 层         # UserHandler, RoleHandler, AuthHandler
+           ├── 7. 初始化服务器              # HTTP/gRPC Server Manager
            │
            └── router.Register()              # 注册路由和业务逻辑
 ```
 
-**初始化器依赖链**：
+**初始化依赖链**：
 ```text
-LoggingInitializer
+日志初始化
     ↓
-DatasourceInitializer → MySQL DB + Redis Client
+MySQL 初始化 → 数据库迁移（User, Role, UserRole 模型）
     ↓
-AuthInitializer → JWT (需要 Redis 存储令牌撤销列表)
+Store 层 → UserStore + RoleStore
     ↓
-MiddlewareInitializer → 注册中间件
+JWT 认证初始化
     ↓
-ServerInitializer → HTTP Server (选择 Gin/Echo Bridge)
+Biz 层 → UserService, RoleService, AuthService
+    ↓
+Handler 层 → UserHandler, RoleHandler, AuthHandler
+    ↓
+Server Manager → HTTP Server（Gin/Echo适配器）+ gRPC Server
 ```
 
 ### 4.3 Store 接口设计

@@ -176,6 +176,18 @@ rag:
   embedding-dim: 768
   # Directory for storing downloaded documents
   data-dir: "_output/rag-data"
+  # Query enhancement configuration
+  enhancer:
+    # Disable query rewriting to save time (~4 seconds)
+    enable-query-rewrite: false
+    # Disable HyDE (Hypothetical Document Embeddings)
+    enable-hyde: false
+    # Disable reranking to save time
+    enable-rerank: false
+    # Disable repacking
+    enable-repacking: false
+    # Rerank top K (only used if rerank is enabled)
+    rerank-top-k: 10
   # System prompt template for RAG queries
   system-prompt: |
     You are a helpful assistant that answers questions based on the provided context.

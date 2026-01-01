@@ -114,8 +114,8 @@ func (h *RAGHandler) Query(c transport.Context) {
 		return
 	}
 
-	// 添加 30 秒超时控制
-	ctx, cancel := context.WithTimeout(c.Request(), 30*time.Second)
+	// 添加 60 秒超时控制
+	ctx, cancel := context.WithTimeout(c.Request(), 60*time.Second)
 	defer cancel()
 
 	result, err := h.service.Query(ctx, req.Question)
