@@ -117,7 +117,7 @@ func (s *RAGService) Query(ctx context.Context, question string) (*model.QueryRe
 
 	// TODO: 从 generator 获取实际 token 数量（需要修改 Generator 接口返回 token 信息）
 	// 暂时使用估算值
-	promptTokens := 0    // 需要从 generator 传递
+	promptTokens := 0     // 需要从 generator 传递
 	completionTokens := 0 // 需要从 generator 传递
 	s.metrics.RecordLLMCall(llmDuration, promptTokens, completionTokens, err)
 

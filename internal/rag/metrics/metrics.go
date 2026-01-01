@@ -23,12 +23,12 @@ type RAGMetrics struct {
 	retrievalErrors   uint64  // 检索错误次数
 
 	// LLM 调用指标
-	llmCallsTotal     uint64  // LLM 总调用次数
-	llmCallsDuration  float64 // LLM 调用总耗时（秒）
-	llmCallsErrors    uint64  // LLM 调用错误次数
-	llmCallsRetries   uint64  // LLM 重试次数
-	llmTokensPrompt   uint64  // Prompt tokens 总数
-	llmTokensCompletion uint64 // Completion tokens 总数
+	llmCallsTotal       uint64  // LLM 总调用次数
+	llmCallsDuration    float64 // LLM 调用总耗时（秒）
+	llmCallsErrors      uint64  // LLM 调用错误次数
+	llmCallsRetries     uint64  // LLM 重试次数
+	llmTokensPrompt     uint64  // Prompt tokens 总数
+	llmTokensCompletion uint64  // Completion tokens 总数
 
 	// 熔断器指标
 	circuitBreakerOpens uint64 // 熔断器打开次数
@@ -315,19 +315,19 @@ func (m *RAGMetrics) Stats() map[string]interface{} {
 			"errors":         atomic.LoadUint64(&m.queriesErrors),
 		},
 		"retrieval": map[string]interface{}{
-			"total":                retrievalTotal,
-			"total_duration_secs":  retrievalDuration,
-			"avg_duration_secs":    avgRetrievalDuration,
-			"errors":               atomic.LoadUint64(&m.retrievalErrors),
+			"total":               retrievalTotal,
+			"total_duration_secs": retrievalDuration,
+			"avg_duration_secs":   avgRetrievalDuration,
+			"errors":              atomic.LoadUint64(&m.retrievalErrors),
 		},
 		"llm": map[string]interface{}{
-			"calls_total":          llmTotal,
-			"total_duration_secs":  llmDuration,
-			"avg_duration_secs":    avgLLMDuration,
-			"errors":               atomic.LoadUint64(&m.llmCallsErrors),
-			"retries":              atomic.LoadUint64(&m.llmCallsRetries),
-			"tokens_prompt":        atomic.LoadUint64(&m.llmTokensPrompt),
-			"tokens_completion":    atomic.LoadUint64(&m.llmTokensCompletion),
+			"calls_total":         llmTotal,
+			"total_duration_secs": llmDuration,
+			"avg_duration_secs":   avgLLMDuration,
+			"errors":              atomic.LoadUint64(&m.llmCallsErrors),
+			"retries":             atomic.LoadUint64(&m.llmCallsRetries),
+			"tokens_prompt":       atomic.LoadUint64(&m.llmTokensPrompt),
+			"tokens_completion":   atomic.LoadUint64(&m.llmTokensCompletion),
 		},
 		"circuit_breaker": map[string]interface{}{
 			"state": cbStateStr,
