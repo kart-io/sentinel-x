@@ -39,6 +39,9 @@ func Register(mgr *server.Manager, ragHandler *handler.RAGHandler, ragGRPCHandle
 				// Evaluation endpoints (Ragas metrics)
 				rag.Handle("POST", "/evaluate", ragHandler.Evaluate)
 				rag.Handle("POST", "/query-evaluate", ragHandler.QueryAndEvaluate)
+
+				// Prometheus metrics endpoint
+				rag.Handle("GET", "/metrics", ragHandler.Metrics)
 			}
 		}
 

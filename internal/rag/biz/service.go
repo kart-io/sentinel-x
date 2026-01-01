@@ -2,8 +2,10 @@ package biz
 
 import (
 	"context"
+	"time"
 
 	"github.com/kart-io/sentinel-x/internal/model"
+	"github.com/kart-io/sentinel-x/internal/rag/metrics"
 	"github.com/kart-io/sentinel-x/internal/rag/store"
 	"github.com/kart-io/sentinel-x/pkg/llm"
 )
@@ -30,6 +32,7 @@ type RAGService struct {
 	embedProvider llm.EmbeddingProvider
 	chatProvider  llm.ChatProvider
 	collection    string
+	metrics       *metrics.RAGMetrics // 业务指标收集器
 }
 
 // ServiceConfig RAG 服务配置。
@@ -61,6 +64,7 @@ func NewRAGService(
 		embedProvider: embedProvider,
 		chatProvider:  chatProvider,
 		collection:    config.IndexerConfig.Collection,
+		metrics:       metrics.GetRAGMetrics(), // 初始化全局指标实例
 	}
 }
 
@@ -76,25 +80,49 @@ func (s *RAGService) IndexDirectory(ctx context.Context, dir string) error {
 
 // Query 执行 RAG 查询。
 func (s *RAGService) Query(ctx context.Context, question string) (*model.QueryResult, error) {
+	var queryErr error
+	defer func() {
+		// 记录查询指标（缓存命中/未命中在下面分别记录）
+		if queryErr != nil {
+			s.metrics.RecordQuery(false, queryErr)
+		}
+	}()
+
 	// 1. 尝试从缓存获取
+	cacheHit := false
 	if s.cache != nil {
 		cachedResult, err := s.cache.Get(ctx, question)
 		if err == nil && cachedResult != nil {
 			// 缓存命中，直接返回
+			s.metrics.RecordQuery(true, nil)
 			return cachedResult, nil
 		}
 		// 缓存未命中或出错，继续正常流程
 	}
 
 	// 2. 检索相关文档
+	retrievalStart := time.Now()
 	retrievalResult, err := s.retriever.Retrieve(ctx, question)
+	retrievalDuration := time.Since(retrievalStart)
+	s.metrics.RecordRetrieval(retrievalDuration, err)
 	if err != nil {
+		queryErr = err
 		return nil, err
 	}
 
 	// 3. 生成答案
+	llmStart := time.Now()
 	answer, err := s.generator.GenerateAnswer(ctx, question, retrievalResult.Results)
+	llmDuration := time.Since(llmStart)
+
+	// TODO: 从 generator 获取实际 token 数量（需要修改 Generator 接口返回 token 信息）
+	// 暂时使用估算值
+	promptTokens := 0    // 需要从 generator 传递
+	completionTokens := 0 // 需要从 generator 传递
+	s.metrics.RecordLLMCall(llmDuration, promptTokens, completionTokens, err)
+
 	if err != nil {
+		queryErr = err
 		return nil, err
 	}
 
@@ -123,6 +151,9 @@ func (s *RAGService) Query(ctx context.Context, question string) (*model.QueryRe
 		}
 	}
 
+	// 记录缓存未命中的成功查询
+	s.metrics.RecordQuery(cacheHit, nil)
+
 	return queryResult, nil
 }
 
@@ -147,6 +178,9 @@ func (s *RAGService) GetStats(ctx context.Context) (map[string]any, error) {
 			stats["cache"] = cacheStats
 		}
 	}
+
+	// 添加业务指标统计
+	stats["metrics"] = s.metrics.Stats()
 
 	return stats, nil
 }

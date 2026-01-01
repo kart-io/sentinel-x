@@ -1,0 +1,286 @@
+{
+  "dashboard": {
+    "title": "Sentinel-X RAG Service Monitoring",
+    "tags": ["sentinel-x", "rag", "llm", "prometheus"],
+    "timezone": "browser",
+    "schemaVersion": 27,
+    "version": 0,
+    "refresh": "30s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "RAG 查询统计",
+        "type": "stat",
+        "gridPos": {"h": 6, "w": 6, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "rate(sentinel_x_rag_queries_total[5m])",
+            "legendFormat": "QPS",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "graphMode": "area",
+          "colorMode": "value"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps",
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 10, "color": "yellow"},
+                {"value": 50, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "缓存命中率",
+        "type": "gauge",
+        "gridPos": {"h": 6, "w": 6, "x": 6, "y": 0},
+        "targets": [
+          {
+            "expr": "sentinel_x_rag_cache_hit_rate",
+            "legendFormat": "命中率",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "showThresholdLabels": true,
+          "showThresholdMarkers": true
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percentunit",
+            "min": 0,
+            "max": 1,
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 0.5, "color": "yellow"},
+                {"value": 0.8, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "熔断器状态",
+        "type": "stat",
+        "gridPos": {"h": 6, "w": 6, "x": 12, "y": 0},
+        "targets": [
+          {
+            "expr": "sentinel_x_rag_circuit_breaker_state",
+            "legendFormat": "状态 (0=closed, 1=open, 2=half-open)",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "graphMode": "none",
+          "colorMode": "background"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {"type": "value", "value": 0, "text": "Closed", "color": "green"},
+              {"type": "value", "value": 1, "text": "Open", "color": "red"},
+              {"type": "value", "value": 2, "text": "Half-Open", "color": "yellow"}
+            ]
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "服务运行时间",
+        "type": "stat",
+        "gridPos": {"h": 6, "w": 6, "x": 18, "y": 0},
+        "targets": [
+          {
+            "expr": "sentinel_x_rag_uptime_seconds",
+            "legendFormat": "运行时间",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s"
+          }
+        }
+      },
+      {
+        "id": 5,
+        "title": "查询 QPS",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 6},
+        "targets": [
+          {
+            "expr": "rate(sentinel_x_rag_queries_total[5m])",
+            "legendFormat": "总查询",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(sentinel_x_rag_queries_errors_total[5m])",
+            "legendFormat": "错误查询",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          {"format": "reqps", "label": "Queries/sec"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 6,
+        "title": "缓存命中/未命中",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 6},
+        "targets": [
+          {
+            "expr": "rate(sentinel_x_rag_queries_cache_hits_total[5m])",
+            "legendFormat": "缓存命中",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(sentinel_x_rag_queries_cache_misses_total[5m])",
+            "legendFormat": "缓存未命中",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          {"format": "reqps", "label": "Requests/sec"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 7,
+        "title": "检索平均耗时",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 14},
+        "targets": [
+          {
+            "expr": "rate(sentinel_x_rag_retrieval_duration_seconds_total[5m]) / rate(sentinel_x_rag_retrieval_total[5m])",
+            "legendFormat": "平均检索耗时",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "s", "label": "Duration"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 8,
+        "title": "LLM 调用平均耗时",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 14},
+        "targets": [
+          {
+            "expr": "rate(sentinel_x_rag_llm_calls_duration_seconds_total[5m]) / rate(sentinel_x_rag_llm_calls_total[5m])",
+            "legendFormat": "平均 LLM 耗时",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "s", "label": "Duration"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 9,
+        "title": "LLM Token 使用量",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 22},
+        "targets": [
+          {
+            "expr": "rate(sentinel_x_rag_llm_tokens_prompt_total[5m])",
+            "legendFormat": "Prompt Tokens/s",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(sentinel_x_rag_llm_tokens_completion_total[5m])",
+            "legendFormat": "Completion Tokens/s",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          {"format": "short", "label": "Tokens/sec"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 10,
+        "title": "错误率统计",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 22},
+        "targets": [
+          {
+            "expr": "rate(sentinel_x_rag_retrieval_errors_total[5m])",
+            "legendFormat": "检索错误",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(sentinel_x_rag_llm_calls_errors_total[5m])",
+            "legendFormat": "LLM 调用错误",
+            "refId": "B"
+          },
+          {
+            "expr": "rate(sentinel_x_rag_index_errors_total[5m])",
+            "legendFormat": "索引错误",
+            "refId": "C"
+          }
+        ],
+        "yaxes": [
+          {"format": "ops", "label": "Errors/sec"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 11,
+        "title": "索引统计",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 30},
+        "targets": [
+          {
+            "expr": "sentinel_x_rag_documents_indexed_total",
+            "legendFormat": "已索引文档数",
+            "refId": "A"
+          },
+          {
+            "expr": "sentinel_x_rag_chunks_indexed_total",
+            "legendFormat": "已索引分块数",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          {"format": "short", "label": "Count"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 12,
+        "title": "LLM 重试次数",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 30},
+        "targets": [
+          {
+            "expr": "rate(sentinel_x_rag_llm_calls_retries_total[5m])",
+            "legendFormat": "重试次数/秒",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "ops", "label": "Retries/sec"},
+          {"format": "short"}
+        ]
+      }
+    ]
+  }
+}

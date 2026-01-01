@@ -8,6 +8,7 @@ import (
 
 	"github.com/kart-io/sentinel-x/internal/pkg/rag/evaluator"
 	"github.com/kart-io/sentinel-x/internal/rag/biz"
+	"github.com/kart-io/sentinel-x/internal/rag/metrics"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 )
 
@@ -265,4 +266,10 @@ func (h *RAGHandler) QueryAndEvaluate(c transport.Context) {
 	}
 
 	c.JSON(http.StatusOK, SuccessResponse{Code: 0, Message: "success", Data: response})
+}
+
+// Metrics 导出 Prometheus 格式的业务指标。
+func (h *RAGHandler) Metrics(c transport.Context) {
+	metricsData := metrics.GetRAGMetrics().Export("sentinel_x", "rag")
+	c.String(http.StatusOK, metricsData)
 }
