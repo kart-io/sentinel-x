@@ -112,13 +112,13 @@ log:
 # Milvus configuration
 milvus:
   # Milvus server address
-  address: "localhost:19530"
+  address: "${MILVUS_URL}"
   # Database name
   database: "default"
   # Username (leave empty if no auth)
-  username: ""
+  username: "${MILVUS_USER}"
   # Password (leave empty if no auth)
-  password: ""
+  password: "${MILVUS_PASSWORD}"
   # Connection timeout
   timeout: 30s
   # Connection pool size
