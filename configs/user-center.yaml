@@ -150,9 +150,10 @@ jwt:
   # Disable authentication (set to true for development without auth)
   disable-auth: true
   # Secret key for signing tokens (min 64 characters for HMAC algorithms)
+  # ⚠️ 安全警告：绝对不要在此文件中硬编码密钥！
   # 必须通过环境变量设置: USER_CENTER_JWT_KEY
-  # 不要在配置文件中硬编码密钥！
-  key: "your-super-secret-key-change-in-production-minimum-64-characters-required-here"
+  # 生成密钥: openssl rand -base64 64 | tr -d '\n'
+  key: ""
   # Signing algorithm
   signing-method: "HS256"
   # Token issuer
@@ -173,9 +174,9 @@ mysql:
   # 通过环境变量设置: USER_CENTER_MYSQL_USERNAME
   username: "root"
   # Database password
+  # ⚠️ 安全警告：绝对不要在此文件中硬编码密码！
   # 必须通过环境变量设置: USER_CENTER_MYSQL_PASSWORD
-  # 不要在配置文件中硬编码密码！
-  password: "root123"
+  password: ""
   # Database name
   # 通过环境变量设置: USER_CENTER_MYSQL_DATABASE
   database: "user_auth"
@@ -194,9 +195,9 @@ redis:
   # Redis port
   port: 6379
   # Redis password (leave empty if no password)
+  # ⚠️ 安全警告：绝对不要在此文件中硬编码密码！
   # 必须通过环境变量设置: USER_CENTER_REDIS_PASSWORD
-  # 不要在配置文件中硬编码密码！
-  password: "redis_pass"
+  password: ""
   # Redis database number
   database: 0
   # Maximum retries

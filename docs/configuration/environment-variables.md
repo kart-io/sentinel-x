@@ -61,6 +61,15 @@ SENTINEL_API_MYSQL_MAX_IDLE_CONNECTIONS=10
 
 - `SENTINEL_EXAMPLE_JWT_KEY` - JWT 签名密钥（最少 32 个字符）
 
+### RAG Service (rag)
+
+- `DEEPSEEK_API_KEY` - DeepSeek API 密钥（用于 LLM Chat）
+- `OPENAI_API_KEY` - OpenAI API 密钥（可选，如果使用 OpenAI 作为 Provider）
+- `MILVUS_ADDRESS` - Milvus 服务器地址（默认：localhost:19530）
+- `MILVUS_DATABASE` - Milvus 数据库名（默认：default）
+- `MILVUS_USERNAME` - Milvus 用户名（如果启用认证）
+- `MILVUS_PASSWORD` - Milvus 密码（如果启用认证）
+
 ## 使用方法
 
 ### 方法一：使用 .env 文件（开发环境）
