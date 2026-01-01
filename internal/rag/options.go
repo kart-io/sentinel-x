@@ -30,6 +30,9 @@ type Options struct {
 
 	// RAG contains RAG-specific configuration.
 	RAG *RAGOptions `json:"rag" mapstructure:"rag"`
+
+	// Cache contains cache configuration.
+	Cache *CacheOptions `json:"cache" mapstructure:"cache"`
 }
 
 // LLMProviderOptions 定义 LLM 供应商配置。
@@ -124,6 +127,68 @@ type EnhancerOptions struct {
 	RerankTopK int `json:"rerank-top-k" mapstructure:"rerank-top-k"`
 }
 
+// CacheOptions 查询缓存配置。
+type CacheOptions struct {
+	// Enabled 是否启用缓存。
+	Enabled bool `json:"enabled" mapstructure:"enabled"`
+
+	// TTL 缓存过期时间。
+	TTL time.Duration `json:"ttl" mapstructure:"ttl"`
+
+	// KeyPrefix 缓存键前缀。
+	KeyPrefix string `json:"key-prefix" mapstructure:"key-prefix"`
+
+	// Redis Redis 连接配置。
+	Redis *RedisOptions `json:"redis" mapstructure:"redis"`
+}
+
+// RedisOptions Redis 配置。
+type RedisOptions struct {
+	// Host Redis 主机地址。
+	Host string `json:"host" mapstructure:"host"`
+
+	// Port Redis 端口。
+	Port int `json:"port" mapstructure:"port"`
+
+	// Password Redis 密码。
+	Password string `json:"password" mapstructure:"password"`
+
+	// Database Redis 数据库编号。
+	Database int `json:"database" mapstructure:"database"`
+
+	// MaxRetries 最大重试次数。
+	MaxRetries int `json:"max-retries" mapstructure:"max-retries"`
+
+	// PoolSize 连接池大小。
+	PoolSize int `json:"pool-size" mapstructure:"pool-size"`
+
+	// MinIdleConns 最小空闲连接数。
+	MinIdleConns int `json:"min-idle-conns" mapstructure:"min-idle-conns"`
+}
+
+// NewCacheOptions 创建默认缓存配置。
+func NewCacheOptions() *CacheOptions {
+	return &CacheOptions{
+		Enabled:   true,
+		TTL:       1 * time.Hour,
+		KeyPrefix: "rag:query:",
+		Redis:     NewRedisOptions(),
+	}
+}
+
+// NewRedisOptions 创建默认 Redis 配置。
+func NewRedisOptions() *RedisOptions {
+	return &RedisOptions{
+		Host:         "localhost",
+		Port:         6379,
+		Password:     "",
+		Database:     0,
+		MaxRetries:   3,
+		PoolSize:     10,
+		MinIdleConns: 5,
+	}
+}
+
 // NewEnhancerOptions 创建默认增强器配置。
 func NewEnhancerOptions() *EnhancerOptions {
 	return &EnhancerOptions{
@@ -179,6 +244,7 @@ func NewOptions() *Options {
 		Embedding: embeddingOpts,
 		Chat:      chatOpts,
 		RAG:       NewRAGOptions(),
+		Cache:     NewCacheOptions(),
 	}
 }
 
@@ -190,6 +256,7 @@ func (o *Options) AddFlags(fs *pflag.FlagSet) {
 	o.addEmbeddingFlags(fs)
 	o.addChatFlags(fs)
 	o.addRAGFlags(fs)
+	o.addCacheFlags(fs)
 }
 
 func (o *Options) addEmbeddingFlags(fs *pflag.FlagSet) {
@@ -224,6 +291,19 @@ func (o *Options) addRAGFlags(fs *pflag.FlagSet) {
 	fs.BoolVar(&o.RAG.Enhancer.EnableRerank, "rag.enhancer.enable-rerank", o.RAG.Enhancer.EnableRerank, "Enable result reranking")
 	fs.BoolVar(&o.RAG.Enhancer.EnableRepacking, "rag.enhancer.enable-repacking", o.RAG.Enhancer.EnableRepacking, "Enable document repacking")
 	fs.IntVar(&o.RAG.Enhancer.RerankTopK, "rag.enhancer.rerank-top-k", o.RAG.Enhancer.RerankTopK, "Number of documents to keep after reranking")
+}
+
+func (o *Options) addCacheFlags(fs *pflag.FlagSet) {
+	fs.BoolVar(&o.Cache.Enabled, "cache.enabled", o.Cache.Enabled, "Enable query result cache")
+	fs.DurationVar(&o.Cache.TTL, "cache.ttl", o.Cache.TTL, "Cache TTL duration")
+	fs.StringVar(&o.Cache.KeyPrefix, "cache.key-prefix", o.Cache.KeyPrefix, "Cache key prefix")
+	fs.StringVar(&o.Cache.Redis.Host, "cache.redis.host", o.Cache.Redis.Host, "Redis host")
+	fs.IntVar(&o.Cache.Redis.Port, "cache.redis.port", o.Cache.Redis.Port, "Redis port")
+	fs.StringVar(&o.Cache.Redis.Password, "cache.redis.password", o.Cache.Redis.Password, "Redis password")
+	fs.IntVar(&o.Cache.Redis.Database, "cache.redis.database", o.Cache.Redis.Database, "Redis database number")
+	fs.IntVar(&o.Cache.Redis.MaxRetries, "cache.redis.max-retries", o.Cache.Redis.MaxRetries, "Redis max retries")
+	fs.IntVar(&o.Cache.Redis.PoolSize, "cache.redis.pool-size", o.Cache.Redis.PoolSize, "Redis connection pool size")
+	fs.IntVar(&o.Cache.Redis.MinIdleConns, "cache.redis.min-idle-conns", o.Cache.Redis.MinIdleConns, "Redis minimum idle connections")
 }
 
 // Validate validates the options.

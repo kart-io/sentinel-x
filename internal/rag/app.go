@@ -15,6 +15,7 @@ import (
 	"github.com/kart-io/sentinel-x/internal/rag/store"
 	"github.com/kart-io/sentinel-x/pkg/component/milvus"
 	"github.com/kart-io/sentinel-x/pkg/llm"
+	goredis "github.com/redis/go-redis/v9"
 
 	// Register adapters
 	_ "github.com/kart-io/sentinel-x/pkg/infra/adapter/echo"
@@ -82,7 +83,44 @@ func Run(opts *Options) error {
 	vectorStore := store.NewMilvusStore(milvusClient)
 	logger.Info("Vector store initialized")
 
-	// 4. 初始化 LLM 供应商
+	// 4. 初始化 Redis 客户端（用于缓存）
+	var redisClient *goredis.Client
+	var queryCache *biz.QueryCache
+	if opts.Cache.Enabled {
+		redisClient = goredis.NewClient(&goredis.Options{
+			Addr:         fmt.Sprintf("%s:%d", opts.Cache.Redis.Host, opts.Cache.Redis.Port),
+			Password:     opts.Cache.Redis.Password,
+			DB:           opts.Cache.Redis.Database,
+			MaxRetries:   opts.Cache.Redis.MaxRetries,
+			PoolSize:     opts.Cache.Redis.PoolSize,
+			MinIdleConns: opts.Cache.Redis.MinIdleConns,
+		})
+
+		// 测试 Redis 连接
+		if err := redisClient.Ping(context.Background()).Err(); err != nil {
+			logger.Warnw("failed to connect to redis, cache will be disabled", "error", err.Error())
+			redisClient.Close()
+			redisClient = nil
+		} else {
+			queryCache = biz.NewQueryCache(redisClient, &biz.QueryCacheConfig{
+				Enabled:   true,
+				TTL:       opts.Cache.TTL,
+				KeyPrefix: opts.Cache.KeyPrefix,
+			})
+			logger.Infow("Redis cache initialized",
+				"host", opts.Cache.Redis.Host,
+				"port", opts.Cache.Redis.Port,
+				"ttl", opts.Cache.TTL,
+			)
+		}
+	} else {
+		logger.Info("Cache is disabled")
+	}
+	if redisClient != nil {
+		defer redisClient.Close()
+	}
+
+	// 5. 初始化 LLM 供应商
 	embedProvider, err := llm.NewEmbeddingProvider(opts.Embedding.Provider, opts.Embedding.ToConfigMap())
 	if err != nil {
 		return fmt.Errorf("failed to initialize embedding provider: %w", err)
@@ -101,7 +139,7 @@ func Run(opts *Options) error {
 		"model", opts.Chat.Model,
 	)
 
-	// 5. 初始化 Biz 层
+	// 6. 初始化 Biz 层
 	serviceConfig := &biz.ServiceConfig{
 		IndexerConfig: &biz.IndexerConfig{
 			ChunkSize:    opts.RAG.ChunkSize,
@@ -124,25 +162,31 @@ func Run(opts *Options) error {
 		GeneratorConfig: &biz.GeneratorConfig{
 			SystemPrompt: opts.RAG.SystemPrompt,
 		},
+		QueryCacheConfig: &biz.QueryCacheConfig{
+			Enabled:   opts.Cache.Enabled,
+			TTL:       opts.Cache.TTL,
+			KeyPrefix: opts.Cache.KeyPrefix,
+		},
 	}
-	ragService := biz.NewRAGService(vectorStore, embedProvider, chatProvider, serviceConfig)
+	ragService := biz.NewRAGService(vectorStore, embedProvider, chatProvider, queryCache, serviceConfig)
 	logger.Infow("RAG service initialized",
+		"cache.enabled", opts.Cache.Enabled,
 		"enhancer.query_rewrite", opts.RAG.Enhancer.EnableQueryRewrite,
 		"enhancer.hyde", opts.RAG.Enhancer.EnableHyDE,
 		"enhancer.rerank", opts.RAG.Enhancer.EnableRerank,
 		"enhancer.repacking", opts.RAG.Enhancer.EnableRepacking,
 	)
 
-	// 6. 初始化评估器
+	// 7. 初始化评估器
 	ragEvaluator := evaluator.New(chatProvider, embedProvider)
 	logger.Info("RAG evaluator initialized")
 
-	// 7. 初始化 Handler 层
+	// 8. 初始化 Handler 层
 	ragHandler := handler.NewRAGHandler(ragService, ragEvaluator)
 	ragGRPCHandler := grpcHandler.NewHandler(ragService)
 	logger.Info("Handler layer initialized")
 
-	// 8. 初始化服务器
+	// 9. 初始化服务器
 	serverManager := server.NewManager(
 		server.WithMode(opts.Server.Mode),
 		server.WithHTTPOptions(opts.Server.HTTP),
@@ -150,12 +194,12 @@ func Run(opts *Options) error {
 		server.WithShutdownTimeout(opts.Server.ShutdownTimeout),
 	)
 
-	// 9. 注册路由
+	// 10. 注册路由
 	if err := router.Register(serverManager, ragHandler, ragGRPCHandler); err != nil {
 		return fmt.Errorf("failed to register routes: %w", err)
 	}
 
-	// 10. 启动服务器
+	// 11. 启动服务器
 	logger.Info("RAG service is ready")
 	return serverManager.Run()
 }

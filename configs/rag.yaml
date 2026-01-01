@@ -200,3 +200,31 @@ rag:
     Question: {{question}}
 
     Answer:
+
+# Cache configuration
+cache:
+  # Enable query result caching
+  enabled: true
+  # Cache TTL (time to live)
+  ttl: 1h
+  # Cache key prefix
+  key-prefix: "rag:query:"
+  # Redis configuration
+  redis:
+    # Redis host
+    # 通过环境变量设置: RAG_CACHE_REDIS_HOST
+    host: "localhost"
+    # Redis port
+    port: 6379
+    # Redis password (leave empty if no auth)
+    # ⚠️ 安全警告：绝对不要在此文件中硬编码密码！
+    # 必须通过环境变量设置: RAG_CACHE_REDIS_PASSWORD
+    password: ""
+    # Redis database number
+    database: 0
+    # Max retries
+    max-retries: 3
+    # Connection pool size
+    pool-size: 10
+    # Minimum idle connections
+    min-idle-conns: 5
