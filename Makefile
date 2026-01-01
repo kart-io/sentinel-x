@@ -64,6 +64,11 @@ test: go.test ## Run unit tests.
 .PHONY: test-cover
 test-cover: go.test.cover ## Run unit tests with coverage report.
 
+.PHONY: test-cover-html
+test-cover-html: ## Run unit tests and generate HTML coverage report.
+	@echo "===========> Generating coverage HTML report"
+	@./scripts/test-coverage.sh
+
 .PHONY: bench
 bench: ## Run benchmark tests.
 	@echo "===========> Running benchmark tests"
