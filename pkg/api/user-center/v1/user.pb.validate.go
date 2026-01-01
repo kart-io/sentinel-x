@@ -1676,7 +1676,6 @@ func (m *RegisterRequest) validate(all bool) error {
 	}
 
 	if m.GetMobile() != "" {
-
 		if !_RegisterRequest_Mobile_Pattern.MatchString(m.GetMobile()) {
 			err := RegisterRequestValidationError{
 				field:  "Mobile",
@@ -1687,7 +1686,6 @@ func (m *RegisterRequest) validate(all bool) error {
 			}
 			errors = append(errors, err)
 		}
-
 	}
 
 	if len(errors) > 0 {

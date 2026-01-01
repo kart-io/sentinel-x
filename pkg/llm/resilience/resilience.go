@@ -228,10 +228,10 @@ func (cb *CircuitBreaker) Stats() map[string]interface{} {
 	defer cb.mu.RUnlock()
 
 	return map[string]interface{}{
-		"state":              cb.state.String(),
-		"failures":           cb.failures,
-		"last_failure_time":  cb.lastFailureTime,
-		"half_open_calls":    cb.halfOpenCalls,
+		"state":               cb.state.String(),
+		"failures":            cb.failures,
+		"last_failure_time":   cb.lastFailureTime,
+		"half_open_calls":     cb.halfOpenCalls,
 		"half_open_successes": cb.halfOpenSuccesses,
 	}
 }

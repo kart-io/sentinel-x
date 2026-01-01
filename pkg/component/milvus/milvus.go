@@ -5,12 +5,11 @@ import (
 	"fmt"
 	"strconv"
 
+	milvusopts "github.com/kart-io/sentinel-x/pkg/options/milvus"
 	"github.com/milvus-io/milvus/client/v2/column"
 	"github.com/milvus-io/milvus/client/v2/entity"
 	"github.com/milvus-io/milvus/client/v2/index"
 	"github.com/milvus-io/milvus/client/v2/milvusclient"
-
-	milvusopts "github.com/kart-io/sentinel-x/pkg/options/milvus"
 )
 
 // Client wraps the Milvus SDK client.

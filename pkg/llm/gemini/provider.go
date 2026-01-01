@@ -199,9 +199,9 @@ func (p *Provider) EmbedSingle(ctx context.Context, text string) ([]float32, err
 
 // chatRequest Gemini generateContent API 请求体。
 type chatRequest struct {
-	Contents         []chatContent        `json:"contents"`
-	SystemInstruction *chatContent        `json:"systemInstruction,omitempty"`
-	GenerationConfig *generationConfig    `json:"generationConfig,omitempty"`
+	Contents          []chatContent     `json:"contents"`
+	SystemInstruction *chatContent      `json:"systemInstruction,omitempty"`
+	GenerationConfig  *generationConfig `json:"generationConfig,omitempty"`
 }
 
 type chatContent struct {
@@ -263,7 +263,7 @@ func (p *Provider) Chat(ctx context.Context, messages []llm.Message) (string, er
 	}
 
 	reqBody := chatRequest{
-		Contents:         contents,
+		Contents:          contents,
 		SystemInstruction: systemInstruction,
 		GenerationConfig: &generationConfig{
 			Temperature:     0.7,

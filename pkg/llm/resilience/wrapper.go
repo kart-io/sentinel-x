@@ -7,7 +7,6 @@ import (
 	"net"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/kart-io/logger"
 	"github.com/kart-io/sentinel-x/pkg/llm"
@@ -239,7 +238,7 @@ func IsRetryableError(err error) bool {
 
 // Stats 获取韧性统计信息。
 type Stats struct {
-	CircuitBreakerState   string
+	CircuitBreakerState    string
 	CircuitBreakerFailures int
 	CircuitBreakerStats    map[string]interface{}
 }

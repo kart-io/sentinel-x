@@ -112,7 +112,7 @@ func (p *Provider) Name() string {
 
 // embeddingRequest HuggingFace Feature Extraction API 请求体。
 type embeddingRequest struct {
-	Inputs  []string         `json:"inputs"`
+	Inputs  []string          `json:"inputs"`
 	Options *embeddingOptions `json:"options,omitempty"`
 }
 

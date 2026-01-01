@@ -37,7 +37,7 @@ func ExtractZip(src, dest string) error {
 	}
 	defer r.Close()
 
-	if err := os.MkdirAll(dest, 0755); err != nil {
+	if err := os.MkdirAll(dest, 0o755); err != nil {
 		return err
 	}
 
@@ -56,7 +56,7 @@ func ExtractZip(src, dest string) error {
 			continue
 		}
 
-		if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 			return err
 		}
 
@@ -109,7 +109,7 @@ func FindFiles(dir string, extensions []string) ([]string, error) {
 
 // EnsureDir 确保目录存在，如果不存在则创建。
 func EnsureDir(dir string) error {
-	return os.MkdirAll(dir, 0755)
+	return os.MkdirAll(dir, 0o755)
 }
 
 // ReadFileContent 读取文件内容。

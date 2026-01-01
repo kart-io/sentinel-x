@@ -14,22 +14,19 @@ import (
 	"github.com/kart-io/sentinel-x/internal/rag/router"
 	"github.com/kart-io/sentinel-x/internal/rag/store"
 	"github.com/kart-io/sentinel-x/pkg/component/milvus"
-	"github.com/kart-io/sentinel-x/pkg/llm"
-	goredis "github.com/redis/go-redis/v9"
-
 	// Register adapters
 	_ "github.com/kart-io/sentinel-x/pkg/infra/adapter/echo"
 	_ "github.com/kart-io/sentinel-x/pkg/infra/adapter/gin"
-
+	"github.com/kart-io/sentinel-x/pkg/infra/app"
+	"github.com/kart-io/sentinel-x/pkg/infra/server"
+	"github.com/kart-io/sentinel-x/pkg/llm"
 	// Register LLM providers
 	_ "github.com/kart-io/sentinel-x/pkg/llm/deepseek"
 	_ "github.com/kart-io/sentinel-x/pkg/llm/gemini"
 	_ "github.com/kart-io/sentinel-x/pkg/llm/huggingface"
 	_ "github.com/kart-io/sentinel-x/pkg/llm/ollama"
 	_ "github.com/kart-io/sentinel-x/pkg/llm/openai"
-
-	"github.com/kart-io/sentinel-x/pkg/infra/app"
-	"github.com/kart-io/sentinel-x/pkg/infra/server"
+	goredis "github.com/redis/go-redis/v9"
 )
 
 const (
