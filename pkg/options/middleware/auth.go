@@ -4,6 +4,7 @@ import (
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 	"github.com/kart-io/sentinel-x/pkg/security/auth"
 	"github.com/kart-io/sentinel-x/pkg/security/authz"
+	"github.com/spf13/pflag"
 )
 
 // AuthOptions defines authentication middleware options.
@@ -33,20 +34,43 @@ type AuthOptions struct {
 	SuccessHandler func(ctx transport.Context, claims *auth.Claims) `json:"-" mapstructure:"-"`
 }
 
-// WithAuth configures and enables auth middleware.
-func WithAuth(authenticator auth.Authenticator, skipPaths ...string) Option {
+// NewAuthOptions creates default authentication options.
+func NewAuthOptions() *AuthOptions {
+	return &AuthOptions{
+		TokenLookup:      "header:Authorization",
+		AuthScheme:       "Bearer",
+		SkipPaths:        []string{},
+		SkipPathPrefixes: []string{},
+	}
+}
+
+// AddFlags adds flags for auth options to the specified FlagSet.
+func (o *AuthOptions) AddFlags(fs *pflag.FlagSet) {
+	fs.StringVar(&o.TokenLookup, "middleware.auth.token-lookup", o.TokenLookup, "Token lookup location (header:Authorization)")
+	fs.StringVar(&o.AuthScheme, "middleware.auth.auth-scheme", o.AuthScheme, "Authorization scheme (Bearer)")
+	fs.StringSliceVar(&o.SkipPaths, "middleware.auth.skip-paths", o.SkipPaths, "Paths to skip authentication")
+	fs.StringSliceVar(&o.SkipPathPrefixes, "middleware.auth.skip-path-prefixes", o.SkipPathPrefixes, "Path prefixes to skip authentication")
+}
+
+// Validate validates the auth options.
+func (o *AuthOptions) Validate() error {
+	return nil
+}
+
+// Complete completes the auth options with defaults.
+func (o *AuthOptions) Complete() error {
+	return nil
+}
+
+// WithAuthenticator configures and enables auth middleware with an authenticator.
+func WithAuthenticator(authenticator auth.Authenticator, skipPaths ...string) Option {
 	return func(o *Options) {
-		o.DisableAuth = false
+		o.Enable(MiddlewareAuth)
 		o.Auth.Authenticator = authenticator
 		if len(skipPaths) > 0 {
 			o.Auth.SkipPaths = skipPaths
 		}
 	}
-}
-
-// WithoutAuth disables auth middleware.
-func WithoutAuth() Option {
-	return func(o *Options) { o.DisableAuth = true }
 }
 
 // AuthzOptions defines authorization middleware options.
@@ -76,17 +100,37 @@ type AuthzOptions struct {
 	ErrorHandler func(ctx transport.Context, err error) `json:"-" mapstructure:"-"`
 }
 
-// WithAuthz configures and enables authz middleware.
-func WithAuthz(skipPaths ...string) Option {
+// NewAuthzOptions creates default authorization options.
+func NewAuthzOptions() *AuthzOptions {
+	return &AuthzOptions{
+		SkipPaths:        []string{},
+		SkipPathPrefixes: []string{},
+	}
+}
+
+// AddFlags adds flags for authz options to the specified FlagSet.
+func (o *AuthzOptions) AddFlags(fs *pflag.FlagSet) {
+	fs.StringSliceVar(&o.SkipPaths, "middleware.authz.skip-paths", o.SkipPaths, "Paths to skip authorization")
+	fs.StringSliceVar(&o.SkipPathPrefixes, "middleware.authz.skip-path-prefixes", o.SkipPathPrefixes, "Path prefixes to skip authorization")
+}
+
+// Validate validates the authz options.
+func (o *AuthzOptions) Validate() error {
+	return nil
+}
+
+// Complete completes the authz options with defaults.
+func (o *AuthzOptions) Complete() error {
+	return nil
+}
+
+// WithAuthorizer configures and enables authz middleware with custom skip paths.
+func WithAuthorizer(authorizer authz.Authorizer, skipPaths ...string) Option {
 	return func(o *Options) {
-		o.DisableAuthz = false
+		o.Enable(MiddlewareAuthz)
+		o.Authz.Authorizer = authorizer
 		if len(skipPaths) > 0 {
 			o.Authz.SkipPaths = skipPaths
 		}
 	}
-}
-
-// WithoutAuthz disables authz middleware.
-func WithoutAuthz() Option {
-	return func(o *Options) { o.DisableAuthz = true }
 }

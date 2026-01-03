@@ -58,7 +58,7 @@ func (rm *ReloadableMiddleware) OnConfigChange(newConfig interface{}) error {
 	changes := []string{}
 
 	// Update timeout configuration if changed
-	if !rm.opts.DisableTimeout {
+	if rm.opts.IsEnabled(MiddlewareTimeout) {
 		if rm.opts.Timeout.Timeout != newOpts.Timeout.Timeout {
 			changes = append(changes, fmt.Sprintf("timeout: %v -> %v",
 				rm.opts.Timeout.Timeout, newOpts.Timeout.Timeout))
@@ -76,7 +76,7 @@ func (rm *ReloadableMiddleware) OnConfigChange(newConfig interface{}) error {
 	}
 
 	// Update CORS configuration if changed
-	if !rm.opts.DisableCORS {
+	if rm.opts.IsEnabled(MiddlewareCORS) {
 		corsChanged := false
 
 		if !stringSlicesEqual(rm.opts.CORS.AllowOrigins, newOpts.CORS.AllowOrigins) {
@@ -103,7 +103,7 @@ func (rm *ReloadableMiddleware) OnConfigChange(newConfig interface{}) error {
 		if corsChanged {
 			// Call callback if registered
 			if rm.onCORSChange != nil {
-				if err := rm.onCORSChange(&newOpts.CORS); err != nil {
+				if err := rm.onCORSChange(newOpts.CORS); err != nil {
 					return fmt.Errorf("failed to apply CORS change: %w", err)
 				}
 			}
@@ -195,23 +195,21 @@ func (rm *ReloadableMiddleware) GetOptions() *Options {
 
 	// Return a deep copy to prevent external modifications
 	opts := &Options{
-		Recovery: RecoveryOptions{
+		Enabled: append([]string(nil), rm.opts.Enabled...),
+		Recovery: &RecoveryOptions{
 			EnableStackTrace: rm.opts.Recovery.EnableStackTrace,
 			OnPanic:          rm.opts.Recovery.OnPanic,
 		},
-		DisableRecovery: rm.opts.DisableRecovery,
-		RequestID: RequestIDOptions{
+		RequestID: &RequestIDOptions{
 			Header:    rm.opts.RequestID.Header,
 			Generator: rm.opts.RequestID.Generator,
 		},
-		DisableRequestID: rm.opts.DisableRequestID,
-		Logger: LoggerOptions{
+		Logger: &LoggerOptions{
 			SkipPaths:           append([]string(nil), rm.opts.Logger.SkipPaths...),
 			UseStructuredLogger: rm.opts.Logger.UseStructuredLogger,
 			Output:              rm.opts.Logger.Output,
 		},
-		DisableLogger: rm.opts.DisableLogger,
-		CORS: CORSOptions{
+		CORS: &CORSOptions{
 			AllowOrigins:     append([]string(nil), rm.opts.CORS.AllowOrigins...),
 			AllowMethods:     append([]string(nil), rm.opts.CORS.AllowMethods...),
 			AllowHeaders:     append([]string(nil), rm.opts.CORS.AllowHeaders...),
@@ -219,26 +217,22 @@ func (rm *ReloadableMiddleware) GetOptions() *Options {
 			AllowCredentials: rm.opts.CORS.AllowCredentials,
 			MaxAge:           rm.opts.CORS.MaxAge,
 		},
-		DisableCORS: rm.opts.DisableCORS,
-		Timeout: TimeoutOptions{
+		Timeout: &TimeoutOptions{
 			Timeout:   rm.opts.Timeout.Timeout,
 			SkipPaths: append([]string(nil), rm.opts.Timeout.SkipPaths...),
 		},
-		DisableTimeout: rm.opts.DisableTimeout,
-		Health: HealthOptions{
+		Health: &HealthOptions{
 			Path:          rm.opts.Health.Path,
 			LivenessPath:  rm.opts.Health.LivenessPath,
 			ReadinessPath: rm.opts.Health.ReadinessPath,
 			Checker:       rm.opts.Health.Checker,
 		},
-		DisableHealth: rm.opts.DisableHealth,
-		Metrics: MetricsOptions{
+		Metrics: &MetricsOptions{
 			Path:      rm.opts.Metrics.Path,
 			Namespace: rm.opts.Metrics.Namespace,
 			Subsystem: rm.opts.Metrics.Subsystem,
 		},
-		DisableMetrics: rm.opts.DisableMetrics,
-		Pprof: PprofOptions{
+		Pprof: &PprofOptions{
 			Prefix:               rm.opts.Pprof.Prefix,
 			EnableCmdline:        rm.opts.Pprof.EnableCmdline,
 			EnableProfile:        rm.opts.Pprof.EnableProfile,
@@ -247,11 +241,8 @@ func (rm *ReloadableMiddleware) GetOptions() *Options {
 			BlockProfileRate:     rm.opts.Pprof.BlockProfileRate,
 			MutexProfileFraction: rm.opts.Pprof.MutexProfileFraction,
 		},
-		DisablePprof: rm.opts.DisablePprof,
-		Auth:         rm.opts.Auth,
-		DisableAuth:  rm.opts.DisableAuth,
-		Authz:        rm.opts.Authz,
-		DisableAuthz: rm.opts.DisableAuthz,
+		Auth:  rm.opts.Auth,
+		Authz: rm.opts.Authz,
 	}
 
 	return opts

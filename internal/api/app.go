@@ -11,6 +11,7 @@ import (
 	_ "github.com/kart-io/sentinel-x/pkg/infra/adapter/gin"
 	"github.com/kart-io/sentinel-x/pkg/infra/app"
 	"github.com/kart-io/sentinel-x/pkg/infra/server"
+	middlewareopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 )
 
 const (
@@ -154,47 +155,47 @@ func printBanner(opts *Options) {
 
 	fmt.Println("-------------------------------------------")
 	fmt.Println("Middleware:")
-	if !mw.DisableRecovery {
+	if mw.IsEnabled(middlewareopts.MiddlewareRecovery) {
 		fmt.Println("  - Recovery")
 	}
-	if !mw.DisableRequestID {
+	if mw.IsEnabled(middlewareopts.MiddlewareRequestID) {
 		fmt.Println("  - RequestID")
 	}
-	if !mw.DisableLogger {
+	if mw.IsEnabled(middlewareopts.MiddlewareLogger) {
 		fmt.Println("  - Logger")
 	}
-	if !mw.DisableCORS {
+	if mw.IsEnabled(middlewareopts.MiddlewareCORS) {
 		fmt.Println("  - CORS")
 	}
-	if !mw.DisableTimeout {
+	if mw.IsEnabled(middlewareopts.MiddlewareTimeout) {
 		fmt.Println("  - Timeout")
 	}
-	if !mw.DisableHealth {
+	if mw.IsEnabled(middlewareopts.MiddlewareHealth) {
 		fmt.Println("  - Health")
 	}
-	if !mw.DisableMetrics {
+	if mw.IsEnabled(middlewareopts.MiddlewareMetrics) {
 		fmt.Println("  - Metrics")
 	}
-	if !mw.DisablePprof {
+	if mw.IsEnabled(middlewareopts.MiddlewarePprof) {
 		fmt.Println("  - Pprof")
 	}
-	if !mw.DisableAuth {
+	if mw.IsEnabled(middlewareopts.MiddlewareAuth) {
 		fmt.Println("  - Auth (JWT)")
 	}
-	if !mw.DisableAuthz {
+	if mw.IsEnabled(middlewareopts.MiddlewareAuthz) {
 		fmt.Println("  - Authz (RBAC)")
 	}
 
-	if opts.Server.EnableHTTP() && !mw.DisableHealth {
+	if opts.Server.EnableHTTP() && mw.IsEnabled(middlewareopts.MiddlewareHealth) {
 		fmt.Println("-------------------------------------------")
 		fmt.Println("Endpoints:")
 		fmt.Printf("  Health: http://localhost%s%s\n", opts.Server.HTTP.Addr, mw.Health.Path)
 		fmt.Printf("  Liveness: http://localhost%s%s\n", opts.Server.HTTP.Addr, mw.Health.LivenessPath)
 		fmt.Printf("  Readiness: http://localhost%s%s\n", opts.Server.HTTP.Addr, mw.Health.ReadinessPath)
-		if !mw.DisableMetrics {
+		if mw.IsEnabled(middlewareopts.MiddlewareMetrics) {
 			fmt.Printf("  Metrics: http://localhost%s%s\n", opts.Server.HTTP.Addr, mw.Metrics.Path)
 		}
-		if !mw.DisablePprof {
+		if mw.IsEnabled(middlewareopts.MiddlewarePprof) {
 			fmt.Printf("  Pprof: http://localhost%s%s/\n", opts.Server.HTTP.Addr, mw.Pprof.Prefix)
 		}
 	}

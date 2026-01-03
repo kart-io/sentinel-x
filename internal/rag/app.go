@@ -20,12 +20,12 @@ import (
 	"github.com/kart-io/sentinel-x/pkg/infra/app"
 	"github.com/kart-io/sentinel-x/pkg/infra/server"
 	"github.com/kart-io/sentinel-x/pkg/llm"
-	// Register LLM providers
 	_ "github.com/kart-io/sentinel-x/pkg/llm/deepseek"
 	_ "github.com/kart-io/sentinel-x/pkg/llm/gemini"
 	_ "github.com/kart-io/sentinel-x/pkg/llm/huggingface"
 	_ "github.com/kart-io/sentinel-x/pkg/llm/ollama"
 	_ "github.com/kart-io/sentinel-x/pkg/llm/openai"
+	// Register LLM providers
 	goredis "github.com/redis/go-redis/v9"
 )
 

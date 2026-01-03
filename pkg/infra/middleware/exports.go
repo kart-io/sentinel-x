@@ -54,6 +54,26 @@ type (
 	PprofOptions = options.PprofOptions
 )
 
+// Middleware name constants.
+const (
+	MiddlewareRecovery  = options.MiddlewareRecovery
+	MiddlewareRequestID = options.MiddlewareRequestID
+	MiddlewareLogger    = options.MiddlewareLogger
+	MiddlewareCORS      = options.MiddlewareCORS
+	MiddlewareTimeout   = options.MiddlewareTimeout
+	MiddlewareHealth    = options.MiddlewareHealth
+	MiddlewareMetrics   = options.MiddlewareMetrics
+	MiddlewarePprof     = options.MiddlewarePprof
+	MiddlewareAuth      = options.MiddlewareAuth
+	MiddlewareAuthz     = options.MiddlewareAuthz
+)
+
+// AllMiddlewares is the list of all supported middleware names.
+var AllMiddlewares = options.AllMiddlewares
+
+// DefaultEnabledMiddlewares is the default list of enabled middlewares.
+var DefaultEnabledMiddlewares = options.DefaultEnabledMiddlewares
+
 // NewOptions creates default middleware options.
 var NewOptions = options.NewOptions
 

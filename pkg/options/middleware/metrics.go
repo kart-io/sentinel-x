@@ -1,5 +1,11 @@
 package middleware
 
+import (
+	"errors"
+
+	"github.com/spf13/pflag"
+)
+
 // MetricsOptions defines metrics options.
 type MetricsOptions struct {
 	Path      string `json:"path" mapstructure:"path"`
@@ -8,22 +14,35 @@ type MetricsOptions struct {
 }
 
 // WithMetrics configures and enables metrics endpoint.
-func WithMetrics(path, namespace, subsystem string) Option {
-	return func(o *Options) {
-		o.DisableMetrics = false
-		if path != "" {
-			o.Metrics.Path = path
-		}
-		if namespace != "" {
-			o.Metrics.Namespace = namespace
-		}
-		if subsystem != "" {
-			o.Metrics.Subsystem = subsystem
-		}
+
+func NewMetricsOptions() *MetricsOptions {
+	return &MetricsOptions{
+		Path:      "/metrics",
+		Namespace: "sentinel",
+		Subsystem: "http",
 	}
 }
 
-// WithoutMetrics disables metrics endpoint.
-func WithoutMetrics() Option {
-	return func(o *Options) { o.DisableMetrics = true }
+func (o *MetricsOptions) AddFlags(fs *pflag.FlagSet) {
+	fs.StringVar(&o.Path, "middleware.metrics.path", o.Path, "Metrics endpoint path")
+	fs.StringVar(&o.Namespace, "middleware.metrics.namespace", o.Namespace, "Metrics namespace")
+	fs.StringVar(&o.Subsystem, "middleware.metrics.subsystem", o.Subsystem, "Metrics subsystem")
+}
+
+func (o *MetricsOptions) Validate() error {
+	if o.Path == "" {
+		return errors.New("metrics path is required")
+	}
+	if o.Namespace == "" {
+		return errors.New("metrics namespace is required")
+	}
+	if o.Subsystem == "" {
+		return errors.New("metrics subsystem is required")
+	}
+	return nil
+}
+
+// Complete completes the metrics options with defaults.
+func (o *MetricsOptions) Complete() error {
+	return nil
 }

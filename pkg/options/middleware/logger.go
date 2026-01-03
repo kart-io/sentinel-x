@@ -1,5 +1,9 @@
 package middleware
 
+import (
+	"github.com/spf13/pflag"
+)
+
 // LoggerOptions defines logger middleware options.
 type LoggerOptions struct {
 	SkipPaths           []string                                 `json:"skip-paths" mapstructure:"skip-paths"`
@@ -7,20 +11,23 @@ type LoggerOptions struct {
 	Output              func(format string, args ...interface{}) `json:"-" mapstructure:"-"`
 }
 
-// WithLogger configures logger middleware.
-func WithLogger(skipPaths []string, output func(format string, args ...interface{})) Option {
-	return func(o *Options) {
-		o.DisableLogger = false
-		if skipPaths != nil {
-			o.Logger.SkipPaths = skipPaths
-		}
-		if output != nil {
-			o.Logger.Output = output
-		}
+func NewLoggerOptions() *LoggerOptions {
+	return &LoggerOptions{
+		SkipPaths:           []string{"/health", "/ready", "/live", "/metrics"},
+		UseStructuredLogger: true,
+		Output:              nil,
 	}
 }
 
-// WithoutLogger disables logger middleware.
-func WithoutLogger() Option {
-	return func(o *Options) { o.DisableLogger = true }
+func (o *LoggerOptions) AddFlags(fs *pflag.FlagSet) {
+	fs.StringSliceVar(&o.SkipPaths, "middleware.logger.skip-paths", o.SkipPaths, "Paths to skip logging")
+	fs.BoolVar(&o.UseStructuredLogger, "middleware.logger.use-structured-logger", o.UseStructuredLogger, "Use structured logger")
+}
+
+func (o *LoggerOptions) Validate() error {
+	return nil
+}
+
+func (o *LoggerOptions) Complete() error {
+	return nil
 }

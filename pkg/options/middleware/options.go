@@ -6,7 +6,6 @@ import (
 	"log"
 	"time"
 
-	"github.com/kart-io/sentinel-x/pkg/infra/middleware/requestutil"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 	"github.com/spf13/pflag"
 )
@@ -17,47 +16,81 @@ type PathMatcher struct {
 	SkipPathPrefixes []string
 }
 
+// 中间件名称常量。
+const (
+	MiddlewareRecovery  = "recovery"
+	MiddlewareRequestID = "request-id"
+	MiddlewareLogger    = "logger"
+	MiddlewareCORS      = "cors"
+	MiddlewareTimeout   = "timeout"
+	MiddlewareHealth    = "health"
+	MiddlewareMetrics   = "metrics"
+	MiddlewarePprof     = "pprof"
+	MiddlewareAuth      = "auth"
+	MiddlewareAuthz     = "authz"
+)
+
+// AllMiddlewares 所有支持的中间件名称。
+var AllMiddlewares = []string{
+	MiddlewareRecovery,
+	MiddlewareRequestID,
+	MiddlewareLogger,
+	MiddlewareCORS,
+	MiddlewareTimeout,
+	MiddlewareHealth,
+	MiddlewareMetrics,
+	MiddlewarePprof,
+	MiddlewareAuth,
+	MiddlewareAuthz,
+}
+
+// DefaultEnabledMiddlewares 默认启用的中间件列表。
+var DefaultEnabledMiddlewares = []string{
+	MiddlewareRecovery,
+	MiddlewareRequestID,
+	MiddlewareLogger,
+	MiddlewareHealth,
+	MiddlewareMetrics,
+}
+
 // Options contains all middleware configuration.
 type Options struct {
-	// Recovery options
-	Recovery        RecoveryOptions `json:"recovery" mapstructure:"recovery"`
-	DisableRecovery bool            `json:"disable-recovery" mapstructure:"disable-recovery"`
+	// Enabled 指定启用的中间件列表。
+	// 支持的值: recovery, request-id, logger, cors, timeout, health, metrics, pprof, auth, authz
+	Enabled []string `json:"enabled" mapstructure:"enabled"`
 
-	// RequestID options
-	RequestID        RequestIDOptions `json:"request-id" mapstructure:"request-id"`
-	DisableRequestID bool             `json:"disable-request-id" mapstructure:"disable-request-id"`
+	// Recovery 配置。
+	Recovery *RecoveryOptions `json:"recovery" mapstructure:"recovery"`
 
-	// Logger options
-	Logger        LoggerOptions `json:"logger" mapstructure:"logger"`
-	DisableLogger bool          `json:"disable-logger" mapstructure:"disable-logger"`
+	// RequestID 配置。
+	RequestID *RequestIDOptions `json:"request-id" mapstructure:"request-id"`
 
-	// CORS options
-	CORS        CORSOptions `json:"cors" mapstructure:"cors"`
-	DisableCORS bool        `json:"disable-cors" mapstructure:"disable-cors"`
+	// Logger 配置。
+	Logger *LoggerOptions `json:"logger" mapstructure:"logger"`
 
-	// Timeout options
-	Timeout        TimeoutOptions `json:"timeout" mapstructure:"timeout"`
-	DisableTimeout bool           `json:"disable-timeout" mapstructure:"disable-timeout"`
+	// CORS 配置。
+	CORS *CORSOptions `json:"cors" mapstructure:"cors"`
 
-	// Health options
-	Health        HealthOptions `json:"health" mapstructure:"health"`
-	DisableHealth bool          `json:"disable-health" mapstructure:"disable-health"`
+	// Timeout 配置。
+	Timeout *TimeoutOptions `json:"timeout" mapstructure:"timeout"`
 
-	// Metrics options
-	Metrics        MetricsOptions `json:"metrics" mapstructure:"metrics"`
-	DisableMetrics bool           `json:"disable-metrics" mapstructure:"disable-metrics"`
+	// Health 配置。
+	Health *HealthOptions `json:"health" mapstructure:"health"`
 
-	// Pprof options
-	Pprof        PprofOptions `json:"pprof" mapstructure:"pprof"`
-	DisablePprof bool         `json:"disable-pprof" mapstructure:"disable-pprof"`
+	// Metrics 配置。
+	Metrics *MetricsOptions `json:"metrics" mapstructure:"metrics"`
 
-	// Auth options (JWT authentication)
-	Auth        AuthOptions `json:"auth" mapstructure:"auth"`
-	DisableAuth bool        `json:"disable-auth" mapstructure:"disable-auth"`
+	// Pprof 配置。
+	Pprof *PprofOptions `json:"pprof" mapstructure:"pprof"`
 
-	// Authz options (RBAC authorization)
-	Authz        AuthzOptions `json:"authz" mapstructure:"authz"`
-	DisableAuthz bool         `json:"disable-authz" mapstructure:"disable-authz"`
+	// Auth 配置（JWT 认证）。
+	Auth *AuthOptions `json:"auth" mapstructure:"auth"`
+
+	// Authz 配置（RBAC 授权）。
+	Authz *AuthzOptions `json:"authz" mapstructure:"authz"`
+
+	// enabledSet 内部使用的启用中间件集合，用于快速查找。
+	enabledSet map[string]bool
 }
 
 // Option is a function that configures Options.
@@ -66,61 +99,17 @@ type Option func(*Options)
 // NewOptions creates default middleware options.
 func NewOptions() *Options {
 	return &Options{
-		Recovery: RecoveryOptions{
-			EnableStackTrace: false,
-		},
-		RequestID: RequestIDOptions{
-			Header: requestutil.HeaderXRequestID,
-		},
-		Logger: LoggerOptions{
-			SkipPaths:           []string{"/health", "/ready", "/live", "/metrics"},
-			UseStructuredLogger: true,
-			Output:              log.Printf,
-		},
-		CORS: CORSOptions{
-			AllowOrigins: []string{"*"},
-			AllowMethods: []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"},
-			AllowHeaders: []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Request-ID"},
-			MaxAge:       86400,
-		},
-		Timeout: TimeoutOptions{
-			Timeout:   30 * time.Second,
-			SkipPaths: []string{"/health", "/ready", "/live", "/metrics"},
-		},
-		Health: HealthOptions{
-			Path:          "/health",
-			LivenessPath:  "/live",
-			ReadinessPath: "/ready",
-		},
-		Metrics: MetricsOptions{
-			Path:      "/metrics",
-			Namespace: "sentinel",
-			Subsystem: "http",
-		},
-		Pprof: PprofOptions{
-			Prefix:               "/debug/pprof",
-			EnableCmdline:        true,
-			EnableProfile:        true,
-			EnableSymbol:         true,
-			EnableTrace:          true,
-			BlockProfileRate:     0,
-			MutexProfileFraction: 0,
-		},
-		Auth: AuthOptions{
-			TokenLookup:      "header:Authorization",
-			AuthScheme:       "Bearer",
-			SkipPaths:        []string{},
-			SkipPathPrefixes: []string{},
-		},
-		Authz: AuthzOptions{
-			SkipPaths:        []string{},
-			SkipPathPrefixes: []string{},
-		},
-		DisableCORS:    true,  // CORS disabled by default
-		DisableTimeout: true,  // Timeout disabled by default
-		DisablePprof:   true,  // Pprof disabled by default (security)
-		DisableAuth:    false, // Auth enabled by default (security)
-		DisableAuthz:   false, // Authz enabled by default (security)
+		Enabled:   append([]string{}, DefaultEnabledMiddlewares...),
+		Recovery:  NewRecoveryOptions(),
+		RequestID: NewRequestIDOptions(),
+		Logger:    NewLoggerOptions(),
+		CORS:      NewCORSOptions(),
+		Timeout:   NewTimeoutOptions(),
+		Health:    NewHealthOptions(),
+		Metrics:   NewMetricsOptions(),
+		Pprof:     NewPprofOptions(),
+		Auth:      NewAuthOptions(),
+		Authz:     NewAuthzOptions(),
 	}
 }
 
@@ -128,67 +117,81 @@ func NewOptions() *Options {
 func (o *Options) Validate() error {
 	var errs []error
 
-	// Validate timeout configuration
-	if !o.DisableTimeout {
-		if o.Timeout.Timeout <= 0 {
-			errs = append(errs, fmt.Errorf("timeout must be positive when timeout middleware is enabled"))
+	// 确保所有子选项都已初始化
+	o.ensureDefaults()
+
+	// 构建启用集合
+	o.buildEnabledSet()
+
+	// 验证 Enabled 数组中的名称是否有效
+	validNames := make(map[string]bool)
+	for _, name := range AllMiddlewares {
+		validNames[name] = true
+	}
+	for _, name := range o.Enabled {
+		if !validNames[name] {
+			errs = append(errs, fmt.Errorf("invalid middleware name: %q, valid names: %v", name, AllMiddlewares))
 		}
 	}
 
-	// Validate CORS configuration
-	if !o.DisableCORS {
-		if len(o.CORS.AllowOrigins) == 0 {
-			errs = append(errs, fmt.Errorf("cors: at least one allowed origin must be specified when CORS is enabled"))
-		}
-		if len(o.CORS.AllowMethods) == 0 {
-			errs = append(errs, fmt.Errorf("cors: at least one allowed method must be specified when CORS is enabled"))
-		}
-		if o.CORS.MaxAge < 0 {
-			errs = append(errs, fmt.Errorf("cors: max age cannot be negative"))
+	// 验证启用的中间件配置
+	if o.IsEnabled(MiddlewareTimeout) {
+		if err := o.Timeout.Validate(); err != nil {
+			errs = append(errs, err)
 		}
 	}
 
-	// Validate authentication configuration
-	if !o.DisableAuth {
-		if o.Auth.TokenLookup == "" {
-			errs = append(errs, fmt.Errorf("auth: token lookup configuration is required"))
-		}
-		if o.Auth.AuthScheme == "" {
-			errs = append(errs, fmt.Errorf("auth: auth scheme is required"))
+	if o.IsEnabled(MiddlewareCORS) {
+		if err := o.CORS.Validate(); err != nil {
+			errs = append(errs, err)
 		}
 	}
 
-	// Validate health check paths
-	if !o.DisableHealth {
-		if o.Health.Path == "" && o.Health.LivenessPath == "" && o.Health.ReadinessPath == "" {
-			errs = append(errs, fmt.Errorf("health: at least one health check path must be configured"))
+	if o.IsEnabled(MiddlewareAuth) {
+		if err := o.Auth.Validate(); err != nil {
+			errs = append(errs, err)
 		}
 	}
 
-	// Validate metrics configuration
-	if !o.DisableMetrics {
-		if o.Metrics.Path == "" {
-			errs = append(errs, fmt.Errorf("metrics: metrics path must be configured"))
+	if o.IsEnabled(MiddlewareAuthz) {
+		if err := o.Authz.Validate(); err != nil {
+			errs = append(errs, err)
 		}
 	}
 
-	// Validate pprof configuration
-	if !o.DisablePprof {
-		if o.Pprof.Prefix == "" {
-			errs = append(errs, fmt.Errorf("pprof: pprof prefix must be configured"))
-		}
-		if o.Pprof.BlockProfileRate < 0 {
-			errs = append(errs, fmt.Errorf("pprof: block profile rate cannot be negative"))
-		}
-		if o.Pprof.MutexProfileFraction < 0 {
-			errs = append(errs, fmt.Errorf("pprof: mutex profile fraction cannot be negative"))
+	if o.IsEnabled(MiddlewareHealth) {
+		if err := o.Health.Validate(); err != nil {
+			errs = append(errs, err)
 		}
 	}
 
-	// Validate request ID configuration
-	if !o.DisableRequestID {
-		if o.RequestID.Header == "" {
-			errs = append(errs, fmt.Errorf("request-id: header name must be configured"))
+	if o.IsEnabled(MiddlewareMetrics) {
+		if err := o.Metrics.Validate(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	if o.IsEnabled(MiddlewarePprof) {
+		if err := o.Pprof.Validate(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	if o.IsEnabled(MiddlewareRequestID) {
+		if err := o.RequestID.Validate(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	if o.IsEnabled(MiddlewareRecovery) {
+		if err := o.Recovery.Validate(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	if o.IsEnabled(MiddlewareLogger) {
+		if err := o.Logger.Validate(); err != nil {
+			errs = append(errs, err)
 		}
 	}
 
@@ -200,70 +203,161 @@ func (o *Options) Validate() error {
 
 // Complete completes the middleware options with defaults.
 func (o *Options) Complete() error {
+	// 确保所有子选项都已初始化
+	o.ensureDefaults()
+
+	// 构建启用集合
+	o.buildEnabledSet()
+
+	// 设置 Logger 默认输出
 	if o.Logger.Output == nil {
 		o.Logger.Output = log.Printf
 	}
+
+	// 调用各子选项的 Complete 方法
+	if err := o.Recovery.Complete(); err != nil {
+		return err
+	}
+	if err := o.RequestID.Complete(); err != nil {
+		return err
+	}
+	if err := o.Logger.Complete(); err != nil {
+		return err
+	}
+	if err := o.CORS.Complete(); err != nil {
+		return err
+	}
+	if err := o.Timeout.Complete(); err != nil {
+		return err
+	}
+	if err := o.Health.Complete(); err != nil {
+		return err
+	}
+	if err := o.Metrics.Complete(); err != nil {
+		return err
+	}
+	if err := o.Pprof.Complete(); err != nil {
+		return err
+	}
+	if err := o.Auth.Complete(); err != nil {
+		return err
+	}
+	if err := o.Authz.Complete(); err != nil {
+		return err
+	}
+
 	return nil
+}
+
+// buildEnabledSet 构建启用的中间件集合。
+func (o *Options) buildEnabledSet() {
+	o.enabledSet = make(map[string]bool)
+	for _, name := range o.Enabled {
+		o.enabledSet[name] = true
+	}
+}
+
+// IsEnabled 检查指定的中间件是否启用。
+func (o *Options) IsEnabled(name string) bool {
+	if o.enabledSet == nil {
+		o.buildEnabledSet()
+	}
+	return o.enabledSet[name]
+}
+
+// Enable 启用指定的中间件。
+func (o *Options) Enable(names ...string) {
+	for _, name := range names {
+		if !o.IsEnabled(name) {
+			o.Enabled = append(o.Enabled, name)
+		}
+	}
+	o.buildEnabledSet()
+}
+
+// Disable 禁用指定的中间件。
+func (o *Options) Disable(names ...string) {
+	disableSet := make(map[string]bool)
+	for _, name := range names {
+		disableSet[name] = true
+	}
+
+	var newEnabled []string
+	for _, name := range o.Enabled {
+		if !disableSet[name] {
+			newEnabled = append(newEnabled, name)
+		}
+	}
+	o.Enabled = newEnabled
+	o.buildEnabledSet()
+}
+
+// GetEnabledMiddlewares 返回所有启用的中间件名称列表。
+func (o *Options) GetEnabledMiddlewares() []string {
+	return append([]string{}, o.Enabled...)
+}
+
+// ensureDefaults ensures all sub-options are initialized.
+func (o *Options) ensureDefaults() {
+	if o.Recovery == nil {
+		o.Recovery = NewRecoveryOptions()
+	}
+	if o.RequestID == nil {
+		o.RequestID = NewRequestIDOptions()
+	}
+	if o.Logger == nil {
+		o.Logger = NewLoggerOptions()
+	}
+	if o.CORS == nil {
+		o.CORS = NewCORSOptions()
+	}
+	if o.Timeout == nil {
+		o.Timeout = NewTimeoutOptions()
+	}
+	if o.Health == nil {
+		o.Health = NewHealthOptions()
+	}
+	if o.Metrics == nil {
+		o.Metrics = NewMetricsOptions()
+	}
+	if o.Pprof == nil {
+		o.Pprof = NewPprofOptions()
+	}
+	if o.Auth == nil {
+		o.Auth = NewAuthOptions()
+	}
+	if o.Authz == nil {
+		o.Authz = NewAuthzOptions()
+	}
 }
 
 // AddFlags adds flags for middleware options to the specified FlagSet.
 func (o *Options) AddFlags(fs *pflag.FlagSet) {
-	// Recovery flags
-	fs.BoolVar(&o.DisableRecovery, "middleware.disable-recovery", o.DisableRecovery, "Disable recovery middleware")
-	fs.BoolVar(&o.Recovery.EnableStackTrace, "middleware.recovery.enable-stack-trace", o.Recovery.EnableStackTrace, "Enable stack trace in error responses")
+	// 确保所有子选项都已初始化
+	o.ensureDefaults()
 
-	// RequestID flags
-	fs.BoolVar(&o.DisableRequestID, "middleware.disable-request-id", o.DisableRequestID, "Disable request ID middleware")
-	fs.StringVar(&o.RequestID.Header, "middleware.request-id.header", o.RequestID.Header, "Request ID header name")
+	// Enabled list flag
+	fs.StringSliceVar(&o.Enabled, "middleware.enabled", o.Enabled,
+		"List of enabled middlewares. "+
+			"Valid values: recovery, request-id, logger, cors, timeout, health, metrics, pprof, auth, authz")
 
-	// Logger flags
-	fs.BoolVar(&o.DisableLogger, "middleware.disable-logger", o.DisableLogger, "Disable logger middleware")
-
-	// CORS flags
-	fs.BoolVar(&o.DisableCORS, "middleware.disable-cors", o.DisableCORS, "Disable CORS middleware")
-	fs.StringSliceVar(&o.CORS.AllowOrigins, "middleware.cors.allow-origins", o.CORS.AllowOrigins, "CORS allowed origins")
-	fs.BoolVar(&o.CORS.AllowCredentials, "middleware.cors.allow-credentials", o.CORS.AllowCredentials, "CORS allow credentials")
-	fs.IntVar(&o.CORS.MaxAge, "middleware.cors.max-age", o.CORS.MaxAge, "CORS preflight max age")
-
-	// Timeout flags
-	fs.BoolVar(&o.DisableTimeout, "middleware.disable-timeout", o.DisableTimeout, "Disable timeout middleware")
-	fs.DurationVar(&o.Timeout.Timeout, "middleware.timeout.timeout", o.Timeout.Timeout, "Request timeout duration")
-
-	// Health flags
-	fs.BoolVar(&o.DisableHealth, "middleware.disable-health", o.DisableHealth, "Disable health check endpoints")
-	fs.StringVar(&o.Health.Path, "middleware.health.path", o.Health.Path, "Health check endpoint path")
-	fs.StringVar(&o.Health.LivenessPath, "middleware.health.liveness-path", o.Health.LivenessPath, "Liveness probe path")
-	fs.StringVar(&o.Health.ReadinessPath, "middleware.health.readiness-path", o.Health.ReadinessPath, "Readiness probe path")
-
-	// Metrics flags
-	fs.BoolVar(&o.DisableMetrics, "middleware.disable-metrics", o.DisableMetrics, "Disable metrics endpoint")
-	fs.StringVar(&o.Metrics.Path, "middleware.metrics.path", o.Metrics.Path, "Metrics endpoint path")
-	fs.StringVar(&o.Metrics.Namespace, "middleware.metrics.namespace", o.Metrics.Namespace, "Metrics namespace")
-	fs.StringVar(&o.Metrics.Subsystem, "middleware.metrics.subsystem", o.Metrics.Subsystem, "Metrics subsystem")
-
-	// Pprof flags
-	fs.BoolVar(&o.DisablePprof, "middleware.disable-pprof", o.DisablePprof, "Disable pprof endpoints")
-	fs.StringVar(&o.Pprof.Prefix, "middleware.pprof.prefix", o.Pprof.Prefix, "Pprof URL prefix")
-	fs.IntVar(&o.Pprof.BlockProfileRate, "middleware.pprof.block-profile-rate", o.Pprof.BlockProfileRate, "Block profile rate")
-	fs.IntVar(&o.Pprof.MutexProfileFraction, "middleware.pprof.mutex-profile-fraction", o.Pprof.MutexProfileFraction, "Mutex profile fraction")
-
-	// Auth flags
-	fs.BoolVar(&o.DisableAuth, "middleware.disable-auth", o.DisableAuth, "Disable authentication middleware")
-
-	// Authz flags
-	fs.BoolVar(&o.DisableAuthz, "middleware.disable-authz", o.DisableAuthz, "Disable authorization middleware")
+	// 委托给各子选项的 AddFlags 方法
+	o.Recovery.AddFlags(fs)
+	o.RequestID.AddFlags(fs)
+	o.Logger.AddFlags(fs)
+	o.CORS.AddFlags(fs)
+	o.Timeout.AddFlags(fs)
+	o.Health.AddFlags(fs)
+	o.Metrics.AddFlags(fs)
+	o.Pprof.AddFlags(fs)
+	o.Auth.AddFlags(fs)
+	o.Authz.AddFlags(fs)
 }
 
-// RecoveryOptions defines recovery middleware options.
-type RecoveryOptions struct {
-	EnableStackTrace bool                                                       `json:"enable-stack-trace" mapstructure:"enable-stack-trace"`
-	OnPanic          func(ctx transport.Context, err interface{}, stack []byte) `json:"-" mapstructure:"-"`
-}
-
-// WithRecovery configures recovery middleware.
+// WithRecovery configures and enables recovery middleware.
 func WithRecovery(enableStackTrace bool, onPanic func(ctx transport.Context, err interface{}, stack []byte)) Option {
 	return func(o *Options) {
-		o.DisableRecovery = false
+		o.Enable(MiddlewareRecovery)
 		o.Recovery.EnableStackTrace = enableStackTrace
 		if onPanic != nil {
 			o.Recovery.OnPanic = onPanic
@@ -273,5 +367,164 @@ func WithRecovery(enableStackTrace bool, onPanic func(ctx transport.Context, err
 
 // WithoutRecovery disables recovery middleware.
 func WithoutRecovery() Option {
-	return func(o *Options) { o.DisableRecovery = true }
+	return func(o *Options) { o.Disable(MiddlewareRecovery) }
+}
+
+// WithRequestID enables request ID middleware with custom header.
+func WithRequestID(header string) Option {
+	return func(o *Options) {
+		o.Enable(MiddlewareRequestID)
+		if header != "" {
+			o.RequestID.Header = header
+		}
+	}
+}
+
+// WithoutRequestID disables request ID middleware.
+func WithoutRequestID() Option {
+	return func(o *Options) { o.Disable(MiddlewareRequestID) }
+}
+
+// WithLogger enables logger middleware.
+func WithLogger(skipPaths ...string) Option {
+	return func(o *Options) {
+		o.Enable(MiddlewareLogger)
+		if len(skipPaths) > 0 {
+			o.Logger.SkipPaths = skipPaths
+		}
+	}
+}
+
+// WithoutLogger disables logger middleware.
+func WithoutLogger() Option {
+	return func(o *Options) { o.Disable(MiddlewareLogger) }
+}
+
+// WithCORS enables CORS middleware.
+func WithCORS(origins ...string) Option {
+	return func(o *Options) {
+		o.Enable(MiddlewareCORS)
+		if len(origins) > 0 {
+			o.CORS.AllowOrigins = origins
+		}
+	}
+}
+
+// WithoutCORS disables CORS middleware.
+func WithoutCORS() Option {
+	return func(o *Options) { o.Disable(MiddlewareCORS) }
+}
+
+// WithTimeout enables timeout middleware.
+func WithTimeout(timeout time.Duration, skipPaths ...string) Option {
+	return func(o *Options) {
+		o.Enable(MiddlewareTimeout)
+		if timeout > 0 {
+			o.Timeout.Timeout = timeout
+		}
+		if len(skipPaths) > 0 {
+			o.Timeout.SkipPaths = skipPaths
+		}
+	}
+}
+
+// WithoutTimeout disables timeout middleware.
+func WithoutTimeout() Option {
+	return func(o *Options) { o.Disable(MiddlewareTimeout) }
+}
+
+// WithHealth enables health check endpoints.
+func WithHealth(path, livenessPath, readinessPath string) Option {
+	return func(o *Options) {
+		o.Enable(MiddlewareHealth)
+		if path != "" {
+			o.Health.Path = path
+		}
+		if livenessPath != "" {
+			o.Health.LivenessPath = livenessPath
+		}
+		if readinessPath != "" {
+			o.Health.ReadinessPath = readinessPath
+		}
+	}
+}
+
+// WithoutHealth disables health check endpoints.
+func WithoutHealth() Option {
+	return func(o *Options) { o.Disable(MiddlewareHealth) }
+}
+
+// WithMetrics enables metrics endpoint.
+func WithMetrics(path, namespace, subsystem string) Option {
+	return func(o *Options) {
+		o.Enable(MiddlewareMetrics)
+		if path != "" {
+			o.Metrics.Path = path
+		}
+		if namespace != "" {
+			o.Metrics.Namespace = namespace
+		}
+		if subsystem != "" {
+			o.Metrics.Subsystem = subsystem
+		}
+	}
+}
+
+// WithoutMetrics disables metrics endpoint.
+func WithoutMetrics() Option {
+	return func(o *Options) { o.Disable(MiddlewareMetrics) }
+}
+
+// WithPprof enables pprof endpoints.
+func WithPprof(prefix string) Option {
+	return func(o *Options) {
+		o.Enable(MiddlewarePprof)
+		if prefix != "" {
+			o.Pprof.Prefix = prefix
+		}
+	}
+}
+
+// WithoutPprof disables pprof endpoints.
+func WithoutPprof() Option {
+	return func(o *Options) { o.Disable(MiddlewarePprof) }
+}
+
+// WithAuth enables authentication middleware.
+func WithAuth(tokenLookup, authScheme string, skipPaths ...string) Option {
+	return func(o *Options) {
+		o.Enable(MiddlewareAuth)
+		if tokenLookup != "" {
+			o.Auth.TokenLookup = tokenLookup
+		}
+		if authScheme != "" {
+			o.Auth.AuthScheme = authScheme
+		}
+		if len(skipPaths) > 0 {
+			o.Auth.SkipPaths = skipPaths
+		}
+	}
+}
+
+// WithoutAuth disables authentication middleware.
+func WithoutAuth() Option {
+	return func(o *Options) { o.Disable(MiddlewareAuth) }
+}
+
+// WithAuthz enables authorization middleware.
+func WithAuthz() Option {
+	return func(o *Options) { o.Enable(MiddlewareAuthz) }
+}
+
+// WithoutAuthz disables authorization middleware.
+func WithoutAuthz() Option {
+	return func(o *Options) { o.Disable(MiddlewareAuthz) }
+}
+
+// WithMiddlewares enables specific middlewares.
+func WithMiddlewares(names ...string) Option {
+	return func(o *Options) {
+		o.Enabled = names
+		o.buildEnabledSet()
+	}
 }

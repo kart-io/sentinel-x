@@ -148,18 +148,18 @@ func (s *Server) Start(ctx context.Context) error {
 	// 如果中间件在路由注册之后才应用，则不会被子组继承
 
 	// Register health endpoints
-	if !mwOpts.DisableHealth {
-		middleware.RegisterHealthRoutes(router, mwOpts.Health)
+	if mwOpts.IsEnabled(mwopts.MiddlewareHealth) {
+		middleware.RegisterHealthRoutes(router, *mwOpts.Health)
 	}
 
 	// Register metrics endpoint
-	if !mwOpts.DisableMetrics {
-		middleware.RegisterMetricsRoutesWithOptions(router, mwOpts.Metrics)
+	if mwOpts.IsEnabled(mwopts.MiddlewareMetrics) {
+		middleware.RegisterMetricsRoutesWithOptions(router, *mwOpts.Metrics)
 	}
 
 	// Register pprof endpoints
-	if !mwOpts.DisablePprof {
-		middleware.RegisterPprofRoutes(router, mwOpts.Pprof)
+	if mwOpts.IsEnabled(mwopts.MiddlewarePprof) {
+		middleware.RegisterPprofRoutes(router, *mwOpts.Pprof)
 	}
 
 	// Register all handlers
@@ -195,7 +195,7 @@ func (s *Server) Start(ctx context.Context) error {
 // applyMiddleware applies configured middleware to the router.
 func (s *Server) applyMiddleware(router transport.Router, opts *mwopts.Options) {
 	// Recovery middleware (enabled by default)
-	if !opts.DisableRecovery {
+	if opts.IsEnabled(mwopts.MiddlewareRecovery) {
 		router.Use(middleware.RecoveryWithConfig(middleware.RecoveryConfig{
 			EnableStackTrace: opts.Recovery.EnableStackTrace,
 			OnPanic:          opts.Recovery.OnPanic,
@@ -203,7 +203,7 @@ func (s *Server) applyMiddleware(router transport.Router, opts *mwopts.Options) 
 	}
 
 	// RequestID middleware (enabled by default)
-	if !opts.DisableRequestID {
+	if opts.IsEnabled(mwopts.MiddlewareRequestID) {
 		config := middleware.RequestIDConfig{
 			Header:    opts.RequestID.Header,
 			Generator: opts.RequestID.Generator,
@@ -215,7 +215,7 @@ func (s *Server) applyMiddleware(router transport.Router, opts *mwopts.Options) 
 	}
 
 	// Logger middleware (enabled by default)
-	if !opts.DisableLogger {
+	if opts.IsEnabled(mwopts.MiddlewareLogger) {
 		router.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
 			SkipPaths:           opts.Logger.SkipPaths,
 			Output:              opts.Logger.Output,
@@ -224,7 +224,7 @@ func (s *Server) applyMiddleware(router transport.Router, opts *mwopts.Options) 
 	}
 
 	// CORS middleware (disabled by default)
-	if !opts.DisableCORS {
+	if opts.IsEnabled(mwopts.MiddlewareCORS) {
 		router.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 			AllowOrigins:     opts.CORS.AllowOrigins,
 			AllowMethods:     opts.CORS.AllowMethods,
@@ -236,7 +236,7 @@ func (s *Server) applyMiddleware(router transport.Router, opts *mwopts.Options) 
 	}
 
 	// Timeout middleware (disabled by default)
-	if !opts.DisableTimeout {
+	if opts.IsEnabled(mwopts.MiddlewareTimeout) {
 		router.Use(middleware.TimeoutWithConfig(middleware.TimeoutConfig{
 			Timeout:   opts.Timeout.Timeout,
 			SkipPaths: opts.Timeout.SkipPaths,
@@ -244,12 +244,12 @@ func (s *Server) applyMiddleware(router transport.Router, opts *mwopts.Options) 
 	}
 
 	// Metrics middleware (disabled by default, but endpoint is registered separately)
-	if !opts.DisableMetrics {
-		router.Use(middleware.MetricsMiddlewareWithOptions(opts.Metrics))
+	if opts.IsEnabled(mwopts.MiddlewareMetrics) {
+		router.Use(middleware.MetricsMiddlewareWithOptions(*opts.Metrics))
 	}
 
 	// Auth middleware (JWT authentication)
-	if !opts.DisableAuth && opts.Auth.Authenticator != nil {
+	if opts.IsEnabled(mwopts.MiddlewareAuth) && opts.Auth.Authenticator != nil {
 		router.Use(authmw.Auth(
 			authmw.WithAuthenticator(opts.Auth.Authenticator),
 			authmw.WithTokenLookup(opts.Auth.TokenLookup),

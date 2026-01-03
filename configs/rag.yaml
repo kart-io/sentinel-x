@@ -21,74 +21,6 @@ server:
     # HTTP framework adapter: gin or echo
     adapter: gin
 
-    # Middleware configuration
-    middleware:
-      # Recovery middleware (panic recovery)
-      disable-recovery: false
-      recovery:
-        enable-stack-trace: false
-
-      # Request ID middleware
-      disable-request-id: false
-      request-id:
-        header: X-Request-ID
-
-      # Logger middleware
-      disable-logger: false
-      logger:
-        skip-paths:
-          - /health
-          - /live
-          - /ready
-          - /metrics
-        use-structured-logger: true
-
-      # CORS middleware
-      disable-cors: false
-      cors:
-        allow-origins:
-          - "*"
-        allow-methods:
-          - GET
-          - POST
-          - PUT
-          - DELETE
-          - OPTIONS
-        allow-headers:
-          - Origin
-          - Content-Type
-          - Accept
-          - Authorization
-          - X-Request-ID
-        allow-credentials: false
-        max-age: 86400
-
-      # Timeout middleware (disabled for long RAG operations)
-      disable-timeout: true
-
-      # Health check endpoints
-      disable-health: false
-      health:
-        path: /health
-        liveness-path: /live
-        readiness-path: /ready
-
-      # Metrics endpoint
-      disable-metrics: false
-      metrics:
-        path: /metrics
-        namespace: sentinel
-        subsystem: rag
-
-      # Pprof endpoints (disabled by default for security)
-      disable-pprof: true
-
-      # Authentication middleware (disabled for RAG service)
-      disable-auth: true
-
-      # Authorization middleware
-      disable-authz: true
-
   # gRPC server configuration (optional)
   grpc:
     addr: ":8102"
@@ -96,6 +28,70 @@ server:
     max-recv-msg-size: 4194304
     max-send-msg-size: 4194304
     enable-reflection: true
+
+# Middleware configuration
+middleware:
+  enabled:
+  - recovery
+  - request-id
+  - logger
+  - cors
+  - health
+  - metrics
+
+# Middleware configuration
+metrics:
+  path: /metrics
+  namespace: sentinel
+  subsystem: rag
+
+health:
+  path: /health
+  liveness-path: /live
+  readiness-path: /ready
+
+pprof:
+  prefix: /debug/pprof
+  enable-cmdline: true
+  enable-profile: true
+  enable-symbol: true
+  enable-trace: true
+
+recovery:
+  enable-stack-trace: false
+
+logger:
+  skip-paths:
+    - /health
+    - /live
+    - /ready
+    - /metrics
+  use-structured-logger: true
+
+cors:
+  allow-origins:
+    - "*"
+  allow-methods:
+    - GET
+    - POST
+    - PUT
+    - DELETE
+    - OPTIONS
+  allow-headers:
+    - Origin
+    - Content-Type
+    - Accept
+    - Authorization
+    - X-Request-ID
+  allow-credentials: false
+  max-age: 86400
+
+timeout:
+  timeout: 30s
+  skip-paths: []
+
+request-id:
+  header: X-Request-ID
 
 # Logger configuration
 log:

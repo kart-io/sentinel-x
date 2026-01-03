@@ -1,5 +1,11 @@
 package middleware
 
+import (
+	"errors"
+
+	"github.com/spf13/pflag"
+)
+
 // PprofOptions defines pprof options.
 type PprofOptions struct {
 	Prefix               string `json:"prefix" mapstructure:"prefix"`
@@ -11,23 +17,35 @@ type PprofOptions struct {
 	MutexProfileFraction int    `json:"mutex-profile-fraction" mapstructure:"mutex-profile-fraction"`
 }
 
-// WithPprof configures and enables pprof endpoints.
-func WithPprof(prefix string, blockRate, mutexFraction int) Option {
-	return func(o *Options) {
-		o.DisablePprof = false
-		if prefix != "" {
-			o.Pprof.Prefix = prefix
-		}
-		if blockRate >= 0 {
-			o.Pprof.BlockProfileRate = blockRate
-		}
-		if mutexFraction >= 0 {
-			o.Pprof.MutexProfileFraction = mutexFraction
-		}
+func NewPprofOptions() *PprofOptions {
+	return &PprofOptions{
+		Prefix:               "/debug/pprof",
+		EnableCmdline:        true,
+		EnableProfile:        true,
+		EnableSymbol:         true,
+		EnableTrace:          true,
+		BlockProfileRate:     0,
+		MutexProfileFraction: 0,
 	}
 }
 
-// WithoutPprof disables pprof endpoints.
-func WithoutPprof() Option {
-	return func(o *Options) { o.DisablePprof = true }
+func (o *PprofOptions) AddFlags(fs *pflag.FlagSet) {
+	fs.StringVar(&o.Prefix, "middleware.pprof.prefix", o.Prefix, "Pprof URL prefix")
+	fs.BoolVar(&o.EnableCmdline, "middleware.pprof.enable-cmdline", o.EnableCmdline, "Enable cmdline pprof")
+	fs.BoolVar(&o.EnableProfile, "middleware.pprof.enable-profile", o.EnableProfile, "Enable profile pprof")
+	fs.BoolVar(&o.EnableSymbol, "middleware.pprof.enable-symbol", o.EnableSymbol, "Enable symbol pprof")
+	fs.BoolVar(&o.EnableTrace, "middleware.pprof.enable-trace", o.EnableTrace, "Enable trace pprof")
+	fs.IntVar(&o.BlockProfileRate, "middleware.pprof.block-profile-rate", o.BlockProfileRate, "Block profile rate")
+	fs.IntVar(&o.MutexProfileFraction, "middleware.pprof.mutex-profile-fraction", o.MutexProfileFraction, "Mutex profile fraction")
+}
+
+func (o *PprofOptions) Validate() error {
+	if o.Prefix == "" {
+		return errors.New("pprof prefix is required")
+	}
+	return nil
+}
+
+func (o *PprofOptions) Complete() error {
+	return nil
 }

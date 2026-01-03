@@ -23,18 +23,26 @@ server:
 
     # Middleware configuration
     middleware:
-      # Recovery middleware (panic recovery)
-      disable-recovery: false
+      # 启用的中间件列表（设置后会覆盖 disable-* 配置）
+      # 支持的值: recovery, request-id, logger, cors, timeout, health, metrics, pprof, auth, authz
+      enabled:
+        - recovery
+        - request-id
+        - logger
+        - cors
+        - timeout
+        - health
+        - metrics
+        # pprof 禁用（安全考虑）
+        # auth/authz 禁用（user-center 自行处理认证）
+
+      # 各中间件详细配置
       recovery:
         enable-stack-trace: false
 
-      # Request ID middleware
-      disable-request-id: false
       request-id:
         header: X-Request-ID
 
-      # Logger middleware
-      disable-logger: false
       logger:
         skip-paths:
           - /health
@@ -43,16 +51,8 @@ server:
           - /metrics
         use-structured-logger: true
 
-      # CORS middleware
-      disable-cors: false
       cors:
         # ⚠️ 安全警告：生产环境必须配置具体域名！
-        # 当前配置使用通配符仅适用于开发/测试环境
-        # 生产环境示例：
-        #   allow-origins:
-        #     - "https://example.com"
-        #     - "https://admin.example.com"
-        #     - "https://api.example.com"
         allow-origins:
           - "*"  # TODO: 生产环境替换为具体域名
         allow-methods:
@@ -72,8 +72,6 @@ server:
         allow-credentials: false
         max-age: 86400
 
-      # Timeout middleware
-      disable-timeout: false
       timeout:
         timeout: 30s
         skip-paths:
@@ -82,22 +80,16 @@ server:
           - /ready
           - /metrics
 
-      # Health check endpoints
-      disable-health: false
       health:
         path: /health
         liveness-path: /live
         readiness-path: /ready
 
-      # Metrics endpoint
-      disable-metrics: false
       metrics:
         path: /metrics
         namespace: sentinel
-        subsystem: api
+        subsystem: user-center
 
-      # Pprof endpoints (disabled by default for security)
-      disable-pprof: true
       pprof:
         prefix: /debug/pprof
         enable-cmdline: true
@@ -106,12 +98,6 @@ server:
         enable-trace: true
         block-profile-rate: 0
         mutex-profile-fraction: 0
-
-      # Authentication middleware
-      disable-auth: false
-
-      # Authorization middleware
-      disable-authz: false
 
   # gRPC server configuration
   grpc:
@@ -206,3 +192,64 @@ redis:
   pool-size: 10
   # Minimum idle connections
   min-idle-conns: 5
+
+# 顶层中间件配置（可选，会覆盖 server.http.middleware 中的对应配置）
+# Middleware configuration
+metrics:
+  path: /metrics
+  namespace: sentinel
+  subsystem: user-center
+
+health:
+  path: /health
+  liveness-path: /live
+  readiness-path: /ready
+
+pprof:
+  prefix: /debug/pprof
+  enable-cmdline: true
+  enable-profile: true
+  enable-symbol: true
+  enable-trace: true
+
+recovery:
+  enable-stack-trace: false
+
+logger:
+  skip-paths:
+    - /health
+    - /live
+    - /ready
+    - /metrics
+  use-structured-logger: true
+
+cors:
+  allow-origins:
+    - "*"
+  allow-methods:
+    - GET
+    - POST
+    - PUT
+    - PATCH
+    - DELETE
+    - HEAD
+    - OPTIONS
+  allow-headers:
+    - Origin
+    - Content-Type
+    - Accept
+    - Authorization
+    - X-Request-ID
+  allow-credentials: false
+  max-age: 86400
+
+timeout:
+  timeout: 30s
+  skip-paths:
+    - /health
+    - /live
+    - /ready
+    - /metrics
+
+request-id:
+  header: X-Request-ID

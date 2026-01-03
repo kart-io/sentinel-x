@@ -1,5 +1,11 @@
 package middleware
 
+import (
+	"errors"
+
+	"github.com/spf13/pflag"
+)
+
 // HealthOptions defines health check options.
 type HealthOptions struct {
 	Path          string       `json:"path" mapstructure:"path"`
@@ -8,26 +14,27 @@ type HealthOptions struct {
 	Checker       func() error `json:"-" mapstructure:"-"`
 }
 
-// WithHealth configures and enables health check endpoints.
-func WithHealth(path, livenessPath, readinessPath string, checker func() error) Option {
-	return func(o *Options) {
-		o.DisableHealth = false
-		if path != "" {
-			o.Health.Path = path
-		}
-		if livenessPath != "" {
-			o.Health.LivenessPath = livenessPath
-		}
-		if readinessPath != "" {
-			o.Health.ReadinessPath = readinessPath
-		}
-		if checker != nil {
-			o.Health.Checker = checker
-		}
+func NewHealthOptions() *HealthOptions {
+	return &HealthOptions{
+		Path:          "/health",
+		LivenessPath:  "/live",
+		ReadinessPath: "/ready",
 	}
 }
 
-// WithoutHealth disables health check endpoints.
-func WithoutHealth() Option {
-	return func(o *Options) { o.DisableHealth = true }
+func (o *HealthOptions) AddFlags(fs *pflag.FlagSet) {
+	fs.StringVar(&o.Path, "middleware.health.path", o.Path, "Health check endpoint path")
+	fs.StringVar(&o.LivenessPath, "middleware.health.liveness-path", o.LivenessPath, "Liveness probe path")
+	fs.StringVar(&o.ReadinessPath, "middleware.health.readiness-path", o.ReadinessPath, "Readiness probe path")
+}
+
+func (o *HealthOptions) Validate() error {
+	if o.Path == "" && o.LivenessPath == "" && o.ReadinessPath == "" {
+		return errors.New("health check path is required")
+	}
+	return nil
+}
+
+func (o *HealthOptions) Complete() error {
+	return nil
 }
