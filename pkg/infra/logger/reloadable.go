@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 
@@ -46,8 +47,8 @@ func (rl *ReloadableLogger) OnConfigChange(newConfig interface{}) error {
 	}
 
 	// Validate new configuration
-	if err := newOpts.Validate(); err != nil {
-		return fmt.Errorf("invalid logger configuration: %w", err)
+	if errs := newOpts.Validate(); len(errs) > 0 {
+		return fmt.Errorf("invalid logger configuration: %w", errors.Join(errs...))
 	}
 
 	// Acquire write lock

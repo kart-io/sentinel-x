@@ -34,6 +34,7 @@ import (
 	"crypto/x509"
 	"encoding/hex"
 	"encoding/pem"
+	stderrors "errors"
 	"fmt"
 	"strings"
 	"time"
@@ -76,8 +77,8 @@ func New(opts ...Option) (*JWT, error) {
 		return nil, fmt.Errorf("complete options: %w", err)
 	}
 
-	if err := j.opts.Validate(); err != nil {
-		return nil, fmt.Errorf("validate options: %w", err)
+	if errs := j.opts.Validate(); len(errs) > 0 {
+		return nil, fmt.Errorf("validate options: %w", stderrors.Join(errs...))
 	}
 
 	// Get signing method

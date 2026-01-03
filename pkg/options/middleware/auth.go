@@ -2,9 +2,25 @@ package middleware
 
 import (
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	"github.com/kart-io/sentinel-x/pkg/options"
 	"github.com/kart-io/sentinel-x/pkg/security/auth"
 	"github.com/kart-io/sentinel-x/pkg/security/authz"
 	"github.com/spf13/pflag"
+)
+
+func init() {
+	Register(MiddlewareAuth, func() MiddlewareConfig {
+		return NewAuthOptions()
+	})
+	Register(MiddlewareAuthz, func() MiddlewareConfig {
+		return NewAuthzOptions()
+	})
+}
+
+// 确保 AuthOptions 和 AuthzOptions 实现 MiddlewareConfig 接口。
+var (
+	_ MiddlewareConfig = (*AuthOptions)(nil)
+	_ MiddlewareConfig = (*AuthzOptions)(nil)
 )
 
 // AuthOptions defines authentication middleware options.
@@ -45,15 +61,18 @@ func NewAuthOptions() *AuthOptions {
 }
 
 // AddFlags adds flags for auth options to the specified FlagSet.
-func (o *AuthOptions) AddFlags(fs *pflag.FlagSet) {
-	fs.StringVar(&o.TokenLookup, "middleware.auth.token-lookup", o.TokenLookup, "Token lookup location (header:Authorization)")
-	fs.StringVar(&o.AuthScheme, "middleware.auth.auth-scheme", o.AuthScheme, "Authorization scheme (Bearer)")
-	fs.StringSliceVar(&o.SkipPaths, "middleware.auth.skip-paths", o.SkipPaths, "Paths to skip authentication")
-	fs.StringSliceVar(&o.SkipPathPrefixes, "middleware.auth.skip-path-prefixes", o.SkipPathPrefixes, "Path prefixes to skip authentication")
+func (o *AuthOptions) AddFlags(fs *pflag.FlagSet, prefixes ...string) {
+	fs.StringVar(&o.TokenLookup, options.Join(prefixes...)+"middleware.auth.token-lookup", o.TokenLookup, "Token lookup location (header:Authorization)")
+	fs.StringVar(&o.AuthScheme, options.Join(prefixes...)+"middleware.auth.auth-scheme", o.AuthScheme, "Authorization scheme (Bearer)")
+	fs.StringSliceVar(&o.SkipPaths, options.Join(prefixes...)+"middleware.auth.skip-paths", o.SkipPaths, "Paths to skip authentication")
+	fs.StringSliceVar(&o.SkipPathPrefixes, options.Join(prefixes...)+"middleware.auth.skip-path-prefixes", o.SkipPathPrefixes, "Path prefixes to skip authentication")
 }
 
 // Validate validates the auth options.
-func (o *AuthOptions) Validate() error {
+func (o *AuthOptions) Validate() []error {
+	if o == nil {
+		return nil
+	}
 	return nil
 }
 
@@ -65,7 +84,9 @@ func (o *AuthOptions) Complete() error {
 // WithAuthenticator configures and enables auth middleware with an authenticator.
 func WithAuthenticator(authenticator auth.Authenticator, skipPaths ...string) Option {
 	return func(o *Options) {
-		o.Enable(MiddlewareAuth)
+		if o.Auth == nil {
+			o.Auth = NewAuthOptions()
+		}
 		o.Auth.Authenticator = authenticator
 		if len(skipPaths) > 0 {
 			o.Auth.SkipPaths = skipPaths
@@ -109,13 +130,16 @@ func NewAuthzOptions() *AuthzOptions {
 }
 
 // AddFlags adds flags for authz options to the specified FlagSet.
-func (o *AuthzOptions) AddFlags(fs *pflag.FlagSet) {
-	fs.StringSliceVar(&o.SkipPaths, "middleware.authz.skip-paths", o.SkipPaths, "Paths to skip authorization")
-	fs.StringSliceVar(&o.SkipPathPrefixes, "middleware.authz.skip-path-prefixes", o.SkipPathPrefixes, "Path prefixes to skip authorization")
+func (o *AuthzOptions) AddFlags(fs *pflag.FlagSet, prefixes ...string) {
+	fs.StringSliceVar(&o.SkipPaths, options.Join(prefixes...)+"middleware.authz.skip-paths", o.SkipPaths, "Paths to skip authorization")
+	fs.StringSliceVar(&o.SkipPathPrefixes, options.Join(prefixes...)+"middleware.authz.skip-path-prefixes", o.SkipPathPrefixes, "Path prefixes to skip authorization")
 }
 
 // Validate validates the authz options.
-func (o *AuthzOptions) Validate() error {
+func (o *AuthzOptions) Validate() []error {
+	if o == nil {
+		return nil
+	}
 	return nil
 }
 
@@ -127,7 +151,9 @@ func (o *AuthzOptions) Complete() error {
 // WithAuthorizer configures and enables authz middleware with custom skip paths.
 func WithAuthorizer(authorizer authz.Authorizer, skipPaths ...string) Option {
 	return func(o *Options) {
-		o.Enable(MiddlewareAuthz)
+		if o.Authz == nil {
+			o.Authz = NewAuthzOptions()
+		}
 		o.Authz.Authorizer = authorizer
 		if len(skipPaths) > 0 {
 			o.Authz.SkipPaths = skipPaths

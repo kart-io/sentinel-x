@@ -3,8 +3,18 @@ package middleware
 import (
 	"errors"
 
+	"github.com/kart-io/sentinel-x/pkg/options"
 	"github.com/spf13/pflag"
 )
+
+func init() {
+	Register(MiddlewarePprof, func() MiddlewareConfig {
+		return NewPprofOptions()
+	})
+}
+
+// 确保 PprofOptions 实现 MiddlewareConfig 接口。
+var _ MiddlewareConfig = (*PprofOptions)(nil)
 
 // PprofOptions defines pprof options.
 type PprofOptions struct {
@@ -17,6 +27,7 @@ type PprofOptions struct {
 	MutexProfileFraction int    `json:"mutex-profile-fraction" mapstructure:"mutex-profile-fraction"`
 }
 
+// NewPprofOptions creates default pprof options.
 func NewPprofOptions() *PprofOptions {
 	return &PprofOptions{
 		Prefix:               "/debug/pprof",
@@ -29,23 +40,30 @@ func NewPprofOptions() *PprofOptions {
 	}
 }
 
-func (o *PprofOptions) AddFlags(fs *pflag.FlagSet) {
-	fs.StringVar(&o.Prefix, "middleware.pprof.prefix", o.Prefix, "Pprof URL prefix")
-	fs.BoolVar(&o.EnableCmdline, "middleware.pprof.enable-cmdline", o.EnableCmdline, "Enable cmdline pprof")
-	fs.BoolVar(&o.EnableProfile, "middleware.pprof.enable-profile", o.EnableProfile, "Enable profile pprof")
-	fs.BoolVar(&o.EnableSymbol, "middleware.pprof.enable-symbol", o.EnableSymbol, "Enable symbol pprof")
-	fs.BoolVar(&o.EnableTrace, "middleware.pprof.enable-trace", o.EnableTrace, "Enable trace pprof")
-	fs.IntVar(&o.BlockProfileRate, "middleware.pprof.block-profile-rate", o.BlockProfileRate, "Block profile rate")
-	fs.IntVar(&o.MutexProfileFraction, "middleware.pprof.mutex-profile-fraction", o.MutexProfileFraction, "Mutex profile fraction")
+// AddFlags adds flags for pprof options to the specified FlagSet.
+func (o *PprofOptions) AddFlags(fs *pflag.FlagSet, prefixes ...string) {
+	fs.StringVar(&o.Prefix, options.Join(prefixes...)+"middleware.pprof.prefix", o.Prefix, "Pprof URL prefix.")
+	fs.BoolVar(&o.EnableCmdline, options.Join(prefixes...)+"middleware.pprof.enable-cmdline", o.EnableCmdline, "Enable cmdline pprof.")
+	fs.BoolVar(&o.EnableProfile, options.Join(prefixes...)+"middleware.pprof.enable-profile", o.EnableProfile, "Enable profile pprof.")
+	fs.BoolVar(&o.EnableSymbol, options.Join(prefixes...)+"middleware.pprof.enable-symbol", o.EnableSymbol, "Enable symbol pprof.")
+	fs.BoolVar(&o.EnableTrace, options.Join(prefixes...)+"middleware.pprof.enable-trace", o.EnableTrace, "Enable trace pprof.")
+	fs.IntVar(&o.BlockProfileRate, options.Join(prefixes...)+"middleware.pprof.block-profile-rate", o.BlockProfileRate, "Block profile rate.")
+	fs.IntVar(&o.MutexProfileFraction, options.Join(prefixes...)+"middleware.pprof.mutex-profile-fraction", o.MutexProfileFraction, "Mutex profile fraction.")
 }
 
-func (o *PprofOptions) Validate() error {
-	if o.Prefix == "" {
-		return errors.New("pprof prefix is required")
+// Validate validates the pprof options.
+func (o *PprofOptions) Validate() []error {
+	if o == nil {
+		return nil
 	}
-	return nil
+	var errs []error
+	if o.Prefix == "" {
+		errs = append(errs, errors.New("pprof prefix is required"))
+	}
+	return errs
 }
 
+// Complete completes the pprof options with defaults.
 func (o *PprofOptions) Complete() error {
 	return nil
 }

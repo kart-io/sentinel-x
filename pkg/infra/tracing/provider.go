@@ -2,6 +2,7 @@ package tracing
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 
@@ -66,8 +67,8 @@ func NewProvider(opts *Options) (*Provider, error) {
 		return nil, fmt.Errorf("failed to complete options: %w", err)
 	}
 
-	if err := opts.Validate(); err != nil {
-		return nil, fmt.Errorf("failed to validate options: %w", err)
+	if errs := opts.Validate(); len(errs) > 0 {
+		return nil, fmt.Errorf("failed to validate options: %w", errors.Join(errs...))
 	}
 
 	if !opts.Enabled {

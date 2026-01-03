@@ -24,9 +24,9 @@ package main
 import (
 	_ "go.uber.org/automaxprocs/maxprocs"
 
-	api "github.com/kart-io/sentinel-x/internal/api"
+	"github.com/kart-io/sentinel-x/cmd/api/app"
 )
 
 func main() {
-	api.NewApp().Run()
+	app.NewApp().Run()
 }

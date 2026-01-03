@@ -8,8 +8,11 @@ import (
 	"os"
 	"time"
 
+	"github.com/kart-io/sentinel-x/pkg/options"
 	"github.com/spf13/pflag"
 )
+
+var _ options.IOptions = (*Options)(nil)
 
 // redactedPassword is the placeholder used when serializing passwords.
 const redactedPassword = "[REDACTED]"
@@ -105,22 +108,26 @@ func (o *Options) Complete() error {
 
 // Validate checks if the options are valid.
 // This method is idempotent and has no side effects.
-func (o *Options) Validate() error {
+func (o *Options) Validate() []error {
+	if o == nil {
+		return nil
+	}
+
 	return nil
 }
 
 // AddFlags adds flags for MySQL options to the specified FlagSet.
-func (o *Options) AddFlags(fs *pflag.FlagSet, namePrefix string) {
-	fs.StringVar(&o.Host, namePrefix+"host", o.Host, "MySQL host")
-	fs.IntVar(&o.Port, namePrefix+"port", o.Port, "MySQL port")
-	fs.StringVar(&o.Username, namePrefix+"username", o.Username, "MySQL username")
-	fs.StringVar(&o.Password, namePrefix+"password", o.Password, "MySQL password (DEPRECATED: use MYSQL_PASSWORD env var instead)")
-	fs.StringVar(&o.Database, namePrefix+"database", o.Database, "MySQL database")
-	fs.IntVar(&o.MaxIdleConnections, namePrefix+"max-idle-connections", o.MaxIdleConnections, "MySQL max idle connections")
-	fs.IntVar(&o.MaxOpenConnections, namePrefix+"max-open-connections", o.MaxOpenConnections, "MySQL max open connections")
-	fs.DurationVar(&o.MaxConnectionLifeTime, namePrefix+"max-connection-life-time", o.MaxConnectionLifeTime, "MySQL max connection life time")
-	fs.DurationVar(&o.MaxIdleTime, namePrefix+"max-idle-time", o.MaxIdleTime, "MySQL max idle time")
-	fs.IntVar(&o.LogLevel, namePrefix+"log-level", o.LogLevel, "MySQL log level")
+func (o *Options) AddFlags(fs *pflag.FlagSet, prefixes ...string) {
+	fs.StringVar(&o.Host, options.Join(prefixes...)+"mysql.host", o.Host, "MySQL service host address.")
+	fs.IntVar(&o.Port, options.Join(prefixes...)+"mysql.port", o.Port, "MySQL service port.")
+	fs.StringVar(&o.Username, options.Join(prefixes...)+"mysql.username", o.Username, "Username for access to mysql service.")
+	fs.StringVar(&o.Password, options.Join(prefixes...)+"mysql.password", o.Password, "Password for access to mysql, should be used pair with password (DEPRECATED: use MYSQL_PASSWORD env var instead).")
+	fs.StringVar(&o.Database, options.Join(prefixes...)+"mysql.database", o.Database, "Database name for the server to use.")
+	fs.IntVar(&o.MaxIdleConnections, options.Join(prefixes...)+"mysql.max-idle-connections", o.MaxIdleConnections, "Maximum idle connections allowed to connect to mysql.")
+	fs.IntVar(&o.MaxOpenConnections, options.Join(prefixes...)+"mysql.max-open-connections", o.MaxOpenConnections, "Maximum open connections allowed to connect to mysql.")
+	fs.DurationVar(&o.MaxConnectionLifeTime, options.Join(prefixes...)+"mysql.max-connection-life-time", o.MaxConnectionLifeTime, "Maximum connection life time allowed to connect to mysql.")
+	fs.DurationVar(&o.MaxIdleTime, options.Join(prefixes...)+"mysql.max-idle-time", o.MaxIdleTime, "Maximum idle time allowed for mysql connection.")
+	fs.IntVar(&o.LogLevel, options.Join(prefixes...)+"mysql.log-level", o.LogLevel, "Specify gorm log level.")
 }
 
 // BuildDSN creates a MySQL Data Source Name (DSN) from the provided options.

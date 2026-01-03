@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kart-io/sentinel-x/pkg/options/middleware"
+	"github.com/kart-io/sentinel-x/pkg/options"
 	"github.com/spf13/pflag"
 )
 
@@ -19,6 +19,8 @@ const (
 	AdapterEcho AdapterType = "echo"
 )
 
+var _ options.IOptions = (*Options)(nil)
+
 // Options contains HTTP server configuration.
 type Options struct {
 	// Addr is the address to listen on.
@@ -31,8 +33,6 @@ type Options struct {
 	IdleTimeout time.Duration `json:"idle-timeout" mapstructure:"idle-timeout"`
 	// Adapter specifies which HTTP framework adapter to use.
 	Adapter AdapterType `json:"adapter" mapstructure:"adapter"`
-	// Middleware contains all middleware configuration.
-	Middleware *middleware.Options `json:"middleware" mapstructure:"middleware"`
 }
 
 // Option is a function that configures Options.
@@ -46,55 +46,45 @@ func NewOptions() *Options {
 		WriteTimeout: 30 * time.Second,
 		IdleTimeout:  60 * time.Second,
 		Adapter:      AdapterGin,
-		Middleware:   middleware.NewOptions(),
 	}
 }
 
 // AddFlags adds flags for HTTP options to the specified FlagSet.
-func (o *Options) AddFlags(fs *pflag.FlagSet) {
-	fs.StringVar(&o.Addr, "http.addr", o.Addr, "HTTP server listen address")
-	fs.DurationVar(&o.ReadTimeout, "http.read-timeout", o.ReadTimeout, "HTTP server read timeout")
-	fs.DurationVar(&o.WriteTimeout, "http.write-timeout", o.WriteTimeout, "HTTP server write timeout")
-	fs.DurationVar(&o.IdleTimeout, "http.idle-timeout", o.IdleTimeout, "HTTP server idle timeout")
-	fs.StringVar((*string)(&o.Adapter), "http.adapter", string(o.Adapter), "HTTP framework adapter (gin, echo)")
-
-	// Add middleware flags
-	if o.Middleware != nil {
-		o.Middleware.AddFlags(fs)
-	}
+func (o *Options) AddFlags(fs *pflag.FlagSet, prefixes ...string) {
+	fs.StringVar(&o.Addr, options.Join(prefixes...)+"http.addr", o.Addr, "Specify the HTTP server bind address and port.")
+	fs.DurationVar(&o.ReadTimeout, options.Join(prefixes...)+"http.read-timeout", o.ReadTimeout, "Timeout for reading the entire request.")
+	fs.DurationVar(&o.WriteTimeout, options.Join(prefixes...)+"http.write-timeout", o.WriteTimeout, "Timeout before timing out writes of the response.")
+	fs.DurationVar(&o.IdleTimeout, options.Join(prefixes...)+"http.idle-timeout", o.IdleTimeout, "Maximum amount of time to wait for the next request.")
+	fs.StringVar((*string)(&o.Adapter), options.Join(prefixes...)+"http.adapter", string(o.Adapter), "HTTP framework adapter (gin, echo).")
 }
 
 // Validate validates the HTTP options.
-func (o *Options) Validate() error {
+func (o *Options) Validate() []error {
+	if o == nil {
+		return nil
+	}
+
+	var errs []error
+
 	if o.Addr == "" {
-		return fmt.Errorf("http.addr cannot be empty")
+		errs = append(errs, fmt.Errorf("http.addr cannot be empty"))
 	}
 	if o.ReadTimeout <= 0 {
-		return fmt.Errorf("http.read-timeout must be positive")
+		errs = append(errs, fmt.Errorf("http.read-timeout must be positive"))
 	}
 	if o.WriteTimeout <= 0 {
-		return fmt.Errorf("http.write-timeout must be positive")
+		errs = append(errs, fmt.Errorf("http.write-timeout must be positive"))
 	}
 	if o.Adapter != AdapterGin && o.Adapter != AdapterEcho {
-		return fmt.Errorf("http.adapter must be 'gin' or 'echo'")
+		errs = append(errs, fmt.Errorf("http.adapter must be 'gin' or 'echo'"))
 	}
 
-	// Validate middleware options
-	if o.Middleware != nil {
-		if err := o.Middleware.Validate(); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return errs
 }
 
 // Complete completes the HTTP options with defaults.
 func (o *Options) Complete() error {
-	if o.Middleware == nil {
-		o.Middleware = middleware.NewOptions()
-	}
-	return o.Middleware.Complete()
+	return nil
 }
 
 // WithAddr sets the listen address.
@@ -129,15 +119,6 @@ func WithIdleTimeout(d time.Duration) Option {
 func WithAdapter(adapter AdapterType) Option {
 	return func(o *Options) {
 		o.Adapter = adapter
-	}
-}
-
-// WithMiddleware configures middleware options.
-func WithMiddleware(opts ...middleware.Option) Option {
-	return func(o *Options) {
-		for _, opt := range opts {
-			opt(o.Middleware)
-		}
 	}
 }
 

@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/kart-io/sentinel-x/pkg/options"
 	"github.com/spf13/pflag"
 )
+
+var _ options.IOptions = (*Options)(nil)
 
 // SamplerType defines the type of sampler to use.
 type SamplerType string
@@ -112,36 +115,38 @@ func NewOptions() *Options {
 }
 
 // AddFlags adds flags for tracing options to the specified FlagSet.
-func (o *Options) AddFlags(fs *pflag.FlagSet) {
-	fs.BoolVar(&o.Enabled, "tracing.enabled", o.Enabled, "Enable OpenTelemetry tracing")
-	fs.StringVar(&o.ServiceName, "tracing.service-name", o.ServiceName, "Service name for tracing")
-	fs.StringVar(&o.ServiceVersion, "tracing.service-version", o.ServiceVersion, "Service version for tracing")
-	fs.StringVar(&o.ServiceNamespace, "tracing.service-namespace", o.ServiceNamespace, "Service namespace for tracing")
-	fs.StringVar(&o.Environment, "tracing.environment", o.Environment, "Deployment environment")
-	fs.StringVar((*string)(&o.ExporterType), "tracing.exporter-type", string(o.ExporterType), "Exporter type (otlp_grpc, otlp_http, stdout, noop)")
-	fs.StringVar(&o.Endpoint, "tracing.endpoint", o.Endpoint, "OTLP exporter endpoint")
-	fs.BoolVar(&o.Insecure, "tracing.insecure", o.Insecure, "Disable TLS for OTLP connection")
-	fs.StringVar((*string)(&o.SamplerType), "tracing.sampler-type", string(o.SamplerType), "Sampler type (always_on, always_off, ratio, parent_based)")
-	fs.Float64Var(&o.SamplerRatio, "tracing.sampler-ratio", o.SamplerRatio, "Sampling ratio (0.0 to 1.0)")
-	fs.DurationVar(&o.BatchTimeout, "tracing.batch-timeout", o.BatchTimeout, "Maximum time to wait before exporting a batch")
-	fs.IntVar(&o.BatchMaxSize, "tracing.batch-max-size", o.BatchMaxSize, "Maximum number of spans to export in a batch")
-	fs.DurationVar(&o.ExportTimeout, "tracing.export-timeout", o.ExportTimeout, "Maximum time allowed for exporting spans")
-	fs.IntVar(&o.MaxQueueSize, "tracing.max-queue-size", o.MaxQueueSize, "Maximum queue size for spans awaiting export")
+func (o *Options) AddFlags(fs *pflag.FlagSet, prefixes ...string) {
+	fs.BoolVar(&o.Enabled, options.Join(prefixes...)+"tracing.enabled", o.Enabled, "Enable OpenTelemetry tracing.")
+	fs.StringVar(&o.ServiceName, options.Join(prefixes...)+"tracing.service-name", o.ServiceName, "Service name for tracing.")
+	fs.StringVar(&o.ServiceVersion, options.Join(prefixes...)+"tracing.service-version", o.ServiceVersion, "Service version for tracing.")
+	fs.StringVar(&o.ServiceNamespace, options.Join(prefixes...)+"tracing.service-namespace", o.ServiceNamespace, "Service namespace for tracing.")
+	fs.StringVar(&o.Environment, options.Join(prefixes...)+"tracing.environment", o.Environment, "Deployment environment.")
+	fs.StringVar((*string)(&o.ExporterType), options.Join(prefixes...)+"tracing.exporter-type", string(o.ExporterType), "Exporter type (otlp_grpc, otlp_http, stdout, noop).")
+	fs.StringVar(&o.Endpoint, options.Join(prefixes...)+"tracing.endpoint", o.Endpoint, "OTLP exporter endpoint.")
+	fs.BoolVar(&o.Insecure, options.Join(prefixes...)+"tracing.insecure", o.Insecure, "Disable TLS for OTLP connection.")
+	fs.StringVar((*string)(&o.SamplerType), options.Join(prefixes...)+"tracing.sampler-type", string(o.SamplerType), "Sampler type (always_on, always_off, ratio, parent_based).")
+	fs.Float64Var(&o.SamplerRatio, options.Join(prefixes...)+"tracing.sampler-ratio", o.SamplerRatio, "Sampling ratio (0.0 to 1.0).")
+	fs.DurationVar(&o.BatchTimeout, options.Join(prefixes...)+"tracing.batch-timeout", o.BatchTimeout, "Maximum time to wait before exporting a batch.")
+	fs.IntVar(&o.BatchMaxSize, options.Join(prefixes...)+"tracing.batch-max-size", o.BatchMaxSize, "Maximum number of spans to export in a batch.")
+	fs.DurationVar(&o.ExportTimeout, options.Join(prefixes...)+"tracing.export-timeout", o.ExportTimeout, "Maximum time allowed for exporting spans.")
+	fs.IntVar(&o.MaxQueueSize, options.Join(prefixes...)+"tracing.max-queue-size", o.MaxQueueSize, "Maximum queue size for spans awaiting export.")
 }
 
 // Validate validates the tracing options.
-func (o *Options) Validate() error {
+func (o *Options) Validate() []error {
 	if !o.Enabled {
 		return nil
 	}
 
+	var errs []error
+
 	if o.ServiceName == "" {
-		return fmt.Errorf("tracing: service name is required when tracing is enabled")
+		errs = append(errs, fmt.Errorf("tracing: service name is required when tracing is enabled"))
 	}
 
 	if o.ExporterType != ExporterNoop && o.ExporterType != ExporterStdout {
 		if o.Endpoint == "" {
-			return fmt.Errorf("tracing: endpoint is required for exporter type %s", o.ExporterType)
+			errs = append(errs, fmt.Errorf("tracing: endpoint is required for exporter type %s", o.ExporterType))
 		}
 	}
 
@@ -149,39 +154,39 @@ func (o *Options) Validate() error {
 	case ExporterOTLPGRPC, ExporterOTLPHTTP, ExporterStdout, ExporterNoop:
 		// Valid exporter types
 	default:
-		return fmt.Errorf("tracing: invalid exporter type: %s", o.ExporterType)
+		errs = append(errs, fmt.Errorf("tracing: invalid exporter type: %s", o.ExporterType))
 	}
 
 	switch o.SamplerType {
 	case SamplerAlwaysOn, SamplerAlwaysOff, SamplerRatio, SamplerParentBased:
 		// Valid sampler types
 	default:
-		return fmt.Errorf("tracing: invalid sampler type: %s", o.SamplerType)
+		errs = append(errs, fmt.Errorf("tracing: invalid sampler type: %s", o.SamplerType))
 	}
 
 	if o.SamplerType == SamplerRatio {
 		if o.SamplerRatio < 0.0 || o.SamplerRatio > 1.0 {
-			return fmt.Errorf("tracing: sampler ratio must be between 0.0 and 1.0, got %f", o.SamplerRatio)
+			errs = append(errs, fmt.Errorf("tracing: sampler ratio must be between 0.0 and 1.0, got %f", o.SamplerRatio))
 		}
 	}
 
 	if o.BatchTimeout <= 0 {
-		return fmt.Errorf("tracing: batch timeout must be positive")
+		errs = append(errs, fmt.Errorf("tracing: batch timeout must be positive"))
 	}
 
 	if o.BatchMaxSize <= 0 {
-		return fmt.Errorf("tracing: batch max size must be positive")
+		errs = append(errs, fmt.Errorf("tracing: batch max size must be positive"))
 	}
 
 	if o.ExportTimeout <= 0 {
-		return fmt.Errorf("tracing: export timeout must be positive")
+		errs = append(errs, fmt.Errorf("tracing: export timeout must be positive"))
 	}
 
 	if o.MaxQueueSize <= 0 {
-		return fmt.Errorf("tracing: max queue size must be positive")
+		errs = append(errs, fmt.Errorf("tracing: max queue size must be positive"))
 	}
 
-	return nil
+	return errs
 }
 
 // Complete fills in any missing values with defaults.

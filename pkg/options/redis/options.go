@@ -7,8 +7,11 @@ import (
 	"os"
 	"time"
 
+	"github.com/kart-io/sentinel-x/pkg/options"
 	"github.com/spf13/pflag"
 )
+
+var _ options.IOptions = (*Options)(nil)
 
 // redactedPassword is the placeholder used when serializing passwords.
 const redactedPassword = "[REDACTED]"
@@ -108,21 +111,25 @@ func (o *Options) Complete() error {
 
 // Validate checks if the options are valid.
 // This method is idempotent and has no side effects.
-func (o *Options) Validate() error {
+func (o *Options) Validate() []error {
+	if o == nil {
+		return nil
+	}
+
 	return nil
 }
 
 // AddFlags adds flags for Redis options to the specified FlagSet.
-func (o *Options) AddFlags(fs *pflag.FlagSet, namePrefix string) {
-	fs.StringVar(&o.Host, namePrefix+"host", o.Host, "Redis host")
-	fs.IntVar(&o.Port, namePrefix+"port", o.Port, "Redis port")
-	fs.StringVar(&o.Password, namePrefix+"password", o.Password, "Redis password (DEPRECATED: use REDIS_PASSWORD env var instead)")
-	fs.IntVar(&o.Database, namePrefix+"database", o.Database, "Redis database")
-	fs.IntVar(&o.MaxRetries, namePrefix+"max-retries", o.MaxRetries, "Redis max retries")
-	fs.IntVar(&o.PoolSize, namePrefix+"pool-size", o.PoolSize, "Redis pool size")
-	fs.IntVar(&o.MinIdleConns, namePrefix+"min-idle-conns", o.MinIdleConns, "Redis min idle connections")
-	fs.DurationVar(&o.DialTimeout, namePrefix+"dial-timeout", o.DialTimeout, "Redis dial timeout")
-	fs.DurationVar(&o.ReadTimeout, namePrefix+"read-timeout", o.ReadTimeout, "Redis read timeout")
-	fs.DurationVar(&o.WriteTimeout, namePrefix+"write-timeout", o.WriteTimeout, "Redis write timeout")
-	fs.DurationVar(&o.PoolTimeout, namePrefix+"pool-timeout", o.PoolTimeout, "Redis pool timeout")
+func (o *Options) AddFlags(fs *pflag.FlagSet, prefixes ...string) {
+	fs.StringVar(&o.Host, options.Join(prefixes...)+"redis.host", o.Host, "Redis service host address.")
+	fs.IntVar(&o.Port, options.Join(prefixes...)+"redis.port", o.Port, "Redis service port.")
+	fs.StringVar(&o.Password, options.Join(prefixes...)+"redis.password", o.Password, "Password for access to redis (DEPRECATED: use REDIS_PASSWORD env var instead).")
+	fs.IntVar(&o.Database, options.Join(prefixes...)+"redis.database", o.Database, "Redis database index.")
+	fs.IntVar(&o.MaxRetries, options.Join(prefixes...)+"redis.max-retries", o.MaxRetries, "Maximum number of retries before giving up.")
+	fs.IntVar(&o.PoolSize, options.Join(prefixes...)+"redis.pool-size", o.PoolSize, "Maximum number of socket connections.")
+	fs.IntVar(&o.MinIdleConns, options.Join(prefixes...)+"redis.min-idle-conns", o.MinIdleConns, "Minimum number of idle connections.")
+	fs.DurationVar(&o.DialTimeout, options.Join(prefixes...)+"redis.dial-timeout", o.DialTimeout, "Dial timeout for establishing new connections.")
+	fs.DurationVar(&o.ReadTimeout, options.Join(prefixes...)+"redis.read-timeout", o.ReadTimeout, "Timeout for socket reads.")
+	fs.DurationVar(&o.WriteTimeout, options.Join(prefixes...)+"redis.write-timeout", o.WriteTimeout, "Timeout for socket writes.")
+	fs.DurationVar(&o.PoolTimeout, options.Join(prefixes...)+"redis.pool-timeout", o.PoolTimeout, "Amount of time client waits for connection if all connections are busy.")
 }

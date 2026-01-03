@@ -27,8 +27,11 @@ import (
 	"os"
 	"time"
 
+	"github.com/kart-io/sentinel-x/pkg/options"
 	"github.com/spf13/pflag"
 )
+
+var _ options.IOptions = (*Options)(nil)
 
 const (
 	// DefaultSigningMethod is the default JWT signing algorithm.
@@ -134,38 +137,44 @@ func NewOptions() *Options {
 }
 
 // Validate validates the JWT options.
-func (o *Options) Validate() error {
+func (o *Options) Validate() []error {
+	if o == nil {
+		return nil
+	}
+
 	// Skip validation if auth is disabled
 	if o.DisableAuth {
 		return nil
 	}
 
+	var errs []error
+
 	// Validate signing method
 	if !SupportedSigningMethods[o.SigningMethod] {
-		return fmt.Errorf("unsupported signing method: %s", o.SigningMethod)
+		errs = append(errs, fmt.Errorf("unsupported signing method: %s", o.SigningMethod))
 	}
 
 	// Validate key based on signing method
 	if err := o.validateKey(); err != nil {
-		return err
+		errs = append(errs, err)
 	}
 
 	// Validate expiration
 	if o.Expired <= 0 {
-		return fmt.Errorf("expired must be positive, got: %v", o.Expired)
+		errs = append(errs, fmt.Errorf("expired must be positive, got: %v", o.Expired))
 	}
 
 	// Validate max refresh
 	if o.MaxRefresh <= 0 {
-		return fmt.Errorf("max-refresh must be positive, got: %v", o.MaxRefresh)
+		errs = append(errs, fmt.Errorf("max-refresh must be positive, got: %v", o.MaxRefresh))
 	}
 
 	// MaxRefresh should be >= Expired
 	if o.MaxRefresh < o.Expired {
-		return fmt.Errorf("max-refresh (%v) must be >= expired (%v)", o.MaxRefresh, o.Expired)
+		errs = append(errs, fmt.Errorf("max-refresh (%v) must be >= expired (%v)", o.MaxRefresh, o.Expired))
 	}
 
-	return nil
+	return errs
 }
 
 // validateKey validates the signing key based on the algorithm.
@@ -233,25 +242,25 @@ func (o *Options) Complete() error {
 }
 
 // AddFlags adds flags for JWT options to the specified FlagSet.
-func (o *Options) AddFlags(fs *pflag.FlagSet) {
-	fs.BoolVar(&o.DisableAuth, "jwt.disable-auth", o.DisableAuth,
-		"Disable JWT authentication")
-	fs.StringVar(&o.Key, "jwt.key", o.Key,
-		"JWT signing key (min 64 chars for HMAC algorithms, 128 chars recommended)")
-	fs.StringVar(&o.SigningMethod, "jwt.signing-method", o.SigningMethod,
-		"JWT signing algorithm (HS256, HS384, HS512, RS256, RS384, RS512, ES256, ES384, ES512)")
-	fs.DurationVar(&o.Expired, "jwt.expired", o.Expired,
-		"JWT token expiration duration")
-	fs.DurationVar(&o.MaxRefresh, "jwt.max-refresh", o.MaxRefresh,
-		"Maximum duration a token can be refreshed")
-	fs.StringVar(&o.Issuer, "jwt.issuer", o.Issuer,
-		"JWT token issuer (iss claim)")
-	fs.StringSliceVar(&o.Audience, "jwt.audience", o.Audience,
-		"JWT token audience (aud claim)")
-	fs.StringVar(&o.PublicKey, "jwt.public-key", o.PublicKey,
-		"JWT public key for RSA/ECDSA algorithms")
-	fs.StringVar(&o.KeyID, "jwt.key-id", o.KeyID,
-		"JWT key identifier (kid header)")
-	fs.StringVar(&o.IdentityKey, "jwt.identity-key", o.IdentityKey,
-		"Claim key used to identify the user (default: sub)")
+func (o *Options) AddFlags(fs *pflag.FlagSet, prefixes ...string) {
+	fs.BoolVar(&o.DisableAuth, options.Join(prefixes...)+"jwt.disable-auth", o.DisableAuth,
+		"Disable JWT authentication.")
+	fs.StringVar(&o.Key, options.Join(prefixes...)+"jwt.key", o.Key,
+		"JWT signing key (min 64 chars for HMAC algorithms, 128 chars recommended).")
+	fs.StringVar(&o.SigningMethod, options.Join(prefixes...)+"jwt.signing-method", o.SigningMethod,
+		"JWT signing algorithm (HS256, HS384, HS512, RS256, RS384, RS512, ES256, ES384, ES512).")
+	fs.DurationVar(&o.Expired, options.Join(prefixes...)+"jwt.expired", o.Expired,
+		"JWT token expiration duration.")
+	fs.DurationVar(&o.MaxRefresh, options.Join(prefixes...)+"jwt.max-refresh", o.MaxRefresh,
+		"Maximum duration a token can be refreshed.")
+	fs.StringVar(&o.Issuer, options.Join(prefixes...)+"jwt.issuer", o.Issuer,
+		"JWT token issuer (iss claim).")
+	fs.StringSliceVar(&o.Audience, options.Join(prefixes...)+"jwt.audience", o.Audience,
+		"JWT token audience (aud claim).")
+	fs.StringVar(&o.PublicKey, options.Join(prefixes...)+"jwt.public-key", o.PublicKey,
+		"JWT public key for RSA/ECDSA algorithms.")
+	fs.StringVar(&o.KeyID, options.Join(prefixes...)+"jwt.key-id", o.KeyID,
+		"JWT key identifier (kid header).")
+	fs.StringVar(&o.IdentityKey, options.Join(prefixes...)+"jwt.identity-key", o.IdentityKey,
+		"Claim key used to identify the user (default: sub).")
 }

@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/kart-io/sentinel-x/pkg/options"
 	"github.com/spf13/pflag"
 )
+
+var _ options.IOptions = (*Options)(nil)
 
 // Options contains gRPC server configuration.
 type Options struct {
@@ -37,29 +40,36 @@ func NewOptions() *Options {
 }
 
 // AddFlags adds flags for gRPC options to the specified FlagSet.
-func (o *Options) AddFlags(fs *pflag.FlagSet) {
-	fs.StringVar(&o.Addr, "grpc.addr", o.Addr, "gRPC server listen address")
-	fs.DurationVar(&o.Timeout, "grpc.timeout", o.Timeout, "gRPC server request timeout")
-	fs.IntVar(&o.MaxRecvMsgSize, "grpc.max-recv-msg-size", o.MaxRecvMsgSize, "gRPC max receive message size in bytes")
-	fs.IntVar(&o.MaxSendMsgSize, "grpc.max-send-msg-size", o.MaxSendMsgSize, "gRPC max send message size in bytes")
-	fs.BoolVar(&o.EnableReflection, "grpc.enable-reflection", o.EnableReflection, "Enable gRPC server reflection")
+func (o *Options) AddFlags(fs *pflag.FlagSet, prefixes ...string) {
+	fs.StringVar(&o.Addr, options.Join(prefixes...)+"grpc.addr", o.Addr, "Specify the gRPC server bind address and port.")
+	fs.DurationVar(&o.Timeout, options.Join(prefixes...)+"grpc.timeout", o.Timeout, "Timeout for server connections.")
+	fs.IntVar(&o.MaxRecvMsgSize, options.Join(prefixes...)+"grpc.max-recv-msg-size", o.MaxRecvMsgSize, "Maximum message size in bytes the server can receive.")
+	fs.IntVar(&o.MaxSendMsgSize, options.Join(prefixes...)+"grpc.max-send-msg-size", o.MaxSendMsgSize, "Maximum message size in bytes the server can send.")
+	fs.BoolVar(&o.EnableReflection, options.Join(prefixes...)+"grpc.enable-reflection", o.EnableReflection, "Enable gRPC server reflection for tools like grpcurl.")
 }
 
 // Validate validates the gRPC options.
-func (o *Options) Validate() error {
+func (o *Options) Validate() []error {
+	if o == nil {
+		return nil
+	}
+
+	var errs []error
+
 	if o.Addr == "" {
-		return fmt.Errorf("grpc.addr cannot be empty")
+		errs = append(errs, fmt.Errorf("grpc.addr cannot be empty"))
 	}
 	if o.Timeout <= 0 {
-		return fmt.Errorf("grpc.timeout must be positive")
+		errs = append(errs, fmt.Errorf("grpc.timeout must be positive"))
 	}
 	if o.MaxRecvMsgSize <= 0 {
-		return fmt.Errorf("grpc.max-recv-msg-size must be positive")
+		errs = append(errs, fmt.Errorf("grpc.max-recv-msg-size must be positive"))
 	}
 	if o.MaxSendMsgSize <= 0 {
-		return fmt.Errorf("grpc.max-send-msg-size must be positive")
+		errs = append(errs, fmt.Errorf("grpc.max-send-msg-size must be positive"))
 	}
-	return nil
+
+	return errs
 }
 
 // Complete completes the gRPC options with defaults.

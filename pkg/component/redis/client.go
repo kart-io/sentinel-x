@@ -3,6 +3,7 @@ package redis
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -65,8 +66,8 @@ func NewWithContext(ctx context.Context, opts *options.Options) (*Client, error)
 	}
 
 	// Validate options
-	if err := opts.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid redis options: %w", err)
+	if errs := opts.Validate(); len(errs) > 0 {
+		return nil, fmt.Errorf("invalid redis options: %w", errors.Join(errs...))
 	}
 
 	// Build Redis options

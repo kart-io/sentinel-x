@@ -1,13 +1,13 @@
 // Package app provides application configuration options.
 package app
 
-import "github.com/spf13/pflag"
+import cliflag "github.com/kart-io/sentinel-x/pkg/app/cliflag"
 
 // CliOptions is the interface for CLI options.
 // Any options struct implementing this interface can be used with App.
 type CliOptions interface {
-	// AddFlags adds flags to the flagset.
-	AddFlags(fs *pflag.FlagSet)
+	// Flags returns named flag sets for the options.
+	Flags() cliflag.NamedFlagSets
 	// Validate validates the options.
 	Validate() error
 	// Complete completes the options with defaults.

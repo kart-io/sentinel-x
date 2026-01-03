@@ -9,8 +9,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kart-io/sentinel-x/pkg/options"
 	"github.com/spf13/pflag"
 )
+
+var _ options.IOptions = (*Options)(nil)
 
 // redactedPassword is the placeholder used when serializing passwords.
 const redactedPassword = "[REDACTED]"
@@ -135,28 +138,32 @@ func (o *Options) Complete() error {
 
 // Validate checks if the options are valid.
 // This method is idempotent and has no side effects.
-func (o *Options) Validate() error {
+func (o *Options) Validate() []error {
+	if o == nil {
+		return nil
+	}
+
 	return nil
 }
 
 // AddFlags adds flags for MongoDB options to the specified FlagSet.
-func (o *Options) AddFlags(fs *pflag.FlagSet, namePrefix string) {
-	fs.StringVar(&o.URI, namePrefix+"uri", o.URI, "MongoDB URI (mongodb://...)")
-	fs.StringVar(&o.Host, namePrefix+"host", o.Host, "MongoDB host")
-	fs.IntVar(&o.Port, namePrefix+"port", o.Port, "MongoDB port")
-	fs.StringVar(&o.Username, namePrefix+"username", o.Username, "MongoDB username")
-	fs.StringVar(&o.Password, namePrefix+"password", o.Password, "MongoDB password (DEPRECATED: use MONGODB_PASSWORD env var instead)")
-	fs.StringVar(&o.Database, namePrefix+"database", o.Database, "MongoDB database")
-	fs.Uint64Var(&o.MaxPoolSize, namePrefix+"max-pool-size", o.MaxPoolSize, "MongoDB max pool size")
-	fs.Uint64Var(&o.MinPoolSize, namePrefix+"min-pool-size", o.MinPoolSize, "MongoDB min pool size")
-	fs.DurationVar(&o.MaxIdleTime, namePrefix+"max-idle-time", o.MaxIdleTime, "MongoDB max idle time")
-	fs.DurationVar(&o.MaxConnIdleTime, namePrefix+"max-conn-idle-time", o.MaxConnIdleTime, "MongoDB max connection idle time")
-	fs.DurationVar(&o.ConnectTimeout, namePrefix+"connect-timeout", o.ConnectTimeout, "MongoDB connect timeout")
-	fs.DurationVar(&o.SocketTimeout, namePrefix+"socket-timeout", o.SocketTimeout, "MongoDB socket timeout")
-	fs.DurationVar(&o.ServerSelectionTimeout, namePrefix+"server-selection-timeout", o.ServerSelectionTimeout, "MongoDB server selection timeout")
-	fs.StringVar(&o.ReplicaSet, namePrefix+"replica-set", o.ReplicaSet, "MongoDB replica set")
-	fs.StringVar(&o.AuthSource, namePrefix+"auth-source", o.AuthSource, "MongoDB auth source")
-	fs.BoolVar(&o.Direct, namePrefix+"direct", o.Direct, "MongoDB direct connection")
+func (o *Options) AddFlags(fs *pflag.FlagSet, prefixes ...string) {
+	fs.StringVar(&o.URI, options.Join(prefixes...)+"mongodb.uri", o.URI, "MongoDB URI (mongodb://...).")
+	fs.StringVar(&o.Host, options.Join(prefixes...)+"mongodb.host", o.Host, "MongoDB service host address.")
+	fs.IntVar(&o.Port, options.Join(prefixes...)+"mongodb.port", o.Port, "MongoDB service port.")
+	fs.StringVar(&o.Username, options.Join(prefixes...)+"mongodb.username", o.Username, "Username for access to mongodb service.")
+	fs.StringVar(&o.Password, options.Join(prefixes...)+"mongodb.password", o.Password, "Password for access to mongodb (DEPRECATED: use MONGODB_PASSWORD env var instead).")
+	fs.StringVar(&o.Database, options.Join(prefixes...)+"mongodb.database", o.Database, "Database name for the server to use.")
+	fs.Uint64Var(&o.MaxPoolSize, options.Join(prefixes...)+"mongodb.max-pool-size", o.MaxPoolSize, "Maximum number of connections in the pool.")
+	fs.Uint64Var(&o.MinPoolSize, options.Join(prefixes...)+"mongodb.min-pool-size", o.MinPoolSize, "Minimum number of connections in the pool.")
+	fs.DurationVar(&o.MaxIdleTime, options.Join(prefixes...)+"mongodb.max-idle-time", o.MaxIdleTime, "Maximum idle time for a connection.")
+	fs.DurationVar(&o.MaxConnIdleTime, options.Join(prefixes...)+"mongodb.max-conn-idle-time", o.MaxConnIdleTime, "Maximum connection idle time.")
+	fs.DurationVar(&o.ConnectTimeout, options.Join(prefixes...)+"mongodb.connect-timeout", o.ConnectTimeout, "Timeout for connection.")
+	fs.DurationVar(&o.SocketTimeout, options.Join(prefixes...)+"mongodb.socket-timeout", o.SocketTimeout, "Timeout for socket operations.")
+	fs.DurationVar(&o.ServerSelectionTimeout, options.Join(prefixes...)+"mongodb.server-selection-timeout", o.ServerSelectionTimeout, "Timeout for server selection.")
+	fs.StringVar(&o.ReplicaSet, options.Join(prefixes...)+"mongodb.replica-set", o.ReplicaSet, "MongoDB replica set name.")
+	fs.StringVar(&o.AuthSource, options.Join(prefixes...)+"mongodb.auth-source", o.AuthSource, "MongoDB authentication source.")
+	fs.BoolVar(&o.Direct, options.Join(prefixes...)+"mongodb.direct", o.Direct, "MongoDB direct connection.")
 }
 
 // BuildURI builds a MongoDB URI from options.

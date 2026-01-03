@@ -24,9 +24,9 @@ package main
 import (
 	_ "go.uber.org/automaxprocs/maxprocs"
 
-	usercenter "github.com/kart-io/sentinel-x/internal/user-center"
+	"github.com/kart-io/sentinel-x/cmd/user-center/app"
 )
 
 func main() {
-	usercenter.NewApp().Run()
+	app.NewApp().Run()
 }

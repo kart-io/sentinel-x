@@ -5,8 +5,11 @@ import (
 	"github.com/kart-io/logger"
 	"github.com/kart-io/logger/core"
 	"github.com/kart-io/logger/option"
+	"github.com/kart-io/sentinel-x/pkg/options"
 	"github.com/spf13/pflag"
 )
+
+var _ options.IOptions = (*Options)(nil)
 
 // Options wraps the logger option.LogOption with sentinel-x specific additions.
 type Options struct {
@@ -80,48 +83,57 @@ func NewOptions() *Options {
 }
 
 // AddFlags adds flags for logger options to the specified FlagSet.
-func (o *Options) AddFlags(fs *pflag.FlagSet) {
-	fs.StringVar(&o.Engine, "log.engine", o.Engine, "Logging engine (zap|slog)")
-	fs.StringVar(&o.Level, "log.level", o.Level, "Log level (DEBUG|INFO|WARN|ERROR|FATAL)")
-	fs.StringVar(&o.Format, "log.format", o.Format, "Log format (json|console)")
-	fs.StringSliceVar(&o.OutputPaths, "log.output-paths", o.OutputPaths, "Output paths for logs")
-	fs.BoolVar(&o.Development, "log.development", o.Development, "Enable development mode")
-	fs.BoolVar(&o.DisableCaller, "log.disable-caller", o.DisableCaller, "Disable caller detection")
-	fs.BoolVar(&o.DisableStacktrace, "log.disable-stacktrace", o.DisableStacktrace, "Disable stacktrace capture")
+func (o *Options) AddFlags(fs *pflag.FlagSet, prefixes ...string) {
+	fs.StringVar(&o.Engine, options.Join(prefixes...)+"log.engine", o.Engine, "Logging engine (zap|slog).")
+	fs.StringVar(&o.Level, options.Join(prefixes...)+"log.level", o.Level, "Log level (DEBUG|INFO|WARN|ERROR|FATAL).")
+	fs.StringVar(&o.Format, options.Join(prefixes...)+"log.format", o.Format, "Log format (json|console).")
+	fs.StringSliceVar(&o.OutputPaths, options.Join(prefixes...)+"log.output-paths", o.OutputPaths, "Output paths for logs.")
+	fs.BoolVar(&o.Development, options.Join(prefixes...)+"log.development", o.Development, "Enable development mode.")
+	fs.BoolVar(&o.DisableCaller, options.Join(prefixes...)+"log.disable-caller", o.DisableCaller, "Disable caller detection.")
+	fs.BoolVar(&o.DisableStacktrace, options.Join(prefixes...)+"log.disable-stacktrace", o.DisableStacktrace, "Disable stacktrace capture.")
 
 	// OTLP options
-	fs.StringVar(&o.OTLPEndpoint, "log.otlp-endpoint", o.OTLPEndpoint, "OTLP endpoint URL")
+	fs.StringVar(&o.OTLPEndpoint, options.Join(prefixes...)+"log.otlp-endpoint", o.OTLPEndpoint, "OTLP endpoint URL.")
 	if o.OTLP == nil {
 		o.OTLP = &option.OTLPOption{}
 	}
-	fs.StringVar(&o.OTLP.Protocol, "log.otlp.protocol", "grpc", "OTLP protocol (grpc|http)")
+	fs.StringVar(&o.OTLP.Protocol, options.Join(prefixes...)+"log.otlp.protocol", "grpc", "OTLP protocol (grpc|http).")
 
 	// Rotation options
 	if o.Rotation == nil {
 		o.Rotation = &option.RotationOption{}
 	}
-	fs.IntVar(&o.Rotation.MaxSize, "log.rotation.max-size", 100, "Maximum size in MB of the log file before rotation")
-	fs.IntVar(&o.Rotation.MaxAge, "log.rotation.max-age", 15, "Maximum number of days to retain old log files")
-	fs.IntVar(&o.Rotation.MaxBackups, "log.rotation.max-backups", 30, "Maximum number of old log files to retain")
-	fs.BoolVar(&o.Rotation.Compress, "log.rotation.compress", true, "Compress rotated log files using gzip")
+	fs.IntVar(&o.Rotation.MaxSize, options.Join(prefixes...)+"log.rotation.max-size", 100, "Maximum size in MB of the log file before rotation.")
+	fs.IntVar(&o.Rotation.MaxAge, options.Join(prefixes...)+"log.rotation.max-age", 15, "Maximum number of days to retain old log files.")
+	fs.IntVar(&o.Rotation.MaxBackups, options.Join(prefixes...)+"log.rotation.max-backups", 30, "Maximum number of old log files to retain.")
+	fs.BoolVar(&o.Rotation.Compress, options.Join(prefixes...)+"log.rotation.compress", true, "Compress rotated log files using gzip.")
 
 	// Enhanced logging options
 	if o.Enhanced == nil {
 		o.Enhanced = DefaultEnhancedLoggerConfig()
 	}
-	fs.BoolVar(&o.Enhanced.EnableTraceCorrelation, "log.enhanced.trace-correlation", o.Enhanced.EnableTraceCorrelation, "Enable OpenTelemetry trace/span ID correlation")
-	fs.BoolVar(&o.Enhanced.EnableResponseLogging, "log.enhanced.response-logging", o.Enhanced.EnableResponseLogging, "Enable response status, size, and latency logging")
-	fs.BoolVar(&o.Enhanced.EnableRequestLogging, "log.enhanced.request-logging", o.Enhanced.EnableRequestLogging, "Enable request method, path, and headers logging")
-	fs.IntVar(&o.Enhanced.MaxBodyLogSize, "log.enhanced.max-body-size", o.Enhanced.MaxBodyLogSize, "Maximum request/response body size to log in bytes")
-	fs.BoolVar(&o.Enhanced.CaptureStackTrace, "log.enhanced.capture-stack", o.Enhanced.CaptureStackTrace, "Capture stack traces for error responses")
-	fs.IntVar(&o.Enhanced.ErrorStackTraceMinStatus, "log.enhanced.stack-min-status", o.Enhanced.ErrorStackTraceMinStatus, "Minimum HTTP status code to capture stack traces")
-	fs.BoolVar(&o.Enhanced.LogRequestBody, "log.enhanced.log-request-body", o.Enhanced.LogRequestBody, "Enable request body logging")
-	fs.BoolVar(&o.Enhanced.LogResponseBody, "log.enhanced.log-response-body", o.Enhanced.LogResponseBody, "Enable response body logging")
+	fs.BoolVar(&o.Enhanced.EnableTraceCorrelation, options.Join(prefixes...)+"log.enhanced.trace-correlation", o.Enhanced.EnableTraceCorrelation, "Enable OpenTelemetry trace/span ID correlation.")
+	fs.BoolVar(&o.Enhanced.EnableResponseLogging, options.Join(prefixes...)+"log.enhanced.response-logging", o.Enhanced.EnableResponseLogging, "Enable response status, size, and latency logging.")
+	fs.BoolVar(&o.Enhanced.EnableRequestLogging, options.Join(prefixes...)+"log.enhanced.request-logging", o.Enhanced.EnableRequestLogging, "Enable request method, path, and headers logging.")
+	fs.IntVar(&o.Enhanced.MaxBodyLogSize, options.Join(prefixes...)+"log.enhanced.max-body-size", o.Enhanced.MaxBodyLogSize, "Maximum request/response body size to log in bytes.")
+	fs.BoolVar(&o.Enhanced.CaptureStackTrace, options.Join(prefixes...)+"log.enhanced.capture-stack", o.Enhanced.CaptureStackTrace, "Capture stack traces for error responses.")
+	fs.IntVar(&o.Enhanced.ErrorStackTraceMinStatus, options.Join(prefixes...)+"log.enhanced.stack-min-status", o.Enhanced.ErrorStackTraceMinStatus, "Minimum HTTP status code to capture stack traces.")
+	fs.BoolVar(&o.Enhanced.LogRequestBody, options.Join(prefixes...)+"log.enhanced.log-request-body", o.Enhanced.LogRequestBody, "Enable request body logging.")
+	fs.BoolVar(&o.Enhanced.LogResponseBody, options.Join(prefixes...)+"log.enhanced.log-response-body", o.Enhanced.LogResponseBody, "Enable response body logging.")
 }
 
 // Validate validates the logger options.
-func (o *Options) Validate() error {
-	return o.LogOption.Validate()
+func (o *Options) Validate() []error {
+	if o == nil {
+		return nil
+	}
+
+	var errs []error
+	if err := o.LogOption.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	return errs
 }
 
 // Complete completes the logger options with defaults.

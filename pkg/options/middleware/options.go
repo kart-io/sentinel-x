@@ -2,7 +2,6 @@
 package middleware
 
 import (
-	"fmt"
 	"log"
 	"time"
 
@@ -44,21 +43,8 @@ var AllMiddlewares = []string{
 	MiddlewareAuthz,
 }
 
-// DefaultEnabledMiddlewares 默认启用的中间件列表。
-var DefaultEnabledMiddlewares = []string{
-	MiddlewareRecovery,
-	MiddlewareRequestID,
-	MiddlewareLogger,
-	MiddlewareHealth,
-	MiddlewareMetrics,
-}
-
 // Options contains all middleware configuration.
 type Options struct {
-	// Enabled 指定启用的中间件列表。
-	// 支持的值: recovery, request-id, logger, cors, timeout, health, metrics, pprof, auth, authz
-	Enabled []string `json:"enabled" mapstructure:"enabled"`
-
 	// Recovery 配置。
 	Recovery *RecoveryOptions `json:"recovery" mapstructure:"recovery"`
 
@@ -88,276 +74,249 @@ type Options struct {
 
 	// Authz 配置（RBAC 授权）。
 	Authz *AuthzOptions `json:"authz" mapstructure:"authz"`
-
-	// enabledSet 内部使用的启用中间件集合，用于快速查找。
-	enabledSet map[string]bool
 }
 
 // Option is a function that configures Options.
 type Option func(*Options)
 
 // NewOptions creates default middleware options.
+// 默认启用 Recovery, RequestID, Logger, Health, Metrics 中间件。
+// 其他中间件（CORS, Timeout, Pprof, Auth, Authz）默认禁用（nil）。
 func NewOptions() *Options {
 	return &Options{
-		Enabled:   append([]string{}, DefaultEnabledMiddlewares...),
 		Recovery:  NewRecoveryOptions(),
 		RequestID: NewRequestIDOptions(),
 		Logger:    NewLoggerOptions(),
-		CORS:      NewCORSOptions(),
-		Timeout:   NewTimeoutOptions(),
 		Health:    NewHealthOptions(),
 		Metrics:   NewMetricsOptions(),
-		Pprof:     NewPprofOptions(),
-		Auth:      NewAuthOptions(),
-		Authz:     NewAuthzOptions(),
+		// CORS, Timeout, Pprof, Auth, Authz 默认禁用（nil）
 	}
 }
 
 // Validate validates the middleware options.
-func (o *Options) Validate() error {
+func (o *Options) Validate() []error {
+	if o == nil {
+		return nil
+	}
+
 	var errs []error
 
-	// 确保所有子选项都已初始化
-	o.ensureDefaults()
-
-	// 构建启用集合
-	o.buildEnabledSet()
-
-	// 验证 Enabled 数组中的名称是否有效
-	validNames := make(map[string]bool)
-	for _, name := range AllMiddlewares {
-		validNames[name] = true
-	}
-	for _, name := range o.Enabled {
-		if !validNames[name] {
-			errs = append(errs, fmt.Errorf("invalid middleware name: %q, valid names: %v", name, AllMiddlewares))
-		}
-	}
-
 	// 验证启用的中间件配置
-	if o.IsEnabled(MiddlewareTimeout) {
-		if err := o.Timeout.Validate(); err != nil {
-			errs = append(errs, err)
-		}
+	if o.Recovery != nil {
+		errs = append(errs, o.Recovery.Validate()...)
 	}
 
-	if o.IsEnabled(MiddlewareCORS) {
-		if err := o.CORS.Validate(); err != nil {
-			errs = append(errs, err)
-		}
+	if o.RequestID != nil {
+		errs = append(errs, o.RequestID.Validate()...)
 	}
 
-	if o.IsEnabled(MiddlewareAuth) {
-		if err := o.Auth.Validate(); err != nil {
-			errs = append(errs, err)
-		}
+	if o.Logger != nil {
+		errs = append(errs, o.Logger.Validate()...)
 	}
 
-	if o.IsEnabled(MiddlewareAuthz) {
-		if err := o.Authz.Validate(); err != nil {
-			errs = append(errs, err)
-		}
+	if o.CORS != nil {
+		errs = append(errs, o.CORS.Validate()...)
 	}
 
-	if o.IsEnabled(MiddlewareHealth) {
-		if err := o.Health.Validate(); err != nil {
-			errs = append(errs, err)
-		}
+	if o.Timeout != nil {
+		errs = append(errs, o.Timeout.Validate()...)
 	}
 
-	if o.IsEnabled(MiddlewareMetrics) {
-		if err := o.Metrics.Validate(); err != nil {
-			errs = append(errs, err)
-		}
+	if o.Health != nil {
+		errs = append(errs, o.Health.Validate()...)
 	}
 
-	if o.IsEnabled(MiddlewarePprof) {
-		if err := o.Pprof.Validate(); err != nil {
-			errs = append(errs, err)
-		}
+	if o.Metrics != nil {
+		errs = append(errs, o.Metrics.Validate()...)
 	}
 
-	if o.IsEnabled(MiddlewareRequestID) {
-		if err := o.RequestID.Validate(); err != nil {
-			errs = append(errs, err)
-		}
+	if o.Pprof != nil {
+		errs = append(errs, o.Pprof.Validate()...)
 	}
 
-	if o.IsEnabled(MiddlewareRecovery) {
-		if err := o.Recovery.Validate(); err != nil {
-			errs = append(errs, err)
-		}
+	if o.Auth != nil {
+		errs = append(errs, o.Auth.Validate()...)
 	}
 
-	if o.IsEnabled(MiddlewareLogger) {
-		if err := o.Logger.Validate(); err != nil {
-			errs = append(errs, err)
-		}
+	if o.Authz != nil {
+		errs = append(errs, o.Authz.Validate()...)
 	}
 
-	if len(errs) > 0 {
-		return fmt.Errorf("middleware validation errors: %v", errs)
-	}
-	return nil
+	return errs
 }
 
 // Complete completes the middleware options with defaults.
 func (o *Options) Complete() error {
-	// 确保所有子选项都已初始化
-	o.ensureDefaults()
-
-	// 构建启用集合
-	o.buildEnabledSet()
-
 	// 设置 Logger 默认输出
-	if o.Logger.Output == nil {
+	if o.Logger != nil && o.Logger.Output == nil {
 		o.Logger.Output = log.Printf
 	}
 
 	// 调用各子选项的 Complete 方法
-	if err := o.Recovery.Complete(); err != nil {
-		return err
+	if o.Recovery != nil {
+		if err := o.Recovery.Complete(); err != nil {
+			return err
+		}
 	}
-	if err := o.RequestID.Complete(); err != nil {
-		return err
+	if o.RequestID != nil {
+		if err := o.RequestID.Complete(); err != nil {
+			return err
+		}
 	}
-	if err := o.Logger.Complete(); err != nil {
-		return err
+	if o.Logger != nil {
+		if err := o.Logger.Complete(); err != nil {
+			return err
+		}
 	}
-	if err := o.CORS.Complete(); err != nil {
-		return err
+	if o.CORS != nil {
+		if err := o.CORS.Complete(); err != nil {
+			return err
+		}
 	}
-	if err := o.Timeout.Complete(); err != nil {
-		return err
+	if o.Timeout != nil {
+		if err := o.Timeout.Complete(); err != nil {
+			return err
+		}
 	}
-	if err := o.Health.Complete(); err != nil {
-		return err
+	if o.Health != nil {
+		if err := o.Health.Complete(); err != nil {
+			return err
+		}
 	}
-	if err := o.Metrics.Complete(); err != nil {
-		return err
+	if o.Metrics != nil {
+		if err := o.Metrics.Complete(); err != nil {
+			return err
+		}
 	}
-	if err := o.Pprof.Complete(); err != nil {
-		return err
+	if o.Pprof != nil {
+		if err := o.Pprof.Complete(); err != nil {
+			return err
+		}
 	}
-	if err := o.Auth.Complete(); err != nil {
-		return err
+	if o.Auth != nil {
+		if err := o.Auth.Complete(); err != nil {
+			return err
+		}
 	}
-	if err := o.Authz.Complete(); err != nil {
-		return err
+	if o.Authz != nil {
+		if err := o.Authz.Complete(); err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
-// buildEnabledSet 构建启用的中间件集合。
-func (o *Options) buildEnabledSet() {
-	o.enabledSet = make(map[string]bool)
-	for _, name := range o.Enabled {
-		o.enabledSet[name] = true
-	}
-}
-
-// IsEnabled 检查指定的中间件是否启用。
+// IsEnabled checks if the specified middleware is enabled.
+// 通过检查配置是否为 nil 来判断中间件是否启用。
 func (o *Options) IsEnabled(name string) bool {
-	if o.enabledSet == nil {
-		o.buildEnabledSet()
+	switch name {
+	case MiddlewareRecovery:
+		return o.Recovery != nil
+	case MiddlewareRequestID:
+		return o.RequestID != nil
+	case MiddlewareLogger:
+		return o.Logger != nil
+	case MiddlewareCORS:
+		return o.CORS != nil
+	case MiddlewareTimeout:
+		return o.Timeout != nil
+	case MiddlewareHealth:
+		return o.Health != nil
+	case MiddlewareMetrics:
+		return o.Metrics != nil
+	case MiddlewarePprof:
+		return o.Pprof != nil
+	case MiddlewareAuth:
+		return o.Auth != nil
+	case MiddlewareAuthz:
+		return o.Authz != nil
+	default:
+		return false
 	}
-	return o.enabledSet[name]
-}
-
-// Enable 启用指定的中间件。
-func (o *Options) Enable(names ...string) {
-	for _, name := range names {
-		if !o.IsEnabled(name) {
-			o.Enabled = append(o.Enabled, name)
-		}
-	}
-	o.buildEnabledSet()
-}
-
-// Disable 禁用指定的中间件。
-func (o *Options) Disable(names ...string) {
-	disableSet := make(map[string]bool)
-	for _, name := range names {
-		disableSet[name] = true
-	}
-
-	var newEnabled []string
-	for _, name := range o.Enabled {
-		if !disableSet[name] {
-			newEnabled = append(newEnabled, name)
-		}
-	}
-	o.Enabled = newEnabled
-	o.buildEnabledSet()
 }
 
 // GetEnabledMiddlewares 返回所有启用的中间件名称列表。
 func (o *Options) GetEnabledMiddlewares() []string {
-	return append([]string{}, o.Enabled...)
+	var enabled []string
+	for _, name := range AllMiddlewares {
+		if o.IsEnabled(name) {
+			enabled = append(enabled, name)
+		}
+	}
+	return enabled
 }
 
-// ensureDefaults ensures all sub-options are initialized.
-func (o *Options) ensureDefaults() {
-	if o.Recovery == nil {
-		o.Recovery = NewRecoveryOptions()
-	}
-	if o.RequestID == nil {
-		o.RequestID = NewRequestIDOptions()
-	}
-	if o.Logger == nil {
-		o.Logger = NewLoggerOptions()
-	}
-	if o.CORS == nil {
-		o.CORS = NewCORSOptions()
-	}
-	if o.Timeout == nil {
-		o.Timeout = NewTimeoutOptions()
-	}
-	if o.Health == nil {
-		o.Health = NewHealthOptions()
-	}
-	if o.Metrics == nil {
-		o.Metrics = NewMetricsOptions()
-	}
-	if o.Pprof == nil {
-		o.Pprof = NewPprofOptions()
-	}
-	if o.Auth == nil {
-		o.Auth = NewAuthOptions()
-	}
-	if o.Authz == nil {
-		o.Authz = NewAuthzOptions()
+// GetConfig 获取指定中间件的配置（通用方法）。
+// 返回 MiddlewareConfig 接口，调用者需要类型断言获取具体类型。
+func (o *Options) GetConfig(name string) MiddlewareConfig {
+	switch name {
+	case MiddlewareRecovery:
+		return o.Recovery
+	case MiddlewareRequestID:
+		return o.RequestID
+	case MiddlewareLogger:
+		return o.Logger
+	case MiddlewareCORS:
+		return o.CORS
+	case MiddlewareTimeout:
+		return o.Timeout
+	case MiddlewareHealth:
+		return o.Health
+	case MiddlewareMetrics:
+		return o.Metrics
+	case MiddlewarePprof:
+		return o.Pprof
+	case MiddlewareAuth:
+		return o.Auth
+	case MiddlewareAuthz:
+		return o.Authz
+	default:
+		return nil
 	}
 }
 
 // AddFlags adds flags for middleware options to the specified FlagSet.
-func (o *Options) AddFlags(fs *pflag.FlagSet) {
-	// 确保所有子选项都已初始化
-	o.ensureDefaults()
-
-	// Enabled list flag
-	fs.StringSliceVar(&o.Enabled, "middleware.enabled", o.Enabled,
-		"List of enabled middlewares. "+
-			"Valid values: recovery, request-id, logger, cors, timeout, health, metrics, pprof, auth, authz")
-
+func (o *Options) AddFlags(fs *pflag.FlagSet, prefixes ...string) {
 	// 委托给各子选项的 AddFlags 方法
-	o.Recovery.AddFlags(fs)
-	o.RequestID.AddFlags(fs)
-	o.Logger.AddFlags(fs)
-	o.CORS.AddFlags(fs)
-	o.Timeout.AddFlags(fs)
-	o.Health.AddFlags(fs)
-	o.Metrics.AddFlags(fs)
-	o.Pprof.AddFlags(fs)
-	o.Auth.AddFlags(fs)
-	o.Authz.AddFlags(fs)
+	if o.Recovery != nil {
+		o.Recovery.AddFlags(fs, prefixes...)
+	}
+	if o.RequestID != nil {
+		o.RequestID.AddFlags(fs, prefixes...)
+	}
+	if o.Logger != nil {
+		o.Logger.AddFlags(fs, prefixes...)
+	}
+	if o.CORS != nil {
+		o.CORS.AddFlags(fs, prefixes...)
+	}
+	if o.Timeout != nil {
+		o.Timeout.AddFlags(fs, prefixes...)
+	}
+	if o.Health != nil {
+		o.Health.AddFlags(fs, prefixes...)
+	}
+	if o.Metrics != nil {
+		o.Metrics.AddFlags(fs, prefixes...)
+	}
+	if o.Pprof != nil {
+		o.Pprof.AddFlags(fs, prefixes...)
+	}
+	if o.Auth != nil {
+		o.Auth.AddFlags(fs, prefixes...)
+	}
+	if o.Authz != nil {
+		o.Authz.AddFlags(fs, prefixes...)
+	}
 }
 
 // WithRecovery configures and enables recovery middleware.
 func WithRecovery(enableStackTrace bool, onPanic func(ctx transport.Context, err interface{}, stack []byte)) Option {
 	return func(o *Options) {
-		o.Enable(MiddlewareRecovery)
+		if o.Recovery == nil {
+			o.Recovery = NewRecoveryOptions()
+		}
 		o.Recovery.EnableStackTrace = enableStackTrace
 		if onPanic != nil {
 			o.Recovery.OnPanic = onPanic
@@ -367,13 +326,15 @@ func WithRecovery(enableStackTrace bool, onPanic func(ctx transport.Context, err
 
 // WithoutRecovery disables recovery middleware.
 func WithoutRecovery() Option {
-	return func(o *Options) { o.Disable(MiddlewareRecovery) }
+	return func(o *Options) { o.Recovery = nil }
 }
 
 // WithRequestID enables request ID middleware with custom header.
 func WithRequestID(header string) Option {
 	return func(o *Options) {
-		o.Enable(MiddlewareRequestID)
+		if o.RequestID == nil {
+			o.RequestID = NewRequestIDOptions()
+		}
 		if header != "" {
 			o.RequestID.Header = header
 		}
@@ -382,13 +343,15 @@ func WithRequestID(header string) Option {
 
 // WithoutRequestID disables request ID middleware.
 func WithoutRequestID() Option {
-	return func(o *Options) { o.Disable(MiddlewareRequestID) }
+	return func(o *Options) { o.RequestID = nil }
 }
 
 // WithLogger enables logger middleware.
 func WithLogger(skipPaths ...string) Option {
 	return func(o *Options) {
-		o.Enable(MiddlewareLogger)
+		if o.Logger == nil {
+			o.Logger = NewLoggerOptions()
+		}
 		if len(skipPaths) > 0 {
 			o.Logger.SkipPaths = skipPaths
 		}
@@ -397,13 +360,15 @@ func WithLogger(skipPaths ...string) Option {
 
 // WithoutLogger disables logger middleware.
 func WithoutLogger() Option {
-	return func(o *Options) { o.Disable(MiddlewareLogger) }
+	return func(o *Options) { o.Logger = nil }
 }
 
 // WithCORS enables CORS middleware.
 func WithCORS(origins ...string) Option {
 	return func(o *Options) {
-		o.Enable(MiddlewareCORS)
+		if o.CORS == nil {
+			o.CORS = NewCORSOptions()
+		}
 		if len(origins) > 0 {
 			o.CORS.AllowOrigins = origins
 		}
@@ -412,13 +377,15 @@ func WithCORS(origins ...string) Option {
 
 // WithoutCORS disables CORS middleware.
 func WithoutCORS() Option {
-	return func(o *Options) { o.Disable(MiddlewareCORS) }
+	return func(o *Options) { o.CORS = nil }
 }
 
 // WithTimeout enables timeout middleware.
 func WithTimeout(timeout time.Duration, skipPaths ...string) Option {
 	return func(o *Options) {
-		o.Enable(MiddlewareTimeout)
+		if o.Timeout == nil {
+			o.Timeout = NewTimeoutOptions()
+		}
 		if timeout > 0 {
 			o.Timeout.Timeout = timeout
 		}
@@ -430,13 +397,15 @@ func WithTimeout(timeout time.Duration, skipPaths ...string) Option {
 
 // WithoutTimeout disables timeout middleware.
 func WithoutTimeout() Option {
-	return func(o *Options) { o.Disable(MiddlewareTimeout) }
+	return func(o *Options) { o.Timeout = nil }
 }
 
 // WithHealth enables health check endpoints.
 func WithHealth(path, livenessPath, readinessPath string) Option {
 	return func(o *Options) {
-		o.Enable(MiddlewareHealth)
+		if o.Health == nil {
+			o.Health = NewHealthOptions()
+		}
 		if path != "" {
 			o.Health.Path = path
 		}
@@ -451,13 +420,15 @@ func WithHealth(path, livenessPath, readinessPath string) Option {
 
 // WithoutHealth disables health check endpoints.
 func WithoutHealth() Option {
-	return func(o *Options) { o.Disable(MiddlewareHealth) }
+	return func(o *Options) { o.Health = nil }
 }
 
 // WithMetrics enables metrics endpoint.
 func WithMetrics(path, namespace, subsystem string) Option {
 	return func(o *Options) {
-		o.Enable(MiddlewareMetrics)
+		if o.Metrics == nil {
+			o.Metrics = NewMetricsOptions()
+		}
 		if path != "" {
 			o.Metrics.Path = path
 		}
@@ -472,13 +443,15 @@ func WithMetrics(path, namespace, subsystem string) Option {
 
 // WithoutMetrics disables metrics endpoint.
 func WithoutMetrics() Option {
-	return func(o *Options) { o.Disable(MiddlewareMetrics) }
+	return func(o *Options) { o.Metrics = nil }
 }
 
 // WithPprof enables pprof endpoints.
 func WithPprof(prefix string) Option {
 	return func(o *Options) {
-		o.Enable(MiddlewarePprof)
+		if o.Pprof == nil {
+			o.Pprof = NewPprofOptions()
+		}
 		if prefix != "" {
 			o.Pprof.Prefix = prefix
 		}
@@ -487,13 +460,15 @@ func WithPprof(prefix string) Option {
 
 // WithoutPprof disables pprof endpoints.
 func WithoutPprof() Option {
-	return func(o *Options) { o.Disable(MiddlewarePprof) }
+	return func(o *Options) { o.Pprof = nil }
 }
 
 // WithAuth enables authentication middleware.
 func WithAuth(tokenLookup, authScheme string, skipPaths ...string) Option {
 	return func(o *Options) {
-		o.Enable(MiddlewareAuth)
+		if o.Auth == nil {
+			o.Auth = NewAuthOptions()
+		}
 		if tokenLookup != "" {
 			o.Auth.TokenLookup = tokenLookup
 		}
@@ -508,23 +483,19 @@ func WithAuth(tokenLookup, authScheme string, skipPaths ...string) Option {
 
 // WithoutAuth disables authentication middleware.
 func WithoutAuth() Option {
-	return func(o *Options) { o.Disable(MiddlewareAuth) }
+	return func(o *Options) { o.Auth = nil }
 }
 
 // WithAuthz enables authorization middleware.
 func WithAuthz() Option {
-	return func(o *Options) { o.Enable(MiddlewareAuthz) }
+	return func(o *Options) {
+		if o.Authz == nil {
+			o.Authz = NewAuthzOptions()
+		}
+	}
 }
 
 // WithoutAuthz disables authorization middleware.
 func WithoutAuthz() Option {
-	return func(o *Options) { o.Disable(MiddlewareAuthz) }
-}
-
-// WithMiddlewares enables specific middlewares.
-func WithMiddlewares(names ...string) Option {
-	return func(o *Options) {
-		o.Enabled = names
-		o.buildEnabledSet()
-	}
+	return func(o *Options) { o.Authz = nil }
 }

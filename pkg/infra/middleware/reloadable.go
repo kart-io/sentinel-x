@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -46,8 +47,8 @@ func (rm *ReloadableMiddleware) OnConfigChange(newConfig interface{}) error {
 	}
 
 	// Validate new configuration
-	if err := newOpts.Validate(); err != nil {
-		return fmt.Errorf("invalid middleware configuration: %w", err)
+	if errs := newOpts.Validate(); len(errs) > 0 {
+		return fmt.Errorf("invalid middleware configuration: %w", errors.Join(errs...))
 	}
 
 	// Acquire write lock
@@ -194,45 +195,61 @@ func (rm *ReloadableMiddleware) GetOptions() *Options {
 	defer rm.mu.RUnlock()
 
 	// Return a deep copy to prevent external modifications
-	opts := &Options{
-		Enabled: append([]string(nil), rm.opts.Enabled...),
-		Recovery: &RecoveryOptions{
+	opts := &Options{}
+
+	// 复制非 nil 的配置
+	if rm.opts.Recovery != nil {
+		opts.Recovery = &RecoveryOptions{
 			EnableStackTrace: rm.opts.Recovery.EnableStackTrace,
 			OnPanic:          rm.opts.Recovery.OnPanic,
-		},
-		RequestID: &RequestIDOptions{
+		}
+	}
+	if rm.opts.RequestID != nil {
+		opts.RequestID = &RequestIDOptions{
 			Header:    rm.opts.RequestID.Header,
 			Generator: rm.opts.RequestID.Generator,
-		},
-		Logger: &LoggerOptions{
+		}
+	}
+	if rm.opts.Logger != nil {
+		opts.Logger = &LoggerOptions{
 			SkipPaths:           append([]string(nil), rm.opts.Logger.SkipPaths...),
 			UseStructuredLogger: rm.opts.Logger.UseStructuredLogger,
 			Output:              rm.opts.Logger.Output,
-		},
-		CORS: &CORSOptions{
+		}
+	}
+	if rm.opts.CORS != nil {
+		opts.CORS = &CORSOptions{
 			AllowOrigins:     append([]string(nil), rm.opts.CORS.AllowOrigins...),
 			AllowMethods:     append([]string(nil), rm.opts.CORS.AllowMethods...),
 			AllowHeaders:     append([]string(nil), rm.opts.CORS.AllowHeaders...),
 			ExposeHeaders:    append([]string(nil), rm.opts.CORS.ExposeHeaders...),
 			AllowCredentials: rm.opts.CORS.AllowCredentials,
 			MaxAge:           rm.opts.CORS.MaxAge,
-		},
-		Timeout: &TimeoutOptions{
+		}
+	}
+	if rm.opts.Timeout != nil {
+		opts.Timeout = &TimeoutOptions{
 			Timeout:   rm.opts.Timeout.Timeout,
 			SkipPaths: append([]string(nil), rm.opts.Timeout.SkipPaths...),
-		},
-		Health: &HealthOptions{
+		}
+	}
+	if rm.opts.Health != nil {
+		opts.Health = &HealthOptions{
 			Path:          rm.opts.Health.Path,
 			LivenessPath:  rm.opts.Health.LivenessPath,
 			ReadinessPath: rm.opts.Health.ReadinessPath,
 			Checker:       rm.opts.Health.Checker,
-		},
-		Metrics: &MetricsOptions{
+		}
+	}
+	if rm.opts.Metrics != nil {
+		opts.Metrics = &MetricsOptions{
 			Path:      rm.opts.Metrics.Path,
 			Namespace: rm.opts.Metrics.Namespace,
 			Subsystem: rm.opts.Metrics.Subsystem,
-		},
-		Pprof: &PprofOptions{
+		}
+	}
+	if rm.opts.Pprof != nil {
+		opts.Pprof = &PprofOptions{
 			Prefix:               rm.opts.Pprof.Prefix,
 			EnableCmdline:        rm.opts.Pprof.EnableCmdline,
 			EnableProfile:        rm.opts.Pprof.EnableProfile,
@@ -240,10 +257,10 @@ func (rm *ReloadableMiddleware) GetOptions() *Options {
 			EnableTrace:          rm.opts.Pprof.EnableTrace,
 			BlockProfileRate:     rm.opts.Pprof.BlockProfileRate,
 			MutexProfileFraction: rm.opts.Pprof.MutexProfileFraction,
-		},
-		Auth:  rm.opts.Auth,
-		Authz: rm.opts.Authz,
+		}
 	}
+	opts.Auth = rm.opts.Auth
+	opts.Authz = rm.opts.Authz
 
 	return opts
 }

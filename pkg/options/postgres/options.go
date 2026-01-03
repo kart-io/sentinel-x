@@ -8,8 +8,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kart-io/sentinel-x/pkg/options"
 	"github.com/spf13/pflag"
 )
+
+var _ options.IOptions = (*Options)(nil)
 
 // redactedPassword is the placeholder used when serializing passwords.
 const redactedPassword = "[REDACTED]"
@@ -105,22 +108,26 @@ func (o *Options) Complete() error {
 
 // Validate checks if the options are valid.
 // This method is idempotent and has no side effects.
-func (o *Options) Validate() error {
+func (o *Options) Validate() []error {
+	if o == nil {
+		return nil
+	}
+
 	return nil
 }
 
 // AddFlags adds flags for PostgreSQL options to the specified FlagSet.
-func (o *Options) AddFlags(fs *pflag.FlagSet, namePrefix string) {
-	fs.StringVar(&o.Host, namePrefix+"host", o.Host, "PostgreSQL host")
-	fs.IntVar(&o.Port, namePrefix+"port", o.Port, "PostgreSQL port")
-	fs.StringVar(&o.Username, namePrefix+"username", o.Username, "PostgreSQL username")
-	fs.StringVar(&o.Password, namePrefix+"password", o.Password, "PostgreSQL password (DEPRECATED: use POSTGRES_PASSWORD env var instead)")
-	fs.StringVar(&o.Database, namePrefix+"database", o.Database, "PostgreSQL database")
-	fs.StringVar(&o.SSLMode, namePrefix+"ssl-mode", o.SSLMode, "PostgreSQL SSL mode")
-	fs.IntVar(&o.MaxIdleConnections, namePrefix+"max-idle-connections", o.MaxIdleConnections, "PostgreSQL max idle connections")
-	fs.IntVar(&o.MaxOpenConnections, namePrefix+"max-open-connections", o.MaxOpenConnections, "PostgreSQL max open connections")
-	fs.DurationVar(&o.MaxConnectionLifeTime, namePrefix+"max-connection-life-time", o.MaxConnectionLifeTime, "PostgreSQL max connection life time")
-	fs.IntVar(&o.LogLevel, namePrefix+"log-level", o.LogLevel, "PostgreSQL log level")
+func (o *Options) AddFlags(fs *pflag.FlagSet, prefixes ...string) {
+	fs.StringVar(&o.Host, options.Join(prefixes...)+"postgres.host", o.Host, "PostgreSQL service host address.")
+	fs.IntVar(&o.Port, options.Join(prefixes...)+"postgres.port", o.Port, "PostgreSQL service port.")
+	fs.StringVar(&o.Username, options.Join(prefixes...)+"postgres.username", o.Username, "Username for access to postgresql service.")
+	fs.StringVar(&o.Password, options.Join(prefixes...)+"postgres.password", o.Password, "Password for access to postgresql (DEPRECATED: use POSTGRES_PASSWORD env var instead).")
+	fs.StringVar(&o.Database, options.Join(prefixes...)+"postgres.database", o.Database, "Database name for the server to use.")
+	fs.StringVar(&o.SSLMode, options.Join(prefixes...)+"postgres.ssl-mode", o.SSLMode, "PostgreSQL SSL mode (disable, require, verify-ca, verify-full).")
+	fs.IntVar(&o.MaxIdleConnections, options.Join(prefixes...)+"postgres.max-idle-connections", o.MaxIdleConnections, "Maximum idle connections allowed to connect to postgresql.")
+	fs.IntVar(&o.MaxOpenConnections, options.Join(prefixes...)+"postgres.max-open-connections", o.MaxOpenConnections, "Maximum open connections allowed to connect to postgresql.")
+	fs.DurationVar(&o.MaxConnectionLifeTime, options.Join(prefixes...)+"postgres.max-connection-life-time", o.MaxConnectionLifeTime, "Maximum connection life time allowed to connect to postgresql.")
+	fs.IntVar(&o.LogLevel, options.Join(prefixes...)+"postgres.log-level", o.LogLevel, "Specify gorm log level.")
 }
 
 // BuildDSN creates a PostgreSQL DSN (Data Source Name) from the provided options.

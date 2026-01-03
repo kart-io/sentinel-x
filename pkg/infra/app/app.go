@@ -151,9 +151,13 @@ func (a *App) buildCommand() {
 	// Add global flags
 	a.addGlobalFlags(cmd)
 
-	// Add options flags
+	// Add options flags using NamedFlagSets
 	if a.options != nil {
-		a.options.AddFlags(cmd.Flags())
+		fss := a.options.Flags()
+		for _, name := range fss.Order {
+			fs := fss.FlagSets[name]
+			cmd.Flags().AddFlagSet(fs)
+		}
 	}
 
 	a.cmd = cmd

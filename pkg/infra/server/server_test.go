@@ -362,8 +362,8 @@ func TestManagerStartStop(t *testing.T) {
 			WriteTimeout: 10 * time.Second,
 			IdleTimeout:  10 * time.Second,
 			Adapter:      httpopts.AdapterGin,
-			Middleware:   mwopts.NewOptions(), // Use default middleware options
 		}),
+		WithMiddleware(mwopts.NewOptions()), // Use default middleware options
 	)
 
 	svc := &mockService{name: "test-service"}
@@ -576,8 +576,8 @@ func TestManagerWait_HTTPServerReady(t *testing.T) {
 			WriteTimeout: 10 * time.Second,
 			IdleTimeout:  10 * time.Second,
 			Adapter:      httpopts.AdapterGin,
-			Middleware:   mwopts.NewOptions(),
 		}),
+		WithMiddleware(mwopts.NewOptions()),
 	)
 
 	// Start the server
@@ -645,7 +645,6 @@ func TestManagerWait_BothServersReady(t *testing.T) {
 			WriteTimeout: 10 * time.Second,
 			IdleTimeout:  10 * time.Second,
 			Adapter:      httpopts.AdapterGin,
-			Middleware:   mwopts.NewOptions(),
 		}),
 		WithGRPCOptions(&grpcopts.Options{
 			Addr:             ":0", // Use random port
@@ -654,6 +653,7 @@ func TestManagerWait_BothServersReady(t *testing.T) {
 			MaxSendMsgSize:   16 * 1024 * 1024,
 			EnableReflection: true,
 		}),
+		WithMiddleware(mwopts.NewOptions()),
 	)
 
 	// Start the servers
@@ -687,8 +687,8 @@ func TestManagerWait_CalledMultipleTimes(t *testing.T) {
 			WriteTimeout: 10 * time.Second,
 			IdleTimeout:  10 * time.Second,
 			Adapter:      httpopts.AdapterGin,
-			Middleware:   mwopts.NewOptions(),
 		}),
+		WithMiddleware(mwopts.NewOptions()),
 	)
 
 	// Start the server
@@ -724,8 +724,8 @@ func BenchmarkManagerWait(b *testing.B) {
 			WriteTimeout: 10 * time.Second,
 			IdleTimeout:  10 * time.Second,
 			Adapter:      httpopts.AdapterGin,
-			Middleware:   mwopts.NewOptions(),
 		}),
+		WithMiddleware(mwopts.NewOptions()),
 	)
 
 	ctx := context.Background()

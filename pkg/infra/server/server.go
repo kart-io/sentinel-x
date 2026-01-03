@@ -13,7 +13,6 @@ import (
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport/grpc"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport/http"
-	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 	options "github.com/kart-io/sentinel-x/pkg/options/server"
 )
 
@@ -41,6 +40,7 @@ var (
 	WithMode            = options.WithMode
 	WithHTTPOptions     = options.WithHTTPOptions
 	WithGRPCOptions     = options.WithGRPCOptions
+	WithMiddleware      = options.WithMiddleware
 	WithShutdownTimeout = options.WithShutdownTimeout
 )
 
@@ -70,16 +70,7 @@ func NewManager(opts ...options.Option) *Manager {
 
 	// Create HTTP server if enabled
 	if serverOpts.EnableHTTP() && serverOpts.HTTP != nil {
-		m.httpServer = http.NewServer(
-			http.WithAddr(serverOpts.HTTP.Addr),
-			http.WithReadTimeout(serverOpts.HTTP.ReadTimeout),
-			http.WithWriteTimeout(serverOpts.HTTP.WriteTimeout),
-			http.WithIdleTimeout(serverOpts.HTTP.IdleTimeout),
-			http.WithAdapter(serverOpts.HTTP.Adapter),
-			http.WithMiddleware(func(opts *mwopts.Options) {
-				*opts = *serverOpts.HTTP.Middleware
-			}),
-		)
+		m.httpServer = http.NewServer(serverOpts.HTTP, serverOpts.Middleware)
 	}
 
 	// Create gRPC server if enabled

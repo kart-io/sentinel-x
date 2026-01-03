@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 	grpcopts "github.com/kart-io/sentinel-x/pkg/options/server/grpc"
 	httpopts "github.com/kart-io/sentinel-x/pkg/options/server/http"
 	"github.com/spf13/pflag"
@@ -64,6 +65,9 @@ type Options struct {
 	// GRPC contains gRPC server options.
 	GRPC *grpcopts.Options `json:"grpc" mapstructure:"grpc"`
 
+	// Middleware contains middleware options for HTTP server.
+	Middleware *mwopts.Options `json:"middleware" mapstructure:"middleware"`
+
 	// ShutdownTimeout is the timeout for graceful shutdown.
 	ShutdownTimeout time.Duration `json:"shutdown-timeout" mapstructure:"shutdown-timeout"`
 }
@@ -93,26 +97,28 @@ func (o *Options) AddFlags(fs *pflag.FlagSet) {
 }
 
 // Validate validates all server options.
-func (o *Options) Validate() error {
+func (o *Options) Validate() []error {
+	if o == nil {
+		return nil
+	}
+
+	var errs []error
+
 	if o.ShutdownTimeout <= 0 {
-		return fmt.Errorf("server.shutdown-timeout must be positive")
+		errs = append(errs, fmt.Errorf("server.shutdown-timeout must be positive"))
 	}
 
 	// Validate HTTP options if HTTP is enabled
 	if o.EnableHTTP() {
-		if err := o.HTTP.Validate(); err != nil {
-			return err
-		}
+		errs = append(errs, o.HTTP.Validate()...)
 	}
 
 	// Validate gRPC options if gRPC is enabled
 	if o.EnableGRPC() {
-		if err := o.GRPC.Validate(); err != nil {
-			return err
-		}
+		errs = append(errs, o.GRPC.Validate()...)
 	}
 
-	return nil
+	return errs
 }
 
 // Complete completes all server options with defaults.
@@ -140,6 +146,13 @@ func (o *Options) Complete() error {
 		}
 	}
 
+	// Complete middleware options
+	if o.Middleware != nil {
+		if err := o.Middleware.Complete(); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -162,6 +175,13 @@ func WithHTTPOptions(opts *httpopts.Options) Option {
 func WithGRPCOptions(opts *grpcopts.Options) Option {
 	return func(o *Options) {
 		o.GRPC = opts
+	}
+}
+
+// WithMiddleware sets middleware options.
+func WithMiddleware(opts *mwopts.Options) Option {
+	return func(o *Options) {
+		o.Middleware = opts
 	}
 }
 

@@ -40,12 +40,12 @@ var (
 	WithWriteTimeout = options.WithWriteTimeout
 	WithIdleTimeout  = options.WithIdleTimeout
 	WithAdapter      = options.WithAdapter
-	WithMiddleware   = options.WithMiddleware
 )
 
 // Server is the HTTP server implementation.
 type Server struct {
 	opts     *options.Options
+	mwOpts   *mwopts.Options
 	adapter  Adapter
 	server   *http.Server
 	handlers []registeredHandler
@@ -57,10 +57,12 @@ type registeredHandler struct {
 }
 
 // NewServer creates a new HTTP server with the given options.
-func NewServer(opts ...options.Option) *Server {
-	serverOpts := options.NewOptions()
-	for _, opt := range opts {
-		opt(serverOpts)
+func NewServer(serverOpts *options.Options, middlewareOpts *mwopts.Options) *Server {
+	if serverOpts == nil {
+		serverOpts = options.NewOptions()
+	}
+	if middlewareOpts == nil {
+		middlewareOpts = mwopts.NewOptions()
 	}
 
 	adapter := GetAdapter(serverOpts.Adapter)
@@ -74,6 +76,7 @@ func NewServer(opts ...options.Option) *Server {
 
 	s := &Server{
 		opts:     serverOpts,
+		mwOpts:   middlewareOpts,
 		adapter:  adapter,
 		handlers: make([]registeredHandler, 0),
 	}
@@ -81,7 +84,7 @@ func NewServer(opts ...options.Option) *Server {
 	// 关键：在创建 Server 时就应用中间件
 	// 这样所有后续创建的路由组都会继承这些中间件
 	if adapter != nil {
-		s.applyMiddleware(adapter.Router(), serverOpts.Middleware)
+		s.applyMiddleware(adapter.Router(), middlewareOpts)
 	}
 
 	return s
@@ -141,7 +144,7 @@ func (s *Server) Start(ctx context.Context) error {
 	})
 
 	router := s.adapter.Router()
-	mwOpts := s.opts.Middleware
+	mwOpts := s.mwOpts
 
 	// 注意：中间件已在 NewServer 时应用，这里不再重复应用
 	// 这是因为 Gin 的 RouterGroup 在创建子组时会复制当前的 handlers
@@ -194,6 +197,9 @@ func (s *Server) Start(ctx context.Context) error {
 
 // applyMiddleware applies configured middleware to the router.
 func (s *Server) applyMiddleware(router transport.Router, opts *mwopts.Options) {
+	// Ensure all sub-options are initialized with defaults
+	_ = opts.Complete()
+
 	// Recovery middleware (enabled by default)
 	if opts.IsEnabled(mwopts.MiddlewareRecovery) {
 		router.Use(middleware.RecoveryWithConfig(middleware.RecoveryConfig{

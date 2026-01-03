@@ -4,6 +4,7 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
@@ -39,8 +40,8 @@ func NewWithContext(ctx context.Context, opts *options.Options) (*Client, error)
 	}
 
 	// Validate options
-	if err := opts.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid postgres options: %w", err)
+	if errs := opts.Validate(); len(errs) > 0 {
+		return nil, fmt.Errorf("invalid postgres options: %w", errors.Join(errs...))
 	}
 
 	// Additional validation

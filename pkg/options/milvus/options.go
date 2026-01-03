@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/kart-io/sentinel-x/pkg/options"
 	"github.com/spf13/pflag"
 )
+
+var _ options.IOptions = (*Options)(nil)
 
 // Options contains Milvus client configuration.
 type Options struct {
@@ -40,22 +43,27 @@ func NewOptions() *Options {
 }
 
 // AddFlags adds flags to the flagset.
-func (o *Options) AddFlags(fs *pflag.FlagSet, prefix string) {
-	fs.StringVar(&o.Address, prefix+"address", o.Address, "Milvus server address")
-	fs.StringVar(&o.Database, prefix+"database", o.Database, "Milvus database name")
-	fs.StringVar(&o.Username, prefix+"username", o.Username, "Milvus username")
-	fs.StringVar(&o.Password, prefix+"password", o.Password, "Milvus password")
-	fs.DurationVar(&o.Timeout, prefix+"timeout", o.Timeout, "Connection timeout")
-	fs.IntVar(&o.PoolSize, prefix+"pool-size", o.PoolSize, "Connection pool size")
+func (o *Options) AddFlags(fs *pflag.FlagSet, prefixes ...string) {
+	fs.StringVar(&o.Address, options.Join(prefixes...)+"milvus.address", o.Address, "Milvus server address (host:port).")
+	fs.StringVar(&o.Database, options.Join(prefixes...)+"milvus.database", o.Database, "Milvus database name.")
+	fs.StringVar(&o.Username, options.Join(prefixes...)+"milvus.username", o.Username, "Milvus username for authentication.")
+	fs.StringVar(&o.Password, options.Join(prefixes...)+"milvus.password", o.Password, "Milvus password for authentication.")
+	fs.DurationVar(&o.Timeout, options.Join(prefixes...)+"milvus.timeout", o.Timeout, "Connection and operation timeout.")
+	fs.IntVar(&o.PoolSize, options.Join(prefixes...)+"milvus.pool-size", o.PoolSize, "Connection pool size.")
 }
 
 // Validate validates the options.
-func (o *Options) Validate() error {
+func (o *Options) Validate() []error {
+	if o == nil {
+		return nil
+	}
+
+	var errs []error
 	if o.Address == "" {
-		return fmt.Errorf("milvus address is required")
+		errs = append(errs, fmt.Errorf("milvus address is required"))
 	}
 	if o.Timeout <= 0 {
-		return fmt.Errorf("milvus timeout must be positive")
+		errs = append(errs, fmt.Errorf("milvus timeout must be positive"))
 	}
-	return nil
+	return errs
 }

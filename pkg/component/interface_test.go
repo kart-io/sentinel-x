@@ -107,37 +107,37 @@ func TestConfigOptionsAddFlags(t *testing.T) {
 	tests := []struct {
 		name       string
 		option     component.ConfigOptions
-		prefix     string
-		expectFlag string // One expected flag name to verify
+		prefixes   []string // Optional prefixes to pass
+		expectFlag string   // One expected flag name to verify
 	}{
 		{
 			name:       "MySQL with prefix",
 			option:     mysql.NewOptions(),
-			prefix:     "mysql.",
+			prefixes:   nil, // No prefix - component name is already embedded in flag
 			expectFlag: "mysql.host",
 		},
 		{
 			name:       "Redis with prefix",
 			option:     redis.NewOptions(),
-			prefix:     "redis.",
+			prefixes:   nil,
 			expectFlag: "redis.host",
 		},
 		{
 			name:       "MongoDB with prefix",
 			option:     mongodb.NewOptions(),
-			prefix:     "mongodb.",
+			prefixes:   nil,
 			expectFlag: "mongodb.host",
 		},
 		{
 			name:       "PostgreSQL with prefix",
 			option:     postgres.NewOptions(),
-			prefix:     "postgres.",
+			prefixes:   nil,
 			expectFlag: "postgres.host",
 		},
 		{
 			name:       "Etcd with prefix",
 			option:     etcd.NewOptions(),
-			prefix:     "etcd.",
+			prefixes:   nil,
 			expectFlag: "etcd.endpoints",
 		},
 	}
@@ -145,7 +145,7 @@ func TestConfigOptionsAddFlags(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			fs := pflag.NewFlagSet("test", pflag.ContinueOnError)
-			tt.option.AddFlags(fs, tt.prefix)
+			tt.option.AddFlags(fs, tt.prefixes...)
 
 			// Verify the expected flag exists
 			flag := fs.Lookup(tt.expectFlag)

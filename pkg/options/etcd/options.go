@@ -7,8 +7,11 @@ import (
 	"os"
 	"time"
 
+	"github.com/kart-io/sentinel-x/pkg/options"
 	"github.com/spf13/pflag"
 )
+
+var _ options.IOptions = (*Options)(nil)
 
 // redactedPassword is the placeholder used when serializing passwords.
 const redactedPassword = "[REDACTED]"
@@ -88,16 +91,20 @@ func (o *Options) Complete() error {
 
 // Validate checks if the options are valid.
 // This method is idempotent and has no side effects.
-func (o *Options) Validate() error {
+func (o *Options) Validate() []error {
+	if o == nil {
+		return nil
+	}
+
 	return nil
 }
 
 // AddFlags adds flags for Etcd options to the specified FlagSet.
-func (o *Options) AddFlags(fs *pflag.FlagSet, namePrefix string) {
-	fs.StringSliceVar(&o.Endpoints, namePrefix+"endpoints", o.Endpoints, "Etcd endpoints")
-	fs.StringVar(&o.Username, namePrefix+"username", o.Username, "Etcd username")
-	fs.StringVar(&o.Password, namePrefix+"password", o.Password, "Etcd password (DEPRECATED: use ETCD_PASSWORD env var instead)")
-	fs.DurationVar(&o.DialTimeout, namePrefix+"dial-timeout", o.DialTimeout, "Etcd dial timeout")
-	fs.DurationVar(&o.RequestTimeout, namePrefix+"request-timeout", o.RequestTimeout, "Etcd request timeout")
-	fs.Int64Var(&o.LeaseTTL, namePrefix+"lease-ttl", o.LeaseTTL, "Etcd lease TTL")
+func (o *Options) AddFlags(fs *pflag.FlagSet, prefixes ...string) {
+	fs.StringSliceVar(&o.Endpoints, options.Join(prefixes...)+"etcd.endpoints", o.Endpoints, "Etcd service endpoints.")
+	fs.StringVar(&o.Username, options.Join(prefixes...)+"etcd.username", o.Username, "Username for access to etcd service.")
+	fs.StringVar(&o.Password, options.Join(prefixes...)+"etcd.password", o.Password, "Password for access to etcd (DEPRECATED: use ETCD_PASSWORD env var instead).")
+	fs.DurationVar(&o.DialTimeout, options.Join(prefixes...)+"etcd.dial-timeout", o.DialTimeout, "Etcd dial timeout.")
+	fs.DurationVar(&o.RequestTimeout, options.Join(prefixes...)+"etcd.request-timeout", o.RequestTimeout, "Etcd request timeout.")
+	fs.Int64Var(&o.LeaseTTL, options.Join(prefixes...)+"etcd.lease-ttl", o.LeaseTTL, "Etcd lease TTL in seconds.")
 }

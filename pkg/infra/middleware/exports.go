@@ -71,9 +71,6 @@ const (
 // AllMiddlewares is the list of all supported middleware names.
 var AllMiddlewares = options.AllMiddlewares
 
-// DefaultEnabledMiddlewares is the default list of enabled middlewares.
-var DefaultEnabledMiddlewares = options.DefaultEnabledMiddlewares
-
 // NewOptions creates default middleware options.
 var NewOptions = options.NewOptions
 
