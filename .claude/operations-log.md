@@ -1,3 +1,24 @@
+## 操作日志 - RAG 文档完善
+时间：2026-01-04 15:35:00
+
+### 1. 已完成操作
+- 检索了 `internal/rag` 和 `pkg/llm` 下的核心代码。
+- 分析了 `ragsvc` 的初始化流程和业务逻辑。
+- 提取了 RAG 增强器 (Enhancer) 的核心技术路线 (Query Rewrite, HyDE, Rerank, Repacking)。
+- 生成了上下文摘要文件 `.claude/context-summary-rag-docs.md`。
+
+### 2. 编码前检查
+- [x] 已查阅上下文摘要文件。
+- [x] 将复用 `internal/rag/biz` 中的接口定义。
+- [x] 遵循简体中文文档规范。
+- [x] 确认 RAG 文档在 `docs/rag.md` 中缺失，需要新建或完善。
+
+### 3. 下一步计划
+- 编写 `internal/rag/README.md`。
+- 编写 `docs/rag.md` 详细技术架构文档。
+
+---
+
 ## 操作日志 - SiliconFlow 供应商实现
 
 生成时间：2026-01-04 15:00:00
