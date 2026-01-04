@@ -1,4 +1,63 @@
 // Package ollama 提供 Ollama LLM 供应商实现。
+//
+// Ollama 是一个本地部署的开源工具，允许用户在本地运行大型语言模型。
+// Sentinel-X 通过此提供商可以无缝集成 Ollama 模型，以支持各种 LLM 驱动的功能。
+//
+// ## 基本用法示例
+//
+// ```go
+// import (
+//
+//	"context"
+//	"fmt"
+//	"github.com/kart-io/sentinel-x/pkg/llm"
+//	_ "github.com/kart-io/sentinel-x/pkg/llm/ollama"
+//
+// )
+//
+//	func main() {
+//		// 配置 Ollama 供应商，使用默认值或自定义参数
+//		config := map[string]any{
+//			"base_url": "http://localhost:11434", // Ollama 服务地址
+//			"chat_model": "llama3",           // 使用的聊天模型
+//			"embed_model": "nomic-embed-text", // 使用的嵌入模型
+//		}
+//
+//		// 获取 Ollama 提供商实例
+//		provider, err := llm.GetProvider(llm.ProviderOllama, config)
+//		if err != nil {
+//			panic(fmt.Errorf("获取 Ollama 提供商失败: %w", err))
+//		}
+//
+//		// 示例：生成文本
+//		ctx := context.Background()
+//		prompt := "写一首关于 Go 语言的短诗。"
+//		generatedText, err := provider.Generate(ctx, prompt, "")
+//		if err != nil {
+//			panic(fmt.Errorf("文本生成失败: %w", err))
+//		}
+//		fmt.Println("生成的文本:\n", generatedText)
+//
+//		// 示例：对话
+//		messages := []llm.Message{
+//			{Role: llm.User, Content: "你好！"},
+//		}
+//		responseText, err := provider.Chat(ctx, messages)
+//		if err != nil {
+//			panic(fmt.Errorf("对话失败: %w", err))
+//		}
+//		fmt.Println("对话响应:\n", responseText)
+//
+//		// 示例：文本嵌入
+//		texts := []string{"你好", "世界"}
+//		embeddings, err := provider.Embed(ctx, texts)
+//		if err != nil {
+//			panic(fmt.Errorf("文本嵌入失败: %w", err))
+//		}
+//		fmt.Println("文本嵌入:", embeddings)
+//	}
+//
+// ```
 package ollama
 
 import (
@@ -95,6 +154,16 @@ type embedResponse struct {
 }
 
 // Embed 为多个文本生成向量嵌入。
+//
+// 参数:
+//
+//	ctx context.Context: 上下文，用于控制请求超时和取消。
+//	texts []string: 需要生成嵌入的文本列表。
+//
+// 返回:
+//
+//	[][]float32: 文本的向量嵌入列表。
+//	error: 如果操作失败，则返回错误。
 func (p *Provider) Embed(ctx context.Context, texts []string) ([][]float32, error) {
 	if len(texts) == 0 {
 		return nil, nil
@@ -125,6 +194,16 @@ func (p *Provider) Embed(ctx context.Context, texts []string) ([][]float32, erro
 }
 
 // EmbedSingle 为单个文本生成向量嵌入。
+//
+// 参数:
+//
+//	ctx context.Context: 上下文，用于控制请求超时和取消。
+//	text string: 需要生成嵌入的文本。
+//
+// 返回:
+//
+//	[]float32: 文本的向量嵌入。
+//	error: 如果操作失败，则返回错误。
 func (p *Provider) EmbedSingle(ctx context.Context, text string) ([]float32, error) {
 	embeddings, err := p.Embed(ctx, []string{text})
 	if err != nil {
@@ -156,6 +235,16 @@ type chatResponse struct {
 }
 
 // Chat 进行多轮对话。
+//
+// 参数:
+//
+//	ctx context.Context: 上下文，用于控制请求超时和取消。
+//	messages []llm.Message: 对话消息列表，每个消息包含角色（User/Assistant）和内容。
+//
+// 返回:
+//
+//	string: AI 的响应内容。
+//	error: 如果操作失败，则返回错误。
 func (p *Provider) Chat(ctx context.Context, messages []llm.Message) (string, error) {
 	chatMessages := make([]chatMessage, len(messages))
 	for i, msg := range messages {
@@ -206,6 +295,17 @@ type generateResponse struct {
 }
 
 // Generate 根据提示生成文本。
+//
+// 参数:
+//
+//	ctx context.Context: 上下文，用于控制请求超时和取消。
+//	prompt string: 输入的提示词。
+//	systemPrompt string: 系统提示词，用于设定模型的行为或背景。
+//
+// 返回:
+//
+//	string: 生成的文本内容。
+//	error: 如果操作失败，则返回错误。
 func (p *Provider) Generate(ctx context.Context, prompt string, systemPrompt string) (string, error) {
 	reqBody := generateRequest{
 		Model:  p.config.ChatModel,
@@ -234,6 +334,14 @@ func (p *Provider) Generate(ctx context.Context, prompt string, systemPrompt str
 }
 
 // Ping 检查 Ollama 服务是否可用。
+//
+// 参数:
+//
+//	ctx context.Context: 上下文，用于控制请求超时和取消。
+//
+// 返回:
+//
+//	error: 如果服务不可用，则返回错误。
 func (p *Provider) Ping(ctx context.Context) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, p.config.BaseURL+"/api/tags", nil)
 	if err != nil {
@@ -254,6 +362,15 @@ func (p *Provider) Ping(ctx context.Context) error {
 }
 
 // ListModels 列出可用模型。
+//
+// 参数:
+//
+//	ctx context.Context: 上下文，用于控制请求超时和取消。
+//
+// 返回:
+//
+//	[]string: 可用模型名称列表。
+//	error: 如果操作失败，则返回错误。
 func (p *Provider) ListModels(ctx context.Context) ([]string, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, p.config.BaseURL+"/api/tags", nil)
 	if err != nil {

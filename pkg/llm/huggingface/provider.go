@@ -65,6 +65,21 @@ type Provider struct {
 }
 
 // NewProvider 从配置 map 创建 HuggingFace 供应商。
+//
+// NewProvider 根据提供的配置 map 创建一个新的 HuggingFace 供应商实例。
+// 如果 API 密钥缺失，则返回错误。
+//
+// 示例用法：
+//
+//	config := map[string]any{
+//		"api_key": "YOUR_HUGGINGFACE_API_KEY",
+//		"embed_model": "sentence-transformers/all-MiniLM-L6-v2",
+//	}
+//	provider, err := huggingface.NewProvider(config)
+//	if err != nil {
+//		// 处理错误
+//	}
+//	// provider 现在是一个可用的 HuggingFace 供应商实例
 func NewProvider(configMap map[string]any) (llm.Provider, error) {
 	cfg := DefaultConfig()
 
@@ -98,6 +113,22 @@ func NewProvider(configMap map[string]any) (llm.Provider, error) {
 }
 
 // NewProviderWithConfig 使用结构化配置创建 HuggingFace 供应商。
+//
+// NewProviderWithConfig 使用提供的 *Config 结构体创建一个新的 HuggingFace 供应商实例。
+// 它还初始化了一个 httpclient.Client 用于处理 HTTP 请求。
+//
+// 示例用法：
+//
+//	cfg := &huggingface.Config{
+//		APIKey:      "YOUR_HUGGINGFACE_API_KEY",
+//		EmbedModel:   "sentence-transformers/all-MiniLM-L6-v2",
+//		ChatModel:    "mistralai/Mistral-7B-Instruct-v0.2",
+//		Timeout:      60 * time.Second,
+//		MaxRetries:   5,
+//		WaitForModel: false,
+//	}
+//	provider := huggingface.NewProviderWithConfig(cfg)
+//	// provider 现在是一个可用的 HuggingFace 供应商实例
 func NewProviderWithConfig(cfg *Config) *Provider {
 	return &Provider{
 		config: cfg,
@@ -121,6 +152,19 @@ type embeddingOptions struct {
 }
 
 // Embed 为多个文本生成向量嵌入。
+//
+// 基本用法示例：
+//
+//	ctx := context.Background()
+//	// 假设 p 是 *huggingface.Provider 的实例
+//	// 确保已配置 APIKey 和 EmbedModel
+//	texts := []string{"这是第一句话。", "这是第二句话。"}
+//	embeddings, err := p.Embed(ctx, texts)
+//	if err != nil {
+//		// 处理错误
+//	}
+//	// embeddings 变量现在包含对应文本的向量嵌入
+//	fmt.Println("Embeddings:", embeddings)
 func (p *Provider) Embed(ctx context.Context, texts []string) ([][]float32, error) {
 	if len(texts) == 0 {
 		return nil, nil
@@ -193,6 +237,18 @@ func (p *Provider) Embed(ctx context.Context, texts []string) ([][]float32, erro
 }
 
 // EmbedSingle 为单个文本生成向量嵌入。
+//
+// 基本用法示例：
+//
+//	ctx := context.Background()
+//	// 假设 p 是 *huggingface.Provider 的实例
+//	text := "这是一个需要嵌入的句子。"
+//	embedding, err := p.EmbedSingle(ctx, text)
+//	if err != nil {
+//		// 处理错误
+//	}
+//	// embedding 变量现在包含该句子的向量嵌入
+//	fmt.Println("Single Embedding:", embedding)
 func (p *Provider) EmbedSingle(ctx context.Context, text string) ([]float32, error) {
 	embeddings, err := p.Embed(ctx, []string{text})
 	if err != nil {
@@ -229,6 +285,22 @@ type chatResponse struct {
 }
 
 // Chat 进行多轮对话。
+//
+// 对话示例：
+//
+//	ctx := context.Background()
+//	// 假设 p 是 *huggingface.Provider 的实例
+//	messages := []llm.Message{
+//		{Role: llm.RoleUser, Content: "你好，请介绍一下你自己。"},
+//		{Role: llm.RoleAssistant, Content: "你好！我是一个大型语言模型，由 Hugging Face 训练。"},
+//		{Role: llm.RoleUser, Content: "你擅长做什么？"},
+//	}
+//	response, err := p.Chat(ctx, messages)
+//	if err != nil {
+//		// 处理错误
+//	}
+//	// response 变量包含模型的回复
+//	fmt.Println("Chat Response:", response)
 func (p *Provider) Chat(ctx context.Context, messages []llm.Message) (string, error) {
 	// 将消息格式化为对话模板
 	prompt := formatMessages(messages)
@@ -236,10 +308,24 @@ func (p *Provider) Chat(ctx context.Context, messages []llm.Message) (string, er
 }
 
 // Generate 根据提示生成文本。
+//
+// 文本生成示例：
+//
+//	ctx := context.Background()
+//	// 假设 p 是 *huggingface.Provider 的实例
+//	prompt := "写一首关于春天的短诗。"
+//	systemPrompt := "你是一个才华横溢的诗人。"
+//	generatedText, err := p.Generate(ctx, prompt, systemPrompt)
+//	if err != nil {
+//		// 处理错误
+//	}
+//	// generatedText 变量包含生成的诗歌
+//	fmt.Println("Generated Text:", generatedText)
 func (p *Provider) Generate(ctx context.Context, prompt string, systemPrompt string) (string, error) {
 	fullPrompt := prompt
 	if systemPrompt != "" {
-		fullPrompt = fmt.Sprintf("[INST] %s [/INST]\n\n%s", systemPrompt, prompt)
+		// Mistral 模型的指令格式
+		fullPrompt = fmt.Sprintf("[INST] %s [/INST]\n%s", systemPrompt, prompt)
 	}
 	return p.generate(ctx, fullPrompt)
 }
@@ -289,6 +375,7 @@ func formatMessages(messages []llm.Message) string {
 	for _, msg := range messages {
 		switch msg.Role {
 		case llm.RoleSystem:
+			// Mistral 模型的系统提示格式
 			result += fmt.Sprintf("[INST] %s [/INST]\n", msg.Content)
 		case llm.RoleUser:
 			result += fmt.Sprintf("[INST] %s [/INST]\n", msg.Content)

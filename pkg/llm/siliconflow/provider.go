@@ -1,13 +1,13 @@
-// Package openai 提供 OpenAI LLM 供应商实现。
-// 同时支持 OpenAI API 和兼容 OpenAI API 的服务（如 Azure OpenAI、LocalAI 等）。
+// Package siliconflow 提供 SiliconFlow LLM 供应商实现。
+// SiliconFlow API 兼容 OpenAI 格式，支持 Chat 和 Embedding 功能。
 //
 // 基本用法示例：
 //
-//	import _ "github.com/kart-io/sentinel-x/pkg/llm/openai"
+//	import _ "github.com/kart-io/sentinel-x/pkg/llm/siliconflow"
 //	import "github.com/kart-io/sentinel-x/pkg/llm"
 //
 //	// 创建供应商
-//	provider, err := llm.NewProvider("openai", map[string]any{
+//	provider, err := llm.NewProvider("siliconflow", map[string]any{
 //	    "api_key": "your-api-key",
 //	})
 //	if err != nil {
@@ -24,18 +24,18 @@
 //
 // 高级配置示例：
 //
-//	provider, err := llm.NewProvider("openai", map[string]any{
-//	    "api_key":           "your-api-key",
-//	    "chat_model":        "gpt-4o",                    // 可选：使用 GPT-4o 模型
-//	    "embed_model":       "text-embedding-3-large",    // 可选：使用更大的 Embedding 模型
-//	    "temperature":       0.7,                         // 可选：控制随机性
-//	    "top_p":             0.9,                         // 可选：核采样参数
-//	    "max_tokens":        2000,                        // 可选：最大生成 token 数
-//	    "frequency_penalty": 0.5,                         // 可选：频率惩罚
-//	    "presence_penalty":  0.5,                         // 可选：存在惩罚
-//	    "stop":              []string{"\n\n", "END"},     // 可选：停止序列
+//	provider, err := llm.NewProvider("siliconflow", map[string]any{
+//	    "api_key":     "your-api-key",
+//	    "base_url":    "https://api.siliconflow.com/v1",  // 可选：国际区地址
+//	    "chat_model":  "Qwen/Qwen2.5-72B-Instruct",       // 可选：使用更大模型
+//	    "embed_model": "BAAI/bge-m3",                     // 可选：自定义 Embedding 模型
+//	    "temperature": 0.7,                                // 可选：控制随机性
+//	    "top_p":       0.9,                                // 可选：核采样参数
+//	    "top_k":       50,                                 // 可选：Top-K 采样
+//	    "min_p":       0.05,                               // 可选：最小概率阈值
+//	    "max_tokens":  2000,                               // 可选：最大生成 token 数
 //	})
-package openai
+package siliconflow
 
 import (
 	"bytes"
@@ -49,17 +49,17 @@ import (
 	"github.com/kart-io/sentinel-x/pkg/utils/json"
 )
 
-// ProviderName 是 OpenAI 供应商的名称标识符
-const ProviderName = "openai"
+// ProviderName 是 SiliconFlow 供应商的名称标识符
+const ProviderName = "siliconflow"
 
 func init() {
 	llm.RegisterProvider(ProviderName, NewProvider)
 }
 
-// Config OpenAI 供应商配置。
+// Config SiliconFlow 供应商配置。
 type Config struct {
-	// BaseURL API 基础地址，默认为 OpenAI 官方地址。
-	// 可设置为兼容 API 地址（如 Azure OpenAI、LocalAI 等）。
+	// BaseURL API 基础地址。
+	// 默认为 SiliconFlow 中国区地址，可设置为国际区地址。
 	BaseURL string `json:"base_url" mapstructure:"base_url"`
 
 	// APIKey API 密钥。
@@ -77,9 +77,6 @@ type Config struct {
 	// MaxRetries 最大重试次数。
 	MaxRetries int `json:"max_retries" mapstructure:"max_retries"`
 
-	// Organization 组织 ID（可选）。
-	Organization string `json:"organization" mapstructure:"organization"`
-
 	// Temperature 控制生成文本的随机性，范围 0.0-2.0。
 	// 较低的值（如 0.2）使输出更确定，较高的值（如 1.8）使输出更随机。
 	// 默认值为 0，表示不设置此参数，使用 API 默认值。
@@ -89,44 +86,43 @@ type Config struct {
 	// 控制累积概率阈值，默认值为 0，表示不设置此参数。
 	TopP float64 `json:"top_p" mapstructure:"top_p"`
 
+	// TopK Top-K 采样参数。
+	// 限制每步只考虑概率最高的 K 个 token，默认值为 0，表示不设置此参数。
+	TopK int `json:"top_k" mapstructure:"top_k"`
+
+	// MinP 最小概率阈值，范围 0.0-1.0。
+	// SiliconFlow 特有参数，动态过滤低概率 token。
+	// 默认值为 0，表示不设置此参数。
+	MinP float64 `json:"min_p" mapstructure:"min_p"`
+
 	// MaxTokens 最大生成 token 数。
 	// 默认值为 0，表示不设置此参数，使用 API 默认值。
 	MaxTokens int `json:"max_tokens" mapstructure:"max_tokens"`
 
-	// FrequencyPenalty 频率惩罚系数，范围 -2.0-2.0。
-	// 正值会根据新 token 在文本中的现有频率来惩罚它们，降低重复相同内容的可能性。
+	// RepetitionPenalty 重复惩罚系数，范围 1.0-2.0。
+	// 用于减少生成文本中的重复内容。
 	// 默认值为 0，表示不设置此参数。
-	FrequencyPenalty float64 `json:"frequency_penalty" mapstructure:"frequency_penalty"`
-
-	// PresencePenalty 存在惩罚系数，范围 -2.0-2.0。
-	// 正值会根据新 token 是否出现在文本中来惩罚它们，增加谈论新话题的可能性。
-	// 默认值为 0，表示不设置此参数。
-	PresencePenalty float64 `json:"presence_penalty" mapstructure:"presence_penalty"`
-
-	// Stop 停止序列列表。
-	// API 遇到这些字符串时会停止生成更多 token。
-	// 默认值为 nil，表示不设置此参数。
-	Stop []string `json:"stop" mapstructure:"stop"`
+	RepetitionPenalty float64 `json:"repetition_penalty" mapstructure:"repetition_penalty"`
 }
 
 // DefaultConfig 返回默认配置。
 func DefaultConfig() *Config {
 	return &Config{
-		BaseURL:    "https://api.openai.com/v1",
-		EmbedModel: "text-embedding-3-small",
-		ChatModel:  "gpt-4o-mini",
+		BaseURL:    "https://api.siliconflow.cn/v1",
+		EmbedModel: "BAAI/bge-m3",
+		ChatModel:  "Qwen/Qwen2.5-7B-Instruct",
 		Timeout:    120 * time.Second,
 		MaxRetries: 3,
 	}
 }
 
-// Provider OpenAI 供应商实现。
+// Provider SiliconFlow 供应商实现。
 type Provider struct {
 	config *Config
 	client *httpclient.Client
 }
 
-// NewProvider 从配置 map 创建 OpenAI 供应商。
+// NewProvider 从配置 map 创建 SiliconFlow 供应商。
 func NewProvider(configMap map[string]any) (llm.Provider, error) {
 	cfg := DefaultConfig()
 
@@ -148,9 +144,6 @@ func NewProvider(configMap map[string]any) (llm.Provider, error) {
 	if v, ok := configMap["max_retries"].(int); ok && v > 0 {
 		cfg.MaxRetries = v
 	}
-	if v, ok := configMap["organization"].(string); ok && v != "" {
-		cfg.Organization = v
-	}
 
 	// 解析生成参数
 	if v, ok := configMap["temperature"].(float64); ok {
@@ -159,39 +152,27 @@ func NewProvider(configMap map[string]any) (llm.Provider, error) {
 	if v, ok := configMap["top_p"].(float64); ok {
 		cfg.TopP = v
 	}
+	if v, ok := configMap["top_k"].(int); ok {
+		cfg.TopK = v
+	}
+	if v, ok := configMap["min_p"].(float64); ok {
+		cfg.MinP = v
+	}
 	if v, ok := configMap["max_tokens"].(int); ok {
 		cfg.MaxTokens = v
 	}
-	if v, ok := configMap["frequency_penalty"].(float64); ok {
-		cfg.FrequencyPenalty = v
-	}
-	if v, ok := configMap["presence_penalty"].(float64); ok {
-		cfg.PresencePenalty = v
-	}
-	if v, ok := configMap["stop"]; ok {
-		// 支持 []string 和 []interface{} 两种类型
-		switch val := v.(type) {
-		case []string:
-			cfg.Stop = val
-		case []interface{}:
-			stop := make([]string, 0, len(val))
-			for _, item := range val {
-				if s, ok := item.(string); ok {
-					stop = append(stop, s)
-				}
-			}
-			cfg.Stop = stop
-		}
+	if v, ok := configMap["repetition_penalty"].(float64); ok {
+		cfg.RepetitionPenalty = v
 	}
 
 	if cfg.APIKey == "" {
-		return nil, fmt.Errorf("openai: api_key 是必需的")
+		return nil, fmt.Errorf("siliconflow: api_key 是必需的")
 	}
 
 	return NewProviderWithConfig(cfg), nil
 }
 
-// NewProviderWithConfig 使用结构化配置创建 OpenAI 供应商。
+// NewProviderWithConfig 使用结构化配置创建 SiliconFlow 供应商。
 func NewProviderWithConfig(cfg *Config) *Provider {
 	return &Provider{
 		config: cfg,
@@ -204,13 +185,14 @@ func (p *Provider) Name() string {
 	return ProviderName
 }
 
-// embeddingRequest OpenAI embedding API 请求体。
+// embeddingRequest SiliconFlow embedding API 请求体。
 type embeddingRequest struct {
-	Model string   `json:"model"`
-	Input []string `json:"input"`
+	Model          string   `json:"model"`
+	Input          []string `json:"input"`
+	EncodingFormat string   `json:"encoding_format,omitempty"`
 }
 
-// embeddingResponse OpenAI embedding API 响应体。
+// embeddingResponse SiliconFlow embedding API 响应体。
 type embeddingResponse struct {
 	Object string `json:"object"`
 	Data   []struct {
@@ -232,8 +214,9 @@ func (p *Provider) Embed(ctx context.Context, texts []string) ([][]float32, erro
 	}
 
 	reqBody := embeddingRequest{
-		Model: p.config.EmbedModel,
-		Input: texts,
+		Model:          p.config.EmbedModel,
+		Input:          texts,
+		EncodingFormat: "float",
 	}
 
 	body, err := json.Marshal(reqBody)
@@ -275,17 +258,17 @@ func (p *Provider) EmbedSingle(ctx context.Context, text string) ([]float32, err
 	return embeddings[0], nil
 }
 
-// chatRequest OpenAI chat API 请求体。
+// chatRequest SiliconFlow chat API 请求体。
 type chatRequest struct {
-	Model            string        `json:"model"`
-	Messages         []chatMessage `json:"messages"`
-	Stream           bool          `json:"stream"`
-	MaxTokens        int           `json:"max_tokens,omitempty"`
-	Temperature      float64       `json:"temperature,omitempty"`
-	TopP             float64       `json:"top_p,omitempty"`
-	FrequencyPenalty float64       `json:"frequency_penalty,omitempty"`
-	PresencePenalty  float64       `json:"presence_penalty,omitempty"`
-	Stop             []string      `json:"stop,omitempty"`
+	Model             string        `json:"model"`
+	Messages          []chatMessage `json:"messages"`
+	Stream            bool          `json:"stream"`
+	MaxTokens         int           `json:"max_tokens,omitempty"`
+	Temperature       float64       `json:"temperature,omitempty"`
+	TopP              float64       `json:"top_p,omitempty"`
+	TopK              int           `json:"top_k,omitempty"`
+	MinP              float64       `json:"min_p,omitempty"`
+	RepetitionPenalty float64       `json:"repetition_penalty,omitempty"`
 }
 
 type chatMessage struct {
@@ -293,7 +276,7 @@ type chatMessage struct {
 	Content string `json:"content"`
 }
 
-// chatResponse OpenAI chat API 响应体。
+// chatResponse SiliconFlow chat API 响应体。
 type chatResponse struct {
 	ID      string `json:"id"`
 	Object  string `json:"object"`
@@ -337,14 +320,14 @@ func (p *Provider) Chat(ctx context.Context, messages []llm.Message) (string, er
 	if p.config.TopP > 0 {
 		reqBody.TopP = p.config.TopP
 	}
-	if p.config.FrequencyPenalty != 0 {
-		reqBody.FrequencyPenalty = p.config.FrequencyPenalty
+	if p.config.TopK > 0 {
+		reqBody.TopK = p.config.TopK
 	}
-	if p.config.PresencePenalty != 0 {
-		reqBody.PresencePenalty = p.config.PresencePenalty
+	if p.config.MinP > 0 {
+		reqBody.MinP = p.config.MinP
 	}
-	if len(p.config.Stop) > 0 {
-		reqBody.Stop = p.config.Stop
+	if p.config.RepetitionPenalty > 0 {
+		reqBody.RepetitionPenalty = p.config.RepetitionPenalty
 	}
 
 	body, err := json.Marshal(reqBody)
@@ -387,36 +370,8 @@ func (p *Provider) Generate(ctx context.Context, prompt string, systemPrompt str
 	return p.Chat(ctx, messages)
 }
 
-// ListModels 列出可用模型。
-func (p *Provider) ListModels(ctx context.Context) ([]string, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, p.config.BaseURL+"/models", nil)
-	if err != nil {
-		return nil, fmt.Errorf("创建请求失败: %w", err)
-	}
-	p.setHeaders(req)
-
-	var result struct {
-		Data []struct {
-			ID string `json:"id"`
-		} `json:"data"`
-	}
-	if err := p.client.DoJSON(req, &result); err != nil {
-		return nil, err
-	}
-
-	models := make([]string, len(result.Data))
-	for i, m := range result.Data {
-		models[i] = m.ID
-	}
-
-	return models, nil
-}
-
 // setHeaders 设置请求头。
 func (p *Provider) setHeaders(req *http.Request) {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+p.config.APIKey)
-	if p.config.Organization != "" {
-		req.Header.Set("OpenAI-Organization", p.config.Organization)
-	}
 }

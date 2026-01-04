@@ -8,8 +8,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	docs_apisvc "github.com/kart-io/sentinel-x/api/swagger/apisvc"
-	docs_usercenter "github.com/kart-io/sentinel-x/api/swagger/user-center"
 	docs_rag "github.com/kart-io/sentinel-x/api/swagger/rag"
+	docs_usercenter "github.com/kart-io/sentinel-x/api/swagger/user-center"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )

@@ -1,5 +1,36 @@
 // Package deepseek 提供 DeepSeek LLM 供应商实现。
 // DeepSeek API 兼容 OpenAI 格式，但有自己的特定模型。
+//
+// 基本用法示例：
+//
+//	import _ "github.com/kart-io/sentinel-x/pkg/llm/deepseek"
+//	import "github.com/kart-io/sentinel-x/pkg/llm"
+//
+//	// 创建供应商
+//	provider, err := llm.NewProvider("deepseek", map[string]any{
+//	    "api_key": "your-api-key",
+//	})
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
+//
+//	// 使用 Chat API
+//	response, err := provider.Chat(ctx, []llm.Message{
+//	    {Role: llm.RoleUser, Content: "你好"},
+//	})
+//
+// 高级配置示例：
+//
+//	provider, err := llm.NewProvider("deepseek", map[string]any{
+//	    "api_key":           "your-api-key",
+//	    "chat_model":        "deepseek-chat",
+//	    "temperature":       0.7,                    // 控制随机性
+//	    "top_p":             0.9,                    // 核采样
+//	    "max_tokens":        2000,                   // 最大生成 token 数
+//	    "frequency_penalty": 0.5,                    // 频率惩罚
+//	    "presence_penalty":  0.5,                    // 存在惩罚
+//	    "stop":              []string{"结束", "END"}, // 停止序列
+//	})
 package deepseek
 
 import (
@@ -37,6 +68,33 @@ type Config struct {
 
 	// MaxRetries 最大重试次数。
 	MaxRetries int `json:"max_retries" mapstructure:"max_retries"`
+
+	// Temperature 控制生成文本的随机性，范围 0.0-2.0。
+	// 较低的值（如 0.2）使输出更确定，较高的值（如 1.8）使输出更随机。
+	// 默认值为 0，表示不设置此参数，使用 API 默认值。
+	Temperature float64 `json:"temperature" mapstructure:"temperature"`
+
+	// TopP 核采样参数，范围 0.0-1.0。
+	// 控制累积概率阈值，默认值为 0，表示不设置此参数。
+	TopP float64 `json:"top_p" mapstructure:"top_p"`
+
+	// MaxTokens 最大生成 token 数。
+	// 默认值为 0，表示不设置此参数，使用 API 默认值。
+	MaxTokens int `json:"max_tokens" mapstructure:"max_tokens"`
+
+	// FrequencyPenalty 频率惩罚系数，范围 -2.0 到 2.0。
+	// 正值会根据新 token 在文本中的现有频率来降低其被采样的可能性，减少重复。
+	// 默认值为 0，表示不设置此参数。
+	FrequencyPenalty float64 `json:"frequency_penalty" mapstructure:"frequency_penalty"`
+
+	// PresencePenalty 存在惩罚系数，范围 -2.0 到 2.0。
+	// 正值会根据新 token 是否已出现在文本中来降低其被采样的可能性，鼓励新话题。
+	// 默认值为 0，表示不设置此参数。
+	PresencePenalty float64 `json:"presence_penalty" mapstructure:"presence_penalty"`
+
+	// Stop 停止序列，最多 4 个字符串。
+	// 当生成的文本包含这些序列之一时，API 将停止生成。
+	Stop []string `json:"stop" mapstructure:"stop"`
 }
 
 // DefaultConfig 返回默认配置。
@@ -75,6 +133,37 @@ func NewProvider(configMap map[string]any) (llm.Provider, error) {
 		cfg.MaxRetries = v
 	}
 
+	// 解析生成参数
+	if v, ok := configMap["temperature"].(float64); ok {
+		cfg.Temperature = v
+	}
+	if v, ok := configMap["top_p"].(float64); ok {
+		cfg.TopP = v
+	}
+	if v, ok := configMap["max_tokens"].(int); ok {
+		cfg.MaxTokens = v
+	}
+	if v, ok := configMap["frequency_penalty"].(float64); ok {
+		cfg.FrequencyPenalty = v
+	}
+	if v, ok := configMap["presence_penalty"].(float64); ok {
+		cfg.PresencePenalty = v
+	}
+	if v, ok := configMap["stop"]; ok {
+		// 支持 []string 和 []any 类型
+		switch stop := v.(type) {
+		case []string:
+			cfg.Stop = stop
+		case []any:
+			cfg.Stop = make([]string, len(stop))
+			for i, s := range stop {
+				if str, ok := s.(string); ok {
+					cfg.Stop[i] = str
+				}
+			}
+		}
+	}
+
 	if cfg.APIKey == "" {
 		return nil, fmt.Errorf("deepseek: api_key 是必需的")
 	}
@@ -107,9 +196,15 @@ func (p *Provider) EmbedSingle(_ context.Context, _ string) ([]float32, error) {
 
 // chatRequest DeepSeek chat API 请求体（兼容 OpenAI 格式）。
 type chatRequest struct {
-	Model    string        `json:"model"`
-	Messages []chatMessage `json:"messages"`
-	Stream   bool          `json:"stream"`
+	Model            string        `json:"model"`
+	Messages         []chatMessage `json:"messages"`
+	Stream           bool          `json:"stream"`
+	Temperature      float64       `json:"temperature,omitempty"`
+	TopP             float64       `json:"top_p,omitempty"`
+	MaxTokens        int           `json:"max_tokens,omitempty"`
+	FrequencyPenalty float64       `json:"frequency_penalty,omitempty"`
+	PresencePenalty  float64       `json:"presence_penalty,omitempty"`
+	Stop             []string      `json:"stop,omitempty"`
 }
 
 type chatMessage struct {
@@ -149,6 +244,26 @@ func (p *Provider) Chat(ctx context.Context, messages []llm.Message) (string, er
 		Model:    p.config.ChatModel,
 		Messages: chatMessages,
 		Stream:   false,
+	}
+
+	// 应用配置的生成参数（仅在非零值时设置）
+	if p.config.Temperature > 0 {
+		reqBody.Temperature = p.config.Temperature
+	}
+	if p.config.TopP > 0 {
+		reqBody.TopP = p.config.TopP
+	}
+	if p.config.MaxTokens > 0 {
+		reqBody.MaxTokens = p.config.MaxTokens
+	}
+	if p.config.FrequencyPenalty != 0 {
+		reqBody.FrequencyPenalty = p.config.FrequencyPenalty
+	}
+	if p.config.PresencePenalty != 0 {
+		reqBody.PresencePenalty = p.config.PresencePenalty
+	}
+	if len(p.config.Stop) > 0 {
+		reqBody.Stop = p.config.Stop
 	}
 
 	body, err := json.Marshal(reqBody)
