@@ -4,15 +4,16 @@ package ollama
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"time"
 
 	"github.com/kart-io/sentinel-x/pkg/llm"
+	"github.com/kart-io/sentinel-x/pkg/utils/httpclient"
+	"github.com/kart-io/sentinel-x/pkg/utils/json"
 )
 
+// ProviderName 是 Ollama 供应商的名称标识符
 const ProviderName = "ollama"
 
 func init() {
@@ -41,8 +42,8 @@ func DefaultConfig() *Config {
 
 // Provider Ollama 供应商实现。
 type Provider struct {
-	config     *Config
-	httpClient *http.Client
+	config *Config
+	client *httpclient.Client
 }
 
 // NewProvider 从配置 map 创建 Ollama 供应商。
@@ -72,9 +73,7 @@ func NewProvider(configMap map[string]any) (llm.Provider, error) {
 func NewProviderWithConfig(cfg *Config) *Provider {
 	return &Provider{
 		config: cfg,
-		httpClient: &http.Client{
-			Timeout: cfg.Timeout,
-		},
+		client: httpclient.NewClient(cfg.Timeout, cfg.MaxRetries),
 	}
 }
 
@@ -117,20 +116,9 @@ func (p *Provider) Embed(ctx context.Context, texts []string) ([][]float32, erro
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := p.doRequestWithRetry(req)
-	if err != nil {
-		return nil, fmt.Errorf("请求失败: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		bodyBytes, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("请求失败，状态码 %d: %s", resp.StatusCode, string(bodyBytes))
-	}
-
 	var embedResp embedResponse
-	if err := json.NewDecoder(resp.Body).Decode(&embedResp); err != nil {
-		return nil, fmt.Errorf("解析响应失败: %w", err)
+	if err := p.client.DoJSON(req, &embedResp); err != nil {
+		return nil, err
 	}
 
 	return embedResp.Embeddings, nil
@@ -194,20 +182,9 @@ func (p *Provider) Chat(ctx context.Context, messages []llm.Message) (string, er
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := p.doRequestWithRetry(req)
-	if err != nil {
-		return "", fmt.Errorf("请求失败: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		bodyBytes, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("请求失败，状态码 %d: %s", resp.StatusCode, string(bodyBytes))
-	}
-
 	var chatResp chatResponse
-	if err := json.NewDecoder(resp.Body).Decode(&chatResp); err != nil {
-		return "", fmt.Errorf("解析响应失败: %w", err)
+	if err := p.client.DoJSON(req, &chatResp); err != nil {
+		return "", err
 	}
 
 	return chatResp.Message.Content, nil
@@ -248,39 +225,12 @@ func (p *Provider) Generate(ctx context.Context, prompt string, systemPrompt str
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := p.doRequestWithRetry(req)
-	if err != nil {
-		return "", fmt.Errorf("请求失败: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		bodyBytes, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("请求失败，状态码 %d: %s", resp.StatusCode, string(bodyBytes))
-	}
-
 	var genResp generateResponse
-	if err := json.NewDecoder(resp.Body).Decode(&genResp); err != nil {
-		return "", fmt.Errorf("解析响应失败: %w", err)
+	if err := p.client.DoJSON(req, &genResp); err != nil {
+		return "", err
 	}
 
 	return genResp.Response, nil
-}
-
-// doRequestWithRetry 带重试的请求执行。
-func (p *Provider) doRequestWithRetry(req *http.Request) (*http.Response, error) {
-	var lastErr error
-	for i := 0; i <= p.config.MaxRetries; i++ {
-		resp, err := p.httpClient.Do(req)
-		if err == nil {
-			return resp, nil
-		}
-		lastErr = err
-		if i < p.config.MaxRetries {
-			time.Sleep(time.Duration(i+1) * 500 * time.Millisecond)
-		}
-	}
-	return nil, lastErr
 }
 
 // Ping 检查 Ollama 服务是否可用。
@@ -290,11 +240,11 @@ func (p *Provider) Ping(ctx context.Context) error {
 		return fmt.Errorf("创建请求失败: %w", err)
 	}
 
-	resp, err := p.httpClient.Do(req)
+	resp, err := p.client.DoRequest(req)
 	if err != nil {
 		return fmt.Errorf("连接失败: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("服务不可用，状态码 %d", resp.StatusCode)
@@ -310,23 +260,13 @@ func (p *Provider) ListModels(ctx context.Context) ([]string, error) {
 		return nil, fmt.Errorf("创建请求失败: %w", err)
 	}
 
-	resp, err := p.httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("请求失败: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("请求失败，状态码 %d", resp.StatusCode)
-	}
-
 	var result struct {
 		Models []struct {
 			Name string `json:"name"`
 		} `json:"models"`
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("解析响应失败: %w", err)
+	if err := p.client.DoJSON(req, &result); err != nil {
+		return nil, err
 	}
 
 	models := make([]string, len(result.Models))

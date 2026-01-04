@@ -219,6 +219,55 @@ const docTemplateusercenter = `{
                     }
                 }
             },
+            "put": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "更新角色信息",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Roles"
+                ],
+                "summary": "更新角色",
+                "parameters": [
+                    {
+                        "description": "更新角色请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/user.UpdateRoleRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功响应",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "请求错误",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "角色不存在",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    }
+                }
+            },
             "post": {
                 "security": [
                     {
@@ -261,105 +310,6 @@ const docTemplateusercenter = `{
                         }
                     }
                 }
-            }
-        },
-        "/v1/roles/{code}": {
-            "get": {
-                "security": [
-                    {
-                        "Bearer": []
-                    }
-                ],
-                "description": "获取指定角色信息",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Roles"
-                ],
-                "summary": "获取角色",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "角色代码",
-                        "name": "code",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "成功响应",
-                        "schema": {
-                            "$ref": "#/definitions/response.Response"
-                        }
-                    },
-                    "404": {
-                        "description": "角色不存在",
-                        "schema": {
-                            "$ref": "#/definitions/response.Response"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "security": [
-                    {
-                        "Bearer": []
-                    }
-                ],
-                "description": "更新角色信息",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Roles"
-                ],
-                "summary": "更新角色",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "角色代码",
-                        "name": "code",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "更新角色请求",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/user.UpdateRoleRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "成功响应",
-                        "schema": {
-                            "$ref": "#/definitions/response.Response"
-                        }
-                    },
-                    "400": {
-                        "description": "请求错误",
-                        "schema": {
-                            "$ref": "#/definitions/response.Response"
-                        }
-                    },
-                    "404": {
-                        "description": "角色不存在",
-                        "schema": {
-                            "$ref": "#/definitions/response.Response"
-                        }
-                    }
-                }
             },
             "delete": {
                 "security": [
@@ -383,7 +333,50 @@ const docTemplateusercenter = `{
                         "type": "string",
                         "description": "角色代码",
                         "name": "code",
-                        "in": "path",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功响应",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "角色不存在",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/roles/detail": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "获取指定角色信息",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Roles"
+                ],
+                "summary": "获取角色",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "角色代码",
+                        "name": "code",
+                        "in": "query",
                         "required": true
                     }
                 ],
@@ -446,6 +439,55 @@ const docTemplateusercenter = `{
                     }
                 }
             },
+            "put": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "更新用户信息",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "更新用户",
+                "parameters": [
+                    {
+                        "description": "更新用户请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/user.UpdateUserRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功响应",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "请求错误",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "用户不存在",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    }
+                }
+            },
             "post": {
                 "description": "创建新用户（公开接口，用于注册）",
                 "consumes": [
@@ -478,6 +520,47 @@ const docTemplateusercenter = `{
                     },
                     "400": {
                         "description": "请求错误",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "删除指定用户",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "删除用户",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "用户名",
+                        "name": "username",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功响应",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "用户不存在",
                         "schema": {
                             "$ref": "#/definitions/response.Response"
                         }
@@ -530,7 +613,7 @@ const docTemplateusercenter = `{
                 }
             }
         },
-        "/v1/users/{username}": {
+        "/v1/users/detail": {
             "get": {
                 "security": [
                     {
@@ -553,104 +636,7 @@ const docTemplateusercenter = `{
                         "type": "string",
                         "description": "用户名",
                         "name": "username",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "成功响应",
-                        "schema": {
-                            "$ref": "#/definitions/response.Response"
-                        }
-                    },
-                    "404": {
-                        "description": "用户不存在",
-                        "schema": {
-                            "$ref": "#/definitions/response.Response"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "security": [
-                    {
-                        "Bearer": []
-                    }
-                ],
-                "description": "更新用户信息",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Users"
-                ],
-                "summary": "更新用户",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "用户名",
-                        "name": "username",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "更新用户请求",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/user.UpdateUserRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "成功响应",
-                        "schema": {
-                            "$ref": "#/definitions/response.Response"
-                        }
-                    },
-                    "400": {
-                        "description": "请求错误",
-                        "schema": {
-                            "$ref": "#/definitions/response.Response"
-                        }
-                    },
-                    "404": {
-                        "description": "用户不存在",
-                        "schema": {
-                            "$ref": "#/definitions/response.Response"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "Bearer": []
-                    }
-                ],
-                "description": "删除指定用户",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Users"
-                ],
-                "summary": "删除用户",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "用户名",
-                        "name": "username",
-                        "in": "path",
+                        "in": "query",
                         "required": true
                     }
                 ],
@@ -670,7 +656,7 @@ const docTemplateusercenter = `{
                 }
             }
         },
-        "/v1/users/{username}/password": {
+        "/v1/users/password": {
             "post": {
                 "security": [
                     {
@@ -689,13 +675,6 @@ const docTemplateusercenter = `{
                 ],
                 "summary": "修改密码",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "description": "用户名",
-                        "name": "username",
-                        "in": "path",
-                        "required": true
-                    },
                     {
                         "description": "修改密码请求",
                         "name": "request",
@@ -722,7 +701,7 @@ const docTemplateusercenter = `{
                 }
             }
         },
-        "/v1/users/{username}/roles": {
+        "/v1/users/roles": {
             "get": {
                 "security": [
                     {
@@ -745,7 +724,7 @@ const docTemplateusercenter = `{
                         "type": "string",
                         "description": "用户名",
                         "name": "username",
-                        "in": "path",
+                        "in": "query",
                         "required": true
                     }
                 ],
@@ -782,13 +761,6 @@ const docTemplateusercenter = `{
                 ],
                 "summary": "分配角色",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "description": "用户名",
-                        "name": "username",
-                        "in": "path",
-                        "required": true
-                    },
                     {
                         "description": "分配角色请求",
                         "name": "request",
@@ -893,7 +865,6 @@ const docTemplateusercenter = `{
                     "type": "string"
                 },
                 "username": {
-                    "description": "From path or context",
                     "type": "string"
                 }
             }
@@ -969,22 +940,16 @@ const docTemplateusercenter = `{
             "type": "object",
             "properties": {
                 "code": {
-                    "description": "Path param",
                     "type": "string"
                 },
                 "description": {
-                    "type": "string"
+                    "$ref": "#/definitions/wrapperspb.StringValue"
                 },
                 "name": {
-                    "type": "string"
+                    "$ref": "#/definitions/wrapperspb.StringValue"
                 },
                 "status": {
-                    "description": "Use wrapper to allow setting 0 explicitly",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/wrapperspb.Int32Value"
-                        }
-                    ]
+                    "$ref": "#/definitions/wrapperspb.Int32Value"
                 }
             }
         },
@@ -992,10 +957,10 @@ const docTemplateusercenter = `{
             "type": "object",
             "properties": {
                 "email": {
-                    "type": "string"
+                    "$ref": "#/definitions/wrapperspb.StringValue"
                 },
                 "mobile": {
-                    "type": "string"
+                    "$ref": "#/definitions/wrapperspb.StringValue"
                 },
                 "username": {
                     "description": "Path param usually",
@@ -1009,6 +974,15 @@ const docTemplateusercenter = `{
                 "value": {
                     "description": "The int32 value.",
                     "type": "integer"
+                }
+            }
+        },
+        "wrapperspb.StringValue": {
+            "type": "object",
+            "properties": {
+                "value": {
+                    "description": "The string value.",
+                    "type": "string"
                 }
             }
         }

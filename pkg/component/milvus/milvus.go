@@ -1,3 +1,4 @@
+// Package milvus 提供 Milvus 向量数据库的客户端封装和操作接口。
 package milvus
 
 import (

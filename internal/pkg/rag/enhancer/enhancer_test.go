@@ -11,11 +11,9 @@ import (
 )
 
 // mockChatProvider 模拟聊天供应商，实现 llm.ChatProvider 接口。
-type mockChatProvider struct {
-	responses map[string]string
-}
+type mockChatProvider struct{}
 
-func (m *mockChatProvider) Generate(ctx context.Context, prompt, systemPrompt string) (string, error) {
+func (m *mockChatProvider) Generate(_ context.Context, prompt, _ string) (string, error) {
 	// 模拟查询重写
 	if containsSubstring(prompt, "查询优化专家") {
 		return "Milvus vector database features and capabilities", nil
@@ -31,7 +29,7 @@ func (m *mockChatProvider) Generate(ctx context.Context, prompt, systemPrompt st
 	return "默认回复", nil
 }
 
-func (m *mockChatProvider) Chat(ctx context.Context, messages []llm.Message) (string, error) {
+func (m *mockChatProvider) Chat(_ context.Context, _ []llm.Message) (string, error) {
 	return "模拟对话回复", nil
 }
 
@@ -42,11 +40,11 @@ func (m *mockChatProvider) Name() string {
 // mockEmbedProvider 模拟嵌入供应商，实现 llm.EmbeddingProvider 接口。
 type mockEmbedProvider struct{}
 
-func (m *mockEmbedProvider) EmbedSingle(ctx context.Context, text string) ([]float32, error) {
+func (m *mockEmbedProvider) EmbedSingle(_ context.Context, _ string) ([]float32, error) {
 	return []float32{0.1, 0.2, 0.3, 0.4, 0.5}, nil
 }
 
-func (m *mockEmbedProvider) Embed(ctx context.Context, texts []string) ([][]float32, error) {
+func (m *mockEmbedProvider) Embed(_ context.Context, texts []string) ([][]float32, error) {
 	result := make([][]float32, len(texts))
 	for i := range texts {
 		result[i] = []float32{0.1, 0.2, 0.3, 0.4, 0.5}

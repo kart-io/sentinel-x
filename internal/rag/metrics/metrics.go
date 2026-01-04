@@ -39,7 +39,6 @@ type RAGMetrics struct {
 	chunksIndexed    uint64 // 已索引分块数
 	indexErrors      uint64 // 索引错误次数
 
-	mu         sync.RWMutex
 	startTime  time.Time
 	durationMu sync.Mutex
 }
@@ -134,8 +133,15 @@ func (m *RAGMetrics) RecordIndexing(documents, chunks int, err error) {
 		atomic.AddUint64(&m.indexErrors, 1)
 		return
 	}
-	atomic.AddUint64(&m.documentsIndexed, uint64(documents))
-	atomic.AddUint64(&m.chunksIndexed, uint64(chunks))
+	// 使用显式检查避免负数转换
+	if documents > 0 {
+		// #nosec G115 -- 业务逻辑保证 documents 非负且不会溢出
+		atomic.AddUint64(&m.documentsIndexed, uint64(documents))
+	}
+	if chunks > 0 {
+		// #nosec G115 -- 业务逻辑保证 chunks 非负且不会溢出
+		atomic.AddUint64(&m.chunksIndexed, uint64(chunks))
+	}
 }
 
 // Export 导出 Prometheus 格式指标。

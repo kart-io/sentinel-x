@@ -52,7 +52,6 @@ definitions:
       old_password:
         type: string
       username:
-        description: From path or context
         type: string
     type: object
   user.CreateRoleRequest:
@@ -103,23 +102,20 @@ definitions:
   user.UpdateRoleRequest:
     properties:
       code:
-        description: Path param
         type: string
       description:
-        type: string
+        $ref: '#/definitions/wrapperspb.StringValue'
       name:
-        type: string
+        $ref: '#/definitions/wrapperspb.StringValue'
       status:
-        allOf:
-        - $ref: '#/definitions/wrapperspb.Int32Value'
-        description: Use wrapper to allow setting 0 explicitly
+        $ref: '#/definitions/wrapperspb.Int32Value'
     type: object
   user.UpdateUserRequest:
     properties:
       email:
-        type: string
+        $ref: '#/definitions/wrapperspb.StringValue'
       mobile:
-        type: string
+        $ref: '#/definitions/wrapperspb.StringValue'
       username:
         description: Path param usually
         type: string
@@ -129,6 +125,12 @@ definitions:
       value:
         description: The int32 value.
         type: integer
+    type: object
+  wrapperspb.StringValue:
+    properties:
+      value:
+        description: The string value.
+        type: string
     type: object
 host: localhost:8081
 info:
@@ -243,6 +245,32 @@ paths:
       tags:
       - Auth
   /v1/roles:
+    delete:
+      consumes:
+      - application/json
+      description: 删除指定角色
+      parameters:
+      - description: 角色代码
+        in: query
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功响应
+          schema:
+            $ref: '#/definitions/response.Response'
+        "404":
+          description: 角色不存在
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - Bearer: []
+      summary: 删除角色
+      tags:
+      - Roles
     get:
       consumes:
       - application/json
@@ -297,69 +325,11 @@ paths:
       summary: 创建角色
       tags:
       - Roles
-  /v1/roles/{code}:
-    delete:
-      consumes:
-      - application/json
-      description: 删除指定角色
-      parameters:
-      - description: 角色代码
-        in: path
-        name: code
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 成功响应
-          schema:
-            $ref: '#/definitions/response.Response'
-        "404":
-          description: 角色不存在
-          schema:
-            $ref: '#/definitions/response.Response'
-      security:
-      - Bearer: []
-      summary: 删除角色
-      tags:
-      - Roles
-    get:
-      consumes:
-      - application/json
-      description: 获取指定角色信息
-      parameters:
-      - description: 角色代码
-        in: path
-        name: code
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 成功响应
-          schema:
-            $ref: '#/definitions/response.Response'
-        "404":
-          description: 角色不存在
-          schema:
-            $ref: '#/definitions/response.Response'
-      security:
-      - Bearer: []
-      summary: 获取角色
-      tags:
-      - Roles
     put:
       consumes:
       - application/json
       description: 更新角色信息
       parameters:
-      - description: 角色代码
-        in: path
-        name: code
-        required: true
-        type: string
       - description: 更新角色请求
         in: body
         name: request
@@ -386,7 +356,60 @@ paths:
       summary: 更新角色
       tags:
       - Roles
+  /v1/roles/detail:
+    get:
+      consumes:
+      - application/json
+      description: 获取指定角色信息
+      parameters:
+      - description: 角色代码
+        in: query
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功响应
+          schema:
+            $ref: '#/definitions/response.Response'
+        "404":
+          description: 角色不存在
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - Bearer: []
+      summary: 获取角色
+      tags:
+      - Roles
   /v1/users:
+    delete:
+      consumes:
+      - application/json
+      description: 删除指定用户
+      parameters:
+      - description: 用户名
+        in: query
+        name: username
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功响应
+          schema:
+            $ref: '#/definitions/response.Response'
+        "404":
+          description: 用户不存在
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - Bearer: []
+      summary: 删除用户
+      tags:
+      - Users
     get:
       consumes:
       - application/json
@@ -439,69 +462,11 @@ paths:
       summary: 创建用户
       tags:
       - Users
-  /v1/users/{username}:
-    delete:
-      consumes:
-      - application/json
-      description: 删除指定用户
-      parameters:
-      - description: 用户名
-        in: path
-        name: username
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 成功响应
-          schema:
-            $ref: '#/definitions/response.Response'
-        "404":
-          description: 用户不存在
-          schema:
-            $ref: '#/definitions/response.Response'
-      security:
-      - Bearer: []
-      summary: 删除用户
-      tags:
-      - Users
-    get:
-      consumes:
-      - application/json
-      description: 获取指定用户信息
-      parameters:
-      - description: 用户名
-        in: path
-        name: username
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 成功响应
-          schema:
-            $ref: '#/definitions/response.Response'
-        "404":
-          description: 用户不存在
-          schema:
-            $ref: '#/definitions/response.Response'
-      security:
-      - Bearer: []
-      summary: 获取用户
-      tags:
-      - Users
     put:
       consumes:
       - application/json
       description: 更新用户信息
       parameters:
-      - description: 用户名
-        in: path
-        name: username
-        required: true
-        type: string
       - description: 更新用户请求
         in: body
         name: request
@@ -526,98 +491,6 @@ paths:
       security:
       - Bearer: []
       summary: 更新用户
-      tags:
-      - Users
-  /v1/users/{username}/password:
-    post:
-      consumes:
-      - application/json
-      description: 修改用户密码（需要提供旧密码）
-      parameters:
-      - description: 用户名
-        in: path
-        name: username
-        required: true
-        type: string
-      - description: 修改密码请求
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/user.ChangePasswordRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 成功响应
-          schema:
-            $ref: '#/definitions/response.Response'
-        "400":
-          description: 请求错误
-          schema:
-            $ref: '#/definitions/response.Response'
-      security:
-      - Bearer: []
-      summary: 修改密码
-      tags:
-      - Users
-  /v1/users/{username}/roles:
-    get:
-      consumes:
-      - application/json
-      description: 获取用户的所有角色
-      parameters:
-      - description: 用户名
-        in: path
-        name: username
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 成功响应
-          schema:
-            $ref: '#/definitions/response.Response'
-        "404":
-          description: 用户不存在
-          schema:
-            $ref: '#/definitions/response.Response'
-      security:
-      - Bearer: []
-      summary: 获取用户角色
-      tags:
-      - Users
-    post:
-      consumes:
-      - application/json
-      description: 为用户分配角色
-      parameters:
-      - description: 用户名
-        in: path
-        name: username
-        required: true
-        type: string
-      - description: 分配角色请求
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/user.AssignRoleRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 成功响应
-          schema:
-            $ref: '#/definitions/response.Response'
-        "400":
-          description: 请求错误
-          schema:
-            $ref: '#/definitions/response.Response'
-      security:
-      - Bearer: []
-      summary: 分配角色
       tags:
       - Users
   /v1/users/batch-delete:
@@ -646,6 +519,115 @@ paths:
       security:
       - Bearer: []
       summary: 批量删除用户
+      tags:
+      - Users
+  /v1/users/detail:
+    get:
+      consumes:
+      - application/json
+      description: 获取指定用户信息
+      parameters:
+      - description: 用户名
+        in: query
+        name: username
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功响应
+          schema:
+            $ref: '#/definitions/response.Response'
+        "404":
+          description: 用户不存在
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - Bearer: []
+      summary: 获取用户
+      tags:
+      - Users
+  /v1/users/password:
+    post:
+      consumes:
+      - application/json
+      description: 修改用户密码（需要提供旧密码）
+      parameters:
+      - description: 修改密码请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/user.ChangePasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功响应
+          schema:
+            $ref: '#/definitions/response.Response'
+        "400":
+          description: 请求错误
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - Bearer: []
+      summary: 修改密码
+      tags:
+      - Users
+  /v1/users/roles:
+    get:
+      consumes:
+      - application/json
+      description: 获取用户的所有角色
+      parameters:
+      - description: 用户名
+        in: query
+        name: username
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功响应
+          schema:
+            $ref: '#/definitions/response.Response'
+        "404":
+          description: 用户不存在
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - Bearer: []
+      summary: 获取用户角色
+      tags:
+      - Users
+    post:
+      consumes:
+      - application/json
+      description: 为用户分配角色
+      parameters:
+      - description: 分配角色请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/user.AssignRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功响应
+          schema:
+            $ref: '#/definitions/response.Response'
+        "400":
+          description: 请求错误
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - Bearer: []
+      summary: 分配角色
       tags:
       - Users
 securityDefinitions:

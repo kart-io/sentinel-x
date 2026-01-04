@@ -167,6 +167,7 @@ func GetBridge(adapterType httpopts.AdapterType) FrameworkBridge {
 
 // AdapterFactory creates a new adapter.
 // Legacy support: RegisterAdapter for backward compatibility
+//
 // Deprecated: Use RegisterBridge instead.
 type AdapterFactory func() Adapter
 
@@ -176,6 +177,7 @@ var (
 )
 
 // RegisterAdapter registers an adapter factory (legacy, for backward compatibility).
+//
 // Deprecated: Use RegisterBridge instead.
 func RegisterAdapter(adapterType httpopts.AdapterType, factory AdapterFactory) {
 	legacyAdaptersMu.Lock()

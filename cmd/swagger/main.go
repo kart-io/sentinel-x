@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	docs_apisvc "github.com/kart-io/sentinel-x/api/swagger/apisvc"
 	docs_usercenter "github.com/kart-io/sentinel-x/api/swagger/user-center"
+	docs_rag "github.com/kart-io/sentinel-x/api/swagger/rag"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
@@ -43,12 +44,18 @@ func main() {
 	// User Center 服务文档
 	r.GET("/swagger/user-center/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.InstanceName("usercenter")))
 
+	// RAG 服务文档
+	r.GET("/swagger/rag/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.InstanceName("rag")))
+
 	// 设置 Info
 	docs_apisvc.SwaggerInfoapisvc.Title = "Sentinel-X API Service"
 	docs_apisvc.SwaggerInfoapisvc.BasePath = "/api/v1"
 
 	docs_usercenter.SwaggerInfousercenter.Title = "Sentinel-X User Center Service"
 	docs_usercenter.SwaggerInfousercenter.BasePath = "/v1"
+
+	docs_rag.SwaggerInforag.Title = "Sentinel-X RAG Service"
+	docs_rag.SwaggerInforag.BasePath = "/"
 
 	if err := r.Run(":8082"); err != nil {
 		panic(err)

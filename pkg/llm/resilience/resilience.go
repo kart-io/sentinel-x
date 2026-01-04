@@ -32,7 +32,7 @@ func DefaultRetryConfig() *RetryConfig {
 		InitialDelay: 500 * time.Millisecond,
 		MaxDelay:     10 * time.Second,
 		Multiplier:   2.0,
-		RetryableErrors: func(err error) bool {
+		RetryableErrors: func(_ error) bool {
 			// 默认所有错误都可重试
 			return true
 		},

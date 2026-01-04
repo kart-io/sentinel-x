@@ -3,9 +3,9 @@ package middleware
 
 import "github.com/spf13/pflag"
 
-// MiddlewareConfig 定义中间件配置的统一接口。
+// Config 定义中间件配置的统一接口。
 // 所有中间件配置必须实现此接口以支持注册器模式。
-type MiddlewareConfig interface {
+type Config interface {
 	// Validate 验证配置的有效性。
 	Validate() []error
 
@@ -15,3 +15,10 @@ type MiddlewareConfig interface {
 	// AddFlags 添加命令行标志。
 	AddFlags(fs *pflag.FlagSet, prefixes ...string)
 }
+
+// MiddlewareConfig 是 Config 的别名,保持向后兼容。
+//
+// Deprecated: 使用 Config 替代。
+//
+//nolint:revive // MiddlewareConfig 保持向后兼容性
+type MiddlewareConfig = Config

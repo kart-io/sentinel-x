@@ -145,10 +145,8 @@ func (s *RAGService) Query(ctx context.Context, question string) (*model.QueryRe
 
 	// 5. 写入缓存
 	if s.cache != nil {
-		if err := s.cache.Set(ctx, question, queryResult); err != nil {
-			// 缓存写入失败不影响正常返回
-			// 错误已在 cache.Set 中记录
-		}
+		// 缓存写入失败不影响正常返回,错误已在 cache.Set 中记录
+		_ = s.cache.Set(ctx, question, queryResult)
 	}
 
 	// 记录缓存未命中的成功查询

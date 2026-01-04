@@ -64,7 +64,7 @@ func TestNewProviderUnknown(t *testing.T) {
 
 func TestNewEmbeddingProvider(t *testing.T) {
 	// 注册专用 Embedding 供应商
-	RegisterEmbeddingProvider("embed-only", func(config map[string]any) (EmbeddingProvider, error) {
+	RegisterEmbeddingProvider("embed-only", func(_ map[string]any) (EmbeddingProvider, error) {
 		return &mockProvider{name: "embed-only"}, nil
 	})
 
@@ -89,7 +89,7 @@ func TestNewEmbeddingProvider(t *testing.T) {
 
 func TestNewChatProvider(t *testing.T) {
 	// 注册专用 Chat 供应商
-	RegisterChatProvider("chat-only", func(config map[string]any) (ChatProvider, error) {
+	RegisterChatProvider("chat-only", func(_ map[string]any) (ChatProvider, error) {
 		return &mockProvider{name: "chat-only"}, nil
 	})
 

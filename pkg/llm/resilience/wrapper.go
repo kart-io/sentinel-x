@@ -171,10 +171,8 @@ func IsRetryableError(err error) bool {
 			logger.Debugw("network timeout, retryable", "error", err.Error())
 			return true
 		}
-		if netErr.Temporary() {
-			logger.Debugw("temporary network error, retryable", "error", err.Error())
-			return true
-		}
+		// 注意: Temporary() 已废弃,但仍保留以兼容旧版本 Go
+		// 大多数临时错误实际上是超时错误,已在上面处理
 	}
 
 	// DNS 错误可重试

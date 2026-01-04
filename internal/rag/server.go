@@ -15,12 +15,13 @@ import (
 	"github.com/kart-io/sentinel-x/internal/rag/router"
 	"github.com/kart-io/sentinel-x/internal/rag/store"
 	"github.com/kart-io/sentinel-x/pkg/component/milvus"
-	// Register adapters
+	// 导入适配器以注册 HTTP 框架支持
 	_ "github.com/kart-io/sentinel-x/pkg/infra/adapter/echo"
 	_ "github.com/kart-io/sentinel-x/pkg/infra/adapter/gin"
 	"github.com/kart-io/sentinel-x/pkg/infra/app"
 	"github.com/kart-io/sentinel-x/pkg/infra/server"
 	"github.com/kart-io/sentinel-x/pkg/llm"
+	// 导入 LLM 供应商以自动注册
 	_ "github.com/kart-io/sentinel-x/pkg/llm/deepseek"
 	_ "github.com/kart-io/sentinel-x/pkg/llm/gemini"
 	_ "github.com/kart-io/sentinel-x/pkg/llm/huggingface"
@@ -70,7 +71,7 @@ type Server struct {
 }
 
 // NewServer initializes and returns a new Server instance.
-func (cfg *Config) NewServer(ctx context.Context) (*Server, error) {
+func (cfg *Config) NewServer(_ context.Context) (*Server, error) {
 	printBanner(cfg)
 
 	// 1. 初始化日志
@@ -109,7 +110,7 @@ func (cfg *Config) NewServer(ctx context.Context) (*Server, error) {
 		// 测试 Redis 连接
 		if err := redisClient.Ping(context.Background()).Err(); err != nil {
 			logger.Warnw("failed to connect to redis, cache will be disabled", "error", err.Error())
-			redisClient.Close()
+			_ = redisClient.Close()
 			redisClient = nil
 		} else {
 			queryCache = biz.NewQueryCache(redisClient, &biz.QueryCacheConfig{
@@ -117,7 +118,7 @@ func (cfg *Config) NewServer(ctx context.Context) (*Server, error) {
 				TTL:       cfg.CacheOptions.TTL,
 				KeyPrefix: cfg.CacheOptions.KeyPrefix,
 			})
-			redisClose = func() { redisClient.Close() }
+			redisClose = func() { _ = redisClient.Close() }
 			logger.Infow("Redis cache initialized",
 				"host", cfg.CacheOptions.Redis.Host,
 				"port", cfg.CacheOptions.Redis.Port,
@@ -210,13 +211,13 @@ func (cfg *Config) NewServer(ctx context.Context) (*Server, error) {
 	logger.Info("RAG service is ready")
 	return &Server{
 		srv:         serverManager,
-		milvusClose: func() { milvusClient.Close(context.Background()) },
+		milvusClose: func() { _ = milvusClient.Close(context.Background()) },
 		redisClose:  redisClose,
 	}, nil
 }
 
 // Run starts the server and listens for termination signals.
-func (s *Server) Run(ctx context.Context) error {
+func (s *Server) Run(_ context.Context) error {
 	defer func() {
 		if s.milvusClose != nil {
 			s.milvusClose()

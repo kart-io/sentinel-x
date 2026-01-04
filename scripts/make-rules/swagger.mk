@@ -17,3 +17,7 @@ swagger.gen:
 		echo "Generating docs for user-center..."; \
 		cd cmd/user-center && swag init -g main.go -o ../../api/swagger/user-center --instanceName usercenter --packageName usercenter --parseDependency --parseInternal -d .,../../internal/user-center; \
 	fi
+	@if [ -d "cmd/rag" ]; then \
+		echo "Generating docs for rag..."; \
+		cd cmd/rag && swag init -g main.go -o ../../api/swagger/rag --instanceName rag --packageName rag --parseDependency --parseInternal -d .,../../internal/rag; \
+	fi

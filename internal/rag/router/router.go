@@ -5,6 +5,7 @@ import (
 	"github.com/kart-io/logger"
 	grpcHandler "github.com/kart-io/sentinel-x/internal/rag/grpc"
 	"github.com/kart-io/sentinel-x/internal/rag/handler"
+	_ "github.com/kart-io/sentinel-x/api/swagger/rag"
 	ragv1 "github.com/kart-io/sentinel-x/pkg/api/rag/v1"
 	"github.com/kart-io/sentinel-x/pkg/infra/server"
 )

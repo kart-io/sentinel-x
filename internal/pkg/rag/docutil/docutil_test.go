@@ -12,7 +12,7 @@ import (
 
 func TestEnsureDir(t *testing.T) {
 	tmpDir := filepath.Join(os.TempDir(), "docutil_test_ensuredir")
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	// 创建目录
 	err := docutil.EnsureDir(tmpDir)
@@ -31,9 +31,10 @@ func TestEnsureDir(t *testing.T) {
 func TestFindFiles(t *testing.T) {
 	// 创建临时目录结构
 	tmpDir := filepath.Join(os.TempDir(), "docutil_test_findfiles")
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
-	require.NoError(t, os.MkdirAll(filepath.Join(tmpDir, "subdir"), 0o755))
+	// 使用 0750 权限符合安全最佳实践
+	require.NoError(t, os.MkdirAll(filepath.Join(tmpDir, "subdir"), 0o750))
 
 	// 创建测试文件
 	testFiles := []string{
@@ -44,7 +45,8 @@ func TestFindFiles(t *testing.T) {
 	}
 
 	for _, f := range testFiles {
-		require.NoError(t, os.WriteFile(f, []byte("test"), 0o644))
+		// 使用 0600 权限符合安全最佳实践
+		require.NoError(t, os.WriteFile(f, []byte("test"), 0o600))
 	}
 
 	// 查找 .md 文件
@@ -65,10 +67,10 @@ func TestFindFiles(t *testing.T) {
 
 func TestReadFileContent(t *testing.T) {
 	tmpFile := filepath.Join(os.TempDir(), "docutil_test_readfile.txt")
-	defer os.Remove(tmpFile)
+	defer func() { _ = os.Remove(tmpFile) }()
 
 	expectedContent := "Hello, World!\n这是测试内容。"
-	require.NoError(t, os.WriteFile(tmpFile, []byte(expectedContent), 0o644))
+	require.NoError(t, os.WriteFile(tmpFile, []byte(expectedContent), 0o600))
 
 	content, err := docutil.ReadFileContent(tmpFile)
 	require.NoError(t, err)
@@ -81,13 +83,13 @@ func TestReadFileContent(t *testing.T) {
 
 func TestFileExists(t *testing.T) {
 	tmpFile := filepath.Join(os.TempDir(), "docutil_test_exists.txt")
-	defer os.Remove(tmpFile)
+	defer func() { _ = os.Remove(tmpFile) }()
 
 	// 文件不存在
 	assert.False(t, docutil.FileExists(tmpFile))
 
 	// 创建文件
-	require.NoError(t, os.WriteFile(tmpFile, []byte("test"), 0o644))
+	require.NoError(t, os.WriteFile(tmpFile, []byte("test"), 0o600))
 
 	// 文件存在
 	assert.True(t, docutil.FileExists(tmpFile))
@@ -95,21 +97,21 @@ func TestFileExists(t *testing.T) {
 
 func TestDirExists(t *testing.T) {
 	tmpDir := filepath.Join(os.TempDir(), "docutil_test_direxists")
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	// 目录不存在
 	assert.False(t, docutil.DirExists(tmpDir))
 
 	// 创建目录
-	require.NoError(t, os.MkdirAll(tmpDir, 0o755))
+	require.NoError(t, os.MkdirAll(tmpDir, 0o750))
 
 	// 目录存在
 	assert.True(t, docutil.DirExists(tmpDir))
 
 	// 文件不是目录
 	tmpFile := filepath.Join(os.TempDir(), "docutil_test_notdir.txt")
-	require.NoError(t, os.WriteFile(tmpFile, []byte("test"), 0o644))
-	defer os.Remove(tmpFile)
+	require.NoError(t, os.WriteFile(tmpFile, []byte("test"), 0o600))
+	defer func() { _ = os.Remove(tmpFile) }()
 
 	assert.False(t, docutil.DirExists(tmpFile))
 }

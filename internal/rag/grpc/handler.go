@@ -1,3 +1,4 @@
+// Package grpc 提供 RAG 服务的 gRPC 处理器实现。
 package grpc
 
 import (

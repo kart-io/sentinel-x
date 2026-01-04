@@ -32,7 +32,7 @@ func setupTestRedis(t *testing.T) *redis.Client {
 
 func TestNewQueryCache(t *testing.T) {
 	client := setupTestRedis(t)
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	config := &QueryCacheConfig{
 		Enabled:   true,
@@ -48,7 +48,7 @@ func TestNewQueryCache(t *testing.T) {
 
 func TestNewQueryCache_WithNilConfig(t *testing.T) {
 	client := setupTestRedis(t)
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	cache := NewQueryCache(client, nil)
 	assert.NotNil(t, cache)
@@ -60,7 +60,7 @@ func TestNewQueryCache_WithNilConfig(t *testing.T) {
 
 func TestQueryCache_GenerateCacheKey(t *testing.T) {
 	client := setupTestRedis(t)
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	config := &QueryCacheConfig{
 		Enabled:   true,
@@ -88,7 +88,7 @@ func TestQueryCache_GenerateCacheKey(t *testing.T) {
 
 func TestQueryCache_SetAndGet(t *testing.T) {
 	client := setupTestRedis(t)
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	config := &QueryCacheConfig{
 		Enabled:   true,
@@ -128,7 +128,7 @@ func TestQueryCache_SetAndGet(t *testing.T) {
 
 func TestQueryCache_GetMiss(t *testing.T) {
 	client := setupTestRedis(t)
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	config := &QueryCacheConfig{
 		Enabled:   true,
@@ -147,7 +147,7 @@ func TestQueryCache_GetMiss(t *testing.T) {
 
 func TestQueryCache_Disabled(t *testing.T) {
 	client := setupTestRedis(t)
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	config := &QueryCacheConfig{
 		Enabled:   false, // 禁用缓存
@@ -173,7 +173,7 @@ func TestQueryCache_Disabled(t *testing.T) {
 
 func TestQueryCache_Clear(t *testing.T) {
 	client := setupTestRedis(t)
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	config := &QueryCacheConfig{
 		Enabled:   true,
@@ -207,7 +207,7 @@ func TestQueryCache_Clear(t *testing.T) {
 
 func TestQueryCache_GetStats(t *testing.T) {
 	client := setupTestRedis(t)
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	config := &QueryCacheConfig{
 		Enabled:   true,
@@ -239,7 +239,7 @@ func TestQueryCache_GetStats(t *testing.T) {
 
 func TestQueryCache_GetStats_Disabled(t *testing.T) {
 	client := setupTestRedis(t)
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	config := &QueryCacheConfig{
 		Enabled:   false,
@@ -263,7 +263,7 @@ func TestQueryCache_TTLExpiration(t *testing.T) {
 	}
 
 	client := setupTestRedis(t)
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	config := &QueryCacheConfig{
 		Enabled:   true,

@@ -56,7 +56,7 @@ type Server struct {
 }
 
 // NewServer initializes and returns a new Server instance.
-func (cfg *Config) NewServer(ctx context.Context) (*Server, error) {
+func (cfg *Config) NewServer(_ context.Context) (*Server, error) {
 	printBanner()
 
 	// 1. 初始化日志
@@ -122,7 +122,7 @@ func (cfg *Config) NewServer(ctx context.Context) (*Server, error) {
 }
 
 // Run starts the server and listens for termination signals.
-func (s *Server) Run(ctx context.Context) error {
+func (s *Server) Run(_ context.Context) error {
 	return s.srv.Run()
 }
 

@@ -144,7 +144,7 @@ func TestRetryWithBackoff_EventualSuccess(t *testing.T) {
 		InitialDelay: 10 * time.Millisecond,
 		MaxDelay:     100 * time.Millisecond,
 		Multiplier:   2.0,
-		RetryableErrors: func(err error) bool {
+		RetryableErrors: func(_ error) bool {
 			return true
 		},
 	}
@@ -171,7 +171,7 @@ func TestRetryWithBackoff_MaxAttemptsReached(t *testing.T) {
 		InitialDelay: 10 * time.Millisecond,
 		MaxDelay:     100 * time.Millisecond,
 		Multiplier:   2.0,
-		RetryableErrors: func(err error) bool {
+		RetryableErrors: func(_ error) bool {
 			return true
 		},
 	}
@@ -221,7 +221,7 @@ func TestRetryWithBackoff_ContextCancellation(t *testing.T) {
 		InitialDelay: 100 * time.Millisecond,
 		MaxDelay:     1 * time.Second,
 		Multiplier:   2.0,
-		RetryableErrors: func(err error) bool {
+		RetryableErrors: func(_ error) bool {
 			return true
 		},
 	}
@@ -252,7 +252,7 @@ func TestRetryWithBackoff_ExponentialBackoff(t *testing.T) {
 		InitialDelay: 100 * time.Millisecond,
 		MaxDelay:     1 * time.Second,
 		Multiplier:   2.0,
-		RetryableErrors: func(err error) bool {
+		RetryableErrors: func(_ error) bool {
 			return true
 		},
 	}

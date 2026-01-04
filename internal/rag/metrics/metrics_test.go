@@ -299,6 +299,7 @@ func TestConcurrentAccess(t *testing.T) {
 	wg.Wait()
 
 	// 验证计数正确
+	// #nosec G115 -- 测试代码中常量值不会溢出
 	expected := uint64(numGoroutines * operationsPerGoroutine)
 	assert.Equal(t, expected, m.queriesTotal)
 
@@ -444,11 +445,12 @@ func TestExportPrometheusFormat(t *testing.T) {
 
 	var helpLines, typeLines, metricLines int
 	for _, line := range lines {
-		if strings.HasPrefix(line, "# HELP") {
+		switch {
+		case strings.HasPrefix(line, "# HELP"):
 			helpLines++
-		} else if strings.HasPrefix(line, "# TYPE") {
+		case strings.HasPrefix(line, "# TYPE"):
 			typeLines++
-		} else if len(line) > 0 && !strings.HasPrefix(line, "#") {
+		case len(line) > 0 && !strings.HasPrefix(line, "#"):
 			metricLines++
 		}
 	}

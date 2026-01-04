@@ -113,6 +113,7 @@ func (i *Indexer) indexFiles(ctx context.Context, files []string) error {
 	var allChunks []*store.Chunk
 
 	for _, file := range files {
+		// #nosec G304 -- 文件路径由 FindFiles 函数扫描返回,已通过业务逻辑验证
 		content, err := os.ReadFile(file)
 		if err != nil {
 			logger.Warnf("Failed to read file %s: %v", file, err)

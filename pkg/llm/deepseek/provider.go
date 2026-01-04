@@ -5,15 +5,16 @@ package deepseek
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"time"
 
 	"github.com/kart-io/sentinel-x/pkg/llm"
+	"github.com/kart-io/sentinel-x/pkg/utils/httpclient"
+	"github.com/kart-io/sentinel-x/pkg/utils/json"
 )
 
+// ProviderName 是 DeepSeek 供应商的名称标识符
 const ProviderName = "deepseek"
 
 func init() {
@@ -50,8 +51,8 @@ func DefaultConfig() *Config {
 
 // Provider DeepSeek 供应商实现。
 type Provider struct {
-	config     *Config
-	httpClient *http.Client
+	config *Config
+	client *httpclient.Client
 }
 
 // NewProvider 从配置 map 创建 DeepSeek 供应商。
@@ -85,9 +86,7 @@ func NewProvider(configMap map[string]any) (llm.Provider, error) {
 func NewProviderWithConfig(cfg *Config) *Provider {
 	return &Provider{
 		config: cfg,
-		httpClient: &http.Client{
-			Timeout: cfg.Timeout,
-		},
+		client: httpclient.NewClient(cfg.Timeout, cfg.MaxRetries),
 	}
 }
 
@@ -163,20 +162,9 @@ func (p *Provider) Chat(ctx context.Context, messages []llm.Message) (string, er
 	}
 	p.setHeaders(req)
 
-	resp, err := p.doRequestWithRetry(req)
-	if err != nil {
-		return "", fmt.Errorf("请求失败: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		bodyBytes, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("请求失败，状态码 %d: %s", resp.StatusCode, string(bodyBytes))
-	}
-
 	var chatResp chatResponse
-	if err := json.NewDecoder(resp.Body).Decode(&chatResp); err != nil {
-		return "", fmt.Errorf("解析响应失败: %w", err)
+	if err := p.client.DoJSON(req, &chatResp); err != nil {
+		return "", err
 	}
 
 	if len(chatResp.Choices) == 0 {
@@ -207,26 +195,4 @@ func (p *Provider) Generate(ctx context.Context, prompt string, systemPrompt str
 func (p *Provider) setHeaders(req *http.Request) {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+p.config.APIKey)
-}
-
-// doRequestWithRetry 带重试的请求执行。
-func (p *Provider) doRequestWithRetry(req *http.Request) (*http.Response, error) {
-	var lastErr error
-	for i := 0; i <= p.config.MaxRetries; i++ {
-		resp, err := p.httpClient.Do(req)
-		if err == nil {
-			if resp.StatusCode < 500 {
-				return resp, nil
-			}
-			resp.Body.Close()
-			lastErr = fmt.Errorf("服务器错误，状态码 %d", resp.StatusCode)
-		} else {
-			lastErr = err
-		}
-
-		if i < p.config.MaxRetries {
-			time.Sleep(time.Duration(i+1) * 500 * time.Millisecond)
-		}
-	}
-	return nil, lastErr
 }

@@ -1,0 +1,449 @@
+basePath: /
+definitions:
+  evaluator.Details:
+    properties:
+      claims:
+        description: Claims 从答案中提取的声明列表。
+        items:
+          type: string
+        type: array
+      generated_questions:
+        description: GeneratedQuestions 从答案生成的问题（用于答案相关性评估）。
+        items:
+          type: string
+        type: array
+      relevant_contexts:
+        description: RelevantContexts 相关上下文的索引列表。
+        items:
+          type: integer
+        type: array
+      supported_claims:
+        description: SupportedClaims 被上下文支持的声明数量。
+        type: integer
+      total_claims:
+        description: TotalClaims 总声明数量。
+        type: integer
+    type: object
+  evaluator.Result:
+    properties:
+      answer_relevancy:
+        description: AnswerRelevancy 答案相关性评分 (0-1)，衡量答案与问题的相关程度。
+        type: number
+      context_precision:
+        description: ContextPrecision 上下文精确度评分 (0-1)，衡量检索上下文的相关性排名。
+        type: number
+      context_recall:
+        description: ContextRecall 上下文召回率评分 (0-1)，衡量检索内容覆盖理想答案的程度。
+        type: number
+      details:
+        allOf:
+        - $ref: '#/definitions/evaluator.Details'
+        description: Details 评估详情。
+      faithfulness:
+        description: Faithfulness 忠实度评分 (0-1)，衡量答案与上下文的事实一致性。
+        type: number
+      overall_score:
+        description: OverallScore 综合评分 (0-1)，所有指标的加权平均。
+        type: number
+    type: object
+  handler.CollectionInfo:
+    properties:
+      count:
+        example: 5000
+        type: integer
+      description:
+        example: RAG knowledge base collection
+        type: string
+      name:
+        example: milvus_docs
+        type: string
+    type: object
+  handler.ErrorResponse:
+    properties:
+      code:
+        example: 400
+        type: integer
+      message:
+        example: bad request
+        type: string
+    type: object
+  handler.EvaluateRequest:
+    properties:
+      answer:
+        example: RAG 是检索增强生成。
+        type: string
+      contexts:
+        example:
+        - '[''上下文片段1'']'
+        items:
+          type: string
+        type: array
+      ground_truth:
+        example: 检索增强生成 (Retrieval-Augmented Generation)
+        type: string
+      question:
+        example: 什么是 RAG？
+        type: string
+    required:
+    - answer
+    - contexts
+    - question
+    type: object
+  handler.IndexDirectoryRequest:
+    properties:
+      directory:
+        example: /data/docs
+        type: string
+    required:
+    - directory
+    type: object
+  handler.IndexFromURLRequest:
+    properties:
+      url:
+        example: https://milvus.io/docs/overview.md
+        type: string
+    required:
+    - url
+    type: object
+  handler.IndexRequest:
+    properties:
+      source_url:
+        example: https://milvus.io/docs/overview.md
+        type: string
+    required:
+    - source_url
+    type: object
+  handler.QueryAndEvaluateRequest:
+    properties:
+      ground_truth:
+        example: 微服务平台
+        type: string
+      question:
+        example: Sentinel-X 是什么？
+        type: string
+    required:
+    - question
+    type: object
+  handler.QueryAndEvaluateResponse:
+    properties:
+      answer:
+        example: 回答内容
+        type: string
+      evaluation:
+        $ref: '#/definitions/evaluator.Result'
+      sources: {}
+    type: object
+  handler.QueryRequest:
+    properties:
+      question:
+        example: 什么是 Milvus？
+        type: string
+    required:
+    - question
+    type: object
+  handler.SuccessResponse:
+    properties:
+      code:
+        example: 0
+        type: integer
+      data: {}
+      message:
+        example: success
+        type: string
+    type: object
+  model.ChunkSource:
+    properties:
+      content:
+        type: string
+      document_id:
+        type: string
+      document_name:
+        type: string
+      score:
+        type: number
+      section:
+        type: string
+    type: object
+  model.QueryResult:
+    properties:
+      answer:
+        type: string
+      sources:
+        items:
+          $ref: '#/definitions/model.ChunkSource'
+        type: array
+    type: object
+host: localhost:8082
+info:
+  contact:
+    email: support@sentinel-x.io
+    name: Sentinel-X Team
+    url: https://github.com/kart-io/sentinel-x
+  description: RAG 知识库服务 - 基于 Milvus 向量数据库和 Ollama LLM
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: https://github.com/kart-io/sentinel-x
+  title: Sentinel-X RAG API
+  version: "1.0"
+paths:
+  /v1/rag/collections:
+    get:
+      description: 返回当前系统中配置的所有知识库集合及其详细信息。
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/handler.SuccessResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/handler.CollectionInfo'
+                  type: array
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: 列出所有知识库集合
+      tags:
+      - RAG
+  /v1/rag/evaluate:
+    post:
+      consumes:
+      - application/json
+      description: 使用评估器（通常是另一个 LLM）对生成的回答、检索的上下文进行评分。
+      parameters:
+      - description: 评估请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.EvaluateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/handler.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/evaluator.Result'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: 评估 RAG 回答质量
+      tags:
+      - RAG
+  /v1/rag/index:
+    post:
+      consumes:
+      - application/json
+      description: 下载并处理指定 URL 的文档，将其切片并存储到向量数据库中。
+      parameters:
+      - description: 索引请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.IndexRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: 从 URL 索引文档
+      tags:
+      - RAG
+  /v1/rag/index/directory:
+    post:
+      consumes:
+      - application/json
+      description: 处理指定本地目录下的所有支持的文档，将其切片并存储到向量数据库中。
+      parameters:
+      - description: 目录索引请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.IndexDirectoryRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: 从本地目录索引文档
+      tags:
+      - RAG
+  /v1/rag/index/url:
+    post:
+      consumes:
+      - application/json
+      description: 下载并处理指定 URL 的文档，将其切片并存储到向量数据库中。
+      parameters:
+      - description: 索引请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.IndexFromURLRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: 从 URL 索引文档 (别名)
+      tags:
+      - RAG
+  /v1/rag/metrics:
+    get:
+      description: 返回 RAG 服务运行期间产生的各种业务指标（Prometheus 格式）。
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: metrics data
+          schema:
+            type: string
+      summary: 导出业务指标
+      tags:
+      - RAG
+  /v1/rag/query:
+    post:
+      consumes:
+      - application/json
+      description: 根据用户提出的问题，从知识库中检索相关上下文，并生成回答。
+      parameters:
+      - description: 查询请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.QueryRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/handler.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.QueryResult'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "408":
+          description: Request Timeout
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: 执行 RAG 查询
+      tags:
+      - RAG
+  /v1/rag/query-evaluate:
+    post:
+      consumes:
+      - application/json
+      description: 执行 RAG 查询流程，并在生成结果后立即进行质量评估。
+      parameters:
+      - description: 查询评估请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.QueryAndEvaluateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/handler.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/handler.QueryAndEvaluateResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: 查询并即时评估
+      tags:
+      - RAG
+  /v1/rag/stats:
+    get:
+      description: 返回当前向量数据库的集合名称、文本片段总数等统计数据。
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.SuccessResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: 获取知识库统计信息
+      tags:
+      - RAG
+securityDefinitions:
+  Bearer:
+    description: 'JWT Bearer token. Example: "Bearer {token}"'
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

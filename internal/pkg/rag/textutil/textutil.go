@@ -2,7 +2,7 @@
 package textutil
 
 import (
-	"crypto/md5"
+	"crypto/md5" // #nosec G501 -- MD5 仅用于文档内容去重(非安全场景)
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -39,7 +39,9 @@ func NormalizeCosineSimilarity(similarity float64) float64 {
 }
 
 // HashString 计算字符串的 MD5 哈希值。
+// 注意: MD5 仅用于文档内容去重,不用于安全场景。
 func HashString(s string) string {
+	// #nosec G401 -- MD5 仅用于文档内容去重(非安全场景)
 	hash := md5.Sum([]byte(s))
 	return hex.EncodeToString(hash[:])
 }

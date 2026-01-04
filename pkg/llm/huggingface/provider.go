@@ -5,15 +5,17 @@ package huggingface
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"time"
 
 	"github.com/kart-io/sentinel-x/pkg/llm"
+	"github.com/kart-io/sentinel-x/pkg/utils/httpclient"
+	"github.com/kart-io/sentinel-x/pkg/utils/json"
 )
 
+// ProviderName 是 HuggingFace 供应商的名称标识符
 const ProviderName = "huggingface"
 
 func init() {
@@ -58,8 +60,8 @@ func DefaultConfig() *Config {
 
 // Provider HuggingFace 供应商实现。
 type Provider struct {
-	config     *Config
-	httpClient *http.Client
+	config *Config
+	client *httpclient.Client
 }
 
 // NewProvider 从配置 map 创建 HuggingFace 供应商。
@@ -99,9 +101,7 @@ func NewProvider(configMap map[string]any) (llm.Provider, error) {
 func NewProviderWithConfig(cfg *Config) *Provider {
 	return &Provider{
 		config: cfg,
-		httpClient: &http.Client{
-			Timeout: cfg.Timeout,
-		},
+		client: httpclient.NewClient(cfg.Timeout, cfg.MaxRetries),
 	}
 }
 
@@ -145,11 +145,11 @@ func (p *Provider) Embed(ctx context.Context, texts []string) ([][]float32, erro
 	}
 	p.setHeaders(req)
 
-	resp, err := p.doRequestWithRetry(req)
+	resp, err := p.client.DoRequest(req)
 	if err != nil {
-		return nil, fmt.Errorf("请求失败: %w", err)
+		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		bodyBytes, _ := io.ReadAll(resp.Body)
@@ -157,11 +157,17 @@ func (p *Provider) Embed(ctx context.Context, texts []string) ([][]float32, erro
 	}
 
 	// HuggingFace 返回 [][]float32 或 [][][]float32（需要取平均）
+	// 由于 httpclient.DoJSON 需要单次解析，这里手动处理双重解析逻辑
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
 	var embeddings [][]float32
-	if err := json.NewDecoder(resp.Body).Decode(&embeddings); err != nil {
+	if err := json.Unmarshal(bodyBytes, &embeddings); err != nil {
 		// 尝试解析为 3D 数组（某些模型返回 token 级别的嵌入）
 		var tokenEmbeddings [][][]float32
-		if err2 := json.NewDecoder(resp.Body).Decode(&tokenEmbeddings); err2 != nil {
+		if err2 := json.Unmarshal(bodyBytes, &tokenEmbeddings); err2 != nil {
 			return nil, fmt.Errorf("解析响应失败: %w", err)
 		}
 		// 对 token 嵌入取平均
@@ -265,20 +271,9 @@ func (p *Provider) generate(ctx context.Context, prompt string) (string, error) 
 	}
 	p.setHeaders(req)
 
-	resp, err := p.doRequestWithRetry(req)
-	if err != nil {
-		return "", fmt.Errorf("请求失败: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		bodyBytes, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("请求失败，状态码 %d: %s", resp.StatusCode, string(bodyBytes))
-	}
-
 	var responses []chatResponse
-	if err := json.NewDecoder(resp.Body).Decode(&responses); err != nil {
-		return "", fmt.Errorf("解析响应失败: %w", err)
+	if err := p.client.DoJSON(req, &responses); err != nil {
+		return "", err
 	}
 
 	if len(responses) == 0 {
@@ -308,32 +303,4 @@ func formatMessages(messages []llm.Message) string {
 func (p *Provider) setHeaders(req *http.Request) {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+p.config.APIKey)
-}
-
-// doRequestWithRetry 带重试的请求执行。
-func (p *Provider) doRequestWithRetry(req *http.Request) (*http.Response, error) {
-	var lastErr error
-	for i := 0; i <= p.config.MaxRetries; i++ {
-		resp, err := p.httpClient.Do(req)
-		if err == nil {
-			// 503 表示模型正在加载，可以重试
-			if resp.StatusCode < 500 || resp.StatusCode == 503 && i < p.config.MaxRetries {
-				if resp.StatusCode == 503 {
-					resp.Body.Close()
-					time.Sleep(time.Duration(i+1) * 2 * time.Second) // 模型加载需要更长时间
-					continue
-				}
-				return resp, nil
-			}
-			resp.Body.Close()
-			lastErr = fmt.Errorf("服务器错误，状态码 %d", resp.StatusCode)
-		} else {
-			lastErr = err
-		}
-
-		if i < p.config.MaxRetries {
-			time.Sleep(time.Duration(i+1) * 500 * time.Millisecond)
-		}
-	}
-	return nil, lastErr
 }

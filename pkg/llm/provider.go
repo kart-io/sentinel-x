@@ -41,9 +41,13 @@ type Message struct {
 // Role 定义消息角色。
 type Role string
 
+// 消息角色常量定义
 const (
-	RoleSystem    Role = "system"
-	RoleUser      Role = "user"
+	// RoleSystem 表示系统角色
+	RoleSystem Role = "system"
+	// RoleUser 表示用户角色
+	RoleUser Role = "user"
+	// RoleAssistant 表示助手角色
 	RoleAssistant Role = "assistant"
 )
 
