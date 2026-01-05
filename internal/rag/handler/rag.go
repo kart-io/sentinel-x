@@ -8,8 +8,8 @@ import (
 
 	"github.com/kart-io/sentinel-x/internal/pkg/rag/evaluator"
 	"github.com/kart-io/sentinel-x/internal/rag/biz"
-	"github.com/kart-io/sentinel-x/internal/rag/metrics"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	observability "github.com/kart-io/sentinel-x/pkg/observability/metrics"
 )
 
 // RAGHandler handles RAG HTTP requests.
@@ -351,6 +351,6 @@ func (h *RAGHandler) QueryAndEvaluate(c transport.Context) {
 // @Success 200 {string} string "metrics data"
 // @Router /v1/rag/metrics [get]
 func (h *RAGHandler) Metrics(c transport.Context) {
-	metricsData := metrics.GetRAGMetrics().Export("sentinel_x", "rag")
+	metricsData := observability.Export()
 	c.String(http.StatusOK, metricsData)
 }

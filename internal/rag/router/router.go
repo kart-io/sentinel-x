@@ -3,6 +3,7 @@ package router
 
 import (
 	"github.com/kart-io/logger"
+	// Import swagger docs for API documentation
 	_ "github.com/kart-io/sentinel-x/api/swagger/rag"
 	grpcHandler "github.com/kart-io/sentinel-x/internal/rag/grpc"
 	"github.com/kart-io/sentinel-x/internal/rag/handler"
