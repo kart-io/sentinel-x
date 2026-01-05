@@ -1,58 +1,73 @@
 package observability
 
 import (
-	"fmt"
 	"net/http"
-	"sort"
-	"strings"
+	"strconv"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	"github.com/kart-io/sentinel-x/pkg/observability/metrics"
 	options "github.com/kart-io/sentinel-x/pkg/options/middleware"
 )
 
-// MetricsCollector collects HTTP metrics.
+// MetricsCollector collects HTTP metrics using the unified metrics package.
 type MetricsCollector struct {
-	mu        sync.RWMutex
 	namespace string
 	subsystem string
 
-	// Request counters
-	requestsTotal   map[string]*uint64 // method:path:status -> count
-	requestDuration map[string]*histogram
-
-	// Active requests
-	activeRequests int64
+	// Metrics
+	requestsTotal   metrics.CounterVec
+	requestDuration metrics.HistogramVec
+	activeRequests  metrics.Gauge
 
 	// Start time
-	startTime time.Time
-}
-
-// histogram is a simple histogram implementation.
-type histogram struct {
-	count uint64
-	sum   float64
-	mu    sync.Mutex
-}
-
-func (h *histogram) observe(value float64) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	h.count++
-	h.sum += value
+	startTime metrics.Gauge
 }
 
 // NewMetricsCollector creates a new metrics collector.
 func NewMetricsCollector(namespace, subsystem string) *MetricsCollector {
-	return &MetricsCollector{
-		namespace:       namespace,
-		subsystem:       subsystem,
-		requestsTotal:   make(map[string]*uint64),
-		requestDuration: make(map[string]*histogram),
-		startTime:       time.Now(),
+	prefix := namespace
+	if subsystem != "" {
+		prefix = prefix + "_" + subsystem
 	}
+
+	m := &MetricsCollector{
+		namespace: namespace,
+		subsystem: subsystem,
+	}
+
+	// Register metrics
+	m.requestsTotal = metrics.NewCounterVec(
+		prefix+"_requests_total",
+		"Total number of HTTP requests.",
+	)
+	metrics.Register(m.requestsTotal)
+
+	m.requestDuration = metrics.NewHistogramVec(
+		prefix+"_request_duration_seconds",
+		"HTTP request duration in seconds.",
+		[]float64{0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10},
+	)
+	metrics.Register(m.requestDuration)
+
+	m.activeRequests = metrics.NewGauge(
+		prefix+"_requests_active",
+		"Current number of active requests.",
+	)
+	metrics.Register(m.activeRequests)
+
+	m.startTime = metrics.NewGauge(
+		prefix+"_process_start_time_seconds",
+		"Start time of the process.",
+	)
+	m.startTime.Set(float64(time.Now().Unix()))
+	metrics.Register(m.startTime)
+
+	// Uptime metric is dynamic, we don't register it as a static gauge but could add a collector func
+	// For simplicity, we'll keep the process start time which allows calculating uptime
+
+	return m
 }
 
 // globalMetricsCollector is the default metrics collector.
@@ -74,127 +89,43 @@ func GetMetricsCollector(namespace, subsystem string) *MetricsCollector {
 }
 
 // ResetMetricsCollector resets the global metrics collector (useful for testing).
-// This allows tests to create a new collector with different configuration.
 func ResetMetricsCollector() {
 	metricsMu.Lock()
 	defer metricsMu.Unlock()
+
+	// Also reset the global registry to avoid duplicate registration errors
+	metrics.DefaultRegistry.Reset()
+
 	globalMetricsCollector = nil
 	metricsOnce = sync.Once{}
 }
 
 // RecordRequest records a request metric.
 func (m *MetricsCollector) RecordRequest(method, path string, status int, duration time.Duration) {
-	key := fmt.Sprintf("%s:%s:%d", method, path, status)
-
-	m.mu.Lock()
-	if _, ok := m.requestsTotal[key]; !ok {
-		var counter uint64
-		m.requestsTotal[key] = &counter
+	labels := map[string]string{
+		"method": method,
+		"path":   path,
+		"status": strconv.Itoa(status),
 	}
-	if _, ok := m.requestDuration[key]; !ok {
-		m.requestDuration[key] = &histogram{}
-	}
-	counterPtr := m.requestsTotal[key]
-	histPtr := m.requestDuration[key]
-	m.mu.Unlock()
-
-	atomic.AddUint64(counterPtr, 1)
-	histPtr.observe(duration.Seconds())
+	m.requestsTotal.With(labels).Inc()
+	m.requestDuration.With(labels).Observe(duration.Seconds())
 }
 
 // IncrementActive increments active request count.
 func (m *MetricsCollector) IncrementActive() {
-	atomic.AddInt64(&m.activeRequests, 1)
+	m.activeRequests.Inc()
 }
 
 // DecrementActive decrements active request count.
 func (m *MetricsCollector) DecrementActive() {
-	atomic.AddInt64(&m.activeRequests, -1)
+	m.activeRequests.Dec()
 }
 
 // Export exports metrics in Prometheus format.
 func (m *MetricsCollector) Export() string {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-
-	var sb strings.Builder
-	prefix := m.namespace
-	if m.subsystem != "" {
-		prefix = prefix + "_" + m.subsystem
-	}
-
-	// Process info
-	sb.WriteString(fmt.Sprintf("# HELP %s_process_start_time_seconds Start time of the process.\n", prefix))
-	sb.WriteString(fmt.Sprintf("# TYPE %s_process_start_time_seconds gauge\n", prefix))
-	sb.WriteString(fmt.Sprintf("%s_process_start_time_seconds %d\n", prefix, m.startTime.Unix()))
-	sb.WriteString("\n")
-
-	// Uptime
-	sb.WriteString(fmt.Sprintf("# HELP %s_process_uptime_seconds Uptime of the process.\n", prefix))
-	sb.WriteString(fmt.Sprintf("# TYPE %s_process_uptime_seconds gauge\n", prefix))
-	sb.WriteString(fmt.Sprintf("%s_process_uptime_seconds %.2f\n", prefix, time.Since(m.startTime).Seconds()))
-	sb.WriteString("\n")
-
-	// Active requests
-	sb.WriteString(fmt.Sprintf("# HELP %s_requests_active Current number of active requests.\n", prefix))
-	sb.WriteString(fmt.Sprintf("# TYPE %s_requests_active gauge\n", prefix))
-	sb.WriteString(fmt.Sprintf("%s_requests_active %d\n", prefix, atomic.LoadInt64(&m.activeRequests)))
-	sb.WriteString("\n")
-
-	// Request total
-	if len(m.requestsTotal) > 0 {
-		sb.WriteString(fmt.Sprintf("# HELP %s_requests_total Total number of HTTP requests.\n", prefix))
-		sb.WriteString(fmt.Sprintf("# TYPE %s_requests_total counter\n", prefix))
-
-		// Sort keys for consistent output
-		keys := make([]string, 0, len(m.requestsTotal))
-		for k := range m.requestsTotal {
-			keys = append(keys, k)
-		}
-		sort.Strings(keys)
-
-		for _, key := range keys {
-			parts := strings.SplitN(key, ":", 3)
-			if len(parts) == 3 {
-				method, path, status := parts[0], parts[1], parts[2]
-				count := atomic.LoadUint64(m.requestsTotal[key])
-				sb.WriteString(fmt.Sprintf("%s_requests_total{method=\"%s\",path=\"%s\",status=\"%s\"} %d\n",
-					prefix, method, path, status, count))
-			}
-		}
-		sb.WriteString("\n")
-	}
-
-	// Request duration
-	if len(m.requestDuration) > 0 {
-		sb.WriteString(fmt.Sprintf("# HELP %s_request_duration_seconds HTTP request duration in seconds.\n", prefix))
-		sb.WriteString(fmt.Sprintf("# TYPE %s_request_duration_seconds summary\n", prefix))
-
-		keys := make([]string, 0, len(m.requestDuration))
-		for k := range m.requestDuration {
-			keys = append(keys, k)
-		}
-		sort.Strings(keys)
-
-		for _, key := range keys {
-			parts := strings.SplitN(key, ":", 3)
-			if len(parts) == 3 {
-				method, path, status := parts[0], parts[1], parts[2]
-				hist := m.requestDuration[key]
-				hist.mu.Lock()
-				count := hist.count
-				sum := hist.sum
-				hist.mu.Unlock()
-
-				sb.WriteString(fmt.Sprintf("%s_request_duration_seconds_count{method=\"%s\",path=\"%s\",status=\"%s\"} %d\n",
-					prefix, method, path, status, count))
-				sb.WriteString(fmt.Sprintf("%s_request_duration_seconds_sum{method=\"%s\",path=\"%s\",status=\"%s\"} %.6f\n",
-					prefix, method, path, status, sum))
-			}
-		}
-	}
-
-	return sb.String()
+	// The registry handles all registered metrics
+	// We might want to append process uptime here if not handled by registry
+	return metrics.Export()
 }
 
 // metricsResponseWriter wraps http.ResponseWriter to capture status code.
@@ -248,15 +179,18 @@ func MetricsMiddleware(opts options.MetricsOptions) transport.MiddlewareFunc {
 			rw := c.ResponseWriter()
 			mrw := newMetricsResponseWriter(rw)
 
-			// Create a new context with wrapped response writer if possible
-			// For now, we'll just call next and try to get status from response
+			// Execute handler
 			next(c)
 
 			duration := time.Since(start)
 			collector.DecrementActive()
 
 			// Try to get status code - default to 200 if not available
+			// Note: In a real Gin/Echo wrapper, we'd need to properly wrap the ResponseWriter in the context
+			// But for now we rely on the implementation status
 			status := mrw.statusCode
+			// If possible, get status from context specific response if wrapper didn't work (framework dependent)
+
 			collector.RecordRequest(req.Method, path, status, duration)
 		}
 	}
@@ -264,46 +198,35 @@ func MetricsMiddleware(opts options.MetricsOptions) transport.MiddlewareFunc {
 
 // RegisterMetricsRoutes registers metrics endpoint.
 func RegisterMetricsRoutes(router transport.Router, opts options.MetricsOptions) {
-	collector := GetMetricsCollector(opts.Namespace, opts.Subsystem)
+	// Ensure collector is initialized
+	GetMetricsCollector(opts.Namespace, opts.Subsystem)
 
 	router.Handle(http.MethodGet, opts.Path, func(c transport.Context) {
 		c.SetHeader("Content-Type", "text/plain; charset=utf-8")
-		c.String(http.StatusOK, collector.Export())
+		c.String(http.StatusOK, metrics.Export())
 	})
 }
 
 // ResetMetrics resets all metrics data (useful for testing).
-// This clears metric data but keeps the same collector instance.
 func ResetMetrics() {
-	metricsMu.RLock()
-	collector := globalMetricsCollector
-	metricsMu.RUnlock()
-
-	if collector != nil {
-		collector.mu.Lock()
-		collector.requestsTotal = make(map[string]*uint64)
-		collector.requestDuration = make(map[string]*histogram)
-		collector.startTime = time.Now()
-		atomic.StoreInt64(&collector.activeRequests, 0)
-		collector.mu.Unlock()
-	}
+	// Reset registry
+	metrics.DefaultRegistry.Reset()
+	// Reset collector instance
+	ResetMetricsCollector()
 }
 
 // GetRequestCount returns the request count for given method, path, status.
+// Useful for testing verification.
 func (m *MetricsCollector) GetRequestCount(method, path string, status int) uint64 {
-	key := fmt.Sprintf("%s:%s:%d", method, path, status)
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-
-	if counter, ok := m.requestsTotal[key]; ok {
-		return atomic.LoadUint64(counter)
+	labels := map[string]string{
+		"method": method,
+		"path":   path,
+		"status": strconv.Itoa(status),
 	}
-	return 0
+	return uint64(m.requestsTotal.With(labels).Get())
 }
 
 // SetResponseStatus sets the response status for metrics recording.
-// Call this from your handler if you want accurate status code tracking.
 func SetResponseStatus(_ transport.Context, status int) {
-	// This is a helper for frameworks where we can't easily wrap the response writer
-	_ = status // Status is tracked by the framework's response writer
+	_ = status
 }

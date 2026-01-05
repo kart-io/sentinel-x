@@ -44,6 +44,14 @@ middleware:
     namespace: sentinel
     subsystem: api
 
+# gRPC server configuration
+grpc:
+  addr: ":8103"
+  timeout: 30s
+  max-recv-msg-size: 4194304
+  max-send-msg-size: 4194304
+  enable-reflection: true
+
 # Logger configuration
 log:
   level: debug
