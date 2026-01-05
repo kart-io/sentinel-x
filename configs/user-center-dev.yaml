@@ -8,123 +8,123 @@ server:
   # Graceful shutdown timeout
   shutdown-timeout: 30s
 
-  # HTTP server configuration
-  http:
-    # Listen address
-    addr: ":8081"
-    # Read timeout
-    read-timeout: 30s
-    # Write timeout
-    write-timeout: 30s
-    # Idle timeout
-    idle-timeout: 60s
-    # HTTP framework adapter: gin or echo
-    adapter: gin
+# HTTP server configuration
+http:
+  # Listen address
+  addr: ":8081"
+  # Read timeout
+  read-timeout: 30s
+  # Write timeout
+  write-timeout: 30s
+  # Idle timeout
+  idle-timeout: 60s
+  # HTTP framework adapter: gin or echo
+  adapter: gin
 
-    # Middleware configuration
-    middleware:
-      # Recovery middleware (panic recovery)
-      disable-recovery: false
-      recovery:
-        enable-stack-trace: false
+  # Middleware configuration
+  middleware:
+    # Recovery middleware (panic recovery)
+    disable-recovery: false
+    recovery:
+      enable-stack-trace: false
 
-      # Request ID middleware
-      disable-request-id: false
-      request-id:
-        header: X-Request-ID
+    # Request ID middleware
+    disable-request-id: false
+    request-id:
+      header: X-Request-ID
 
-      # Logger middleware
-      disable-logger: false
-      logger:
-        skip-paths:
-          - /health
-          - /live
-          - /ready
-          - /metrics
-        use-structured-logger: true
+    # Logger middleware
+    disable-logger: false
+    logger:
+      skip-paths:
+        - /health
+        - /live
+        - /ready
+        - /metrics
+      use-structured-logger: true
 
-      # CORS middleware
-      disable-cors: false
-      cors:
-        # ⚠️ 安全警告：生产环境必须配置具体域名！
-        # 当前配置使用通配符仅适用于开发/测试环境
-        # 生产环境示例：
-        #   allow-origins:
-        #     - "https://example.com"
-        #     - "https://admin.example.com"
-        #     - "https://api.example.com"
-        allow-origins:
-          - "*"  # TODO: 生产环境替换为具体域名
-        allow-methods:
-          - GET
-          - POST
-          - PUT
-          - PATCH
-          - DELETE
-          - HEAD
-          - OPTIONS
-        allow-headers:
-          - Origin
-          - Content-Type
-          - Accept
-          - Authorization
-          - X-Request-ID
-        allow-credentials: false
-        max-age: 86400
+    # CORS middleware
+    disable-cors: false
+    cors:
+      # ⚠️ 安全警告：生产环境必须配置具体域名！
+      # 当前配置使用通配符仅适用于开发/测试环境
+      # 生产环境示例：
+      #   allow-origins:
+      #     - "https://example.com"
+      #     - "https://admin.example.com"
+      #     - "https://api.example.com"
+      allow-origins:
+        - "*"  # TODO: 生产环境替换为具体域名
+      allow-methods:
+        - GET
+        - POST
+        - PUT
+        - PATCH
+        - DELETE
+        - HEAD
+        - OPTIONS
+      allow-headers:
+        - Origin
+        - Content-Type
+        - Accept
+        - Authorization
+        - X-Request-ID
+      allow-credentials: false
+      max-age: 86400
 
-      # Timeout middleware
-      disable-timeout: false
-      timeout:
-        timeout: 30s
-        skip-paths:
-          - /health
-          - /live
-          - /ready
-          - /metrics
+    # Timeout middleware
+    disable-timeout: false
+    timeout:
+      timeout: 30s
+      skip-paths:
+        - /health
+        - /live
+        - /ready
+        - /metrics
 
-      # Health check endpoints
-      disable-health: false
-      health:
-        path: /health
-        liveness-path: /live
-        readiness-path: /ready
+    # Health check endpoints
+    disable-health: false
+    health:
+      path: /health
+      liveness-path: /live
+      readiness-path: /ready
 
-      # Metrics endpoint
-      disable-metrics: false
-      metrics:
-        path: /metrics
-        namespace: sentinel
-        subsystem: api
+    # Metrics endpoint
+    disable-metrics: false
+    metrics:
+      path: /metrics
+      namespace: sentinel
+      subsystem: user-center
 
-      # Pprof endpoints (disabled by default for security)
-      disable-pprof: true
-      pprof:
-        prefix: /debug/pprof
-        enable-cmdline: true
-        enable-profile: true
-        enable-symbol: true
-        enable-trace: true
-        block-profile-rate: 0
-        mutex-profile-fraction: 0
+    # Pprof endpoints (disabled by default for security)
+    disable-pprof: true
+    pprof:
+      prefix: /debug/pprof
+      enable-cmdline: true
+      enable-profile: true
+      enable-symbol: true
+      enable-trace: true
+      block-profile-rate: 0
+      mutex-profile-fraction: 0
 
-      # Authentication middleware
-      disable-auth: false
+    # Authentication middleware
+    disable-auth: false
 
-      # Authorization middleware
-      disable-authz: false
+    # Authorization middleware
+    disable-authz: false
 
-  # gRPC server configuration
-  grpc:
-    # Listen address
-    addr: ":8101"
-    # Timeout
-    timeout: 30s
-    # Max receive message size (bytes)
-    max-recv-msg-size: 4194304
-    # Max send message size (bytes)
-    max-send-msg-size: 4194304
-    # Enable gRPC reflection
-    enable-reflection: true
+# gRPC server configuration
+grpc:
+  # Listen address
+  addr: ":8104"
+  # Timeout
+  timeout: 30s
+  # Max receive message size (bytes)
+  max-recv-msg-size: 4194304
+  # Max send message size (bytes)
+  max-send-msg-size: 4194304
+  # Enable gRPC reflection
+  enable-reflection: true
 
 # Logger configuration
 log:
