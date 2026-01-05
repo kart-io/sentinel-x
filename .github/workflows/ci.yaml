@@ -10,7 +10,7 @@ on:
     branches: [master, main]
 
 env:
-  GO_VERSION: '1.22'
+  GO_VERSION: '1.25.0'
 
 jobs:
   # 代码质量检查
