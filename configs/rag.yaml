@@ -29,7 +29,7 @@ grpc:
   max-send-msg-size: 4194304
   enable-reflection: true
 
-# Middleware configuration
+# Middleware configuration (扁平化结构)
 metrics:
   path: /metrics
   namespace: sentinel
@@ -82,6 +82,11 @@ timeout:
 
 request-id:
   header: X-Request-ID
+
+version:
+  enabled: true
+  path: /version
+  hide-details: false
 
 # Logger configuration
 log:

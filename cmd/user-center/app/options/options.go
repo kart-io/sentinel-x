@@ -61,6 +61,9 @@ type ServerOptions struct {
 	// PprofOptions contains pprof configuration.
 	PprofOptions *middlewareopts.PprofOptions `json:"pprof" mapstructure:"pprof"`
 
+	// VersionOptions contains version endpoint configuration.
+	VersionOptions *middlewareopts.VersionOptions `json:"version" mapstructure:"version"`
+
 	// ShutdownTimeout is the timeout for graceful shutdown.
 	ShutdownTimeout time.Duration `json:"shutdown-timeout" mapstructure:"shutdown-timeout"`
 }
@@ -79,6 +82,7 @@ func NewServerOptions() *ServerOptions {
 		LoggerOptions:    middlewareopts.NewLoggerOptions(),
 		HealthOptions:    middlewareopts.NewHealthOptions(),
 		MetricsOptions:   middlewareopts.NewMetricsOptions(),
+		VersionOptions:   middlewareopts.NewVersionOptions(),
 		ShutdownTimeout:  30 * time.Second,
 		// CORSOptions, TimeoutOptions, PprofOptions 默认禁用（nil）
 	}
@@ -142,6 +146,7 @@ func (o *ServerOptions) Config() (*usercenter.Config, error) {
 		HealthOptions:    o.HealthOptions,
 		MetricsOptions:   o.MetricsOptions,
 		PprofOptions:     o.PprofOptions,
+		VersionOptions:   o.VersionOptions,
 		ShutdownTimeout:  o.ShutdownTimeout,
 	}, nil
 }

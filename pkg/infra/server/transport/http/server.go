@@ -165,6 +165,11 @@ func (s *Server) Start(ctx context.Context) error {
 		middleware.RegisterPprofRoutes(router, *mwOpts.Pprof)
 	}
 
+	// Register version endpoint
+	if mwOpts.IsEnabled(mwopts.MiddlewareVersion) {
+		middleware.RegisterVersionRoutes(router, *mwOpts.Version)
+	}
+
 	// Register all handlers
 	for _, h := range s.handlers {
 		h.handler.RegisterRoutes(router)

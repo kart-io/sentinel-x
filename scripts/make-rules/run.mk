@@ -11,10 +11,16 @@ ENV ?= dev
 BIN ?= api
 run: run.$(BIN) ## Run specific binary. Usage: make run BIN=api ENV=staging
 
+# 不需要配置文件的服务列表（空格分隔）
+NO_CONFIG_SERVICES := swagger
+
 # Define run_service macro parameter 1 is binary name, parameter 2 is run command
 define run_service
 	@echo "===========> Running $(1) in $(ENV) mode"
-	@if [ -f configs/sentinel-$(1)-$(ENV).yaml ]; then \
+	@if echo " $(NO_CONFIG_SERVICES) " | grep -q " $(1) "; then \
+		echo "Running $(1) without config file..."; \
+		$(2); \
+	elif [ -f configs/sentinel-$(1)-$(ENV).yaml ]; then \
 		$(2) -c configs/sentinel-$(1)-$(ENV).yaml; \
 	elif [ -f configs/$(1)-$(ENV).yaml ]; then \
 		$(2) -c configs/$(1)-$(ENV).yaml; \

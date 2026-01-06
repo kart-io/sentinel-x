@@ -27,6 +27,7 @@ const (
 	MiddlewarePprof     = "pprof"
 	MiddlewareAuth      = "auth"
 	MiddlewareAuthz     = "authz"
+	MiddlewareVersion   = "version"
 )
 
 // AllMiddlewares 所有支持的中间件名称。
@@ -41,6 +42,7 @@ var AllMiddlewares = []string{
 	MiddlewarePprof,
 	MiddlewareAuth,
 	MiddlewareAuthz,
+	MiddlewareVersion,
 }
 
 // Options contains all middleware configuration.
@@ -74,13 +76,16 @@ type Options struct {
 
 	// Authz 配置（RBAC 授权）。
 	Authz *AuthzOptions `json:"authz" mapstructure:"authz"`
+
+	// Version 配置。
+	Version *VersionOptions `json:"version" mapstructure:"version"`
 }
 
 // Option is a function that configures Options.
 type Option func(*Options)
 
 // NewOptions creates default middleware options.
-// 默认启用 Recovery, RequestID, Logger, Health, Metrics 中间件。
+// 默认启用 Recovery, RequestID, Logger, Health, Metrics, Version 中间件。
 // 其他中间件（CORS, Timeout, Pprof, Auth, Authz）默认禁用（nil）。
 func NewOptions() *Options {
 	return &Options{
@@ -89,6 +94,7 @@ func NewOptions() *Options {
 		Logger:    NewLoggerOptions(),
 		Health:    NewHealthOptions(),
 		Metrics:   NewMetricsOptions(),
+		Version:   NewVersionOptions(),
 		// CORS, Timeout, Pprof, Auth, Authz 默认禁用（nil）
 	}
 }
@@ -140,6 +146,10 @@ func (o *Options) Validate() []error {
 
 	if o.Authz != nil {
 		errs = append(errs, o.Authz.Validate()...)
+	}
+
+	if o.Version != nil {
+		errs = append(errs, o.Version.Validate()...)
 	}
 
 	return errs
@@ -203,6 +213,11 @@ func (o *Options) Complete() error {
 			return err
 		}
 	}
+	if o.Version != nil {
+		if err := o.Version.Complete(); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
@@ -231,6 +246,8 @@ func (o *Options) IsEnabled(name string) bool {
 		return o.Auth != nil
 	case MiddlewareAuthz:
 		return o.Authz != nil
+	case MiddlewareVersion:
+	return o.Version != nil && o.Version.Enabled
 	default:
 		return false
 	}
@@ -271,6 +288,8 @@ func (o *Options) GetConfig(name string) MiddlewareConfig {
 		return o.Auth
 	case MiddlewareAuthz:
 		return o.Authz
+	case MiddlewareVersion:
+		return o.Version
 	default:
 		return nil
 	}
@@ -308,6 +327,9 @@ func (o *Options) AddFlags(fs *pflag.FlagSet, prefixes ...string) {
 	}
 	if o.Authz != nil {
 		o.Authz.AddFlags(fs, prefixes...)
+	}
+	if o.Version != nil {
+		o.Version.AddFlags(fs, prefixes...)
 	}
 }
 
@@ -498,4 +520,22 @@ func WithAuthz() Option {
 // WithoutAuthz disables authorization middleware.
 func WithoutAuthz() Option {
 	return func(o *Options) { o.Authz = nil }
+}
+
+// WithVersion enables version endpoint.
+func WithVersion(path string, hideDetails bool) Option {
+	return func(o *Options) {
+		if o.Version == nil {
+			o.Version = NewVersionOptions()
+		}
+		if path != "" {
+			o.Version.Path = path
+		}
+		o.Version.HideDetails = hideDetails
+	}
+}
+
+// WithoutVersion disables version endpoint.
+func WithoutVersion() Option {
+	return func(o *Options) { o.Version = nil }
 }

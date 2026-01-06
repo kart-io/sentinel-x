@@ -1,72 +1,126 @@
 # Sentinel-X API Server Development Configuration
-# This config is for local development without external dependencies
+# API 网关开发环境配置文件（简化版，用于本地开发）
 
 # Server configuration
 server:
-  mode: http  # HTTP only for simpler development
+  # Server mode: http only for simpler development
+  mode: http
+  # Graceful shutdown timeout
   shutdown-timeout: 10s
 
 # HTTP server configuration
 http:
+  # Listen address
   addr: ":8100"
+  # Read timeout
   read-timeout: 30s
+  # Write timeout
   write-timeout: 30s
+  # Idle timeout
   idle-timeout: 60s
+  # HTTP framework adapter: gin or echo
   adapter: gin
-
-# Middleware configuration
-middleware:
-  # Core middleware (enabled)
-  disable-recovery: false
-  disable-request-id: false
-  disable-logger: false
-  disable-health: false
-  disable-metrics: false
-
-  # Auth middleware (disabled for development)
-  disable-auth: true
-  disable-authz: true
-
-  # Other middleware (disabled for simplicity)
-  disable-cors: true
-  disable-timeout: true
-  disable-pprof: true
-
-  # Health check paths
-  health:
-    path: /health
-    liveness-path: /live
-    readiness-path: /ready
-
-  # Metrics config
-  metrics:
-    path: /metrics
-    namespace: sentinel
-    subsystem: api
 
 # gRPC server configuration
 grpc:
+  # Listen address
   addr: ":8103"
+  # Timeout
   timeout: 30s
+  # Max receive message size (bytes)
   max-recv-msg-size: 4194304
+  # Max send message size (bytes)
   max-send-msg-size: 4194304
+  # Enable gRPC reflection
   enable-reflection: true
+
+# Middleware configuration (扁平化结构)
+metrics:
+  path: /metrics
+  namespace: sentinel
+  subsystem: api
+
+health:
+  path: /health
+  liveness-path: /live
+  readiness-path: /ready
+
+pprof:
+  prefix: /debug/pprof
+  enable-cmdline: true
+  enable-profile: true
+  enable-symbol: true
+  enable-trace: true
+
+recovery:
+  enable-stack-trace: false
+
+logger:
+  skip-paths:
+    - /health
+    - /live
+    - /ready
+    - /metrics
+  use-structured-logger: true
+
+cors:
+  # 开发环境使用通配符
+  allow-origins:
+    - "*"
+  allow-methods:
+    - GET
+    - POST
+    - PUT
+    - PATCH
+    - DELETE
+    - HEAD
+    - OPTIONS
+  allow-headers:
+    - Origin
+    - Content-Type
+    - Accept
+    - Authorization
+    - X-Request-ID
+  allow-credentials: false
+  max-age: 86400
+
+timeout:
+  timeout: 30s
+  skip-paths: []
+
+request-id:
+  header: X-Request-ID
+
+version:
+  enabled: true
+  path: /version
+  hide-details: false
 
 # Logger configuration
 log:
+  # Log level: debug for development
   level: debug
+  # Log format: console for better readability
   format: console
+  # Development mode
   development: true
+  # Log output paths
   output-paths:
     - stdout
 
-# JWT configuration
+# JWT authentication configuration
 jwt:
+  # Disable authentication for development
   disable-auth: false
+  # Secret key for signing tokens
   key: "your-super-secret-key-change-in-production-minimum-64-characters-required-here"
+  # Signing algorithm
   signing-method: "HS256"
+  # Token issuer
   issuer: "sentinel-x"
+  # Token expiration duration (longer for development)
   expired: 24h
+  # Maximum refresh duration
   max-refresh: 168h
 
 # MySQL - disabled for development (empty database name skips connection)

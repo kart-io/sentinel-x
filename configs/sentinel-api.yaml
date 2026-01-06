@@ -1,5 +1,5 @@
 # Sentinel-X API Server Configuration
-# This is an example configuration file for the API server
+# API 网关服务配置文件
 
 # Server configuration
 server:
@@ -8,129 +8,118 @@ server:
   # Graceful shutdown timeout
   shutdown-timeout: 30s
 
-  # HTTP server configuration
-  http:
-    # Listen address
-    addr: ":8080"
-    # Read timeout
-    read-timeout: 30s
-    # Write timeout
-    write-timeout: 30s
-    # Idle timeout
-    idle-timeout: 60s
-    # HTTP framework adapter: gin or echo
-    adapter: gin
+# HTTP server configuration
+http:
+  # Listen address
+  addr: ":8080"
+  # Read timeout
+  read-timeout: 30s
+  # Write timeout
+  write-timeout: 30s
+  # Idle timeout
+  idle-timeout: 60s
+  # HTTP framework adapter: gin or echo
+  adapter: gin
 
-    # Middleware configuration
-    middleware:
-      # 启用的中间件列表（设置后会覆盖 disable-* 配置）
-      # 支持的值: recovery, request-id, logger, cors, timeout, health, metrics, pprof, auth, authz
-      enabled:
-        - recovery
-        - request-id
-        - logger
-        - cors
-        - timeout
-        - health
-        - metrics
-        - auth
-        - authz
-        # pprof 禁用（安全考虑，需要时手动启用）
+# gRPC server configuration
+grpc:
+  # Listen address
+  addr: ":8100"
+  # Timeout
+  timeout: 30s
+  # Max receive message size (bytes)
+  max-recv-msg-size: 4194304
+  # Max send message size (bytes)
+  max-send-msg-size: 4194304
+  # Enable gRPC reflection
+  enable-reflection: true
 
-      # 各中间件详细配置
-      recovery:
-        enable-stack-trace: false
+# Middleware configuration (扁平化结构)
+metrics:
+  path: /metrics
+  namespace: sentinel
+  subsystem: api
 
-      request-id:
-        header: X-Request-ID
+health:
+  path: /health
+  liveness-path: /live
+  readiness-path: /ready
 
-      logger:
-        skip-paths:
-          - /health
-          - /live
-          - /ready
-          - /metrics
-        use-structured-logger: true
+pprof:
+  prefix: /debug/pprof
+  enable-cmdline: true
+  enable-profile: true
+  enable-symbol: true
+  enable-trace: true
+  block-profile-rate: 0
+  mutex-profile-fraction: 0
 
-      cors:
-        # ⚠️ 安全警告：生产环境必须配置具体域名！
-        allow-origins:
-          - "*"  # TODO: 生产环境替换为具体域名
-        allow-methods:
-          - GET
-          - POST
-          - PUT
-          - PATCH
-          - DELETE
-          - HEAD
-          - OPTIONS
-        allow-headers:
-          - Origin
-          - Content-Type
-          - Accept
-          - Authorization
-          - X-Request-ID
-        allow-credentials: false
-        max-age: 86400
+recovery:
+  enable-stack-trace: false
 
-      timeout:
-        timeout: 30s
-        skip-paths:
-          - /health
-          - /live
-          - /ready
-          - /metrics
+logger:
+  skip-paths:
+    - /health
+    - /live
+    - /ready
+    - /metrics
+  use-structured-logger: true
 
-      health:
-        path: /health
-        liveness-path: /live
-        readiness-path: /ready
+cors:
+  # ⚠️ 安全警告：生产环境必须配置具体域名！
+  allow-origins:
+    - "*"  # TODO: 生产环境替换为具体域名
+  allow-methods:
+    - GET
+    - POST
+    - PUT
+    - PATCH
+    - DELETE
+    - HEAD
+    - OPTIONS
+  allow-headers:
+    - Origin
+    - Content-Type
+    - Accept
+    - Authorization
+    - X-Request-ID
+  allow-credentials: false
+  max-age: 86400
 
-      metrics:
-        path: /metrics
-        namespace: sentinel
-        subsystem: api
+timeout:
+  timeout: 30s
+  skip-paths:
+    - /health
+    - /live
+    - /ready
+    - /metrics
 
-      pprof:
-        prefix: /debug/pprof
-        enable-cmdline: true
-        enable-profile: true
-        enable-symbol: true
-        enable-trace: true
-        block-profile-rate: 0
-        mutex-profile-fraction: 0
+request-id:
+  header: X-Request-ID
 
-      auth:
-        # Token lookup location
-        # Format: "header:<name>" or "query:<name>" or "cookie:<name>"
-        token-lookup: "header:Authorization"
-        # Authorization scheme
-        auth-scheme: "Bearer"
-        # Paths to skip authentication (exact match)
-        skip-paths:
-          - /api/v1/auth/login
-          - /api/v1/auth/register
-          - /api/v1/hello
-          - /health
-          - /live
-          - /ready
-          - /metrics
-        # Path prefixes to skip authentication
-        skip-path-prefixes:
-          - /api/v1/public/
+auth:
+  # Token lookup location
+  # Format: "header:<name>" or "query:<name>" or "cookie:<name>"
+  token-lookup: "header:Authorization"
+  # Authorization scheme
+  auth-scheme: "Bearer"
+  # Paths to skip authentication (exact match)
+  skip-paths:
+    - /api/v1/auth/login
+    - /api/v1/auth/register
+    - /api/v1/hello
+    - /health
+    - /live
+    - /ready
+    - /metrics
+  # Path prefixes to skip authentication
+  skip-path-prefixes:
+    - /api/v1/public/
 
-  # gRPC server configuration
-  grpc:
-    # Listen address
-    addr: ":8100"
-    # Timeout
-    timeout: 30s
-    # Max receive message size (bytes)
-    max-recv-msg-size: 4194304
-    # Max send message size (bytes)
-    max-send-msg-size: 4194304
-    # Enable gRPC reflection
-    enable-reflection: true
+version:
+  enabled: true
+  path: /version
+  hide-details: false
 
 # Logger configuration
 log:
@@ -211,64 +200,3 @@ redis:
   pool-size: 10
   # Minimum idle connections
   min-idle-conns: 5
-
-# 顶层中间件配置（可选，会覆盖 server.http.middleware 中的对应配置）
-# Middleware configuration
-metrics:
-  path: /metrics
-  namespace: sentinel
-  subsystem: api
-
-health:
-  path: /health
-  liveness-path: /live
-  readiness-path: /ready
-
-pprof:
-  prefix: /debug/pprof
-  enable-cmdline: true
-  enable-profile: true
-  enable-symbol: true
-  enable-trace: true
-
-recovery:
-  enable-stack-trace: false
-
-logger:
-  skip-paths:
-    - /health
-    - /live
-    - /ready
-    - /metrics
-  use-structured-logger: true
-
-cors:
-  allow-origins:
-    - "*"
-  allow-methods:
-    - GET
-    - POST
-    - PUT
-    - PATCH
-    - DELETE
-    - HEAD
-    - OPTIONS
-  allow-headers:
-    - Origin
-    - Content-Type
-    - Accept
-    - Authorization
-    - X-Request-ID
-  allow-credentials: false
-  max-age: 86400
-
-timeout:
-  timeout: 30s
-  skip-paths:
-    - /health
-    - /live
-    - /ready
-    - /metrics
-
-request-id:
-  header: X-Request-ID

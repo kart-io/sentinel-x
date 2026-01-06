@@ -47,6 +47,7 @@ type Config struct {
 	HealthOptions    *middlewareopts.HealthOptions
 	MetricsOptions   *middlewareopts.MetricsOptions
 	PprofOptions     *middlewareopts.PprofOptions
+	VersionOptions   *middlewareopts.VersionOptions
 	ShutdownTimeout  time.Duration
 }
 
@@ -137,6 +138,7 @@ func (cfg *Config) GetMiddlewareOptions() *middlewareopts.Options {
 		Health:    cfg.HealthOptions,
 		Metrics:   cfg.MetricsOptions,
 		Pprof:     cfg.PprofOptions,
+		Version:   cfg.VersionOptions,
 	}
 }
 
