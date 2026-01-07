@@ -2,6 +2,7 @@
 package router
 
 import (
+	"github.com/gin-gonic/gin"
 	"github.com/kart-io/logger"
 	"github.com/kart-io/sentinel-x/internal/user-center/handler"
 	v1 "github.com/kart-io/sentinel-x/pkg/api/user-center/v1"
@@ -24,54 +25,54 @@ func Register(mgr *server.Manager, jwtAuth *jwt.JWT, userHandler *handler.UserHa
 		// 使用全局验证器，确保统一的验证规则和 i18n
 		httpServer.SetValidator(validator.Global())
 
-		router := httpServer.Router()
+		var engine *gin.Engine = httpServer.Engine()
 
 		//  Auth Routes
-		auth := router.Group("/auth")
+		auth := engine.Group("/auth")
 		{
-			auth.Handle("POST", "/login", authHandler.Login)
-			auth.Handle("POST", "/logout", authHandler.Logout)
-			auth.Handle("POST", "/register", authHandler.Register)
+			auth.POST("/login", authHandler.Login)
+			auth.POST("/logout", authHandler.Logout)
+			auth.POST("/register", authHandler.Register)
 
 			// Protected Auth Routes
 			authProtected := auth.Group("")
 			authProtected.Use(authmw.AuthWithOptions(*authOpts, jwtAuth, nil, nil))
 			{
-				authProtected.Handle("GET", "/me", userHandler.GetProfile)
+				authProtected.GET("/me", userHandler.GetProfile)
 			}
 		}
 
 		// User Routes
-		v1 := router.Group("/v1")
+		v1Group := engine.Group("/v1")
 		{
 			// Public User Routes (Registration)
-			v1.Handle("POST", "/users", userHandler.Create)
+			v1Group.POST("/users", userHandler.Create)
 
 			// Protected User Routes
-			users := v1.Group("/users")
+			users := v1Group.Group("/users")
 			users.Use(authmw.AuthWithOptions(*authOpts, jwtAuth, nil, nil))
 			{
-				users.Handle("GET", "", userHandler.List)
-				users.Handle("POST", "/batch-delete", userHandler.BatchDelete)
-				users.Handle("GET", "/detail", userHandler.Get)
-				users.Handle("PUT", "", userHandler.Update)
-				users.Handle("DELETE", "", userHandler.Delete)
-				users.Handle("POST", "/password", userHandler.UpdatePassword)
+				users.GET("", userHandler.List)
+				users.POST("/batch-delete", userHandler.BatchDelete)
+				users.GET("/detail", userHandler.Get)
+				users.PUT("", userHandler.Update)
+				users.DELETE("", userHandler.Delete)
+				users.POST("/password", userHandler.UpdatePassword)
 
 				// User Role Assignment
-				users.Handle("POST", "/roles", roleHandler.AssignUserRole)
-				users.Handle("GET", "/roles", roleHandler.ListUserRoles)
+				users.POST("/roles", roleHandler.AssignUserRole)
+				users.GET("/roles", roleHandler.ListUserRoles)
 			}
 
 			// Role Routes
-			roles := v1.Group("/roles")
+			roles := v1Group.Group("/roles")
 			roles.Use(authmw.AuthWithOptions(*authOpts, jwtAuth, nil, nil))
 			{
-				roles.Handle("POST", "", roleHandler.Create)
-				roles.Handle("GET", "", roleHandler.List)
-				roles.Handle("GET", "/detail", roleHandler.Get)
-				roles.Handle("PUT", "", roleHandler.Update)
-				roles.Handle("DELETE", "", roleHandler.Delete)
+				roles.POST("", roleHandler.Create)
+				roles.GET("", roleHandler.List)
+				roles.GET("/detail", roleHandler.Get)
+				roles.PUT("", roleHandler.Update)
+				roles.DELETE("", roleHandler.Delete)
 			}
 		}
 
