@@ -3,16 +3,17 @@ package handler
 import (
 	"context"
 
+	"github.com/gin-gonic/gin"
 	"google.golang.org/protobuf/types/known/emptypb"
 
 	"github.com/kart-io/sentinel-x/internal/model"
 	"github.com/kart-io/sentinel-x/internal/pkg/httputils"
 	"github.com/kart-io/sentinel-x/internal/user-center/biz"
 	v1 "github.com/kart-io/sentinel-x/pkg/api/user-center/v1"
-	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 	pkgstore "github.com/kart-io/sentinel-x/pkg/store"
 	"github.com/kart-io/sentinel-x/pkg/utils/errors"
 	"github.com/kart-io/sentinel-x/pkg/utils/response"
+	"github.com/kart-io/sentinel-x/pkg/utils/validator"
 )
 
 // RoleHandler handles role-related HTTP requests and gRPC requests.
@@ -38,10 +39,14 @@ func NewRoleHandler(svc *biz.RoleService) *RoleHandler {
 //	@Success		200		{object}	response.Response		"成功响应"
 //	@Failure		400		{object}	response.Response		"请求错误"
 //	@Router			/v1/roles [post]
-func (h *RoleHandler) Create(c transport.Context) {
+func (h *RoleHandler) Create(c *gin.Context) {
 	var req v1.CreateRoleRequest
-	if err := c.ShouldBindAndValidate(&req); err != nil {
+	if err := c.ShouldBindJSON(&req); err != nil {
 		httputils.WriteResponse(c, errors.ErrBadRequest.WithMessage(err.Error()), nil)
+		return
+	}
+	if err := validator.Global().Validate(&req); err != nil {
+		httputils.WriteResponse(c, errors.ErrValidationFailed.WithMessage(err.Error()), nil)
 		return
 	}
 
@@ -52,7 +57,7 @@ func (h *RoleHandler) Create(c transport.Context) {
 		Status:      1, // Default enabled
 	}
 
-	if err := h.svc.Create(c.Request(), role); err != nil {
+	if err := h.svc.Create(c.Request.Context(), role); err != nil {
 		httputils.WriteResponse(c, err, nil)
 		return
 	}
@@ -73,20 +78,24 @@ func (h *RoleHandler) Create(c transport.Context) {
 //	@Failure		400		{object}	response.Response		"请求错误"
 //	@Failure		404		{object}	response.Response		"角色不存在"
 //	@Router			/v1/roles [put]
-func (h *RoleHandler) Update(c transport.Context) {
+func (h *RoleHandler) Update(c *gin.Context) {
 	var req v1.UpdateRoleRequest
-	if err := c.ShouldBindAndValidate(&req); err != nil {
+	if err := c.ShouldBindJSON(&req); err != nil {
 		httputils.WriteResponse(c, errors.ErrBadRequest.WithMessage(err.Error()), nil)
 		return
 	}
+	if err := validator.Global().Validate(&req); err != nil {
+		httputils.WriteResponse(c, errors.ErrValidationFailed.WithMessage(err.Error()), nil)
+		return
+	}
 
-	role, err := h.svc.Get(c.Request(), req.Code)
+	role, err := h.svc.Get(c.Request.Context(), req.Code)
 	if err != nil {
 		httputils.WriteResponse(c, err, nil)
 		return
 	}
 
-	// 只有字段不为 nil 时才更新（nil = 不更新，非 nil = 更新包括空值）
+	// 只有字段不为 nil 时才更新（nil = 不更新,非 nil = 更新包括空值)
 	if req.Name != nil {
 		role.Name = req.Name.Value
 	}
@@ -97,7 +106,7 @@ func (h *RoleHandler) Update(c transport.Context) {
 		role.Status = int(req.Status.Value)
 	}
 
-	if err := h.svc.Update(c.Request(), role); err != nil {
+	if err := h.svc.Update(c.Request.Context(), role); err != nil {
 		httputils.WriteResponse(c, err, nil)
 		return
 	}
@@ -117,14 +126,18 @@ func (h *RoleHandler) Update(c transport.Context) {
 //	@Success		200		{object}	response.Response	"成功响应"
 //	@Failure		404		{object}	response.Response	"角色不存在"
 //	@Router			/v1/roles [delete]
-func (h *RoleHandler) Delete(c transport.Context) {
+func (h *RoleHandler) Delete(c *gin.Context) {
 	var req v1.DeleteRoleRequest
-	if err := c.ShouldBindAndValidate(&req); err != nil {
+	if err := c.ShouldBindQuery(&req); err != nil {
 		httputils.WriteResponse(c, errors.ErrBadRequest.WithMessage(err.Error()), nil)
 		return
 	}
+	if err := validator.Global().Validate(&req); err != nil {
+		httputils.WriteResponse(c, errors.ErrValidationFailed.WithMessage(err.Error()), nil)
+		return
+	}
 
-	if err := h.svc.Delete(c.Request(), req.Code); err != nil {
+	if err := h.svc.Delete(c.Request.Context(), req.Code); err != nil {
 		httputils.WriteResponse(c, err, nil)
 		return
 	}
@@ -144,14 +157,18 @@ func (h *RoleHandler) Delete(c transport.Context) {
 //	@Success		200		{object}	response.Response	"成功响应"
 //	@Failure		404		{object}	response.Response	"角色不存在"
 //	@Router			/v1/roles/detail [get]
-func (h *RoleHandler) Get(c transport.Context) {
+func (h *RoleHandler) Get(c *gin.Context) {
 	var req v1.GetRoleRequest
-	if err := c.ShouldBindAndValidate(&req); err != nil {
+	if err := c.ShouldBindQuery(&req); err != nil {
 		httputils.WriteResponse(c, errors.ErrBadRequest.WithMessage(err.Error()), nil)
 		return
 	}
+	if err := validator.Global().Validate(&req); err != nil {
+		httputils.WriteResponse(c, errors.ErrValidationFailed.WithMessage(err.Error()), nil)
+		return
+	}
 
-	role, err := h.svc.Get(c.Request(), req.Code)
+	role, err := h.svc.Get(c.Request.Context(), req.Code)
 	if err != nil {
 		httputils.WriteResponse(c, err, nil)
 		return
@@ -172,10 +189,11 @@ func (h *RoleHandler) Get(c transport.Context) {
 //	@Param			page_size	query		int					false	"每页数量"	default(10)
 //	@Success		200			{object}	response.Response	"成功响应"
 //	@Router			/v1/roles [get]
-func (h *RoleHandler) List(c transport.Context) {
+func (h *RoleHandler) List(c *gin.Context) {
 	var req v1.ListRolesRequest
 	// Ignore bind error for optional params
-	_ = c.ShouldBindAndValidate(&req)
+	_ = c.ShouldBindQuery(&req)
+	_ = validator.Global().Validate(&req)
 
 	page := int(req.Page)
 	if page <= 0 {
@@ -186,7 +204,7 @@ func (h *RoleHandler) List(c transport.Context) {
 		pageSize = 10
 	}
 
-	count, roles, err := h.svc.List(c.Request(), pkgstore.WithPage(page, pageSize))
+	count, roles, err := h.svc.List(c.Request.Context(), pkgstore.WithPage(page, pageSize))
 	if err != nil {
 		httputils.WriteResponse(c, err, nil)
 		return
@@ -207,14 +225,18 @@ func (h *RoleHandler) List(c transport.Context) {
 //	@Success		200			{object}	response.Response		"成功响应"
 //	@Failure		400			{object}	response.Response		"请求错误"
 //	@Router			/v1/users/roles [post]
-func (h *RoleHandler) AssignUserRole(c transport.Context) {
+func (h *RoleHandler) AssignUserRole(c *gin.Context) {
 	var req v1.AssignRoleRequest
-	if err := c.ShouldBindAndValidate(&req); err != nil {
+	if err := c.ShouldBindJSON(&req); err != nil {
 		httputils.WriteResponse(c, errors.ErrBadRequest.WithMessage(err.Error()), nil)
 		return
 	}
+	if err := validator.Global().Validate(&req); err != nil {
+		httputils.WriteResponse(c, errors.ErrValidationFailed.WithMessage(err.Error()), nil)
+		return
+	}
 
-	if err := h.svc.AssignRoleToUser(c.Request(), req.Username, req.RoleCode); err != nil {
+	if err := h.svc.AssignRoleToUser(c.Request.Context(), req.Username, req.RoleCode); err != nil {
 		httputils.WriteResponse(c, err, nil)
 		return
 	}
@@ -234,14 +256,18 @@ func (h *RoleHandler) AssignUserRole(c transport.Context) {
 //	@Success		200			{object}	response.Response	"成功响应"
 //	@Failure		404			{object}	response.Response	"用户不存在"
 //	@Router			/v1/users/roles [get]
-func (h *RoleHandler) ListUserRoles(c transport.Context) {
+func (h *RoleHandler) ListUserRoles(c *gin.Context) {
 	var req v1.GetUserRolesRequest
-	if err := c.ShouldBindAndValidate(&req); err != nil {
+	if err := c.ShouldBindQuery(&req); err != nil {
 		httputils.WriteResponse(c, errors.ErrBadRequest.WithMessage(err.Error()), nil)
 		return
 	}
+	if err := validator.Global().Validate(&req); err != nil {
+		httputils.WriteResponse(c, errors.ErrValidationFailed.WithMessage(err.Error()), nil)
+		return
+	}
 
-	roles, err := h.svc.GetUserRoles(c.Request(), req.Username)
+	roles, err := h.svc.GetUserRoles(c.Request.Context(), req.Username)
 	if err != nil {
 		httputils.WriteResponse(c, err, nil)
 		return

@@ -5,17 +5,18 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/gin-gonic/gin"
 	"google.golang.org/protobuf/types/known/emptypb"
 
 	"github.com/kart-io/sentinel-x/internal/model"
 	"github.com/kart-io/sentinel-x/internal/pkg/httputils"
 	"github.com/kart-io/sentinel-x/internal/user-center/biz"
 	v1 "github.com/kart-io/sentinel-x/pkg/api/user-center/v1"
-	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 	"github.com/kart-io/sentinel-x/pkg/security/auth"
 	"github.com/kart-io/sentinel-x/pkg/store"
 	"github.com/kart-io/sentinel-x/pkg/utils/errors"
 	"github.com/kart-io/sentinel-x/pkg/utils/response"
+	"github.com/kart-io/sentinel-x/pkg/utils/validator"
 )
 
 // UserHandler handles user-related HTTP requests and gRPC requests.
@@ -46,10 +47,14 @@ func NewUserHandler(svc *biz.UserService, roleSvc *biz.RoleService, authSvc *biz
 //	@Success		200		{object}	response.Response		"成功响应"
 //	@Failure		400		{object}	response.Response		"请求错误"
 //	@Router			/v1/users [post]
-func (h *UserHandler) Create(c transport.Context) {
+func (h *UserHandler) Create(c *gin.Context) {
 	var req v1.CreateUserRequest
-	if err := c.ShouldBindAndValidate(&req); err != nil {
+	if err := c.ShouldBindJSON(&req); err != nil {
 		httputils.WriteResponse(c, errors.ErrBadRequest.WithMessage(err.Error()), nil)
+		return
+	}
+	if err := validator.Global().Validate(&req); err != nil {
+		httputils.WriteResponse(c, errors.ErrValidationFailed.WithMessage(err.Error()), nil)
 		return
 	}
 
@@ -60,7 +65,7 @@ func (h *UserHandler) Create(c transport.Context) {
 		Mobile:   req.Mobile,
 	}
 
-	if err := h.svc.Create(c.Request(), user); err != nil {
+	if err := h.svc.Create(c.Request.Context(), user); err != nil {
 		httputils.WriteResponse(c, err, nil)
 		return
 	}
@@ -81,21 +86,25 @@ func (h *UserHandler) Create(c transport.Context) {
 //	@Failure		400			{object}	response.Response		"请求错误"
 //	@Failure		404			{object}	response.Response		"用户不存在"
 //	@Router			/v1/users [put]
-func (h *UserHandler) Update(c transport.Context) {
+func (h *UserHandler) Update(c *gin.Context) {
 	// All parameters from request body (JSON)
 	var req v1.UpdateUserRequest
-	if err := c.ShouldBindAndValidate(&req); err != nil {
+	if err := c.ShouldBindJSON(&req); err != nil {
 		httputils.WriteResponse(c, errors.ErrBadRequest.WithMessage(err.Error()), nil)
 		return
 	}
+	if err := validator.Global().Validate(&req); err != nil {
+		httputils.WriteResponse(c, errors.ErrValidationFailed.WithMessage(err.Error()), nil)
+		return
+	}
 
-	user, err := h.svc.Get(c.Request(), req.Username)
+	user, err := h.svc.Get(c.Request.Context(), req.Username)
 	if err != nil {
 		httputils.WriteResponse(c, err, nil)
 		return
 	}
 
-	// 只有字段不为 nil 时才更新（nil = 不更新，非 nil = 更新包括空值）
+	// 只有字段不为 nil 时才更新（nil = 不更新,非 nil = 更新包括空值)
 	if req.Email != nil {
 		user.Email = &req.Email.Value
 	}
@@ -103,7 +112,7 @@ func (h *UserHandler) Update(c transport.Context) {
 		user.Mobile = req.Mobile.Value
 	}
 
-	if err := h.svc.Update(c.Request(), user); err != nil {
+	if err := h.svc.Update(c.Request.Context(), user); err != nil {
 		httputils.WriteResponse(c, err, nil)
 		return
 	}
@@ -123,14 +132,18 @@ func (h *UserHandler) Update(c transport.Context) {
 //	@Success		200			{object}	response.Response	"成功响应"
 //	@Failure		404			{object}	response.Response	"用户不存在"
 //	@Router			/v1/users [delete]
-func (h *UserHandler) Delete(c transport.Context) {
+func (h *UserHandler) Delete(c *gin.Context) {
 	var req v1.DeleteUserRequest
-	if err := c.ShouldBindAndValidate(&req); err != nil {
+	if err := c.ShouldBindQuery(&req); err != nil {
 		httputils.WriteResponse(c, errors.ErrBadRequest.WithMessage(err.Error()), nil)
 		return
 	}
+	if err := validator.Global().Validate(&req); err != nil {
+		httputils.WriteResponse(c, errors.ErrValidationFailed.WithMessage(err.Error()), nil)
+		return
+	}
 
-	if err := h.svc.Delete(c.Request(), req.Username); err != nil {
+	if err := h.svc.Delete(c.Request.Context(), req.Username); err != nil {
 		httputils.WriteResponse(c, err, nil)
 		return
 	}
@@ -150,17 +163,23 @@ func (h *UserHandler) Delete(c transport.Context) {
 //	@Success		200		{object}	response.Response		"成功响应"
 //	@Failure		400		{object}	response.Response		"请求错误"
 //	@Router			/v1/users/batch-delete [post]
-func (h *UserHandler) BatchDelete(c transport.Context) {
+func (h *UserHandler) BatchDelete(c *gin.Context) {
 	var req v1.BatchDeleteRequest
-	if err := c.ShouldBindAndValidate(&req); err != nil {
+	if err := c.ShouldBindJSON(&req); err != nil {
 		resp := response.Err(errors.ErrBadRequest.WithMessage(err.Error()))
+		defer response.Release(resp)
+		c.JSON(resp.HTTPStatus(), resp)
+		return
+	}
+	if err := validator.Global().Validate(&req); err != nil {
+		resp := response.Err(errors.ErrValidationFailed.WithMessage(err.Error()))
 		defer response.Release(resp)
 		c.JSON(resp.HTTPStatus(), resp)
 		return
 	}
 
 	for _, username := range req.Usernames {
-		if err := h.svc.Delete(c.Request(), username); err != nil {
+		if err := h.svc.Delete(c.Request.Context(), username); err != nil {
 			httputils.WriteResponse(c, err, nil)
 			return
 		}
@@ -181,14 +200,18 @@ func (h *UserHandler) BatchDelete(c transport.Context) {
 //	@Success		200			{object}	response.Response	"成功响应"
 //	@Failure		404			{object}	response.Response	"用户不存在"
 //	@Router			/v1/users/detail [get]
-func (h *UserHandler) Get(c transport.Context) {
+func (h *UserHandler) Get(c *gin.Context) {
 	var req v1.GetUserRequest
-	if err := c.ShouldBindAndValidate(&req); err != nil {
+	if err := c.ShouldBindQuery(&req); err != nil {
 		httputils.WriteResponse(c, errors.ErrBadRequest.WithMessage(err.Error()), nil)
 		return
 	}
+	if err := validator.Global().Validate(&req); err != nil {
+		httputils.WriteResponse(c, errors.ErrValidationFailed.WithMessage(err.Error()), nil)
+		return
+	}
 
-	user, err := h.svc.Get(c.Request(), req.Username)
+	user, err := h.svc.Get(c.Request.Context(), req.Username)
 	if err != nil {
 		httputils.WriteResponse(c, err, nil)
 		return
@@ -209,11 +232,12 @@ func (h *UserHandler) Get(c transport.Context) {
 //	@Param			page_size	query		int					false	"每页数量"	default(10)
 //	@Success		200			{object}	response.Response	"成功响应"
 //	@Router			/v1/users [get]
-func (h *UserHandler) List(c transport.Context) {
+func (h *UserHandler) List(c *gin.Context) {
 	var req v1.ListUsersRequest
 
 	// Ignore bind error for optional params
-	_ = c.ShouldBindAndValidate(&req)
+	_ = c.ShouldBindQuery(&req)
+	_ = validator.Global().Validate(&req)
 
 	// Set defaults if zero
 	page := int(req.Page)
@@ -225,7 +249,7 @@ func (h *UserHandler) List(c transport.Context) {
 		pageSize = 10
 	}
 
-	count, users, err := h.svc.List(c.Request(), store.WithPage(page, pageSize))
+	count, users, err := h.svc.List(c.Request.Context(), store.WithPage(page, pageSize))
 	if err != nil {
 		httputils.WriteResponse(c, err, nil)
 		return
@@ -245,8 +269,8 @@ func (h *UserHandler) List(c transport.Context) {
 //	@Success		200	{object}	response.Response	"成功响应"
 //	@Failure		401	{object}	response.Response	"未授权"
 //	@Router			/auth/me [get]
-func (h *UserHandler) GetProfile(c transport.Context) {
-	username := auth.SubjectFromContext(c.Request())
+func (h *UserHandler) GetProfile(c *gin.Context) {
+	username := auth.SubjectFromContext(c.Request.Context())
 	if username == "" {
 		resp := response.Err(errors.ErrUnauthorized)
 		defer response.Release(resp)
@@ -254,7 +278,7 @@ func (h *UserHandler) GetProfile(c transport.Context) {
 		return
 	}
 
-	user, err := h.svc.Get(c.Request(), username)
+	user, err := h.svc.Get(c.Request.Context(), username)
 	if err != nil {
 		httputils.WriteResponse(c, err, nil)
 		return
@@ -275,11 +299,15 @@ func (h *UserHandler) GetProfile(c transport.Context) {
 //	@Success		200			{object}	response.Response			"成功响应"
 //	@Failure		400			{object}	response.Response			"请求错误"
 //	@Router			/v1/users/password [post]
-func (h *UserHandler) UpdatePassword(c transport.Context) {
+func (h *UserHandler) UpdatePassword(c *gin.Context) {
 	// All parameters from request body (JSON) - secure
 	var req v1.ChangePasswordRequest
-	if err := c.ShouldBindAndValidate(&req); err != nil {
+	if err := c.ShouldBindJSON(&req); err != nil {
 		httputils.WriteResponse(c, errors.ErrBadRequest.WithMessage(err.Error()), nil)
+		return
+	}
+	if err := validator.Global().Validate(&req); err != nil {
+		httputils.WriteResponse(c, errors.ErrValidationFailed.WithMessage(err.Error()), nil)
 		return
 	}
 	// Manual cross-field validation not supported by base proto-validate
@@ -289,12 +317,12 @@ func (h *UserHandler) UpdatePassword(c transport.Context) {
 	}
 
 	// Verify old password
-	if err := h.svc.ValidatePassword(c.Request(), req.Username, req.OldPassword); err != nil {
+	if err := h.svc.ValidatePassword(c.Request.Context(), req.Username, req.OldPassword); err != nil {
 		httputils.WriteResponse(c, err, nil)
 		return
 	}
 
-	if err := h.svc.ChangePassword(c.Request(), req.Username, req.NewPassword); err != nil {
+	if err := h.svc.ChangePassword(c.Request.Context(), req.Username, req.NewPassword); err != nil {
 		httputils.WriteResponse(c, err, nil)
 		return
 	}

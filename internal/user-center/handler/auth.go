@@ -3,13 +3,14 @@ package handler
 import (
 	"strings"
 
+	"github.com/gin-gonic/gin"
 	"github.com/kart-io/logger"
 	"github.com/kart-io/sentinel-x/internal/model"
 	"github.com/kart-io/sentinel-x/internal/pkg/httputils"
 	"github.com/kart-io/sentinel-x/internal/user-center/biz"
 	v1 "github.com/kart-io/sentinel-x/pkg/api/user-center/v1"
-	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 	"github.com/kart-io/sentinel-x/pkg/utils/errors"
+	"github.com/kart-io/sentinel-x/pkg/utils/validator"
 )
 
 // AuthHandler handles authentication requests.
@@ -39,14 +40,18 @@ type LoginResponse struct {
 //	@Success		200		{object}	LoginResponse	"成功响应"
 //	@Failure		401		{object}	object			"认证失败"
 //	@Router			/auth/login [post]
-func (h *AuthHandler) Login(c transport.Context) {
+func (h *AuthHandler) Login(c *gin.Context) {
 	var req v1.LoginRequest
-	if err := c.ShouldBindAndValidate(&req); err != nil {
+	if err := c.ShouldBindJSON(&req); err != nil {
 		httputils.WriteResponse(c, errors.ErrBadRequest.WithMessage(err.Error()), nil)
 		return
 	}
+	if err := validator.Global().Validate(&req); err != nil {
+		httputils.WriteResponse(c, errors.ErrValidationFailed.WithMessage(err.Error()), nil)
+		return
+	}
 
-	respData, err := h.svc.Login(c.Request(), &model.LoginRequest{
+	respData, err := h.svc.Login(c.Request.Context(), &model.LoginRequest{
 		Username: req.Username,
 		Password: req.Password,
 	})
@@ -70,8 +75,8 @@ func (h *AuthHandler) Login(c transport.Context) {
 //	@Success		200				{object}	object	"成功响应"
 //	@Failure		400				{object}	object	"请求错误"
 //	@Router			/auth/logout [post]
-func (h *AuthHandler) Logout(c transport.Context) {
-	token := c.Header("Authorization")
+func (h *AuthHandler) Logout(c *gin.Context) {
+	token := c.GetHeader("Authorization")
 	if len(token) > 7 && strings.ToUpper(token[:7]) == "BEARER " {
 		token = token[7:]
 	}
@@ -85,7 +90,7 @@ func (h *AuthHandler) Logout(c transport.Context) {
 		return
 	}
 
-	if err := h.svc.Logout(c.Request(), token); err != nil {
+	if err := h.svc.Logout(c.Request.Context(), token); err != nil {
 		logger.Errorf("Logout failed: %v", err)
 		httputils.WriteResponse(c, errors.ErrInternal.WithMessage("failed to logout"), nil)
 		return
@@ -105,14 +110,18 @@ func (h *AuthHandler) Logout(c transport.Context) {
 //	@Success		200		{object}	object	"成功响应"
 //	@Failure		400		{object}	object	"请求错误"
 //	@Router			/auth/register [post]
-func (h *AuthHandler) Register(c transport.Context) {
+func (h *AuthHandler) Register(c *gin.Context) {
 	var req v1.RegisterRequest
-	if err := c.ShouldBindAndValidate(&req); err != nil {
+	if err := c.ShouldBindJSON(&req); err != nil {
 		httputils.WriteResponse(c, errors.ErrBadRequest.WithMessage(err.Error()), nil)
 		return
 	}
+	if err := validator.Global().Validate(&req); err != nil {
+		httputils.WriteResponse(c, errors.ErrValidationFailed.WithMessage(err.Error()), nil)
+		return
+	}
 
-	if err := h.svc.Register(c.Request(), &model.RegisterRequest{
+	if err := h.svc.Register(c.Request.Context(), &model.RegisterRequest{
 		Username: req.Username,
 		Password: req.Password,
 		Email:    req.Email,
