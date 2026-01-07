@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	"github.com/gin-gonic/gin"
 	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 )
 
@@ -19,7 +19,7 @@ const (
 )
 
 // SecurityHeaders returns a middleware that adds security headers with default options.
-func SecurityHeaders() transport.MiddlewareFunc {
+func SecurityHeaders() gin.HandlerFunc {
 	return SecurityHeadersWithOptions(*mwopts.NewSecurityHeadersOptions())
 }
 
@@ -34,48 +34,46 @@ func SecurityHeaders() transport.MiddlewareFunc {
 //	opts := mwopts.NewSecurityHeadersOptions()
 //	opts.EnableHSTS = true
 //	middleware.SecurityHeadersWithOptions(*opts)
-func SecurityHeadersWithOptions(opts mwopts.SecurityHeadersOptions) transport.MiddlewareFunc {
-	return func(next transport.HandlerFunc) transport.HandlerFunc {
-		return func(c transport.Context) {
-			// Add HSTS header
-			if opts.EnableHSTS && isHTTPSConnection(c) {
-				hsts := fmt.Sprintf("max-age=%d", opts.HSTSMaxAge)
-				if opts.HSTSIncludeSubdomains {
-					hsts += "; includeSubDomains"
-				}
-				if opts.HSTSPreload {
-					hsts += "; preload"
-				}
-				c.SetHeader(HeaderStrictTransportSecurity, hsts)
+func SecurityHeadersWithOptions(opts mwopts.SecurityHeadersOptions) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Add HSTS header
+		if opts.EnableHSTS && isHTTPSConnection(c) {
+			hsts := fmt.Sprintf("max-age=%d", opts.HSTSMaxAge)
+			if opts.HSTSIncludeSubdomains {
+				hsts += "; includeSubDomains"
 			}
-
-			// Add X-Frame-Options header
-			if opts.EnableFrameOptions {
-				c.SetHeader(HeaderXFrameOptions, opts.FrameOptionsValue)
+			if opts.HSTSPreload {
+				hsts += "; preload"
 			}
-
-			// Add X-Content-Type-Options header
-			if opts.EnableContentTypeOptions {
-				c.SetHeader(HeaderXContentTypeOptions, "nosniff")
-			}
-
-			// Add X-XSS-Protection header
-			if opts.EnableXSSProtection {
-				c.SetHeader(HeaderXXSSProtection, opts.XSSProtectionValue)
-			}
-
-			// Add Content-Security-Policy header
-			if opts.ContentSecurityPolicy != "" {
-				c.SetHeader(HeaderContentSecurityPolicy, opts.ContentSecurityPolicy)
-			}
-
-			// Add Referrer-Policy header
-			if opts.ReferrerPolicy != "" {
-				c.SetHeader(HeaderReferrerPolicy, opts.ReferrerPolicy)
-			}
-
-			next(c)
+			c.Header(HeaderStrictTransportSecurity, hsts)
 		}
+
+		// Add X-Frame-Options header
+		if opts.EnableFrameOptions {
+			c.Header(HeaderXFrameOptions, opts.FrameOptionsValue)
+		}
+
+		// Add X-Content-Type-Options header
+		if opts.EnableContentTypeOptions {
+			c.Header(HeaderXContentTypeOptions, "nosniff")
+		}
+
+		// Add X-XSS-Protection header
+		if opts.EnableXSSProtection {
+			c.Header(HeaderXXSSProtection, opts.XSSProtectionValue)
+		}
+
+		// Add Content-Security-Policy header
+		if opts.ContentSecurityPolicy != "" {
+			c.Header(HeaderContentSecurityPolicy, opts.ContentSecurityPolicy)
+		}
+
+		// Add Referrer-Policy header
+		if opts.ReferrerPolicy != "" {
+			c.Header(HeaderReferrerPolicy, opts.ReferrerPolicy)
+		}
+
+		c.Next()
 	}
 }
 
@@ -85,8 +83,8 @@ func SecurityHeadersWithOptions(opts mwopts.SecurityHeadersOptions) transport.Mi
 //   - X-Forwarded-Proto header (for reverse proxy scenarios)
 //
 // Returns true if the connection is HTTPS, false otherwise.
-func isHTTPSConnection(c transport.Context) bool {
-	req := c.HTTPRequest()
+func isHTTPSConnection(c *gin.Context) bool {
+	req := c.Request
 
 	// Check if TLS is enabled
 	if req.TLS != nil {

@@ -2,10 +2,10 @@ package resilience
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/kart-io/logger"
-	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	"github.com/kart-io/sentinel-x/pkg/infra/middleware/internal/pathutil"
+	"github.com/gin-gonic/gin"
 	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 	"github.com/kart-io/sentinel-x/pkg/utils/errors"
 	"github.com/kart-io/sentinel-x/pkg/utils/response"
@@ -20,7 +20,7 @@ import (
 // 示例：
 //
 //	router.Use(BodyLimit(10 * 1024 * 1024)) // 限制 10MB
-func BodyLimit(maxSize int64) transport.MiddlewareFunc {
+func BodyLimit(maxSize int64) gin.HandlerFunc {
 	return BodyLimitWithOptions(mwopts.BodyLimitOptions{
 		MaxSize: maxSize,
 	})
@@ -38,34 +38,21 @@ func BodyLimit(maxSize int64) transport.MiddlewareFunc {
 //   - 必须在读取请求体的中间件之前执行
 //   - 对于文件上传路径，建议配置到 SkipPaths 中并单独处理
 //   - Content-Length 头可能被客户端伪造，实际读取时仍会限制
-func BodyLimitWithOptions(opts mwopts.BodyLimitOptions) transport.MiddlewareFunc {
+func BodyLimitWithOptions(opts mwopts.BodyLimitOptions) gin.HandlerFunc {
 	// 设置默认值
 	if opts.MaxSize <= 0 {
 		opts.MaxSize = 4 * 1024 * 1024 // 默认 4MB
 	}
 
-	// 构建跳过路径映射表（O(1) 查找）
-	skipPaths := make(map[string]bool)
-	for _, path := range opts.SkipPaths {
-		skipPaths[path] = true
-	}
-
-	return func(next transport.HandlerFunc) transport.HandlerFunc {
-		return func(c transport.Context) {
-			req := c.HTTPRequest()
+	// 创建路径匹配器
+	pathMatcher := pathutil.NewPathMatcher(opts.SkipPaths, opts.SkipPathPrefixes)
+	return func(c *gin.Context) {
+			req := c.Request
 
 			// 检查是否跳过此路径（精确匹配）
-			if skipPaths[req.URL.Path] {
-				next(c)
+			if pathMatcher(req.URL.Path) {
+				c.Next()
 				return
-			}
-
-			// 检查是否跳过此路径（前缀匹配）
-			for _, prefix := range opts.SkipPathPrefixes {
-				if strings.HasPrefix(req.URL.Path, prefix) {
-					next(c)
-					return
-				}
 			}
 
 			// 早期检查：如果 Content-Length 头已经超过限制，立即拒绝
@@ -83,10 +70,9 @@ func BodyLimitWithOptions(opts mwopts.BodyLimitOptions) transport.MiddlewareFunc
 			// 使用 http.MaxBytesReader 限制实际读取的字节数
 			// 即使客户端没有设置 Content-Length 或设置了错误的值，
 			// 在读取超过 MaxSize 字节时也会返回错误
-			req.Body = http.MaxBytesReader(c.ResponseWriter(), req.Body, opts.MaxSize)
+			req.Body = http.MaxBytesReader(c.Writer, req.Body, opts.MaxSize)
 
 			// 继续处理请求
-			next(c)
+			c.Next()
 		}
-	}
 }

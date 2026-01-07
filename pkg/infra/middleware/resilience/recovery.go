@@ -5,8 +5,8 @@ import (
 	"os"
 	"runtime/debug"
 
+	"github.com/gin-gonic/gin"
 	"github.com/kart-io/logger"
-	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 	"github.com/kart-io/sentinel-x/pkg/utils/errors"
 	"github.com/kart-io/sentinel-x/pkg/utils/response"
@@ -17,10 +17,10 @@ import (
 //   - ctx: 请求上下文
 //   - err: panic 值
 //   - stack: 堆栈跟踪信息
-type PanicHandler func(ctx transport.Context, err interface{}, stack []byte)
+type PanicHandler func(ctx *gin.Context, err interface{}, stack []byte)
 
 // Recovery returns a middleware that recovers from panics with default options.
-func Recovery() transport.MiddlewareFunc {
+func Recovery() gin.HandlerFunc {
 	return RecoveryWithOptions(*mwopts.NewRecoveryOptions(), nil)
 }
 
@@ -38,39 +38,37 @@ func Recovery() transport.MiddlewareFunc {
 //	middleware.RecoveryWithOptions(opts, nil)
 //
 //	// 自定义 panic 处理器
-//	middleware.RecoveryWithOptions(opts, func(ctx transport.Context, err interface{}, stack []byte) {
+//	middleware.RecoveryWithOptions(opts, func(ctx *gin.Context, err interface{}, stack []byte) {
 //	    // 发送告警到监控系统
 //	    alerting.SendPanicAlert(err, stack)
 //	})
-func RecoveryWithOptions(opts mwopts.RecoveryOptions, onPanic PanicHandler) transport.MiddlewareFunc {
+func RecoveryWithOptions(opts mwopts.RecoveryOptions, onPanic PanicHandler) gin.HandlerFunc {
 	// Check if running in production environment
 	isProd := isProductionEnvironment()
 
 	// Validate and adjust config for production environment
 	shouldReturnStackToClient := validateStackTraceConfig(opts.EnableStackTrace, isProd)
 
-	return func(next transport.HandlerFunc) transport.HandlerFunc {
-		return func(c transport.Context) {
-			defer func() {
-				if r := recover(); r != nil {
-					stack := debug.Stack()
+	return func(c *gin.Context) {
+		defer func() {
+			if r := recover(); r != nil {
+				stack := debug.Stack()
 
-					// Always log full stack trace to logs
-					logPanicWithStackTrace(c, r, stack)
+				// Always log full stack trace to logs
+				logPanicWithStackTrace(c, r, stack)
 
-					// Call panic handler if configured
-					if onPanic != nil {
-						onPanic(c, r, stack)
-					}
-
-					// Build client error response
-					err := buildClientErrorResponse(r, stack, shouldReturnStackToClient)
-
-					response.Fail(c, err)
+				// Call panic handler if configured
+				if onPanic != nil {
+					onPanic(c, r, stack)
 				}
-			}()
-			next(c)
-		}
+
+				// Build client error response
+				err := buildClientErrorResponse(r, stack, shouldReturnStackToClient)
+
+				response.Fail(c, err)
+			}
+		}()
+		c.Next()
 	}
 }
 
@@ -105,13 +103,12 @@ func validateStackTraceConfig(enableStackTrace bool, isProd bool) bool {
 
 // logPanicWithStackTrace logs the panic with full stack trace information.
 // This ensures complete debugging information is always available in logs.
-func logPanicWithStackTrace(c transport.Context, panicValue interface{}, stack []byte) {
-	req := c.HTTPRequest()
+func logPanicWithStackTrace(c *gin.Context, panicValue interface{}, stack []byte) {
 	logger.Errorw("panic recovered",
 		"panic", panicValue,
 		"stack_trace", string(stack),
-		"path", req.URL.Path,
-		"method", req.Method,
+		"path", c.Request.URL.Path,
+		"method", c.Request.Method,
 	)
 }
 

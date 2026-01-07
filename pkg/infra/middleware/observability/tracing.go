@@ -11,7 +11,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/kart-io/sentinel-x/pkg/infra/middleware/requestutil"
-	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	"github.com/gin-gonic/gin"
 	"github.com/kart-io/sentinel-x/pkg/infra/tracing"
 )
 
@@ -28,7 +28,7 @@ type TracingOptions struct {
 
 	// SpanNameFormatter formats the span name from the request.
 	// Default: "{http.method} {http.route}"
-	SpanNameFormatter func(ctx transport.Context) string
+	SpanNameFormatter func(ctx *gin.Context) string
 
 	// IncludeRequestBody enables capturing request body in span attributes.
 	// WARNING: This can expose sensitive data. Use with caution.
@@ -45,7 +45,7 @@ type TracingOptions struct {
 	SkipPathPrefixes []string
 
 	// AttributeExtractor extracts custom attributes from the request.
-	AttributeExtractor func(ctx transport.Context) []attribute.KeyValue
+	AttributeExtractor func(ctx *gin.Context) []attribute.KeyValue
 }
 
 // TracingOption is a functional option for TracingOptions.
@@ -71,7 +71,7 @@ func WithTracerName(name string) TracingOption {
 }
 
 // WithSpanNameFormatter sets the span name formatter.
-func WithSpanNameFormatter(formatter func(ctx transport.Context) string) TracingOption {
+func WithSpanNameFormatter(formatter func(ctx *gin.Context) string) TracingOption {
 	return func(o *TracingOptions) {
 		o.SpanNameFormatter = formatter
 	}
@@ -106,7 +106,7 @@ func WithTracingSkipPathPrefixes(prefixes []string) TracingOption {
 }
 
 // WithAttributeExtractor sets a custom attribute extractor.
-func WithAttributeExtractor(extractor func(ctx transport.Context) []attribute.KeyValue) TracingOption {
+func WithAttributeExtractor(extractor func(ctx *gin.Context) []attribute.KeyValue) TracingOption {
 	return func(o *TracingOptions) {
 		o.AttributeExtractor = extractor
 	}
@@ -139,7 +139,7 @@ func WithAttributeExtractor(extractor func(ctx transport.Context) []attribute.Ke
 //	        ),
 //	    ),
 //	)
-func Tracing(opts ...TracingOption) transport.MiddlewareFunc {
+func Tracing(opts ...TracingOption) gin.HandlerFunc {
 	options := NewTracingOptions()
 	for _, opt := range opts {
 		opt(options)
@@ -153,8 +153,8 @@ func Tracing(opts ...TracingOption) transport.MiddlewareFunc {
 
 	propagator := tracing.GetGlobalTextMapPropagator()
 
-	return func(next transport.HandlerFunc) transport.HandlerFunc {
-		return func(ctx transport.Context) {
+	return func(next gin.HandlerFunc) gin.HandlerFunc {
+		return func(ctx *gin.Context) {
 			req := ctx.HTTPRequest()
 			path := req.URL.Path
 
@@ -287,7 +287,7 @@ func (w *tracingResponseWriter) Write(b []byte) (int, error) {
 }
 
 // defaultSpanNameFormatter creates a span name from the HTTP method and route.
-func defaultSpanNameFormatter(ctx transport.Context) string {
+func defaultSpanNameFormatter(ctx *gin.Context) string {
 	req := ctx.HTTPRequest()
 	// Try to get route pattern if available
 	// This is framework-specific, so we fall back to the path
@@ -297,11 +297,11 @@ func defaultSpanNameFormatter(ctx transport.Context) string {
 
 // ExtractTraceID extracts the trace ID from the context.
 // This can be used to add trace ID to logs or responses.
-func ExtractTraceID(ctx transport.Context) string {
+func ExtractTraceID(ctx *gin.Context) string {
 	return tracing.TraceIDFromContext(ctx.Request())
 }
 
 // ExtractSpanID extracts the span ID from the context.
-func ExtractSpanID(ctx transport.Context) string {
+func ExtractSpanID(ctx *gin.Context) string {
 	return tracing.SpanIDFromContext(ctx.Request())
 }

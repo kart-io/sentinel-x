@@ -6,10 +6,9 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	"github.com/gin-gonic/gin"
 	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 )
-
 
 // RegisterPprofRoutesWithOptions 注册 Pprof 路由端点。
 // 这是推荐的 API，使用纯配置选项。
@@ -79,10 +78,10 @@ func RegisterPprofRoutesWithOptions(router transport.Router, opts mwopts.PprofOp
 	}
 }
 
-// wrapPprofHandler wraps a http.HandlerFunc to transport.HandlerFunc.
-func wrapPprofHandler(h http.HandlerFunc) transport.HandlerFunc {
-	return func(c transport.Context) {
-		h(c.ResponseWriter(), c.HTTPRequest())
+// wrapPprofHandler wraps a http.HandlerFunc to gin.HandlerFunc.
+func wrapPprofHandler(h http.HandlerFunc) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		h(c.Writer, c.Request)
 	}
 }
 

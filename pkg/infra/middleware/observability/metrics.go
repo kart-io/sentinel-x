@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	"github.com/gin-gonic/gin"
 	"github.com/kart-io/sentinel-x/pkg/observability/metrics"
 	options "github.com/kart-io/sentinel-x/pkg/options/middleware"
 )
@@ -160,7 +160,7 @@ func (w *metricsResponseWriter) Write(b []byte) (int, error) {
 // MetricsMiddleware creates a middleware that collects metrics.
 //
 // Deprecated: 使用 MetricsWithOptions 替代。此函数将在 v2.0.0 中移除。
-func MetricsMiddleware(opts options.MetricsOptions) transport.MiddlewareFunc {
+func MetricsMiddleware(opts options.MetricsOptions) gin.HandlerFunc {
 	return MetricsWithOptions(opts)
 }
 
@@ -176,17 +176,16 @@ func MetricsMiddleware(opts options.MetricsOptions) transport.MiddlewareFunc {
 //	opts.Path = "/metrics"
 //	opts.Namespace = "myapp"
 //	middleware.MetricsWithOptions(opts)
-func MetricsWithOptions(opts options.MetricsOptions) transport.MiddlewareFunc {
+func MetricsWithOptions(opts options.MetricsOptions) gin.HandlerFunc {
 	collector := GetMetricsCollector(opts.Namespace, opts.Subsystem)
 
-	return func(next transport.HandlerFunc) transport.HandlerFunc {
-		return func(c transport.Context) {
-			req := c.HTTPRequest()
+	return func(c *gin.Context) {
+			req := c.Request
 			path := req.URL.Path
 
 			// Skip metrics endpoint itself
 			if path == opts.Path {
-				next(c)
+				c.Next()
 				return
 			}
 
@@ -194,11 +193,11 @@ func MetricsWithOptions(opts options.MetricsOptions) transport.MiddlewareFunc {
 			start := time.Now()
 
 			// Wrap response writer to capture status code
-			rw := c.ResponseWriter()
+			rw := c.Writer
 			mrw := newMetricsResponseWriter(rw)
 
 			// Execute handler
-			next(c)
+			c.Next()
 
 			duration := time.Since(start)
 			collector.DecrementActive()
@@ -211,9 +210,7 @@ func MetricsWithOptions(opts options.MetricsOptions) transport.MiddlewareFunc {
 
 			collector.RecordRequest(req.Method, path, status, duration)
 		}
-	}
 }
-
 
 // RegisterMetricsRoutesWithOptions 注册 Metrics 路由端点。
 // 这是推荐的 API，使用纯配置选项。
@@ -230,8 +227,8 @@ func RegisterMetricsRoutesWithOptions(router transport.Router, opts options.Metr
 	// Ensure collector is initialized
 	GetMetricsCollector(opts.Namespace, opts.Subsystem)
 
-	router.Handle(http.MethodGet, opts.Path, func(c transport.Context) {
-		c.SetHeader("Content-Type", "text/plain; charset=utf-8")
+	router.Handle(http.MethodGet, opts.Path, func(c *gin.Context) {
+		c.Header("Content-Type", "text/plain; charset=utf-8")
 		c.String(http.StatusOK, metrics.Export())
 	})
 }
@@ -256,6 +253,6 @@ func (m *MetricsCollector) GetRequestCount(method, path string, status int) uint
 }
 
 // SetResponseStatus sets the response status for metrics recording.
-func SetResponseStatus(_ transport.Context, status int) {
+func SetResponseStatus(_ *gin.Context, status int) {
 	_ = status
 }

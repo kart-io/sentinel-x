@@ -1,8 +1,8 @@
 package middleware
 
 import (
+	"github.com/gin-gonic/gin"
 	"github.com/kart-io/sentinel-x/pkg/infra/middleware/requestutil"
-	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 )
 
@@ -18,7 +18,7 @@ var GetRequestID = requestutil.GetRequestID
 type RequestIDGenerator func() string
 
 // RequestID returns a middleware that adds a unique request ID to each request with default options.
-func RequestID() transport.MiddlewareFunc {
+func RequestID() gin.HandlerFunc {
 	return RequestIDWithOptions(*mwopts.NewRequestIDOptions(), nil)
 }
 
@@ -28,18 +28,21 @@ func RequestID() transport.MiddlewareFunc {
 // 参数：
 //   - opts: 纯配置选项（可 JSON 序列化）
 //   - generator: 可选的请求 ID 生成器
-//     如果为 nil，默认使用 requestutil.GenerateRequestID（生成 16 字节随机十六进制字符串）
+//     如果为 nil，根据 opts.GeneratorType 自动选择:
+//   - "random"/"hex": RandomHexGenerator (32字符,默认)
+//   - "ulid": ULIDGenerator (26字符,3x性能,推荐)
 //
 // 示例：
 //
-//	// 使用默认生成器
+//	// 使用配置自动选择生成器
+//	opts := mwopts.RequestIDOptions{GeneratorType: "ulid"}
 //	middleware.RequestIDWithOptions(opts, nil)
 //
-//	// 使用 UUID 生成器
+//	// 使用自定义生成器
 //	middleware.RequestIDWithOptions(opts, func() string {
-//	    return uuid.New().String()
+//	    return customIDGenerator()
 //	})
-func RequestIDWithOptions(opts mwopts.RequestIDOptions, generator RequestIDGenerator) transport.MiddlewareFunc {
+func RequestIDWithOptions(opts mwopts.RequestIDOptions, generator RequestIDGenerator) gin.HandlerFunc {
 	// Set defaults
 	header := opts.Header
 	if header == "" {
@@ -47,25 +50,25 @@ func RequestIDWithOptions(opts mwopts.RequestIDOptions, generator RequestIDGener
 	}
 
 	if generator == nil {
-		generator = requestutil.GenerateRequestID
+		// 根据配置创建生成器
+		gen := requestutil.NewGenerator(opts.GeneratorType)
+		generator = gen.Generate
 	}
 
-	return func(next transport.HandlerFunc) transport.HandlerFunc {
-		return func(c transport.Context) {
-			// Check if request ID already exists in header
-			requestID := c.Header(header)
-			if requestID == "" {
-				requestID = generator()
-			}
-
-			// Set request ID in response header
-			c.SetHeader(header, requestID)
-
-			// Store request ID in context using common package
-			ctx := requestutil.WithRequestID(c.Request(), requestID)
-			c.SetRequest(ctx)
-
-			next(c)
+	return func(c *gin.Context) {
+		// Check if request ID already exists in header
+		requestID := c.GetHeader(header)
+		if requestID == "" {
+			requestID = generator()
 		}
+
+		// Set request ID in response header
+		c.Header(header, requestID)
+
+		// Store request ID in context using common package
+		ctx := requestutil.WithRequestID(c.Request.Context(), requestID)
+		c.Request = c.Request.WithContext(ctx)
+
+		c.Next()
 	}
 }

@@ -5,7 +5,7 @@ import (
 
 	"github.com/kart-io/logger"
 	"github.com/kart-io/sentinel-x/pkg/infra/middleware/internal/pathutil"
-	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	"github.com/gin-gonic/gin"
 	llmresilience "github.com/kart-io/sentinel-x/pkg/llm/resilience"
 	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 	"github.com/kart-io/sentinel-x/pkg/utils/errors"
@@ -25,7 +25,7 @@ import (
 // 示例:
 //
 //	router.Use(CircuitBreaker(5, 60, 1))
-func CircuitBreaker(maxFailures int, timeout, halfOpenMaxCalls int) transport.MiddlewareFunc {
+func CircuitBreaker(maxFailures int, timeout, halfOpenMaxCalls int) gin.HandlerFunc {
 	return CircuitBreakerWithOptions(mwopts.CircuitBreakerOptions{
 		MaxFailures:      maxFailures,
 		Timeout:          timeout,
@@ -51,7 +51,7 @@ func CircuitBreaker(maxFailures int, timeout, halfOpenMaxCalls int) transport.Mi
 //   - 熔断器状态是单实例的，不跨实例共享
 //   - 跳过的路径（SkipPaths）不会影响熔断器状态
 //   - 熔断器打开时返回 503 Service Unavailable
-func CircuitBreakerWithOptions(opts mwopts.CircuitBreakerOptions) transport.MiddlewareFunc {
+func CircuitBreakerWithOptions(opts mwopts.CircuitBreakerOptions) gin.HandlerFunc {
 	// 创建路径匹配器
 	pathMatcher := pathutil.NewPathMatcher(opts.SkipPaths, opts.SkipPathPrefixes)
 
@@ -62,29 +62,27 @@ func CircuitBreakerWithOptions(opts mwopts.CircuitBreakerOptions) transport.Midd
 		HalfOpenMaxCalls: opts.HalfOpenMaxCalls,
 	})
 
-	return func(next transport.HandlerFunc) transport.HandlerFunc {
-		return func(c transport.Context) {
-			req := c.HTTPRequest()
+	return func(c *gin.Context) {
+			req := c.Request
 
 			// 检查是否跳过此路径
 			if pathMatcher(req.URL.Path) {
-				next(c)
+				c.Next()
 				return
 			}
 
 			// 通过熔断器执行请求
 			err := breaker.Execute(func() error {
 				// 调用下一个处理器
-				next(c)
+				c.Next()
 
 				// 获取响应状态码
 				// 注意：这依赖于框架适配器实现 Status() 方法
 				statusCode := http.StatusOK
-				if w, ok := c.ResponseWriter().(interface{ Status() int }); ok {
+				if w, ok := c.Writer.(interface{ Status() int }); ok {
 					if status := w.Status(); status != 0 {
 						statusCode = status
 					}
-				}
 
 				// 根据 HTTP 状态码判断是否失败
 				if statusCode >= opts.ErrorThreshold {

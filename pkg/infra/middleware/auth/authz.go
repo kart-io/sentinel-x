@@ -3,8 +3,9 @@ package auth
 import (
 	"strings"
 
+	"github.com/gin-gonic/gin"
 	"github.com/kart-io/logger"
-	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	"github.com/kart-io/sentinel-x/pkg/infra/middleware/internal/pathutil"
 	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 	"github.com/kart-io/sentinel-x/pkg/security/auth"
 	"github.com/kart-io/sentinel-x/pkg/security/authz"
@@ -15,12 +16,12 @@ import (
 // authzOptions 是内部使用的授权选项结构（非导出）。
 type authzOptions struct {
 	authorizer        authz.Authorizer
-	resourceExtractor func(ctx transport.Context) string
-	actionExtractor   func(ctx transport.Context) string
-	subjectExtractor  func(ctx transport.Context) string
+	resourceExtractor func(ctx *gin.Context) string
+	actionExtractor   func(ctx *gin.Context) string
+	subjectExtractor  func(ctx *gin.Context) string
 	skipPaths         []string
 	skipPathPrefixes  []string
-	errorHandler      func(ctx transport.Context, err error)
+	errorHandler      func(ctx *gin.Context, err error)
 }
 
 // AuthzWithOptions 返回一个使用纯配置选项和运行时依赖注入的 Authz 中间件。
@@ -48,11 +49,11 @@ type authzOptions struct {
 func AuthzWithOptions(
 	opts mwopts.AuthzOptions,
 	authorizer authz.Authorizer,
-	resourceExtractor func(ctx transport.Context) string,
-	actionExtractor func(ctx transport.Context) string,
-	subjectExtractor func(ctx transport.Context) string,
-	errorHandler func(ctx transport.Context, err error),
-) transport.MiddlewareFunc {
+	resourceExtractor func(ctx *gin.Context) string,
+	actionExtractor func(ctx *gin.Context) string,
+	subjectExtractor func(ctx *gin.Context) string,
+	errorHandler func(ctx *gin.Context, err error),
+) gin.HandlerFunc {
 	// 使用默认提取器
 	if resourceExtractor == nil {
 		resourceExtractor = defaultResourceExtractor
@@ -74,68 +75,65 @@ func AuthzWithOptions(
 		errorHandler:      errorHandler,
 	}
 
-	return func(next transport.HandlerFunc) transport.HandlerFunc {
-		return func(ctx transport.Context) {
-			// Check if path should be skipped
-			path := ctx.HTTPRequest().URL.Path
-			if shouldSkipAuthz(path, o.skipPaths, o.skipPathPrefixes) {
-				next(ctx)
-				return
-			}
-
-			// Check if authorizer is configured
-			if o.authorizer == nil {
-				handleAuthzError(ctx, o, errors.ErrInternal.WithMessage("authorizer not configured"))
-				return
-			}
-
-			// Extract subject
-			subject := o.subjectExtractor(ctx)
-			if subject == "" {
-				handleAuthzError(ctx, o, errors.ErrUnauthorized.WithMessage("no subject found"))
-				return
-			}
-
-			// Extract resource and action
-			resource := o.resourceExtractor(ctx)
-			action := o.actionExtractor(ctx)
-
-			// Check authorization
-			allowed, err := o.authorizer.Authorize(ctx.Request(), subject, resource, action)
-			if err != nil {
-				// Log authorization error for security audit
-				logAuthzFailure(ctx, subject, resource, action, err)
-				handleAuthzError(ctx, o, err)
-				return
-			}
-
-			if !allowed {
-				authzErr := errors.ErrNoPermission.WithMessagef(
-					"access denied: subject=%s, resource=%s, action=%s",
-					subject, resource, action)
-				// Log authorization denial for security audit
-				logAuthzFailure(ctx, subject, resource, action, authzErr)
-				handleAuthzError(ctx, o, authzErr)
-				return
-			}
-
-			// Debug: log successful authz
-			logger.Infow("authorization successful",
-				"subject", subject,
-				"resource", resource,
-				"action", action,
-				"path", path,
-			)
-
-			next(ctx)
+	return func(c *gin.Context) {
+		// Check if path should be skipped
+		path := c.Request.URL.Path
+		if shouldSkipAuthz(path, o.skipPaths, o.skipPathPrefixes) {
+			c.Next()
+			return
 		}
+
+		// Check if authorizer is configured
+		if o.authorizer == nil {
+			handleAuthzError(c, o, errors.ErrInternal.WithMessage("authorizer not configured"))
+			return
+		}
+
+		// Extract subject
+		subject := o.subjectExtractor(c)
+		if subject == "" {
+			handleAuthzError(c, o, errors.ErrUnauthorized.WithMessage("no subject found"))
+			return
+		}
+
+		// Extract resource and action
+		resource := o.resourceExtractor(c)
+		action := o.actionExtractor(c)
+
+		// Check authorization
+		allowed, err := o.authorizer.Authorize(c.Request.Context(), subject, resource, action)
+		if err != nil {
+			// Log authorization error for security audit
+			logAuthzFailure(c, subject, resource, action, err)
+			handleAuthzError(c, o, err)
+			return
+		}
+
+		if !allowed {
+			authzErr := errors.ErrNoPermission.WithMessagef(
+				"access denied: subject=%s, resource=%s, action=%s",
+				subject, resource, action)
+			// Log authorization denial for security audit
+			logAuthzFailure(c, subject, resource, action, authzErr)
+			handleAuthzError(c, o, authzErr)
+			return
+		}
+
+		// Debug: log successful authz
+		logger.Infow("authorization successful",
+			"subject", subject,
+			"resource", resource,
+			"action", action,
+			"path", path,
+		)
+
+		c.Next()
 	}
 }
 
-
 // defaultResourceExtractor extracts the resource from the request path.
-func defaultResourceExtractor(ctx transport.Context) string {
-	path := ctx.HTTPRequest().URL.Path
+func defaultResourceExtractor(c *gin.Context) string {
+	path := c.Request.URL.Path
 
 	// Remove leading slash and API prefix
 	path = strings.TrimPrefix(path, "/")
@@ -153,8 +151,8 @@ func defaultResourceExtractor(ctx transport.Context) string {
 }
 
 // defaultActionExtractor maps HTTP method to action.
-func defaultActionExtractor(ctx transport.Context) string {
-	method := ctx.HTTPRequest().Method
+func defaultActionExtractor(c *gin.Context) string {
+	method := c.Request.Method
 	switch method {
 	case "GET":
 		return "read"
@@ -170,47 +168,32 @@ func defaultActionExtractor(ctx transport.Context) string {
 }
 
 // defaultSubjectExtractor extracts the subject from auth claims.
-func defaultSubjectExtractor(ctx transport.Context) string {
-	return auth.SubjectFromContext(ctx.Request())
+func defaultSubjectExtractor(c *gin.Context) string {
+	return auth.SubjectFromContext(c.Request.Context())
 }
 
 // shouldSkipAuthz checks if the path should skip authorization.
 func shouldSkipAuthz(path string, skipPaths, skipPrefixes []string) bool {
-	// Check exact match
-	for _, p := range skipPaths {
-		if path == p {
-			return true
-		}
-	}
-
-	// Check prefix match
-	for _, prefix := range skipPrefixes {
-		if strings.HasPrefix(path, prefix) {
-			return true
-		}
-	}
-
-	return false
+	return pathutil.ShouldSkip(path, skipPaths, skipPrefixes)
 }
 
 // handleAuthzError handles authorization errors.
-func handleAuthzError(ctx transport.Context, o *authzOptions, err error) {
+func handleAuthzError(c *gin.Context, o *authzOptions, err error) {
 	if o.errorHandler != nil {
-		o.errorHandler(ctx, err)
+		o.errorHandler(c, err)
 		return
 	}
 
 	// Default error handling
 	errno := errors.FromError(err)
-	ctx.JSON(errno.HTTPStatus(), response.Err(errno))
+	c.JSON(errno.HTTPStatus(), response.Err(errno))
 }
-
 
 // logAuthzFailure logs authorization failures for security audit.
 // This helps detect unauthorized access attempts and permission violations.
-func logAuthzFailure(ctx transport.Context, subject, resource, action string, err error) {
+func logAuthzFailure(c *gin.Context, subject, resource, action string, err error) {
 	// Get request information
-	req := ctx.HTTPRequest()
+	req := c.Request
 	if req == nil {
 		return
 	}

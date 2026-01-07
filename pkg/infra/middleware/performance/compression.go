@@ -9,7 +9,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	"github.com/kart-io/sentinel-x/pkg/infra/middleware/internal/pathutil"
+	"github.com/gin-gonic/gin"
 	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 )
 
@@ -22,7 +23,7 @@ import (
 // 示例：
 //
 //	router.Use(Compression(6)) // 使用默认压缩级别
-func Compression(level int) transport.MiddlewareFunc {
+func Compression(level int) gin.HandlerFunc {
 	return CompressionWithOptions(mwopts.CompressionOptions{
 		Level: level,
 	})
@@ -42,7 +43,7 @@ func Compression(level int) transport.MiddlewareFunc {
 //   - 小于 MinSize 的响应不压缩
 //   - 已压缩内容（图片、视频）不应再次压缩
 //   - 压缩会增加 CPU 消耗，需要权衡性能
-func CompressionWithOptions(opts mwopts.CompressionOptions) transport.MiddlewareFunc {
+func CompressionWithOptions(opts mwopts.CompressionOptions) gin.HandlerFunc {
 	// 设置默认值
 	if opts.Level == 0 {
 		opts.Level = 6 // 默认中等压缩
@@ -61,11 +62,8 @@ func CompressionWithOptions(opts mwopts.CompressionOptions) transport.Middleware
 		}
 	}
 
-	// 构建跳过路径映射表
-	skipPaths := make(map[string]bool)
-	for _, path := range opts.SkipPaths {
-		skipPaths[path] = true
-	}
+	// 构建跳过路径匹配器
+	pathMatcher := pathutil.NewPathMatcher(opts.SkipPaths, opts.SkipPathPrefixes)
 
 	// 构建支持压缩的 Content-Type 映射表
 	compressTypes := make(map[string]bool)
@@ -81,28 +79,19 @@ func CompressionWithOptions(opts mwopts.CompressionOptions) transport.Middleware
 		},
 	}
 
-	return func(next transport.HandlerFunc) transport.HandlerFunc {
-		return func(c transport.Context) {
-			req := c.HTTPRequest()
-			w := c.ResponseWriter()
+	return func(c *gin.Context) {
+			req := c.Request
+			w := c.Writer
 
-			// 检查是否跳过此路径（精确匹配）
-			if skipPaths[req.URL.Path] {
-				next(c)
+			// 检查是否跳过此路径
+			if pathMatcher(req.URL.Path) {
+				c.Next()
 				return
-			}
-
-			// 检查是否跳过此路径（前缀匹配）
-			for _, prefix := range opts.SkipPathPrefixes {
-				if strings.HasPrefix(req.URL.Path, prefix) {
-					next(c)
-					return
-				}
 			}
 
 			// 检查客户端是否支持 gzip
 			if !strings.Contains(req.Header.Get("Accept-Encoding"), "gzip") {
-				next(c)
+				c.Next()
 				return
 			}
 
@@ -114,18 +103,17 @@ func CompressionWithOptions(opts mwopts.CompressionOptions) transport.Middleware
 				gzipPool:       &gzipPool,
 			}
 
-			// 注意：我们不能直接替换 ResponseWriter，因为 transport.Context
+			// 注意：我们不能直接替换 ResponseWriter，因为 *gin.Context
 			// 接口没有 SetResponseWriter 方法。
 			// 实际的实现需要依赖框架适配器的支持。
 			// 这里我们通过包装的方式工作，后续处理程序会使用包装后的 writer。
 
 			// 执行业务逻辑
-			next(c)
+			c.Next()
 
 			// 确保写入完成
 			gw.Close()
 		}
-	}
 }
 
 // gzipResponseWriter 是支持 gzip 压缩的 ResponseWriter。

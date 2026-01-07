@@ -7,12 +7,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	"github.com/gin-gonic/gin"
 	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 )
 
 // CORS returns a middleware that adds CORS headers.
-func CORS() transport.MiddlewareFunc {
+func CORS() gin.HandlerFunc {
 	return CORSWithOptions(*mwopts.NewCORSOptions())
 }
 
@@ -72,7 +72,7 @@ func validateOriginFormat(origin string) error {
 
 // CORSWithOptions returns a CORS middleware with CORSOptions.
 // 这是推荐的构造函数，直接使用 pkg/options/middleware.CORSOptions。
-func CORSWithOptions(opts mwopts.CORSOptions) transport.MiddlewareFunc {
+func CORSWithOptions(opts mwopts.CORSOptions) gin.HandlerFunc {
 	// Validate configuration
 	if err := validateCORSOptions(opts); err != nil {
 		panic(err) // 配置错误应该在启动时失败
@@ -111,46 +111,44 @@ func CORSWithOptions(opts mwopts.CORSOptions) transport.MiddlewareFunc {
 	exposeHeaders := strings.Join(opts.ExposeHeaders, ", ")
 	maxAge := strconv.Itoa(opts.MaxAge)
 
-	return func(next transport.HandlerFunc) transport.HandlerFunc {
-		return func(c transport.Context) {
-			req := c.HTTPRequest()
-			origin := req.Header.Get("Origin")
+	return func(c *gin.Context) {
+		req := c.Request
+		origin := req.Header.Get("Origin")
 
-			// Check if origin is allowed
-			allowedOrigin := ""
-			for _, o := range opts.AllowOrigins {
-				if o == "*" || o == origin {
-					allowedOrigin = o
-					break
-				}
+		// Check if origin is allowed
+		allowedOrigin := ""
+		for _, o := range opts.AllowOrigins {
+			if o == "*" || o == origin {
+				allowedOrigin = o
+				break
 			}
-
-			if allowedOrigin == "" {
-				next(c)
-				return
-			}
-
-			// Set CORS headers
-			c.SetHeader("Access-Control-Allow-Origin", allowedOrigin)
-
-			if opts.AllowCredentials {
-				c.SetHeader("Access-Control-Allow-Credentials", "true")
-			}
-
-			if exposeHeaders != "" {
-				c.SetHeader("Access-Control-Expose-Headers", exposeHeaders)
-			}
-
-			// Handle preflight request
-			if req.Method == http.MethodOptions {
-				c.SetHeader("Access-Control-Allow-Methods", allowMethods)
-				c.SetHeader("Access-Control-Allow-Headers", allowHeaders)
-				c.SetHeader("Access-Control-Max-Age", maxAge)
-				c.JSON(http.StatusNoContent, nil)
-				return
-			}
-
-			next(c)
 		}
+
+		if allowedOrigin == "" {
+			c.Next()
+			return
+		}
+
+		// Set CORS headers
+		c.Header("Access-Control-Allow-Origin", allowedOrigin)
+
+		if opts.AllowCredentials {
+			c.Header("Access-Control-Allow-Credentials", "true")
+		}
+
+		if exposeHeaders != "" {
+			c.Header("Access-Control-Expose-Headers", exposeHeaders)
+		}
+
+		// Handle preflight request
+		if req.Method == http.MethodOptions {
+			c.Header("Access-Control-Allow-Methods", allowMethods)
+			c.Header("Access-Control-Allow-Headers", allowHeaders)
+			c.Header("Access-Control-Max-Age", maxAge)
+			c.JSON(http.StatusNoContent, nil)
+			return
+		}
+
+		c.Next()
 	}
 }

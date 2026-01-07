@@ -6,9 +6,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/kart-io/logger"
+	"github.com/kart-io/sentinel-x/pkg/infra/middleware/internal/pathutil"
 	"github.com/kart-io/sentinel-x/pkg/infra/middleware/requestutil"
-	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 )
 
@@ -33,7 +34,7 @@ func releaseFields(fields *[]interface{}) {
 }
 
 // Logger returns a middleware that logs HTTP requests with default options.
-func Logger() transport.MiddlewareFunc {
+func Logger() gin.HandlerFunc {
 	return LoggerWithOptions(*mwopts.NewLoggerOptions(), nil)
 }
 
@@ -54,77 +55,73 @@ func Logger() transport.MiddlewareFunc {
 //	middleware.LoggerWithOptions(opts, func(format string, args ...interface{}) {
 //	    myLogger.Printf(format, args...)
 //	})
-func LoggerWithOptions(opts mwopts.LoggerOptions, output func(format string, args ...interface{})) transport.MiddlewareFunc {
+func LoggerWithOptions(opts mwopts.LoggerOptions, output func(format string, args ...interface{})) gin.HandlerFunc {
 	// Set defaults
 	if output == nil {
 		output = log.Printf
 	}
 
-	skipPaths := make(map[string]bool)
-	for _, path := range opts.SkipPaths {
-		skipPaths[path] = true
-	}
+	// 创建路径匹配器（优化性能）
+	pathMatcher := pathutil.NewPathMatcher(opts.SkipPaths, nil)
 
-	return func(next transport.HandlerFunc) transport.HandlerFunc {
-		return func(c transport.Context) {
-			// Get request info
-			req := c.HTTPRequest()
-			path := req.URL.Path
+	return func(c *gin.Context) {
+		// Get request info
+		req := c.Request
+		path := req.URL.Path
 
-			// Skip logging for certain paths
-			if skipPaths[path] {
-				next(c)
-				return
+		// Skip logging for certain paths
+		if pathMatcher(path) {
+			c.Next()
+			return
+		}
+
+		// Record start time
+		start := time.Now()
+
+		// Get request ID if available
+		requestID := requestutil.GetRequestID(c.Request.Context())
+
+		// Process request
+		c.Next()
+
+		// Calculate latency
+		latency := time.Since(start)
+
+		// Log the request
+		if opts.UseStructuredLogger {
+			// Acquire fields slice from pool
+			fields := acquireFields()
+			defer releaseFields(fields)
+
+			// Populate fields
+			*fields = append(*fields,
+				"method", req.Method,
+				"path", path,
+				"remote_addr", req.RemoteAddr,
+				"latency", latency.String(),
+				"latency_ms", latency.Milliseconds(),
+			)
+			if requestID != "" {
+				*fields = append(*fields, "request_id", requestID)
 			}
-
-			// Record start time
-			start := time.Now()
-
-			// Get request ID if available
-			requestID := requestutil.GetRequestID(c.Request())
-
-			// Process request
-			next(c)
-
-			// Calculate latency
-			latency := time.Since(start)
-
-			// Log the request
-			if opts.UseStructuredLogger {
-				// Acquire fields slice from pool
-				fields := acquireFields()
-				defer releaseFields(fields)
-
-				// Populate fields
-				*fields = append(*fields,
-					"method", req.Method,
-					"path", path,
-					"remote_addr", req.RemoteAddr,
-					"latency", latency.String(),
-					"latency_ms", latency.Milliseconds(),
+			logger.Infow("HTTP Request", (*fields)...)
+		} else {
+			// Use legacy printf-style logging
+			if requestID != "" {
+				output("[%s] %s %s %s %v",
+					requestID,
+					req.Method,
+					path,
+					req.RemoteAddr,
+					latency,
 				)
-				if requestID != "" {
-					*fields = append(*fields, "request_id", requestID)
-				}
-				logger.Infow("HTTP Request", (*fields)...)
 			} else {
-				// Use legacy printf-style logging
-				if requestID != "" {
-					output("[%s] %s %s %s %v",
-						requestID,
-						req.Method,
-						path,
-						req.RemoteAddr,
-						latency,
-					)
-				} else {
-					output("%s %s %s %v",
-						req.Method,
-						path,
-						req.RemoteAddr,
-						latency,
-					)
-				}
+				output("%s %s %s %v",
+					req.Method,
+					path,
+					req.RemoteAddr,
+					latency,
+				)
 			}
 		}
 	}

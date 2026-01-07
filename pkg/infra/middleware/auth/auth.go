@@ -4,8 +4,9 @@ package auth
 import (
 	"strings"
 
+	"github.com/gin-gonic/gin"
 	"github.com/kart-io/logger"
-	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	"github.com/kart-io/sentinel-x/pkg/infra/middleware/internal/pathutil"
 	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 	"github.com/kart-io/sentinel-x/pkg/security/auth"
 	"github.com/kart-io/sentinel-x/pkg/utils/errors"
@@ -19,8 +20,8 @@ type options struct {
 	authScheme       string
 	skipPaths        []string
 	skipPathPrefixes []string
-	errorHandler     func(ctx transport.Context, err error)
-	successHandler   func(ctx transport.Context, claims *auth.Claims)
+	errorHandler     func(ctx *gin.Context, err error)
+	successHandler   func(ctx *gin.Context, claims *auth.Claims)
 }
 
 // AuthWithOptions 返回一个使用纯配置选项和运行时依赖注入的 Auth 中间件。
@@ -46,9 +47,9 @@ type options struct {
 func AuthWithOptions(
 	opts mwopts.AuthOptions,
 	authenticator auth.Authenticator,
-	errorHandler func(ctx transport.Context, err error),
-	successHandler func(ctx transport.Context, claims *auth.Claims),
-) transport.MiddlewareFunc {
+	errorHandler func(ctx *gin.Context, err error),
+	successHandler func(ctx *gin.Context, claims *auth.Claims),
+) gin.HandlerFunc {
 	o := &options{
 		authenticator:    authenticator,
 		tokenLookup:      opts.TokenLookup,
@@ -62,58 +63,56 @@ func AuthWithOptions(
 }
 
 // authMiddleware 是实际的中间件实现逻辑。
-func authMiddleware(o *options) transport.MiddlewareFunc {
+func authMiddleware(o *options) gin.HandlerFunc {
 	// Parse token lookup
 	lookup := parseTokenLookup(o.tokenLookup)
 
-	return func(next transport.HandlerFunc) transport.HandlerFunc {
-		return func(ctx transport.Context) {
-			// Check if path should be skipped
-			path := ctx.HTTPRequest().URL.Path
-			if shouldSkipAuth(path, o.skipPaths, o.skipPathPrefixes) {
-				next(ctx)
-				return
-			}
-
-			// Check if authenticator is configured
-			if o.authenticator == nil {
-				handleAuthError(ctx, o, errors.ErrInternal.WithMessage("authenticator not configured"))
-				return
-			}
-
-			// Extract token
-			tokenString := extractToken(ctx, lookup, o.authScheme)
-			if tokenString == "" {
-				handleAuthError(ctx, o, errors.ErrUnauthorized.WithMessage("missing authentication token"))
-				return
-			}
-
-			// Verify token
-			claims, err := o.authenticator.Verify(ctx.Request(), tokenString)
-			if err != nil {
-				// Log authentication failure for security audit
-				logAuthFailure(ctx, tokenString, err)
-				handleAuthError(ctx, o, err)
-				return
-			}
-
-			// Debug: log successful auth
-			logger.Infow("authentication successful",
-				"subject", claims.Subject,
-				"path", path,
-			)
-
-			// Inject claims into context
-			newCtx := auth.InjectAuth(ctx.Request(), claims, tokenString)
-			ctx.SetRequest(newCtx)
-
-			// Call success handler if set
-			if o.successHandler != nil {
-				o.successHandler(ctx, claims)
-			}
-
-			next(ctx)
+	return func(c *gin.Context) {
+		// Check if path should be skipped
+		path := c.Request.URL.Path
+		if shouldSkipAuth(path, o.skipPaths, o.skipPathPrefixes) {
+			c.Next()
+			return
 		}
+
+		// Check if authenticator is configured
+		if o.authenticator == nil {
+			handleAuthError(c, o, errors.ErrInternal.WithMessage("authenticator not configured"))
+			return
+		}
+
+		// Extract token
+		tokenString := extractToken(c, lookup, o.authScheme)
+		if tokenString == "" {
+			handleAuthError(c, o, errors.ErrUnauthorized.WithMessage("missing authentication token"))
+			return
+		}
+
+		// Verify token
+		claims, err := o.authenticator.Verify(c.Request.Context(), tokenString)
+		if err != nil {
+			// Log authentication failure for security audit
+			logAuthFailure(c, tokenString, err)
+			handleAuthError(c, o, err)
+			return
+		}
+
+		// Debug: log successful auth
+		logger.Infow("authentication successful",
+			"subject", claims.Subject,
+			"path", path,
+		)
+
+		// Inject claims into context
+		newCtx := auth.InjectAuth(c.Request.Context(), claims, tokenString)
+		c.Request = c.Request.WithContext(newCtx)
+
+		// Call success handler if set
+		if o.successHandler != nil {
+			o.successHandler(c, claims)
+		}
+
+		c.Next()
 	}
 }
 
@@ -133,19 +132,19 @@ func parseTokenLookup(lookup string) tokenLookup {
 }
 
 // extractToken extracts the token from the request.
-func extractToken(ctx transport.Context, lookup tokenLookup, scheme string) string {
+func extractToken(c *gin.Context, lookup tokenLookup, scheme string) string {
 	var token string
 
 	switch lookup.source {
 	case "header":
-		token = ctx.Header(lookup.name)
+		token = c.GetHeader(lookup.name)
 		if scheme != "" && strings.HasPrefix(token, scheme+" ") {
 			token = strings.TrimPrefix(token, scheme+" ")
 		}
 	case "query":
-		token = ctx.Query(lookup.name)
+		token = c.Query(lookup.name)
 	case "cookie":
-		if cookie, err := ctx.HTTPRequest().Cookie(lookup.name); err == nil {
+		if cookie, err := c.Request.Cookie(lookup.name); err == nil {
 			token = cookie.Value
 		}
 	}
@@ -160,40 +159,26 @@ func extractToken(ctx transport.Context, lookup tokenLookup, scheme string) stri
 
 // shouldSkipAuth checks if the path should skip authentication.
 func shouldSkipAuth(path string, skipPaths, skipPrefixes []string) bool {
-	// Check exact match
-	for _, p := range skipPaths {
-		if path == p {
-			return true
-		}
-	}
-
-	// Check prefix match
-	for _, prefix := range skipPrefixes {
-		if strings.HasPrefix(path, prefix) {
-			return true
-		}
-	}
-
-	return false
+	return pathutil.ShouldSkip(path, skipPaths, skipPrefixes)
 }
 
 // handleAuthError handles authentication errors.
-func handleAuthError(ctx transport.Context, o *options, err error) {
+func handleAuthError(c *gin.Context, o *options, err error) {
 	if o.errorHandler != nil {
-		o.errorHandler(ctx, err)
+		o.errorHandler(c, err)
 		return
 	}
 
 	// Default error handling
 	errno := errors.FromError(err)
-	ctx.JSON(errno.HTTPStatus(), response.Err(errno))
+	c.JSON(errno.HTTPStatus(), response.Err(errno))
 }
 
 // logAuthFailure logs authentication failures for security audit.
 // This helps detect brute force attacks, token forgery attempts, and other security issues.
-func logAuthFailure(ctx transport.Context, token string, err error) {
+func logAuthFailure(c *gin.Context, token string, err error) {
 	// Get request information
-	req := ctx.HTTPRequest()
+	req := c.Request
 	if req == nil {
 		return
 	}

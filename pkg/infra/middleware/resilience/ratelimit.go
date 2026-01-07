@@ -9,9 +9,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/kart-io/logger"
+	"github.com/kart-io/sentinel-x/pkg/infra/middleware/internal/pathutil"
 	"github.com/kart-io/sentinel-x/pkg/infra/pool"
-	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 	"github.com/kart-io/sentinel-x/pkg/utils/errors"
 	"github.com/kart-io/sentinel-x/pkg/utils/response"
@@ -29,7 +30,7 @@ type RateLimiter interface {
 }
 
 // RateLimit returns a rate limiting middleware with default configuration.
-func RateLimit() transport.MiddlewareFunc {
+func RateLimit() gin.HandlerFunc {
 	opts := mwopts.NewRateLimitOptions()
 	limiter := NewMemoryRateLimiter(opts.Limit, opts.GetWindow())
 	return RateLimitWithOptions(*opts, limiter)
@@ -48,46 +49,44 @@ func RateLimit() transport.MiddlewareFunc {
 //	opts.Limit = 200
 //	limiter := resilience.NewMemoryRateLimiter(opts.Limit, opts.GetWindow())
 //	middleware.RateLimitWithOptions(*opts, limiter)
-func RateLimitWithOptions(opts mwopts.RateLimitOptions, limiter RateLimiter) transport.MiddlewareFunc {
-	// Build skip paths map for fast lookup
-	skipPaths := buildSkipPathsMap(opts.SkipPaths)
+func RateLimitWithOptions(opts mwopts.RateLimitOptions, limiter RateLimiter) gin.HandlerFunc {
+	// 创建路径匹配器
+	pathMatcher := pathutil.NewPathMatcher(opts.SkipPaths, nil)
 
 	// 创建 key extraction 函数
-	keyFunc := func(c transport.Context) string {
+	keyFunc := func(c *gin.Context) string {
 		return extractClientIP(c, opts)
 	}
 
-	return func(next transport.HandlerFunc) transport.HandlerFunc {
-		return func(c transport.Context) {
-			req := c.HTTPRequest()
+	return func(c *gin.Context) {
+		req := c.Request
 
-			// Skip rate limiting for configured paths
-			if shouldSkipPath(req.URL.Path, skipPaths) {
-				next(c)
-				return
-			}
-
-			// Extract rate limit key
-			key := extractKey(c, keyFunc)
-
-			// Check rate limit
-			allowed, err := checkRateLimit(c.Request(), limiter, key)
-			if err != nil {
-				// Log error but allow request to proceed
-				logRateLimitError(err, key)
-				next(c)
-				return
-			}
-
-			if !allowed {
-				// Rate limit exceeded
-				handleRateLimitExceeded(c)
-				return
-			}
-
-			// Request allowed, proceed
-			next(c)
+		// Skip rate limiting for configured paths
+		if pathMatcher(req.URL.Path) {
+			c.Next()
+			return
 		}
+
+		// Extract rate limit key
+		key := extractKey(c, keyFunc)
+
+		// Check rate limit
+		allowed, err := checkRateLimit(c.Request.Context(), limiter, key)
+		if err != nil {
+			// Log error but allow request to proceed
+			logRateLimitError(err, key)
+			c.Next()
+			return
+		}
+
+		if !allowed {
+			// Rate limit exceeded
+			handleRateLimitExceeded(c)
+			return
+		}
+
+		// Request allowed, proceed
+		c.Next()
 	}
 }
 
@@ -97,11 +96,11 @@ func RateLimitWithOptions(opts mwopts.RateLimitOptions, limiter RateLimiter) tra
 
 // extractKey extracts the rate limit key using the configured KeyFunc.
 // Falls back to RemoteAddr if the key function returns empty string.
-func extractKey(c transport.Context, keyFunc func(c transport.Context) string) string {
+func extractKey(c *gin.Context, keyFunc func(c *gin.Context) string) string {
 	key := keyFunc(c)
 	if key == "" {
 		// Fallback to remote IP if key function returns empty string
-		req := c.HTTPRequest()
+		req := c.Request
 		key = getRemoteIP(req)
 	}
 	return key
@@ -112,8 +111,8 @@ func extractKey(c transport.Context, keyFunc func(c transport.Context) string) s
 // 1. TrustProxyHeaders is enabled in opts
 // 2. The request comes from a trusted proxy IP/CIDR
 // This prevents IP spoofing attacks via forged headers.
-func extractClientIP(c transport.Context, opts mwopts.RateLimitOptions) string {
-	req := c.HTTPRequest()
+func extractClientIP(c *gin.Context, opts mwopts.RateLimitOptions) string {
+	req := c.Request
 	remoteIP := getRemoteIP(req)
 
 	// Only trust proxy headers if configured and request is from trusted proxy
@@ -209,20 +208,6 @@ func isValidIP(ip string) bool {
 // Path Skipping
 // ============================================================================
 
-// buildSkipPathsMap builds a map for fast path lookup.
-func buildSkipPathsMap(paths []string) map[string]bool {
-	skipMap := make(map[string]bool, len(paths))
-	for _, path := range paths {
-		skipMap[path] = true
-	}
-	return skipMap
-}
-
-// shouldSkipPath checks if the given path should skip rate limiting.
-func shouldSkipPath(path string, skipPaths map[string]bool) bool {
-	return skipPaths[path]
-}
-
 // ============================================================================
 // Rate Limit Checking
 // ============================================================================
@@ -237,7 +222,7 @@ func checkRateLimit(ctx context.Context, limiter RateLimiter, key string) (bool,
 // ============================================================================
 
 // handleRateLimitExceeded handles the case when rate limit is exceeded.
-func handleRateLimitExceeded(c transport.Context) {
+func handleRateLimitExceeded(c *gin.Context) {
 	// Return rate limit error
 	response.Fail(c, errors.ErrRateLimitExceeded)
 }
