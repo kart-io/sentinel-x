@@ -1,10 +1,7 @@
 package middleware
 
 import (
-	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 	"github.com/kart-io/sentinel-x/pkg/options"
-	"github.com/kart-io/sentinel-x/pkg/security/auth"
-	"github.com/kart-io/sentinel-x/pkg/security/authz"
 	"github.com/spf13/pflag"
 )
 
@@ -24,10 +21,8 @@ var (
 )
 
 // AuthOptions defines authentication middleware options.
+// 纯配置选项，不包含运行时依赖（Authenticator、ErrorHandler、SuccessHandler）。
 type AuthOptions struct {
-	// Authenticator is the authenticator to use.
-	Authenticator auth.Authenticator `json:"-" mapstructure:"-"`
-
 	// TokenLookup defines how to extract the token.
 	// Format: "header:<name>" or "query:<name>" or "cookie:<name>"
 	// Default: "header:Authorization"
@@ -42,12 +37,6 @@ type AuthOptions struct {
 
 	// SkipPathPrefixes is a list of path prefixes to skip authentication.
 	SkipPathPrefixes []string `json:"skip-path-prefixes" mapstructure:"skip-path-prefixes"`
-
-	// ErrorHandler is called when authentication fails.
-	ErrorHandler func(ctx transport.Context, err error) `json:"-" mapstructure:"-"`
-
-	// SuccessHandler is called after successful authentication.
-	SuccessHandler func(ctx transport.Context, claims *auth.Claims) `json:"-" mapstructure:"-"`
 }
 
 // NewAuthOptions creates default authentication options.
@@ -81,44 +70,14 @@ func (o *AuthOptions) Complete() error {
 	return nil
 }
 
-// WithAuthenticator configures and enables auth middleware with an authenticator.
-func WithAuthenticator(authenticator auth.Authenticator, skipPaths ...string) Option {
-	return func(o *Options) {
-		if o.Auth == nil {
-			o.Auth = NewAuthOptions()
-		}
-		o.Auth.Authenticator = authenticator
-		if len(skipPaths) > 0 {
-			o.Auth.SkipPaths = skipPaths
-		}
-	}
-}
-
 // AuthzOptions defines authorization middleware options.
+// 纯配置选项，不包含运行时依赖（Authorizer、提取器、ErrorHandler）。
 type AuthzOptions struct {
-	// Authorizer is the authorizer to use.
-	Authorizer authz.Authorizer `json:"-" mapstructure:"-"`
-
-	// ResourceExtractor extracts the resource from the request.
-	// Default: extracts from request path.
-	ResourceExtractor func(ctx transport.Context) string `json:"-" mapstructure:"-"`
-
-	// ActionExtractor extracts the action from the request.
-	// Default: maps HTTP method to action (GET->read, POST->create, etc.).
-	ActionExtractor func(ctx transport.Context) string `json:"-" mapstructure:"-"`
-
-	// SubjectExtractor extracts the subject from the request.
-	// Default: extracts from auth claims in context.
-	SubjectExtractor func(ctx transport.Context) string `json:"-" mapstructure:"-"`
-
 	// SkipPaths is a list of paths to skip authorization.
 	SkipPaths []string `json:"skip-paths" mapstructure:"skip-paths"`
 
 	// SkipPathPrefixes is a list of path prefixes to skip authorization.
 	SkipPathPrefixes []string `json:"skip-path-prefixes" mapstructure:"skip-path-prefixes"`
-
-	// ErrorHandler is called when authorization fails.
-	ErrorHandler func(ctx transport.Context, err error) `json:"-" mapstructure:"-"`
 }
 
 // NewAuthzOptions creates default authorization options.
@@ -146,17 +105,4 @@ func (o *AuthzOptions) Validate() []error {
 // Complete completes the authz options with defaults.
 func (o *AuthzOptions) Complete() error {
 	return nil
-}
-
-// WithAuthorizer configures and enables authz middleware with custom skip paths.
-func WithAuthorizer(authorizer authz.Authorizer, skipPaths ...string) Option {
-	return func(o *Options) {
-		if o.Authz == nil {
-			o.Authz = NewAuthzOptions()
-		}
-		o.Authz.Authorizer = authorizer
-		if len(skipPaths) > 0 {
-			o.Authz.SkipPaths = skipPaths
-		}
-	}
 }

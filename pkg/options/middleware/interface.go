@@ -18,7 +18,5 @@ type Config interface {
 
 // MiddlewareConfig 是 Config 的别名,保持向后兼容。
 //
-// Deprecated: 使用 Config 替代。
-//
 //nolint:revive // MiddlewareConfig 保持向后兼容性
 type MiddlewareConfig = Config

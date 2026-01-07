@@ -5,8 +5,9 @@ import (
 	"github.com/kart-io/logger"
 	"github.com/kart-io/sentinel-x/internal/user-center/handler"
 	v1 "github.com/kart-io/sentinel-x/pkg/api/user-center/v1"
-	"github.com/kart-io/sentinel-x/pkg/infra/middleware"
+	authmw "github.com/kart-io/sentinel-x/pkg/infra/middleware/auth"
 	"github.com/kart-io/sentinel-x/pkg/infra/server"
+	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 	"github.com/kart-io/sentinel-x/pkg/security/auth/jwt"
 	"github.com/kart-io/sentinel-x/pkg/utils/validator"
 )
@@ -14,6 +15,9 @@ import (
 // Register registers the user center routes and services.
 func Register(mgr *server.Manager, jwtAuth *jwt.JWT, userHandler *handler.UserHandler, roleHandler *handler.RoleHandler, authHandler *handler.AuthHandler) error {
 	logger.Info("Registering user center routes...")
+
+	// Create auth options for all routes
+	authOpts := mwopts.NewAuthOptions()
 
 	// HTTP Server
 	if httpServer := mgr.HTTPServer(); httpServer != nil {
@@ -31,7 +35,7 @@ func Register(mgr *server.Manager, jwtAuth *jwt.JWT, userHandler *handler.UserHa
 
 			// Protected Auth Routes
 			authProtected := auth.Group("")
-			authProtected.Use(middleware.Auth(middleware.AuthWithAuthenticator(jwtAuth)))
+			authProtected.Use(authmw.AuthWithOptions(*authOpts, jwtAuth, nil, nil))
 			{
 				authProtected.Handle("GET", "/me", userHandler.GetProfile)
 			}
@@ -45,7 +49,7 @@ func Register(mgr *server.Manager, jwtAuth *jwt.JWT, userHandler *handler.UserHa
 
 			// Protected User Routes
 			users := v1.Group("/users")
-			users.Use(middleware.Auth(middleware.AuthWithAuthenticator(jwtAuth)))
+			users.Use(authmw.AuthWithOptions(*authOpts, jwtAuth, nil, nil))
 			{
 				users.Handle("GET", "", userHandler.List)
 				users.Handle("POST", "/batch-delete", userHandler.BatchDelete)
@@ -61,7 +65,7 @@ func Register(mgr *server.Manager, jwtAuth *jwt.JWT, userHandler *handler.UserHa
 
 			// Role Routes
 			roles := v1.Group("/roles")
-			roles.Use(middleware.Auth(middleware.AuthWithAuthenticator(jwtAuth)))
+			roles.Use(authmw.AuthWithOptions(*authOpts, jwtAuth, nil, nil))
 			{
 				roles.Handle("POST", "", roleHandler.Create)
 				roles.Handle("GET", "", roleHandler.List)

@@ -6,140 +6,94 @@ import (
 
 	"github.com/kart-io/logger"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 	"github.com/kart-io/sentinel-x/pkg/security/auth"
 	"github.com/kart-io/sentinel-x/pkg/utils/errors"
 	"github.com/kart-io/sentinel-x/pkg/utils/response"
 )
 
-// Options defines authentication middleware options.
-type Options struct {
-	// Authenticator is the authenticator to use.
-	Authenticator auth.Authenticator
-
-	// TokenLookup defines how to extract the token.
-	// Format: "header:<name>" or "query:<name>" or "cookie:<name>"
-	// Default: "header:Authorization"
-	TokenLookup string
-
-	// AuthScheme is the authorization scheme (e.g., "Bearer").
-	// Default: "Bearer"
-	AuthScheme string
-
-	// SkipPaths is a list of paths to skip authentication.
-	SkipPaths []string
-
-	// SkipPathPrefixes is a list of path prefixes to skip authentication.
-	SkipPathPrefixes []string
-
-	// ErrorHandler is called when authentication fails.
-	// If nil, default error response is returned.
-	ErrorHandler func(ctx transport.Context, err error)
-
-	// SuccessHandler is called after successful authentication.
-	// Can be used for custom context injection.
-	SuccessHandler func(ctx transport.Context, claims *auth.Claims)
+// options 是内部使用的选项结构（非导出）。
+type options struct {
+	authenticator    auth.Authenticator
+	tokenLookup      string
+	authScheme       string
+	skipPaths        []string
+	skipPathPrefixes []string
+	errorHandler     func(ctx transport.Context, err error)
+	successHandler   func(ctx transport.Context, claims *auth.Claims)
 }
 
-// Option is a functional option for auth middleware.
-type Option func(*Options)
-
-// NewOptions creates default auth options.
-func NewOptions() *Options {
-	return &Options{
-		TokenLookup:      "header:Authorization",
-		AuthScheme:       "Bearer",
-		SkipPaths:        []string{},
-		SkipPathPrefixes: []string{},
+// AuthWithOptions 返回一个使用纯配置选项和运行时依赖注入的 Auth 中间件。
+// 这是推荐的 API，适用于配置中心场景（配置必须可序列化）。
+//
+// 参数：
+//   - opts: 纯配置选项（可 JSON 序列化）
+//   - authenticator: 身份验证器（运行时依赖）
+//   - errorHandler: 可选的错误处理器
+//   - successHandler: 可选的成功处理器
+//
+// 示例：
+//
+//	opts := mwopts.NewAuthOptions()
+//	middleware := AuthWithOptions(
+//	    *opts,
+//	    myAuthenticator,
+//	    nil,  // 使用默认错误处理
+//	    func(ctx transport.Context, claims *auth.Claims) {
+//	        // 自定义成功处理
+//	    },
+//	)
+func AuthWithOptions(
+	opts mwopts.AuthOptions,
+	authenticator auth.Authenticator,
+	errorHandler func(ctx transport.Context, err error),
+	successHandler func(ctx transport.Context, claims *auth.Claims),
+) transport.MiddlewareFunc {
+	o := &options{
+		authenticator:    authenticator,
+		tokenLookup:      opts.TokenLookup,
+		authScheme:       opts.AuthScheme,
+		skipPaths:        opts.SkipPaths,
+		skipPathPrefixes: opts.SkipPathPrefixes,
+		errorHandler:     errorHandler,
+		successHandler:   successHandler,
 	}
+	return authMiddleware(o)
 }
 
-// WithAuthenticator sets the authenticator.
-func WithAuthenticator(a auth.Authenticator) Option {
-	return func(o *Options) {
-		o.Authenticator = a
-	}
-}
-
-// WithTokenLookup sets how to extract the token.
-func WithTokenLookup(lookup string) Option {
-	return func(o *Options) {
-		o.TokenLookup = lookup
-	}
-}
-
-// WithAuthScheme sets the authorization scheme.
-func WithAuthScheme(scheme string) Option {
-	return func(o *Options) {
-		o.AuthScheme = scheme
-	}
-}
-
-// WithSkipPaths sets paths to skip authentication.
-func WithSkipPaths(paths ...string) Option {
-	return func(o *Options) {
-		o.SkipPaths = paths
-	}
-}
-
-// WithSkipPathPrefixes sets path prefixes to skip authentication.
-func WithSkipPathPrefixes(prefixes ...string) Option {
-	return func(o *Options) {
-		o.SkipPathPrefixes = prefixes
-	}
-}
-
-// WithErrorHandler sets the error handler.
-func WithErrorHandler(handler func(ctx transport.Context, err error)) Option {
-	return func(o *Options) {
-		o.ErrorHandler = handler
-	}
-}
-
-// WithSuccessHandler sets the success handler.
-func WithSuccessHandler(handler func(ctx transport.Context, claims *auth.Claims)) Option {
-	return func(o *Options) {
-		o.SuccessHandler = handler
-	}
-}
-
-// Auth creates an authentication middleware.
-func Auth(opts ...Option) transport.MiddlewareFunc {
-	options := NewOptions()
-	for _, opt := range opts {
-		opt(options)
-	}
-
+// authMiddleware 是实际的中间件实现逻辑。
+func authMiddleware(o *options) transport.MiddlewareFunc {
 	// Parse token lookup
-	lookup := parseTokenLookup(options.TokenLookup)
+	lookup := parseTokenLookup(o.tokenLookup)
 
 	return func(next transport.HandlerFunc) transport.HandlerFunc {
 		return func(ctx transport.Context) {
 			// Check if path should be skipped
 			path := ctx.HTTPRequest().URL.Path
-			if shouldSkipAuth(path, options.SkipPaths, options.SkipPathPrefixes) {
+			if shouldSkipAuth(path, o.skipPaths, o.skipPathPrefixes) {
 				next(ctx)
 				return
 			}
 
 			// Check if authenticator is configured
-			if options.Authenticator == nil {
-				handleAuthError(ctx, options, errors.ErrInternal.WithMessage("authenticator not configured"))
+			if o.authenticator == nil {
+				handleAuthError(ctx, o, errors.ErrInternal.WithMessage("authenticator not configured"))
 				return
 			}
 
 			// Extract token
-			tokenString := extractToken(ctx, lookup, options.AuthScheme)
+			tokenString := extractToken(ctx, lookup, o.authScheme)
 			if tokenString == "" {
-				handleAuthError(ctx, options, errors.ErrUnauthorized.WithMessage("missing authentication token"))
+				handleAuthError(ctx, o, errors.ErrUnauthorized.WithMessage("missing authentication token"))
 				return
 			}
 
 			// Verify token
-			claims, err := options.Authenticator.Verify(ctx.Request(), tokenString)
+			claims, err := o.authenticator.Verify(ctx.Request(), tokenString)
 			if err != nil {
 				// Log authentication failure for security audit
 				logAuthFailure(ctx, tokenString, err)
-				handleAuthError(ctx, options, err)
+				handleAuthError(ctx, o, err)
 				return
 			}
 
@@ -154,8 +108,8 @@ func Auth(opts ...Option) transport.MiddlewareFunc {
 			ctx.SetRequest(newCtx)
 
 			// Call success handler if set
-			if options.SuccessHandler != nil {
-				options.SuccessHandler(ctx, claims)
+			if o.successHandler != nil {
+				o.successHandler(ctx, claims)
 			}
 
 			next(ctx)
@@ -224,9 +178,9 @@ func shouldSkipAuth(path string, skipPaths, skipPrefixes []string) bool {
 }
 
 // handleAuthError handles authentication errors.
-func handleAuthError(ctx transport.Context, options *Options, err error) {
-	if options.ErrorHandler != nil {
-		options.ErrorHandler(ctx, err)
+func handleAuthError(ctx transport.Context, o *options, err error) {
+	if o.errorHandler != nil {
+		o.errorHandler(ctx, err)
 		return
 	}
 

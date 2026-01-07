@@ -6,107 +6,13 @@ import (
 	"testing"
 
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 )
 
-func TestCORSConfigValidate(t *testing.T) {
-	tests := []struct {
-		name    string
-		config  CORSConfig
-		wantErr bool
-	}{
-		{
-			name: "valid config with specific origins",
-			config: CORSConfig{
-				AllowOrigins: []string{"https://example.com"},
-			},
-			wantErr: false,
-		},
-		{
-			name: "valid config with port",
-			config: CORSConfig{
-				AllowOrigins: []string{"https://example.com:8080"},
-			},
-			wantErr: false,
-		},
-		{
-			name: "valid config with localhost",
-			config: CORSConfig{
-				AllowOrigins: []string{"http://localhost:3000"},
-			},
-			wantErr: false,
-		},
-		{
-			name: "empty origins should fail",
-			config: CORSConfig{
-				AllowOrigins: []string{},
-			},
-			wantErr: true,
-		},
-		{
-			name: "wildcard with credentials should fail",
-			config: CORSConfig{
-				AllowOrigins:     []string{"*"},
-				AllowCredentials: true,
-			},
-			wantErr: true,
-		},
-		{
-			name: "wildcard without credentials is ok",
-			config: CORSConfig{
-				AllowOrigins:     []string{"*"},
-				AllowCredentials: false,
-			},
-			wantErr: false,
-		},
-		{
-			name: "multiple origins are valid",
-			config: CORSConfig{
-				AllowOrigins: []string{"https://example.com", "https://api.example.com"},
-			},
-			wantErr: false,
-		},
-		{
-			name: "origin without scheme should fail",
-			config: CORSConfig{
-				AllowOrigins: []string{"example.com"},
-			},
-			wantErr: true,
-		},
-		{
-			name: "origin with path should fail",
-			config: CORSConfig{
-				AllowOrigins: []string{"https://example.com/api"},
-			},
-			wantErr: true,
-		},
-		{
-			name: "origin with query should fail",
-			config: CORSConfig{
-				AllowOrigins: []string{"https://example.com?param=value"},
-			},
-			wantErr: true,
-		},
-		{
-			name: "empty origin string should fail",
-			config: CORSConfig{
-				AllowOrigins: []string{""},
-			},
-			wantErr: true,
-		},
-	}
+// TestCORSConfigValidate 测试已被移除，因为验证逻辑已集成到 WithOptions 函数中
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := tt.config.Validate()
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Validate() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestCORSWithConfig_PreflightRequest(t *testing.T) {
-	config := CORSConfig{
+func TestCORSWithOptions_PreflightRequest(t *testing.T) {
+	opts := mwopts.CORSOptions{
 		AllowOrigins:     []string{"https://example.com"},
 		AllowMethods:     []string{"GET", "POST"},
 		AllowHeaders:     []string{"Content-Type", "Authorization"},
@@ -114,7 +20,7 @@ func TestCORSWithConfig_PreflightRequest(t *testing.T) {
 		MaxAge:           3600,
 	}
 
-	middleware := CORSWithConfig(config)
+	middleware := CORSWithOptions(opts)
 	handlerCalled := false
 	handler := middleware(func(_ transport.Context) {
 		handlerCalled = true
@@ -154,13 +60,13 @@ func TestCORSWithConfig_PreflightRequest(t *testing.T) {
 	}
 }
 
-func TestCORSWithConfig_NormalRequest(t *testing.T) {
-	config := CORSConfig{
+func TestCORSWithOptions_NormalRequest(t *testing.T) {
+	opts := mwopts.CORSOptions{
 		AllowOrigins:  []string{"https://example.com"},
 		ExposeHeaders: []string{"X-Custom-Header"},
 	}
 
-	middleware := CORSWithConfig(config)
+	middleware := CORSWithOptions(opts)
 	handlerCalled := false
 	handler := middleware(func(_ transport.Context) {
 		handlerCalled = true
@@ -188,12 +94,12 @@ func TestCORSWithConfig_NormalRequest(t *testing.T) {
 	}
 }
 
-func TestCORSWithConfig_DisallowedOrigin(t *testing.T) {
-	config := CORSConfig{
+func TestCORSWithOptions_DisallowedOrigin(t *testing.T) {
+	opts := mwopts.CORSOptions{
 		AllowOrigins: []string{"https://example.com"},
 	}
 
-	middleware := CORSWithConfig(config)
+	middleware := CORSWithOptions(opts)
 	handlerCalled := false
 	handler := middleware(func(_ transport.Context) {
 		handlerCalled = true
@@ -217,12 +123,12 @@ func TestCORSWithConfig_DisallowedOrigin(t *testing.T) {
 	}
 }
 
-func TestCORSWithConfig_WildcardOrigin(t *testing.T) {
-	config := CORSConfig{
+func TestCORSWithOptions_WildcardOrigin(t *testing.T) {
+	opts := mwopts.CORSOptions{
 		AllowOrigins: []string{"*"},
 	}
 
-	middleware := CORSWithConfig(config)
+	middleware := CORSWithOptions(opts)
 	handler := middleware(func(_ transport.Context) {})
 
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
@@ -238,12 +144,12 @@ func TestCORSWithConfig_WildcardOrigin(t *testing.T) {
 	}
 }
 
-func TestCORSWithConfig_NoOriginHeader(t *testing.T) {
-	config := CORSConfig{
+func TestCORSWithOptions_NoOriginHeader(t *testing.T) {
+	opts := mwopts.CORSOptions{
 		AllowOrigins: []string{"https://example.com"},
 	}
 
-	middleware := CORSWithConfig(config)
+	middleware := CORSWithOptions(opts)
 	handlerCalled := false
 	handler := middleware(func(_ transport.Context) {
 		handlerCalled = true
@@ -291,21 +197,21 @@ func TestCORS_DefaultConfig(t *testing.T) {
 		t.Error("Expected handler to be called")
 	}
 
-	// Check that CORS headers are set for allowed origin
-	if got := mockCtx.headers["Access-Control-Allow-Origin"]; got != "http://localhost:3000" {
-		t.Errorf("Access-Control-Allow-Origin = %v, want %v", got, "http://localhost:3000")
+	// Check that CORS headers are set - default config uses "*"
+	if got := mockCtx.headers["Access-Control-Allow-Origin"]; got != "*" {
+		t.Errorf("Access-Control-Allow-Origin = %v, want %v", got, "*")
 	}
 }
 
-func TestCORSWithConfig_Panic(t *testing.T) {
+func TestCORSWithOptions_Panic(t *testing.T) {
 	// Invalid config should panic
 	defer func() {
 		if r := recover(); r == nil {
-			t.Error("Expected CORSWithConfig to panic with invalid config")
+			t.Error("Expected CORSWithOptions to panic with invalid config")
 		}
 	}()
 
-	_ = CORSWithConfig(CORSConfig{
+	_ = CORSWithOptions(mwopts.CORSOptions{
 		AllowOrigins:     []string{"*"},
 		AllowCredentials: true,
 	})

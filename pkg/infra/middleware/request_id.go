@@ -3,64 +3,63 @@ package middleware
 import (
 	"github.com/kart-io/sentinel-x/pkg/infra/middleware/requestutil"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 )
 
 // HeaderXRequestID is re-exported from common for backward compatibility.
 const HeaderXRequestID = requestutil.HeaderXRequestID
 
-// RequestIDConfig defines the config for RequestID middleware.
-type RequestIDConfig struct {
-	// Header is the header name to use for request ID.
-	// Default: "X-Request-ID"
-	Header string
+// GetRequestID returns the request ID from the context.
+// Returns empty string if not found.
+// This is re-exported from common for backward compatibility.
+var GetRequestID = requestutil.GetRequestID
 
-	// Generator is the function to generate request IDs.
-	// Default: generates a random 16-byte hex string
-	Generator func() string
+// RequestIDGenerator 定义请求 ID 生成器类型。
+type RequestIDGenerator func() string
 
-	// ContextKey is the key to store request ID in context.
-	// Default: "request_id"
-	ContextKey string
-}
-
-// DefaultRequestIDConfig is the default RequestID middleware config.
-var DefaultRequestIDConfig = RequestIDConfig{
-	Header:     HeaderXRequestID,
-	Generator:  requestutil.GenerateRequestID,
-	ContextKey: "request_id",
-}
-
-// RequestID returns a middleware that adds a unique request ID to each request.
-// The request ID is added to:
-//   - Response header (X-Request-ID)
-//   - Request context (can be retrieved with GetRequestID)
+// RequestID returns a middleware that adds a unique request ID to each request with default options.
 func RequestID() transport.MiddlewareFunc {
-	return RequestIDWithConfig(DefaultRequestIDConfig)
+	return RequestIDWithOptions(*mwopts.NewRequestIDOptions(), nil)
 }
 
-// RequestIDWithConfig returns a RequestID middleware with custom config.
-func RequestIDWithConfig(config RequestIDConfig) transport.MiddlewareFunc {
+// RequestIDWithOptions 返回一个使用纯配置选项和运行时依赖注入的 RequestID 中间件。
+// 这是推荐的 API，适用于配置中心场景（配置必须可序列化）。
+//
+// 参数：
+//   - opts: 纯配置选项（可 JSON 序列化）
+//   - generator: 可选的请求 ID 生成器
+//     如果为 nil，默认使用 requestutil.GenerateRequestID（生成 16 字节随机十六进制字符串）
+//
+// 示例：
+//
+//	// 使用默认生成器
+//	middleware.RequestIDWithOptions(opts, nil)
+//
+//	// 使用 UUID 生成器
+//	middleware.RequestIDWithOptions(opts, func() string {
+//	    return uuid.New().String()
+//	})
+func RequestIDWithOptions(opts mwopts.RequestIDOptions, generator RequestIDGenerator) transport.MiddlewareFunc {
 	// Set defaults
-	if config.Header == "" {
-		config.Header = HeaderXRequestID
+	header := opts.Header
+	if header == "" {
+		header = HeaderXRequestID
 	}
-	if config.Generator == nil {
-		config.Generator = requestutil.GenerateRequestID
-	}
-	if config.ContextKey == "" {
-		config.ContextKey = "request_id"
+
+	if generator == nil {
+		generator = requestutil.GenerateRequestID
 	}
 
 	return func(next transport.HandlerFunc) transport.HandlerFunc {
 		return func(c transport.Context) {
 			// Check if request ID already exists in header
-			requestID := c.Header(config.Header)
+			requestID := c.Header(header)
 			if requestID == "" {
-				requestID = config.Generator()
+				requestID = generator()
 			}
 
 			// Set request ID in response header
-			c.SetHeader(config.Header, requestID)
+			c.SetHeader(header, requestID)
 
 			// Store request ID in context using common package
 			ctx := requestutil.WithRequestID(c.Request(), requestID)
@@ -70,8 +69,3 @@ func RequestIDWithConfig(config RequestIDConfig) transport.MiddlewareFunc {
 		}
 	}
 }
-
-// GetRequestID returns the request ID from the context.
-// Returns empty string if not found.
-// This is re-exported from common for backward compatibility.
-var GetRequestID = requestutil.GetRequestID

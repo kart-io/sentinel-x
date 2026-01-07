@@ -2,7 +2,6 @@
 package middleware
 
 import (
-	"log"
 	"time"
 
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
@@ -17,17 +16,21 @@ type PathMatcher struct {
 
 // 中间件名称常量。
 const (
-	MiddlewareRecovery  = "recovery"
-	MiddlewareRequestID = "request-id"
-	MiddlewareLogger    = "logger"
-	MiddlewareCORS      = "cors"
-	MiddlewareTimeout   = "timeout"
-	MiddlewareHealth    = "health"
-	MiddlewareMetrics   = "metrics"
-	MiddlewarePprof     = "pprof"
-	MiddlewareAuth      = "auth"
-	MiddlewareAuthz     = "authz"
-	MiddlewareVersion   = "version"
+	MiddlewareRecovery        = "recovery"
+	MiddlewareRequestID       = "request-id"
+	MiddlewareLogger          = "logger"
+	MiddlewareCORS            = "cors"
+	MiddlewareBodyLimit       = "body-limit"
+	MiddlewareTimeout         = "timeout"
+	MiddlewareHealth          = "health"
+	MiddlewareMetrics         = "metrics"
+	MiddlewarePprof           = "pprof"
+	MiddlewareAuth            = "auth"
+	MiddlewareAuthz           = "authz"
+	MiddlewareVersion         = "version"
+	MiddlewareCompression     = "compression"
+	MiddlewareSecurityHeaders = "security-headers"
+	MiddlewareRateLimit       = "rate-limit"
 )
 
 // AllMiddlewares 所有支持的中间件名称。
@@ -36,6 +39,7 @@ var AllMiddlewares = []string{
 	MiddlewareRequestID,
 	MiddlewareLogger,
 	MiddlewareCORS,
+	MiddlewareBodyLimit,
 	MiddlewareTimeout,
 	MiddlewareHealth,
 	MiddlewareMetrics,
@@ -43,6 +47,9 @@ var AllMiddlewares = []string{
 	MiddlewareAuth,
 	MiddlewareAuthz,
 	MiddlewareVersion,
+	MiddlewareCompression,
+	MiddlewareSecurityHeaders,
+	MiddlewareRateLimit,
 }
 
 // Options contains all middleware configuration.
@@ -58,6 +65,9 @@ type Options struct {
 
 	// CORS 配置。
 	CORS *CORSOptions `json:"cors" mapstructure:"cors"`
+
+	// BodyLimit 配置。
+	BodyLimit *BodyLimitOptions `json:"body-limit" mapstructure:"body-limit"`
 
 	// Timeout 配置。
 	Timeout *TimeoutOptions `json:"timeout" mapstructure:"timeout"`
@@ -79,6 +89,15 @@ type Options struct {
 
 	// Version 配置。
 	Version *VersionOptions `json:"version" mapstructure:"version"`
+
+	// Compression 配置。
+	Compression *CompressionOptions `json:"compression" mapstructure:"compression"`
+
+	// SecurityHeaders 配置。
+	SecurityHeaders *SecurityHeadersOptions `json:"security-headers" mapstructure:"security-headers"`
+
+	// RateLimit 配置。
+	RateLimit *RateLimitOptions `json:"rate-limit" mapstructure:"rate-limit"`
 }
 
 // Option is a function that configures Options.
@@ -86,7 +105,7 @@ type Option func(*Options)
 
 // NewOptions creates default middleware options.
 // 默认启用 Recovery, RequestID, Logger, Health, Metrics, Version 中间件。
-// 其他中间件（CORS, Timeout, Pprof, Auth, Authz）默认禁用（nil）。
+// 其他中间件（CORS, BodyLimit, Timeout, Pprof, Auth, Authz, Compression）默认禁用（nil）。
 func NewOptions() *Options {
 	return &Options{
 		Recovery:  NewRecoveryOptions(),
@@ -95,7 +114,7 @@ func NewOptions() *Options {
 		Health:    NewHealthOptions(),
 		Metrics:   NewMetricsOptions(),
 		Version:   NewVersionOptions(),
-		// CORS, Timeout, Pprof, Auth, Authz 默认禁用（nil）
+		// CORS, BodyLimit, Timeout, Pprof, Auth, Authz, Compression 默认禁用（nil）
 	}
 }
 
@@ -122,6 +141,10 @@ func (o *Options) Validate() []error {
 
 	if o.CORS != nil {
 		errs = append(errs, o.CORS.Validate()...)
+	}
+
+	if o.BodyLimit != nil {
+		errs = append(errs, o.BodyLimit.Validate()...)
 	}
 
 	if o.Timeout != nil {
@@ -152,16 +175,23 @@ func (o *Options) Validate() []error {
 		errs = append(errs, o.Version.Validate()...)
 	}
 
+	if o.Compression != nil {
+		errs = append(errs, o.Compression.Validate()...)
+	}
+
+	if o.SecurityHeaders != nil {
+		errs = append(errs, o.SecurityHeaders.Validate()...)
+	}
+
+	if o.RateLimit != nil {
+		errs = append(errs, o.RateLimit.Validate()...)
+	}
+
 	return errs
 }
 
 // Complete completes the middleware options with defaults.
 func (o *Options) Complete() error {
-	// 设置 Logger 默认输出
-	if o.Logger != nil && o.Logger.Output == nil {
-		o.Logger.Output = log.Printf
-	}
-
 	// 调用各子选项的 Complete 方法
 	if o.Recovery != nil {
 		if err := o.Recovery.Complete(); err != nil {
@@ -180,6 +210,11 @@ func (o *Options) Complete() error {
 	}
 	if o.CORS != nil {
 		if err := o.CORS.Complete(); err != nil {
+			return err
+		}
+	}
+	if o.BodyLimit != nil {
+		if err := o.BodyLimit.Complete(); err != nil {
 			return err
 		}
 	}
@@ -218,6 +253,21 @@ func (o *Options) Complete() error {
 			return err
 		}
 	}
+	if o.Compression != nil {
+		if err := o.Compression.Complete(); err != nil {
+			return err
+		}
+	}
+	if o.SecurityHeaders != nil {
+		if err := o.SecurityHeaders.Complete(); err != nil {
+			return err
+		}
+	}
+	if o.RateLimit != nil {
+		if err := o.RateLimit.Complete(); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
@@ -234,6 +284,8 @@ func (o *Options) IsEnabled(name string) bool {
 		return o.Logger != nil
 	case MiddlewareCORS:
 		return o.CORS != nil
+	case MiddlewareBodyLimit:
+		return o.BodyLimit != nil
 	case MiddlewareTimeout:
 		return o.Timeout != nil
 	case MiddlewareHealth:
@@ -247,7 +299,13 @@ func (o *Options) IsEnabled(name string) bool {
 	case MiddlewareAuthz:
 		return o.Authz != nil
 	case MiddlewareVersion:
-	return o.Version != nil && o.Version.Enabled
+		return o.Version != nil && o.Version.Enabled
+	case MiddlewareCompression:
+		return o.Compression != nil
+	case MiddlewareSecurityHeaders:
+		return o.SecurityHeaders != nil
+	case MiddlewareRateLimit:
+		return o.RateLimit != nil
 	default:
 		return false
 	}
@@ -276,6 +334,8 @@ func (o *Options) GetConfig(name string) MiddlewareConfig {
 		return o.Logger
 	case MiddlewareCORS:
 		return o.CORS
+	case MiddlewareBodyLimit:
+		return o.BodyLimit
 	case MiddlewareTimeout:
 		return o.Timeout
 	case MiddlewareHealth:
@@ -290,6 +350,12 @@ func (o *Options) GetConfig(name string) MiddlewareConfig {
 		return o.Authz
 	case MiddlewareVersion:
 		return o.Version
+	case MiddlewareCompression:
+		return o.Compression
+	case MiddlewareSecurityHeaders:
+		return o.SecurityHeaders
+	case MiddlewareRateLimit:
+		return o.RateLimit
 	default:
 		return nil
 	}
@@ -309,6 +375,9 @@ func (o *Options) AddFlags(fs *pflag.FlagSet, prefixes ...string) {
 	}
 	if o.CORS != nil {
 		o.CORS.AddFlags(fs, prefixes...)
+	}
+	if o.BodyLimit != nil {
+		o.BodyLimit.AddFlags(fs, prefixes...)
 	}
 	if o.Timeout != nil {
 		o.Timeout.AddFlags(fs, prefixes...)
@@ -331,18 +400,26 @@ func (o *Options) AddFlags(fs *pflag.FlagSet, prefixes ...string) {
 	if o.Version != nil {
 		o.Version.AddFlags(fs, prefixes...)
 	}
+	if o.Compression != nil {
+		o.Compression.AddFlags(fs, prefixes...)
+	}
+	if o.SecurityHeaders != nil {
+		o.SecurityHeaders.AddFlags(fs, prefixes...)
+	}
+	if o.RateLimit != nil {
+		o.RateLimit.AddFlags(fs, prefixes...)
+	}
 }
 
 // WithRecovery configures and enables recovery middleware.
+// 注意：onPanic 参数已废弃，应通过 middleware.RecoveryWithOptions() 传入。
 func WithRecovery(enableStackTrace bool, onPanic func(ctx transport.Context, err interface{}, stack []byte)) Option {
 	return func(o *Options) {
 		if o.Recovery == nil {
 			o.Recovery = NewRecoveryOptions()
 		}
 		o.Recovery.EnableStackTrace = enableStackTrace
-		if onPanic != nil {
-			o.Recovery.OnPanic = onPanic
-		}
+		// onPanic 不再存储在选项中，调用方应使用 RecoveryWithOptions 传入
 	}
 }
 
@@ -538,4 +615,47 @@ func WithVersion(path string, hideDetails bool) Option {
 // WithoutVersion disables version endpoint.
 func WithoutVersion() Option {
 	return func(o *Options) { o.Version = nil }
+}
+
+// WithBodyLimit enables body limit middleware.
+func WithBodyLimit(maxSize int64, skipPaths ...string) Option {
+	return func(o *Options) {
+		if o.BodyLimit == nil {
+			o.BodyLimit = NewBodyLimitOptions()
+		}
+		if maxSize > 0 {
+			o.BodyLimit.MaxSize = maxSize
+		}
+		if len(skipPaths) > 0 {
+			o.BodyLimit.SkipPaths = skipPaths
+		}
+	}
+}
+
+// WithoutBodyLimit disables body limit middleware.
+func WithoutBodyLimit() Option {
+	return func(o *Options) { o.BodyLimit = nil }
+}
+
+// WithCompression enables compression middleware.
+func WithCompression(level int, minSize int, types ...string) Option {
+	return func(o *Options) {
+		if o.Compression == nil {
+			o.Compression = NewCompressionOptions()
+		}
+		if level >= -1 && level <= 9 {
+			o.Compression.Level = level
+		}
+		if minSize >= 0 {
+			o.Compression.MinSize = minSize
+		}
+		if len(types) > 0 {
+			o.Compression.Types = types
+		}
+	}
+}
+
+// WithoutCompression disables compression middleware.
+func WithoutCompression() Option {
+	return func(o *Options) { o.Compression = nil }
 }

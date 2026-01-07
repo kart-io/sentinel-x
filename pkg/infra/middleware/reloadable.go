@@ -201,20 +201,17 @@ func (rm *ReloadableMiddleware) GetOptions() *Options {
 	if rm.opts.Recovery != nil {
 		opts.Recovery = &RecoveryOptions{
 			EnableStackTrace: rm.opts.Recovery.EnableStackTrace,
-			OnPanic:          rm.opts.Recovery.OnPanic,
 		}
 	}
 	if rm.opts.RequestID != nil {
 		opts.RequestID = &RequestIDOptions{
-			Header:    rm.opts.RequestID.Header,
-			Generator: rm.opts.RequestID.Generator,
+			Header: rm.opts.RequestID.Header,
 		}
 	}
 	if rm.opts.Logger != nil {
 		opts.Logger = &LoggerOptions{
 			SkipPaths:           append([]string(nil), rm.opts.Logger.SkipPaths...),
 			UseStructuredLogger: rm.opts.Logger.UseStructuredLogger,
-			Output:              rm.opts.Logger.Output,
 		}
 	}
 	if rm.opts.CORS != nil {
@@ -238,7 +235,6 @@ func (rm *ReloadableMiddleware) GetOptions() *Options {
 			Path:          rm.opts.Health.Path,
 			LivenessPath:  rm.opts.Health.LivenessPath,
 			ReadinessPath: rm.opts.Health.ReadinessPath,
-			Checker:       rm.opts.Health.Checker,
 		}
 	}
 	if rm.opts.Metrics != nil {

@@ -2,10 +2,10 @@ package security
 
 import (
 	"fmt"
-	"reflect"
 	"strings"
 
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 )
 
 // Security header constants.
@@ -18,104 +18,60 @@ const (
 	HeaderStrictTransportSecurity = "Strict-Transport-Security"
 )
 
-// HeadersConfig defines the configuration for security headers middleware.
-type HeadersConfig struct {
-	// EnableHSTS enables Strict-Transport-Security header.
-	EnableHSTS bool
-	// HSTSMaxAge is the HSTS max-age in seconds.
-	HSTSMaxAge int
-	// HSTSIncludeSubdomains includes subdomains in HSTS.
-	HSTSIncludeSubdomains bool
-	// HSTSPreload enables HSTS preload.
-	HSTSPreload bool
-
-	// EnableFrameOptions enables X-Frame-Options header.
-	EnableFrameOptions bool
-	// FrameOptionsValue is the value for X-Frame-Options (DENY, SAMEORIGIN).
-	FrameOptionsValue string
-
-	// EnableContentTypeOptions enables X-Content-Type-Options header.
-	EnableContentTypeOptions bool
-
-	// EnableXSSProtection enables X-XSS-Protection header.
-	EnableXSSProtection bool
-	// XSSProtectionValue is the value for X-XSS-Protection.
-	XSSProtectionValue string
-
-	// ContentSecurityPolicy is the value for Content-Security-Policy header.
-	ContentSecurityPolicy string
-	// ReferrerPolicy is the value for Referrer-Policy header.
-	ReferrerPolicy string
+// SecurityHeaders returns a middleware that adds security headers with default options.
+func SecurityHeaders() transport.MiddlewareFunc {
+	return SecurityHeadersWithOptions(*mwopts.NewSecurityHeadersOptions())
 }
 
-// DefaultHeadersConfig returns the default configuration.
-func DefaultHeadersConfig() HeadersConfig {
-	return HeadersConfig{
-		EnableHSTS:            true,
-		HSTSMaxAge:            31536000,
-		HSTSIncludeSubdomains: true,
-		HSTSPreload:           false,
-
-		EnableFrameOptions: true,
-		FrameOptionsValue:  "DENY",
-
-		EnableContentTypeOptions: true,
-
-		EnableXSSProtection: true,
-		XSSProtectionValue:  "1; mode=block",
-
-		ContentSecurityPolicy: "", // Default to empty (user should configure)
-		ReferrerPolicy:        "no-referrer",
-	}
-}
-
-// Headers returns a middleware that adds security headers with default config.
-func Headers() transport.MiddlewareFunc {
-	return HeadersWithConfig(DefaultHeadersConfig())
-}
-
-// HeadersWithConfig returns a middleware that adds security headers with custom config.
-func HeadersWithConfig(config HeadersConfig) transport.MiddlewareFunc {
-	if reflect.DeepEqual(config, HeadersConfig{}) {
-		config = DefaultHeadersConfig()
-	}
+// SecurityHeadersWithOptions returns a middleware that adds security headers with custom options.
+// 这是推荐的 API，使用纯配置选项。
+//
+// 参数：
+//   - opts: SecurityHeaders 配置选项（纯配置，可 JSON 序列化）
+//
+// 示例：
+//
+//	opts := mwopts.NewSecurityHeadersOptions()
+//	opts.EnableHSTS = true
+//	middleware.SecurityHeadersWithOptions(*opts)
+func SecurityHeadersWithOptions(opts mwopts.SecurityHeadersOptions) transport.MiddlewareFunc {
 	return func(next transport.HandlerFunc) transport.HandlerFunc {
 		return func(c transport.Context) {
 			// Add HSTS header
-			if config.EnableHSTS && isHTTPSConnection(c) {
-				hsts := fmt.Sprintf("max-age=%d", config.HSTSMaxAge)
-				if config.HSTSIncludeSubdomains {
+			if opts.EnableHSTS && isHTTPSConnection(c) {
+				hsts := fmt.Sprintf("max-age=%d", opts.HSTSMaxAge)
+				if opts.HSTSIncludeSubdomains {
 					hsts += "; includeSubDomains"
 				}
-				if config.HSTSPreload {
+				if opts.HSTSPreload {
 					hsts += "; preload"
 				}
-				c.SetHeader("Strict-Transport-Security", hsts)
+				c.SetHeader(HeaderStrictTransportSecurity, hsts)
 			}
 
 			// Add X-Frame-Options header
-			if config.EnableFrameOptions {
-				c.SetHeader("X-Frame-Options", config.FrameOptionsValue)
+			if opts.EnableFrameOptions {
+				c.SetHeader(HeaderXFrameOptions, opts.FrameOptionsValue)
 			}
 
 			// Add X-Content-Type-Options header
-			if config.EnableContentTypeOptions {
-				c.SetHeader("X-Content-Type-Options", "nosniff")
+			if opts.EnableContentTypeOptions {
+				c.SetHeader(HeaderXContentTypeOptions, "nosniff")
 			}
 
 			// Add X-XSS-Protection header
-			if config.EnableXSSProtection {
-				c.SetHeader("X-XSS-Protection", config.XSSProtectionValue)
+			if opts.EnableXSSProtection {
+				c.SetHeader(HeaderXXSSProtection, opts.XSSProtectionValue)
 			}
 
 			// Add Content-Security-Policy header
-			if config.ContentSecurityPolicy != "" {
-				c.SetHeader("Content-Security-Policy", config.ContentSecurityPolicy)
+			if opts.ContentSecurityPolicy != "" {
+				c.SetHeader(HeaderContentSecurityPolicy, opts.ContentSecurityPolicy)
 			}
 
 			// Add Referrer-Policy header
-			if config.ReferrerPolicy != "" {
-				c.SetHeader("Referrer-Policy", config.ReferrerPolicy)
+			if opts.ReferrerPolicy != "" {
+				c.SetHeader(HeaderReferrerPolicy, opts.ReferrerPolicy)
 			}
 
 			next(c)

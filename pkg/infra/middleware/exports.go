@@ -80,9 +80,6 @@ var NewOptions = options.NewOptions
 
 // Observability type aliases for backward compatibility.
 type (
-	// LoggerConfig is an alias for observability.LoggerConfig.
-	LoggerConfig = observability.LoggerConfig
-
 	// EnhancedLoggerConfig is an alias for loggeropts.EnhancedLoggerConfig.
 	EnhancedLoggerConfig = loggeropts.EnhancedLoggerConfig
 
@@ -101,11 +98,12 @@ var (
 	// Logger returns a middleware that logs HTTP requests.
 	Logger = observability.Logger
 
-	// LoggerWithConfig returns a Logger middleware with custom config.
-	LoggerWithConfig = observability.LoggerWithConfig
-
 	// EnhancedLogger returns an enhanced middleware that logs HTTP requests with context propagation.
 	EnhancedLogger = observability.EnhancedLogger
+
+	// LoggerWithOptions returns a logger middleware using pure config + runtime dependencies.
+	// 这是推荐的 API，适用于配置中心场景。
+	LoggerWithOptions = observability.LoggerWithOptions
 )
 
 // Tracing re-exports observability.Tracing.
@@ -136,7 +134,7 @@ func MetricsMiddlewareWithOptions(opts MetricsOptions) transport.MiddlewareFunc 
 // RegisterMetricsRoutesWithOptions registers metrics endpoint.
 // This is a wrapper to convert MetricsOptions to observability.MetricsOptions.
 func RegisterMetricsRoutesWithOptions(router transport.Router, opts MetricsOptions) {
-	observability.RegisterMetricsRoutes(router, opts)
+	observability.RegisterMetricsRoutesWithOptions(router, opts)
 }
 
 // Metrics functions re-exports.
@@ -162,15 +160,6 @@ const TracerNameFromObservability = observability.TracerName
 
 // Resilience type aliases for backward compatibility.
 type (
-	// RecoveryConfig is an alias for resilience.RecoveryConfig.
-	RecoveryConfig = resilience.RecoveryConfig
-
-	// TimeoutConfig is an alias for resilience.TimeoutConfig.
-	TimeoutConfig = resilience.TimeoutConfig
-
-	// RateLimitConfig is an alias for resilience.RateLimitConfig.
-	RateLimitConfig = resilience.RateLimitConfig
-
 	// RateLimiter is an alias for resilience.RateLimiter.
 	RateLimiter = resilience.RateLimiter
 
@@ -182,12 +171,6 @@ type (
 var (
 	// Recovery returns a middleware that recovers from panics.
 	Recovery = resilience.Recovery
-
-	// RecoveryWithConfig returns a Recovery middleware with custom config.
-	RecoveryWithConfig = resilience.RecoveryWithConfig
-
-	// DefaultRecoveryConfig is the default Recovery middleware config.
-	DefaultRecoveryConfig = resilience.DefaultRecoveryConfig
 )
 
 // Timeout re-exports resilience.Timeout.
@@ -195,19 +178,18 @@ func Timeout(timeout time.Duration) transport.MiddlewareFunc {
 	return resilience.Timeout(timeout)
 }
 
-// TimeoutWithConfig re-exports resilience.TimeoutWithConfig.
-var TimeoutWithConfig = resilience.TimeoutWithConfig
-
-// DefaultTimeoutConfig is the default Timeout middleware config.
-var DefaultTimeoutConfig = resilience.DefaultTimeoutConfig
+// TimeoutWithOptions re-exports resilience.TimeoutWithOptions.
+// 这是推荐的构造函数，直接使用 pkg/options/middleware.TimeoutOptions。
+var TimeoutWithOptions = resilience.TimeoutWithOptions
 
 // RateLimit functions re-exports.
 var (
 	// RateLimit returns a rate limiting middleware.
 	RateLimit = resilience.RateLimit
 
-	// RateLimitWithConfig returns a RateLimit middleware with custom config.
-	RateLimitWithConfig = resilience.RateLimitWithConfig
+	// RateLimitWithOptions returns a RateLimit middleware with options.
+	// 这是推荐的 API。
+	RateLimitWithOptions = resilience.RateLimitWithOptions
 
 	// NewMemoryRateLimiter creates a new memory-based rate limiter.
 	NewMemoryRateLimiter = resilience.NewMemoryRateLimiter
@@ -217,110 +199,55 @@ var (
 // Security exports (CORS, SecurityHeaders)
 // ============================================================================
 
-// Security type aliases for backward compatibility.
-type (
-	// CORSConfig is an alias for security.CORSConfig.
-	CORSConfig = security.CORSConfig
-
-	// SecurityHeadersConfig is an alias for security.HeadersConfig.
-	SecurityHeadersConfig = security.HeadersConfig
-)
-
 // CORS functions re-exports.
 var (
 	// CORS returns a middleware that adds CORS headers.
 	CORS = security.CORS
 
-	// CORSWithConfig returns a CORS middleware with custom config.
-	CORSWithConfig = security.CORSWithConfig
-
-	// DefaultCORSConfig is the default CORS middleware config.
-	DefaultCORSConfig = security.DefaultCORSConfig
+	// CORSWithOptions returns a CORS middleware with CORSOptions.
+	// 这是推荐的构造函数，直接使用 pkg/options/middleware.CORSOptions。
+	CORSWithOptions = security.CORSWithOptions
 )
 
 // SecurityHeaders functions re-exports.
 var (
 	// SecurityHeaders returns a middleware that adds security headers.
-	SecurityHeaders = security.Headers
+	SecurityHeaders = security.SecurityHeaders
 
-	// SecurityHeadersWithConfig returns a SecurityHeaders middleware with custom config.
-	SecurityHeadersWithConfig = security.HeadersWithConfig
-
-	// DefaultSecurityHeadersConfig is the default SecurityHeaders middleware config.
-	DefaultSecurityHeadersConfig = security.DefaultHeadersConfig
+	// SecurityHeadersWithOptions returns a SecurityHeaders middleware with options.
+	// 这是推荐的 API。
+	SecurityHeadersWithOptions = security.SecurityHeadersWithOptions
 )
 
 // ============================================================================
-// Auth exports (Auth, Authz)
+// Auth exports (AuthWithOptions, AuthzWithOptions)
 // ============================================================================
 
 // Auth type aliases for backward compatibility.
-// AuthOptions 和 AuthzOptions 来自 options 子包（配置结构体）
-// AuthOption 和 AuthzOption 来自 auth 中间件子包（中间件配置）
 type (
 	// AuthOptions is an alias for options.AuthOptions (configuration struct).
 	AuthOptions = options.AuthOptions
 
-	// AuthOption is an alias for mwauth.Option (middleware option).
-	AuthOption = mwauth.Option
-
 	// AuthzOptions is an alias for options.AuthzOptions (configuration struct).
 	AuthzOptions = options.AuthzOptions
-
-	// AuthzOption is an alias for mwauth.AuthzOption (middleware option).
-	AuthzOption = mwauth.AuthzOption
-
-	// ActionMapping is an alias for mwauth.ActionMapping.
-	ActionMapping = mwauth.ActionMapping
 )
 
 // Auth functions re-exports.
 var (
-	// Auth returns an authentication middleware.
-	Auth = mwauth.Auth
+	// AuthWithOptions returns an authentication middleware using pure config + runtime dependencies.
+	// 这是推荐的 API，适用于配置中心场景。
+	AuthWithOptions = mwauth.AuthWithOptions
 
 	// NewAuthOptions creates default auth options.
-	NewAuthOptions = mwauth.NewOptions
-
-	// AuthWithAuthenticator sets the authenticator.
-	AuthWithAuthenticator = mwauth.WithAuthenticator
-
-	// AuthWithTokenLookup sets how to extract the token.
-	AuthWithTokenLookup = mwauth.WithTokenLookup
-
-	// AuthWithAuthScheme sets the authorization scheme.
-	AuthWithAuthScheme = mwauth.WithAuthScheme
-
-	// AuthWithSkipPaths sets paths to skip authentication.
-	AuthWithSkipPaths = mwauth.WithSkipPaths
-
-	// AuthWithSkipPathPrefixes sets path prefixes to skip authentication.
-	AuthWithSkipPathPrefixes = mwauth.WithSkipPathPrefixes
-
-	// AuthWithErrorHandler sets the error handler.
-	AuthWithErrorHandler = mwauth.WithErrorHandler
-
-	// AuthWithSuccessHandler sets the success handler.
-	AuthWithSuccessHandler = mwauth.WithSuccessHandler
+	NewAuthOptions = options.NewAuthOptions
 )
 
 // Authz functions re-exports.
 var (
-	// Authz returns an authorization middleware.
-	Authz = mwauth.Authz
+	// AuthzWithOptions returns an authorization middleware using pure config + runtime dependencies.
+	// 这是推荐的 API，适用于配置中心场景。
+	AuthzWithOptions = mwauth.AuthzWithOptions
 
 	// NewAuthzOptions creates default authz options.
-	NewAuthzOptions = mwauth.NewAuthzOptions
-
-	// AuthzWithAuthorizer sets the authorizer.
-	AuthzWithAuthorizer = mwauth.AuthzWithAuthorizer
-
-	// AuthzWithSkipPaths sets paths to skip authorization.
-	AuthzWithSkipPaths = mwauth.AuthzWithSkipPaths
-
-	// AuthzWithSkipPathPrefixes sets path prefixes to skip authorization.
-	AuthzWithSkipPathPrefixes = mwauth.AuthzWithSkipPathPrefixes
-
-	// DefaultActionMapping is the default HTTP method to action mapping.
-	DefaultActionMapping = mwauth.DefaultActionMapping
+	NewAuthzOptions = options.NewAuthzOptions
 )

@@ -7,10 +7,22 @@ import (
 	"strings"
 
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 )
 
-// RegisterPprofRoutes registers pprof routes.
-func RegisterPprofRoutes(router transport.Router, opts PprofOptions) {
+
+// RegisterPprofRoutesWithOptions 注册 Pprof 路由端点。
+// 这是推荐的 API，使用纯配置选项。
+//
+// 参数：
+//   - router: 路由器接口
+//   - opts: Pprof 配置选项
+//
+// 示例：
+//
+//	opts := mwopts.NewPprofOptions()
+//	RegisterPprofRoutesWithOptions(router, *opts)
+func RegisterPprofRoutesWithOptions(router transport.Router, opts mwopts.PprofOptions) {
 	// Set profiling rates if specified
 	if opts.BlockProfileRate > 0 {
 		runtime.SetBlockProfileRate(opts.BlockProfileRate)
@@ -77,11 +89,11 @@ func wrapPprofHandler(h http.HandlerFunc) transport.HandlerFunc {
 // PprofHandler returns a handler that serves pprof endpoints.
 // This is useful when you need more control over the pprof routes.
 type PprofHandler struct {
-	opts PprofOptions
+	opts mwopts.PprofOptions
 }
 
 // NewPprofHandler creates a new pprof handler.
-func NewPprofHandler(opts PprofOptions) *PprofHandler {
+func NewPprofHandler(opts mwopts.PprofOptions) *PprofHandler {
 	return &PprofHandler{opts: opts}
 }
 

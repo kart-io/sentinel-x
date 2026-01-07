@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 	"github.com/kart-io/sentinel-x/pkg/options"
 	"github.com/spf13/pflag"
 )
@@ -16,16 +15,15 @@ func init() {
 var _ MiddlewareConfig = (*RecoveryOptions)(nil)
 
 // RecoveryOptions defines recovery middleware options.
+// 此结构体必须保持可 JSON 序列化，运行时依赖（如 OnPanic）应通过函数参数注入。
 type RecoveryOptions struct {
-	EnableStackTrace bool                                                       `json:"enable-stack-trace" mapstructure:"enable-stack-trace"`
-	OnPanic          func(ctx transport.Context, err interface{}, stack []byte) `json:"-" mapstructure:"-"`
+	EnableStackTrace bool `json:"enable-stack-trace" mapstructure:"enable-stack-trace"`
 }
 
 // NewRecoveryOptions creates default recovery middleware options.
 func NewRecoveryOptions() *RecoveryOptions {
 	return &RecoveryOptions{
 		EnableStackTrace: false,
-		OnPanic:          nil,
 	}
 }
 

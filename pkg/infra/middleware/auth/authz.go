@@ -5,142 +5,107 @@ import (
 
 	"github.com/kart-io/logger"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
-	options "github.com/kart-io/sentinel-x/pkg/options/middleware"
+	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 	"github.com/kart-io/sentinel-x/pkg/security/auth"
 	"github.com/kart-io/sentinel-x/pkg/security/authz"
 	"github.com/kart-io/sentinel-x/pkg/utils/errors"
 	"github.com/kart-io/sentinel-x/pkg/utils/response"
 )
 
-// // AuthzOptions defines authorization middleware options.
-// type AuthzOptions struct {
-// 	// Authorizer is the authorizer to use.
-// 	Authorizer authz.Authorizer
-
-// 	// ResourceExtractor extracts the resource from the request.
-// 	// Default: extracts from request path.
-// 	ResourceExtractor func(ctx transport.Context) string
-
-// 	// ActionExtractor extracts the action from the request.
-// 	// Default: maps HTTP method to action (GET->read, POST->create, etc.).
-// 	ActionExtractor func(ctx transport.Context) string
-
-// 	// SubjectExtractor extracts the subject from the request.
-// 	// Default: extracts from auth claims in context.
-// 	SubjectExtractor func(ctx transport.Context) string
-
-// 	// SkipPaths is a list of paths to skip authorization.
-// 	SkipPaths []string
-
-// 	// SkipPathPrefixes is a list of path prefixes to skip authorization.
-// 	SkipPathPrefixes []string
-
-// 	// ErrorHandler is called when authorization fails.
-// 	ErrorHandler func(ctx transport.Context, err error)
-// }
-
-// AuthzOption is a functional option for authz middleware.
-type AuthzOption func(*options.AuthzOptions)
-
-// NewAuthzOptions creates default authz options.
-func NewAuthzOptions() *options.AuthzOptions {
-	return &options.AuthzOptions{
-		ResourceExtractor: defaultResourceExtractor,
-		ActionExtractor:   defaultActionExtractor,
-		SubjectExtractor:  defaultSubjectExtractor,
-		SkipPaths:         []string{},
-		SkipPathPrefixes:  []string{},
-	}
+// authzOptions 是内部使用的授权选项结构（非导出）。
+type authzOptions struct {
+	authorizer        authz.Authorizer
+	resourceExtractor func(ctx transport.Context) string
+	actionExtractor   func(ctx transport.Context) string
+	subjectExtractor  func(ctx transport.Context) string
+	skipPaths         []string
+	skipPathPrefixes  []string
+	errorHandler      func(ctx transport.Context, err error)
 }
 
-// AuthzWithAuthorizer sets the authorizer.
-func AuthzWithAuthorizer(a authz.Authorizer) AuthzOption {
-	return func(o *options.AuthzOptions) {
-		o.Authorizer = a
+// AuthzWithOptions 返回一个使用纯配置选项和运行时依赖注入的 Authz 中间件。
+// 这是推荐的 API，适用于配置中心场景（配置必须可序列化）。
+//
+// 参数：
+//   - opts: 纯配置选项（可 JSON 序列化）
+//   - authorizer: 授权器（运行时依赖）
+//   - resourceExtractor: 可选的资源提取器，如果为 nil 使用默认实现
+//   - actionExtractor: 可选的动作提取器，如果为 nil 使用默认实现
+//   - subjectExtractor: 可选的主体提取器，如果为 nil 使用默认实现
+//   - errorHandler: 可选的错误处理器
+//
+// 示例：
+//
+//	opts := mwopts.NewAuthzOptions()
+//	middleware := AuthzWithOptions(
+//	    *opts,
+//	    myAuthorizer,
+//	    nil,  // 使用默认资源提取器
+//	    nil,  // 使用默认动作提取器
+//	    nil,  // 使用默认主体提取器
+//	    nil,  // 使用默认错误处理
+//	)
+func AuthzWithOptions(
+	opts mwopts.AuthzOptions,
+	authorizer authz.Authorizer,
+	resourceExtractor func(ctx transport.Context) string,
+	actionExtractor func(ctx transport.Context) string,
+	subjectExtractor func(ctx transport.Context) string,
+	errorHandler func(ctx transport.Context, err error),
+) transport.MiddlewareFunc {
+	// 使用默认提取器
+	if resourceExtractor == nil {
+		resourceExtractor = defaultResourceExtractor
 	}
-}
-
-// AuthzWithResourceExtractor sets the resource extractor.
-func AuthzWithResourceExtractor(extractor func(ctx transport.Context) string) AuthzOption {
-	return func(o *options.AuthzOptions) {
-		o.ResourceExtractor = extractor
+	if actionExtractor == nil {
+		actionExtractor = defaultActionExtractor
 	}
-}
-
-// AuthzWithActionExtractor sets the action extractor.
-func AuthzWithActionExtractor(extractor func(ctx transport.Context) string) AuthzOption {
-	return func(o *options.AuthzOptions) {
-		o.ActionExtractor = extractor
+	if subjectExtractor == nil {
+		subjectExtractor = defaultSubjectExtractor
 	}
-}
 
-// AuthzWithSubjectExtractor sets the subject extractor.
-func AuthzWithSubjectExtractor(extractor func(ctx transport.Context) string) AuthzOption {
-	return func(o *options.AuthzOptions) {
-		o.SubjectExtractor = extractor
-	}
-}
-
-// AuthzWithSkipPaths sets paths to skip authorization.
-func AuthzWithSkipPaths(paths ...string) AuthzOption {
-	return func(o *options.AuthzOptions) {
-		o.SkipPaths = paths
-	}
-}
-
-// AuthzWithSkipPathPrefixes sets path prefixes to skip authorization.
-func AuthzWithSkipPathPrefixes(prefixes ...string) AuthzOption {
-	return func(o *options.AuthzOptions) {
-		o.SkipPathPrefixes = prefixes
-	}
-}
-
-// AuthzWithErrorHandler sets the error handler.
-func AuthzWithErrorHandler(handler func(ctx transport.Context, err error)) AuthzOption {
-	return func(o *options.AuthzOptions) {
-		o.ErrorHandler = handler
-	}
-}
-
-// Authz creates an authorization middleware.
-func Authz(opts ...AuthzOption) transport.MiddlewareFunc {
-	options := NewAuthzOptions()
-	for _, opt := range opts {
-		opt(options)
+	o := &authzOptions{
+		authorizer:        authorizer,
+		resourceExtractor: resourceExtractor,
+		actionExtractor:   actionExtractor,
+		subjectExtractor:  subjectExtractor,
+		skipPaths:         opts.SkipPaths,
+		skipPathPrefixes:  opts.SkipPathPrefixes,
+		errorHandler:      errorHandler,
 	}
 
 	return func(next transport.HandlerFunc) transport.HandlerFunc {
 		return func(ctx transport.Context) {
 			// Check if path should be skipped
 			path := ctx.HTTPRequest().URL.Path
-			if shouldSkipAuthz(path, options.SkipPaths, options.SkipPathPrefixes) {
+			if shouldSkipAuthz(path, o.skipPaths, o.skipPathPrefixes) {
 				next(ctx)
 				return
 			}
 
 			// Check if authorizer is configured
-			if options.Authorizer == nil {
-				handleAuthzError(ctx, options, errors.ErrInternal.WithMessage("authorizer not configured"))
+			if o.authorizer == nil {
+				handleAuthzError(ctx, o, errors.ErrInternal.WithMessage("authorizer not configured"))
 				return
 			}
 
 			// Extract subject
-			subject := options.SubjectExtractor(ctx)
+			subject := o.subjectExtractor(ctx)
 			if subject == "" {
-				handleAuthzError(ctx, options, errors.ErrUnauthorized.WithMessage("no subject found"))
+				handleAuthzError(ctx, o, errors.ErrUnauthorized.WithMessage("no subject found"))
 				return
 			}
 
 			// Extract resource and action
-			resource := options.ResourceExtractor(ctx)
-			action := options.ActionExtractor(ctx)
+			resource := o.resourceExtractor(ctx)
+			action := o.actionExtractor(ctx)
 
 			// Check authorization
-			allowed, err := options.Authorizer.Authorize(ctx.Request(), subject, resource, action)
+			allowed, err := o.authorizer.Authorize(ctx.Request(), subject, resource, action)
 			if err != nil {
 				// Log authorization error for security audit
 				logAuthzFailure(ctx, subject, resource, action, err)
-				handleAuthzError(ctx, options, err)
+				handleAuthzError(ctx, o, err)
 				return
 			}
 
@@ -150,14 +115,23 @@ func Authz(opts ...AuthzOption) transport.MiddlewareFunc {
 					subject, resource, action)
 				// Log authorization denial for security audit
 				logAuthzFailure(ctx, subject, resource, action, authzErr)
-				handleAuthzError(ctx, options, authzErr)
+				handleAuthzError(ctx, o, authzErr)
 				return
 			}
+
+			// Debug: log successful authz
+			logger.Infow("authorization successful",
+				"subject", subject,
+				"resource", resource,
+				"action", action,
+				"path", path,
+			)
 
 			next(ctx)
 		}
 	}
 }
+
 
 // defaultResourceExtractor extracts the resource from the request path.
 func defaultResourceExtractor(ctx transport.Context) string {
@@ -220,9 +194,9 @@ func shouldSkipAuthz(path string, skipPaths, skipPrefixes []string) bool {
 }
 
 // handleAuthzError handles authorization errors.
-func handleAuthzError(ctx transport.Context, options *options.AuthzOptions, err error) {
-	if options.ErrorHandler != nil {
-		options.ErrorHandler(ctx, err)
+func handleAuthzError(ctx transport.Context, o *authzOptions, err error) {
+	if o.errorHandler != nil {
+		o.errorHandler(ctx, err)
 		return
 	}
 
@@ -231,30 +205,6 @@ func handleAuthzError(ctx transport.Context, options *options.AuthzOptions, err 
 	ctx.JSON(errno.HTTPStatus(), response.Err(errno))
 }
 
-// ActionMapping defines custom HTTP method to action mapping.
-type ActionMapping map[string]string
-
-// DefaultActionMapping is the default HTTP method to action mapping.
-var DefaultActionMapping = ActionMapping{
-	"GET":     "read",
-	"HEAD":    "read",
-	"POST":    "create",
-	"PUT":     "update",
-	"PATCH":   "update",
-	"DELETE":  "delete",
-	"OPTIONS": "options",
-}
-
-// AuthzWithActionMapping creates an action extractor with custom mapping.
-func AuthzWithActionMapping(mapping ActionMapping) AuthzOption {
-	return AuthzWithActionExtractor(func(ctx transport.Context) string {
-		method := ctx.HTTPRequest().Method
-		if action, ok := mapping[method]; ok {
-			return action
-		}
-		return strings.ToLower(method)
-	})
-}
 
 // logAuthzFailure logs authorization failures for security audit.
 // This helps detect unauthorized access attempts and permission violations.

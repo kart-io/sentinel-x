@@ -302,10 +302,10 @@ func TestConcurrentAccess(t *testing.T) {
 
 func TestCacheHitRateCalculation(t *testing.T) {
 	testCases := []struct {
-		name               string
-		cacheHits          float64
-		cacheMisses        float64
-		expectedHitRate    float64
+		name            string
+		cacheHits       float64
+		cacheMisses     float64
+		expectedHitRate float64
 	}{
 		{
 			name:            "完全命中",

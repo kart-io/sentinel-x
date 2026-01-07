@@ -7,7 +7,8 @@ import (
 	"net/http"
 
 	"github.com/kart-io/sentinel-x/pkg/infra/middleware"
-	authmw "github.com/kart-io/sentinel-x/pkg/infra/middleware/auth"
+	"github.com/kart-io/sentinel-x/pkg/infra/middleware/observability"
+	"github.com/kart-io/sentinel-x/pkg/infra/middleware/resilience"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/service"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
@@ -152,7 +153,7 @@ func (s *Server) Start(ctx context.Context) error {
 
 	// Register health endpoints
 	if mwOpts.IsEnabled(mwopts.MiddlewareHealth) {
-		middleware.RegisterHealthRoutes(router, *mwOpts.Health)
+		middleware.RegisterHealthRoutesWithOptions(router, *mwOpts.Health, nil)
 	}
 
 	// Register metrics endpoint
@@ -162,7 +163,7 @@ func (s *Server) Start(ctx context.Context) error {
 
 	// Register pprof endpoints
 	if mwOpts.IsEnabled(mwopts.MiddlewarePprof) {
-		middleware.RegisterPprofRoutes(router, *mwOpts.Pprof)
+		middleware.RegisterPprofRoutesWithOptions(router, *mwOpts.Pprof)
 	}
 
 	// Register version endpoint
@@ -201,76 +202,81 @@ func (s *Server) Start(ctx context.Context) error {
 }
 
 // applyMiddleware applies configured middleware to the router.
+// 使用优先级注册器自动管理中间件执行顺序。
 func (s *Server) applyMiddleware(router transport.Router, opts *mwopts.Options) {
 	// Ensure all sub-options are initialized with defaults
 	_ = opts.Complete()
 
-	// Recovery middleware (enabled by default)
-	if opts.IsEnabled(mwopts.MiddlewareRecovery) {
-		router.Use(middleware.RecoveryWithConfig(middleware.RecoveryConfig{
-			EnableStackTrace: opts.Recovery.EnableStackTrace,
-			OnPanic:          opts.Recovery.OnPanic,
-		}))
-	}
+	// 创建中间件注册器
+	registrar := middleware.NewRegistrar()
 
-	// RequestID middleware (enabled by default)
-	if opts.IsEnabled(mwopts.MiddlewareRequestID) {
-		config := middleware.RequestIDConfig{
-			Header:    opts.RequestID.Header,
-			Generator: opts.RequestID.Generator,
-		}
-		if config.Header == "" {
-			config.Header = middleware.HeaderXRequestID
-		}
-		router.Use(middleware.RequestIDWithConfig(config))
-	}
+	// Recovery middleware (enabled by default, 最高优先级)
+	registrar.RegisterIf(
+		opts.IsEnabled(mwopts.MiddlewareRecovery),
+		"recovery",
+		middleware.PriorityRecovery,
+		resilience.RecoveryWithOptions(*opts.Recovery, nil),
+	)
 
-	// Logger middleware (enabled by default)
-	if opts.IsEnabled(mwopts.MiddlewareLogger) {
-		router.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
-			SkipPaths:           opts.Logger.SkipPaths,
-			Output:              opts.Logger.Output,
-			UseStructuredLogger: opts.Logger.UseStructuredLogger,
-		}))
-	}
+	// RequestID middleware (enabled by default, 为其他中间件提供 RequestID)
+	registrar.RegisterIf(
+		opts.IsEnabled(mwopts.MiddlewareRequestID),
+		"request-id",
+		middleware.PriorityRequestID,
+		middleware.RequestIDWithOptions(*opts.RequestID, nil),
+	)
+
+	// Logger middleware (enabled by default, 依赖 RequestID)
+	registrar.RegisterIf(
+		opts.IsEnabled(mwopts.MiddlewareLogger),
+		"logger",
+		middleware.PriorityLogger,
+		observability.LoggerWithOptions(*opts.Logger, nil),
+	)
+
+	// Metrics middleware (disabled by default)
+	registrar.RegisterIf(
+		opts.IsEnabled(mwopts.MiddlewareMetrics),
+		"metrics",
+		middleware.PriorityMetrics,
+		middleware.MetricsMiddlewareWithOptions(*opts.Metrics),
+	)
 
 	// CORS middleware (disabled by default)
-	if opts.IsEnabled(mwopts.MiddlewareCORS) {
-		router.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-			AllowOrigins:     opts.CORS.AllowOrigins,
-			AllowMethods:     opts.CORS.AllowMethods,
-			AllowHeaders:     opts.CORS.AllowHeaders,
-			ExposeHeaders:    opts.CORS.ExposeHeaders,
-			AllowCredentials: opts.CORS.AllowCredentials,
-			MaxAge:           opts.CORS.MaxAge,
-		}))
-	}
+	registrar.RegisterIf(
+		opts.IsEnabled(mwopts.MiddlewareCORS),
+		"cors",
+		middleware.PriorityCORS,
+		middleware.CORSWithOptions(*opts.CORS),
+	)
 
 	// Timeout middleware (disabled by default)
-	if opts.IsEnabled(mwopts.MiddlewareTimeout) {
-		router.Use(middleware.TimeoutWithConfig(middleware.TimeoutConfig{
-			Timeout:   opts.Timeout.Timeout,
-			SkipPaths: opts.Timeout.SkipPaths,
-		}))
-	}
+	registrar.RegisterIf(
+		opts.IsEnabled(mwopts.MiddlewareTimeout),
+		"timeout",
+		middleware.PriorityTimeout,
+		middleware.TimeoutWithOptions(*opts.Timeout),
+	)
 
-	// Metrics middleware (disabled by default, but endpoint is registered separately)
-	if opts.IsEnabled(mwopts.MiddlewareMetrics) {
-		router.Use(middleware.MetricsMiddlewareWithOptions(*opts.Metrics))
-	}
+	// Auth middleware (JWT authentication, 在业务逻辑前执行)
+	// 注意：Auth 中间件需要运行时注入 Authenticator，不能从配置文件加载
+	// 用户需要在自己的代码中手动添加 Auth 中间件
+	// 示例：
+	//   authmw.AuthWithOptions(
+	//       *opts.Auth,
+	//       myAuthenticator,  // 运行时依赖
+	//       nil,  // errorHandler
+	//       nil,  // successHandler
+	//   )
+	// registrar.RegisterIf(
+	//   opts.IsEnabled(mwopts.MiddlewareAuth),
+	//   "auth",
+	//   middleware.PriorityAuth,
+	//   ... // 需要用户手动注入
+	// )
 
-	// Auth middleware (JWT authentication)
-	if opts.IsEnabled(mwopts.MiddlewareAuth) && opts.Auth.Authenticator != nil {
-		router.Use(authmw.Auth(
-			authmw.WithAuthenticator(opts.Auth.Authenticator),
-			authmw.WithTokenLookup(opts.Auth.TokenLookup),
-			authmw.WithAuthScheme(opts.Auth.AuthScheme),
-			authmw.WithSkipPaths(opts.Auth.SkipPaths...),
-			authmw.WithSkipPathPrefixes(opts.Auth.SkipPathPrefixes...),
-			authmw.WithErrorHandler(opts.Auth.ErrorHandler),
-			authmw.WithSuccessHandler(opts.Auth.SuccessHandler),
-		))
-	}
+	// 按优先级顺序应用所有中间件
+	registrar.Apply(router)
 }
 
 // Stop stops the HTTP server gracefully.

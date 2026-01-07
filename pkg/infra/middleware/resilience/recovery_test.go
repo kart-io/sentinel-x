@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 )
 
 func TestRecovery_NoPanic(t *testing.T) {
@@ -76,10 +77,10 @@ func TestRecoveryWithConfig_StackTrace(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			config := RecoveryConfig{
+			opts := mwopts.RecoveryOptions{
 				EnableStackTrace: tt.enableStackTrace,
 			}
-			middleware := RecoveryWithConfig(config)
+			middleware := RecoveryWithOptions(opts, nil)
 
 			handler := middleware(func(_ transport.Context) {
 				panic("test panic with stack")
@@ -104,21 +105,21 @@ func TestRecoveryWithConfig_StackTrace(t *testing.T) {
 	}
 }
 
-func TestRecoveryWithConfig_OnPanicCallback(t *testing.T) {
+func TestRecoveryWithOptions_OnPanicCallback(t *testing.T) {
 	var panicCalled bool
 	var panicErr interface{}
 	var panicStack []byte
 
-	config := RecoveryConfig{
+	opts := mwopts.RecoveryOptions{
 		EnableStackTrace: false,
-		OnPanic: func(_ transport.Context, err interface{}, stack []byte) {
-			panicCalled = true
-			panicErr = err
-			panicStack = stack
-		},
+	}
+	onPanic := func(_ transport.Context, err interface{}, stack []byte) {
+		panicCalled = true
+		panicErr = err
+		panicStack = stack
 	}
 
-	middleware := RecoveryWithConfig(config)
+	middleware := RecoveryWithOptions(opts, onPanic)
 	handler := middleware(func(_ transport.Context) {
 		panic("callback test panic")
 	})

@@ -8,9 +8,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/kart-io/sentinel-x/pkg/infra/middleware/observability"
 	"github.com/kart-io/sentinel-x/pkg/infra/middleware/requestutil"
+	"github.com/kart-io/sentinel-x/pkg/infra/middleware/resilience"
 	"github.com/kart-io/sentinel-x/pkg/infra/middleware/security"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 )
 
 const (
@@ -26,10 +29,11 @@ const (
 // BenchmarkLoggerMiddleware measures the performance of the Logger middleware.
 // Tests structured logging with request ID and latency tracking.
 func BenchmarkLoggerMiddleware(b *testing.B) {
-	middleware := LoggerWithConfig(LoggerConfig{
+	opts := mwopts.LoggerOptions{
 		SkipPaths:           []string{},
 		UseStructuredLogger: true,
-	})
+	}
+	middleware := observability.LoggerWithOptions(opts, nil)
 
 	handler := middleware(func(c transport.Context) {
 		// Simulate minimal handler work
@@ -50,10 +54,11 @@ func BenchmarkLoggerMiddleware(b *testing.B) {
 // BenchmarkLoggerMiddlewareWithSkip measures performance when path is skipped.
 // Tests the skip path optimization logic.
 func BenchmarkLoggerMiddlewareWithSkip(b *testing.B) {
-	middleware := LoggerWithConfig(LoggerConfig{
+	opts := mwopts.LoggerOptions{
 		SkipPaths:           []string{"/health"},
 		UseStructuredLogger: true,
-	})
+	}
+	middleware := observability.LoggerWithOptions(opts, nil)
 
 	handler := middleware(func(c transport.Context) {
 		c.JSON(200, map[string]string{"status": "ok"})
@@ -77,7 +82,8 @@ func BenchmarkLoggerMiddlewareWithSkip(b *testing.B) {
 // BenchmarkRecoveryMiddleware measures the performance of Recovery middleware
 // in normal operation (no panic).
 func BenchmarkRecoveryMiddleware(b *testing.B) {
-	middleware := RecoveryWithConfig(DefaultRecoveryConfig)
+	opts := mwopts.NewRecoveryOptions()
+	middleware := resilience.RecoveryWithOptions(*opts, nil)
 
 	handler := middleware(func(c transport.Context) {
 		c.JSON(200, map[string]string{"status": "ok"})
@@ -97,10 +103,10 @@ func BenchmarkRecoveryMiddleware(b *testing.B) {
 // BenchmarkRecoveryMiddlewareWithPanic measures the performance when panic occurs.
 // Tests the panic recovery and error response generation.
 func BenchmarkRecoveryMiddlewareWithPanic(b *testing.B) {
-	middleware := RecoveryWithConfig(RecoveryConfig{
+	opts := mwopts.RecoveryOptions{
 		EnableStackTrace: false,
-		OnPanic:          nil,
-	})
+	}
+	middleware := resilience.RecoveryWithOptions(opts, nil)
 
 	handler := middleware(func(_ transport.Context) {
 		panic("test panic")
@@ -124,7 +130,8 @@ func BenchmarkRecoveryMiddlewareWithPanic(b *testing.B) {
 // BenchmarkRequestIDMiddleware measures the performance of RequestID middleware.
 // Tests random ID generation and context storage.
 func BenchmarkRequestIDMiddleware(b *testing.B) {
-	middleware := RequestIDWithConfig(DefaultRequestIDConfig)
+	opts := mwopts.NewRequestIDOptions()
+	middleware := RequestIDWithOptions(*opts, nil)
 
 	handler := middleware(func(c transport.Context) {
 		c.JSON(200, map[string]string{"status": "ok"})
@@ -144,7 +151,8 @@ func BenchmarkRequestIDMiddleware(b *testing.B) {
 // BenchmarkRequestIDMiddlewareWithExisting measures performance when request ID
 // already exists in header.
 func BenchmarkRequestIDMiddlewareWithExisting(b *testing.B) {
-	middleware := RequestIDWithConfig(DefaultRequestIDConfig)
+	opts := mwopts.NewRequestIDOptions()
+	middleware := RequestIDWithOptions(*opts, nil)
 
 	handler := middleware(func(c transport.Context) {
 		c.JSON(200, map[string]string{"status": "ok"})
@@ -179,14 +187,14 @@ func BenchmarkGenerateRequestID(b *testing.B) {
 // BenchmarkRateLimitMiddleware measures the performance of RateLimit middleware
 // with memory-based limiter.
 func BenchmarkRateLimitMiddleware(b *testing.B) {
-	limiter := NewMemoryRateLimiter(1000, 1*time.Minute)
+	limiter := resilience.NewMemoryRateLimiter(1000, 1*time.Minute)
 	defer limiter.Stop()
 
-	middleware := RateLimitWithConfig(RateLimitConfig{
-		Limit:   1000,
-		Window:  1 * time.Minute,
-		Limiter: limiter,
-	})
+	opts := mwopts.RateLimitOptions{
+		Limit:  1000,
+		Window: 60, // seconds
+	}
+	middleware := resilience.RateLimitWithOptions(opts, limiter)
 
 	handler := middleware(func(c transport.Context) {
 		c.JSON(200, map[string]string{"status": "ok"})
@@ -206,15 +214,15 @@ func BenchmarkRateLimitMiddleware(b *testing.B) {
 
 // BenchmarkRateLimitMiddlewareWithSkip measures performance when path is skipped.
 func BenchmarkRateLimitMiddlewareWithSkip(b *testing.B) {
-	limiter := NewMemoryRateLimiter(1000, 1*time.Minute)
+	limiter := resilience.NewMemoryRateLimiter(1000, 1*time.Minute)
 	defer limiter.Stop()
 
-	middleware := RateLimitWithConfig(RateLimitConfig{
+	opts := mwopts.RateLimitOptions{
 		Limit:     1000,
-		Window:    1 * time.Minute,
+		Window:    60,
 		SkipPaths: []string{"/health"},
-		Limiter:   limiter,
-	})
+	}
+	middleware := resilience.RateLimitWithOptions(opts, limiter)
 
 	handler := middleware(func(c transport.Context) {
 		c.JSON(200, map[string]string{"status": "ok"})
@@ -234,7 +242,7 @@ func BenchmarkRateLimitMiddlewareWithSkip(b *testing.B) {
 // BenchmarkMemoryRateLimiterAllow measures the performance of rate limiter
 // Allow operation.
 func BenchmarkMemoryRateLimiterAllow(b *testing.B) {
-	limiter := NewMemoryRateLimiter(1000, 1*time.Minute)
+	limiter := resilience.NewMemoryRateLimiter(1000, 1*time.Minute)
 	defer limiter.Stop()
 
 	ctx := context.Background()
@@ -255,8 +263,8 @@ func BenchmarkMemoryRateLimiterAllow(b *testing.B) {
 // middleware.
 func BenchmarkSecurityHeaders(b *testing.B) {
 	// Setup
-	config := security.DefaultHeadersConfig()
-	mw := security.HeadersWithConfig(config)
+	opts := mwopts.NewSecurityHeadersOptions()
+	mw := security.SecurityHeadersWithOptions(*opts)
 	handler := mw(func(c transport.Context) {
 		c.String(http.StatusOK, "OK")
 	})
@@ -275,18 +283,16 @@ func BenchmarkSecurityHeaders(b *testing.B) {
 // BenchmarkSecurityHeadersMiddlewareWithHSTS measures performance with HSTS
 // enabled.
 func BenchmarkSecurityHeadersMiddlewareWithHSTS(b *testing.B) {
-	middleware := SecurityHeadersWithConfig(SecurityHeadersConfig{
-		FrameOptionsValue:        "DENY",
-		XSSProtectionValue:       "1; mode=block",
-		ContentSecurityPolicy:    "default-src 'self'",
-		ReferrerPolicy:           "strict-origin-when-cross-origin",
-		HSTSMaxAge:               31536000,
-		HSTSIncludeSubdomains:    true,
-		EnableHSTS:               true,
-		EnableFrameOptions:       true,
-		EnableContentTypeOptions: true,
-		EnableXSSProtection:      true,
-	})
+	opts := mwopts.SecurityHeadersOptions{
+		FrameOptionsValue:     "DENY",
+		XSSProtectionValue:    "1; mode=block",
+		ContentSecurityPolicy: "default-src 'self'",
+		ReferrerPolicy:        "strict-origin-when-cross-origin",
+		HSTSMaxAge:            31536000,
+		HSTSIncludeSubdomains: true,
+		EnableHSTS:            true,
+	}
+	middleware := security.SecurityHeadersWithOptions(opts)
 
 	handler := middleware(func(c transport.Context) {
 		c.JSON(200, map[string]string{"status": "ok"})
@@ -310,9 +316,10 @@ func BenchmarkSecurityHeadersMiddlewareWithHSTS(b *testing.B) {
 // BenchmarkTimeoutMiddleware measures the performance of Timeout middleware
 // in normal operation.
 func BenchmarkTimeoutMiddleware(b *testing.B) {
-	middleware := TimeoutWithConfig(TimeoutConfig{
+	opts := mwopts.TimeoutOptions{
 		Timeout: 30 * time.Second,
-	})
+	}
+	middleware := TimeoutWithOptions(opts)
 
 	handler := middleware(func(c transport.Context) {
 		c.JSON(200, map[string]string{"status": "ok"})
@@ -331,10 +338,11 @@ func BenchmarkTimeoutMiddleware(b *testing.B) {
 
 // BenchmarkTimeoutMiddlewareWithSkip measures performance when path is skipped.
 func BenchmarkTimeoutMiddlewareWithSkip(b *testing.B) {
-	middleware := TimeoutWithConfig(TimeoutConfig{
+	opts := mwopts.TimeoutOptions{
 		Timeout:   30 * time.Second,
 		SkipPaths: []string{"/health"},
-	})
+	}
+	middleware := TimeoutWithOptions(opts)
 
 	handler := middleware(func(c transport.Context) {
 		c.JSON(200, map[string]string{"status": "ok"})
@@ -354,9 +362,10 @@ func BenchmarkTimeoutMiddlewareWithSkip(b *testing.B) {
 // BenchmarkTimeoutMiddlewareWithDelay measures performance with simulated
 // handler delay.
 func BenchmarkTimeoutMiddlewareWithDelay(b *testing.B) {
-	middleware := TimeoutWithConfig(TimeoutConfig{
+	opts := mwopts.TimeoutOptions{
 		Timeout: 30 * time.Second,
-	})
+	}
+	middleware := TimeoutWithOptions(opts)
 
 	handler := middleware(func(c transport.Context) {
 		// Simulate 1ms processing time
@@ -386,16 +395,17 @@ func BenchmarkMiddlewareChain(b *testing.B) {
 	requestIDMiddleware := RequestID()
 	loggerMiddleware := Logger()
 	recoveryMiddleware := Recovery()
-	securityMiddleware := SecurityHeaders()
-	timeoutMiddleware := Timeout(30 * time.Second)
+	securityMiddleware := security.SecurityHeaders()
+	timeoutOpts := mwopts.TimeoutOptions{Timeout: 30 * time.Second}
+	timeoutMiddleware := TimeoutWithOptions(timeoutOpts)
 
-	limiter := NewMemoryRateLimiter(1000, 1*time.Minute)
+	limiter := resilience.NewMemoryRateLimiter(1000, 1*time.Minute)
 	defer limiter.Stop()
-	rateLimitMiddleware := RateLimitWithConfig(RateLimitConfig{
-		Limit:   1000,
-		Window:  1 * time.Minute,
-		Limiter: limiter,
-	})
+	rateLimitOpts := mwopts.RateLimitOptions{
+		Limit:  1000,
+		Window: 60,
+	}
+	rateLimitMiddleware := resilience.RateLimitWithOptions(rateLimitOpts, limiter)
 
 	// Build handler with complete middleware chain
 	handler := func(c transport.Context) {
@@ -453,34 +463,34 @@ func BenchmarkMiddlewareChainMinimal(b *testing.B) {
 func BenchmarkMiddlewareChainProduction(b *testing.B) {
 	// Production-optimized configuration
 	requestIDMiddleware := RequestID()
-	loggerMiddleware := LoggerWithConfig(LoggerConfig{
+	loggerOpts := mwopts.LoggerOptions{
 		SkipPaths:           []string{"/health", "/metrics"},
 		UseStructuredLogger: true,
-	})
-	recoveryMiddleware := RecoveryWithConfig(RecoveryConfig{
+	}
+	loggerMiddleware := observability.LoggerWithOptions(loggerOpts, nil)
+	recoveryOpts := mwopts.RecoveryOptions{
 		EnableStackTrace: false, // Disabled in production
-	})
-	securityMiddleware := SecurityHeadersWithConfig(SecurityHeadersConfig{
-		FrameOptionsValue:        "DENY",
-		XSSProtectionValue:       "1; mode=block",
-		ContentSecurityPolicy:    "default-src 'self'",
-		ReferrerPolicy:           "strict-origin-when-cross-origin",
-		HSTSMaxAge:               31536000,
-		HSTSIncludeSubdomains:    true,
-		EnableHSTS:               true,
-		EnableFrameOptions:       true,
-		EnableContentTypeOptions: true,
-		EnableXSSProtection:      true,
-	})
+	}
+	recoveryMiddleware := resilience.RecoveryWithOptions(recoveryOpts, nil)
+	securityOpts := mwopts.SecurityHeadersOptions{
+		FrameOptionsValue:     "DENY",
+		XSSProtectionValue:    "1; mode=block",
+		ContentSecurityPolicy: "default-src 'self'",
+		ReferrerPolicy:        "strict-origin-when-cross-origin",
+		HSTSMaxAge:            31536000,
+		HSTSIncludeSubdomains: true,
+		EnableHSTS:            true,
+	}
+	securityMiddleware := security.SecurityHeadersWithOptions(securityOpts)
 
-	limiter := NewMemoryRateLimiter(100, 1*time.Minute)
+	limiter := resilience.NewMemoryRateLimiter(100, 1*time.Minute)
 	defer limiter.Stop()
-	rateLimitMiddleware := RateLimitWithConfig(RateLimitConfig{
+	rateLimitOpts := mwopts.RateLimitOptions{
 		Limit:     100,
-		Window:    1 * time.Minute,
+		Window:    60,
 		SkipPaths: []string{"/health"},
-		Limiter:   limiter,
-	})
+	}
+	rateLimitMiddleware := resilience.RateLimitWithOptions(rateLimitOpts, limiter)
 
 	handler := func(c transport.Context) {
 		c.JSON(200, map[string]string{"status": "ok"})
@@ -515,13 +525,13 @@ func BenchmarkMiddlewareChainConcurrent(b *testing.B) {
 	loggerMiddleware := Logger()
 	recoveryMiddleware := Recovery()
 
-	limiter := NewMemoryRateLimiter(1000, 1*time.Minute)
+	limiter := resilience.NewMemoryRateLimiter(1000, 1*time.Minute)
 	defer limiter.Stop()
-	rateLimitMiddleware := RateLimitWithConfig(RateLimitConfig{
-		Limit:   1000,
-		Window:  1 * time.Minute,
-		Limiter: limiter,
-	})
+	rateLimitOpts := mwopts.RateLimitOptions{
+		Limit:  1000,
+		Window: 60,
+	}
+	rateLimitMiddleware := resilience.RateLimitWithOptions(rateLimitOpts, limiter)
 
 	handler := func(c transport.Context) {
 		c.JSON(200, map[string]string{"status": "ok"})
@@ -571,7 +581,7 @@ func BenchmarkMiddlewareMemoryAllocation(b *testing.B) {
 		},
 		{
 			name:       "SecurityHeaders",
-			middleware: SecurityHeaders(),
+			middleware: security.SecurityHeaders(),
 		},
 	}
 

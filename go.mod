@@ -12,7 +12,6 @@ require (
 	github.com/go-playground/universal-translator v0.18.1
 	github.com/go-playground/validator/v10 v10.29.0
 	github.com/golang-jwt/jwt/v4 v4.5.2
-	github.com/google/uuid v1.6.0
 	github.com/kart-io/logger v0.2.2
 	github.com/kart-io/version v1.1.0
 	github.com/labstack/echo/v4 v4.13.4
@@ -108,6 +107,7 @@ require (
 	github.com/google/btree v1.1.3 // indirect
 	github.com/google/gnostic-models v0.6.9 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
+	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674 // indirect
 	github.com/gosuri/uitable v0.0.4 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0 // indirect

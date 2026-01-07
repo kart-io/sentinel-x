@@ -15,10 +15,10 @@ func init() {
 var _ MiddlewareConfig = (*LoggerOptions)(nil)
 
 // LoggerOptions defines logger middleware options.
+// 此结构体必须保持可 JSON 序列化，运行时依赖（如 Output）应通过函数参数注入。
 type LoggerOptions struct {
-	SkipPaths           []string                                 `json:"skip-paths" mapstructure:"skip-paths"`
-	UseStructuredLogger bool                                     `json:"use-structured-logger" mapstructure:"use-structured-logger"`
-	Output              func(format string, args ...interface{}) `json:"-" mapstructure:"-"`
+	SkipPaths           []string `json:"skip-paths" mapstructure:"skip-paths"`
+	UseStructuredLogger bool     `json:"use-structured-logger" mapstructure:"use-structured-logger"`
 }
 
 // NewLoggerOptions creates default logger middleware options.
@@ -26,7 +26,6 @@ func NewLoggerOptions() *LoggerOptions {
 	return &LoggerOptions{
 		SkipPaths:           []string{"/health", "/ready", "/live", "/metrics"},
 		UseStructuredLogger: true,
-		Output:              nil,
 	}
 }
 

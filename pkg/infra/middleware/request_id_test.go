@@ -8,6 +8,7 @@ import (
 
 	"github.com/kart-io/sentinel-x/pkg/infra/middleware/requestutil"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 )
 
 func TestRequestID_GeneratesID(t *testing.T) {
@@ -51,12 +52,12 @@ func TestRequestID_PreservesExistingID(t *testing.T) {
 	}
 }
 
-func TestRequestIDWithConfig_CustomHeader(t *testing.T) {
-	config := RequestIDConfig{
+func TestRequestIDWithOptions_CustomHeader(t *testing.T) {
+	opts := mwopts.RequestIDOptions{
 		Header: "X-Custom-Request-ID",
 	}
 
-	middleware := RequestIDWithConfig(config)
+	middleware := RequestIDWithOptions(opts, nil)
 	handler := middleware(func(_ transport.Context) {})
 
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
@@ -77,15 +78,15 @@ func TestRequestIDWithConfig_CustomHeader(t *testing.T) {
 	}
 }
 
-func TestRequestIDWithConfig_CustomGenerator(t *testing.T) {
+func TestRequestIDWithOptions_CustomGenerator(t *testing.T) {
 	customID := "custom-generated-id"
-	config := RequestIDConfig{
-		Generator: func() string {
-			return customID
-		},
+	opts := mwopts.RequestIDOptions{}
+
+	customGen := func() string {
+		return customID
 	}
 
-	middleware := RequestIDWithConfig(config)
+	middleware := RequestIDWithOptions(opts, customGen)
 	handler := middleware(func(_ transport.Context) {})
 
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
@@ -146,11 +147,11 @@ func TestGetRequestID_WrongType(t *testing.T) {
 	}
 }
 
-func TestRequestIDWithConfig_Defaults(t *testing.T) {
+func TestRequestIDWithOptions_Defaults(t *testing.T) {
 	// Test with empty config
-	config := RequestIDConfig{}
+	opts := mwopts.RequestIDOptions{}
 
-	middleware := RequestIDWithConfig(config)
+	middleware := RequestIDWithOptions(opts, nil)
 	handler := middleware(func(_ transport.Context) {})
 
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
@@ -217,12 +218,12 @@ func TestRequestID_MultipleRequests(t *testing.T) {
 	}
 }
 
-func TestRequestIDWithConfig_EmptyHeader(t *testing.T) {
-	config := RequestIDConfig{
+func TestRequestIDWithOptions_EmptyHeader(t *testing.T) {
+	opts := mwopts.RequestIDOptions{
 		Header: "", // Empty should use default
 	}
 
-	middleware := RequestIDWithConfig(config)
+	middleware := RequestIDWithOptions(opts, nil)
 	handler := middleware(func(_ transport.Context) {})
 
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)

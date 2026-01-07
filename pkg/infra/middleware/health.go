@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 )
 
 // HealthStatus represents the health status.
@@ -115,13 +116,28 @@ func (h *HealthManager) Check() HealthResponse {
 	return resp
 }
 
-// RegisterHealthRoutes registers health check routes.
-func RegisterHealthRoutes(router transport.Router, opts HealthOptions) {
+
+// RegisterHealthRoutesWithOptions 注册 Health 路由端点。
+// 这是推荐的 API，使用纯配置选项和运行时依赖注入。
+//
+// 参数：
+//   - router: 路由器接口
+//   - opts: Health 配置选项（纯配置，可 JSON 序列化）
+//   - checker: 可选的自定义健康检查函数（运行时依赖）
+//
+// 示例：
+//
+//	opts := mwopts.NewHealthOptions()
+//	RegisterHealthRoutesWithOptions(router, *opts, func() error {
+//	    // 自定义健康检查逻辑
+//	    return nil
+//	})
+func RegisterHealthRoutesWithOptions(router transport.Router, opts mwopts.HealthOptions, checker func() error) {
 	manager := GetHealthManager()
 
 	// Register custom checker if provided
-	if opts.Checker != nil {
-		manager.RegisterChecker("custom", opts.Checker)
+	if checker != nil {
+		manager.RegisterChecker("custom", checker)
 	}
 
 	// Health check endpoint

@@ -11,9 +11,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kart-io/sentinel-x/pkg/infra/middleware"
+	authmw "github.com/kart-io/sentinel-x/pkg/infra/middleware/auth"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 	jwtopts "github.com/kart-io/sentinel-x/pkg/options/auth/jwt"
+	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 	"github.com/kart-io/sentinel-x/pkg/security/auth"
 	"github.com/kart-io/sentinel-x/pkg/security/auth/jwt"
 	"github.com/kart-io/sentinel-x/pkg/security/authz"
@@ -22,7 +23,7 @@ import (
 )
 
 const (
-	testKey     = "test-secret-key-at-least-32-chars-long!!"
+	testKey     = "test-secret-key-at-least-64-chars-long-for-hmac-algorithms!!!!!!"
 	testSubject = "user-123"
 	testIssuer  = "sentinel-x-test"
 )
@@ -422,10 +423,9 @@ func TestMiddleware_AuthIntegration(t *testing.T) {
 	}
 
 	// Create auth middleware
-	authMiddleware := middleware.Auth(
-		middleware.AuthWithAuthenticator(jwtAuth),
-		middleware.AuthWithSkipPaths("/public", "/health"),
-	)
+	authOpts := mwopts.NewAuthOptions()
+	authOpts.SkipPaths = []string{"/public", "/health"}
+	authMiddleware := authmw.AuthWithOptions(*authOpts, jwtAuth, nil, nil)
 
 	handlerCalled := false
 	// Create a test handler that checks for authentication
@@ -541,10 +541,9 @@ func TestMiddleware_AuthzIntegration(t *testing.T) {
 	rbacAuthz.AssignRole("user-editor", "editor")
 
 	// Create authz middleware
-	authzMiddleware := middleware.Authz(
-		middleware.AuthzWithAuthorizer(rbacAuthz),
-		middleware.AuthzWithSkipPaths("/public"),
-	)
+	authzOpts := mwopts.NewAuthzOptions()
+	authzOpts.SkipPaths = []string{"/public"}
+	authzMiddleware := authmw.AuthzWithOptions(*authzOpts, rbacAuthz, nil, nil, nil, nil)
 
 	handlerCalled := false
 	testHandler := func(ctx transport.Context) {
@@ -653,12 +652,11 @@ func TestMiddleware_FullAuthFlow(t *testing.T) {
 	rbacAuthz.AssignRole("user-viewer", "viewer")
 
 	// Create middlewares
-	authMiddleware := middleware.Auth(
-		middleware.AuthWithAuthenticator(jwtAuth),
-	)
-	authzMiddleware := middleware.Authz(
-		middleware.AuthzWithAuthorizer(rbacAuthz),
-	)
+	authOpts := mwopts.NewAuthOptions()
+	authMiddleware := authmw.AuthWithOptions(*authOpts, jwtAuth, nil, nil)
+
+	authzOpts := mwopts.NewAuthzOptions()
+	authzMiddleware := authmw.AuthzWithOptions(*authzOpts, rbacAuthz, nil, nil, nil, nil)
 
 	handlerCalled := false
 	testHandler := func(ctx transport.Context) {

@@ -18,10 +18,9 @@ var _ MiddlewareConfig = (*HealthOptions)(nil)
 
 // HealthOptions defines health check options.
 type HealthOptions struct {
-	Path          string       `json:"path" mapstructure:"path"`
-	LivenessPath  string       `json:"liveness-path" mapstructure:"liveness-path"`
-	ReadinessPath string       `json:"readiness-path" mapstructure:"readiness-path"`
-	Checker       func() error `json:"-" mapstructure:"-"`
+	Path          string `json:"path" mapstructure:"path"`
+	LivenessPath  string `json:"liveness-path" mapstructure:"liveness-path"`
+	ReadinessPath string `json:"readiness-path" mapstructure:"readiness-path"`
 }
 
 // NewHealthOptions creates default health check options.

@@ -158,7 +158,25 @@ func (w *metricsResponseWriter) Write(b []byte) (int, error) {
 }
 
 // MetricsMiddleware creates a middleware that collects metrics.
+//
+// Deprecated: 使用 MetricsWithOptions 替代。此函数将在 v2.0.0 中移除。
 func MetricsMiddleware(opts options.MetricsOptions) transport.MiddlewareFunc {
+	return MetricsWithOptions(opts)
+}
+
+// MetricsWithOptions 返回一个使用纯配置选项的 Metrics 中间件。
+// 这是推荐的 API，适用于配置中心场景（配置必须可序列化）。
+//
+// 参数：
+//   - opts: 纯配置选项（可 JSON 序列化）
+//
+// 示例：
+//
+//	opts := mwopts.NewMetricsOptions()
+//	opts.Path = "/metrics"
+//	opts.Namespace = "myapp"
+//	middleware.MetricsWithOptions(opts)
+func MetricsWithOptions(opts options.MetricsOptions) transport.MiddlewareFunc {
 	collector := GetMetricsCollector(opts.Namespace, opts.Subsystem)
 
 	return func(next transport.HandlerFunc) transport.HandlerFunc {
@@ -196,8 +214,19 @@ func MetricsMiddleware(opts options.MetricsOptions) transport.MiddlewareFunc {
 	}
 }
 
-// RegisterMetricsRoutes registers metrics endpoint.
-func RegisterMetricsRoutes(router transport.Router, opts options.MetricsOptions) {
+
+// RegisterMetricsRoutesWithOptions 注册 Metrics 路由端点。
+// 这是推荐的 API，使用纯配置选项。
+//
+// 参数：
+//   - router: 路由器接口
+//   - opts: Metrics 配置选项
+//
+// 示例：
+//
+//	opts := mwopts.NewMetricsOptions()
+//	RegisterMetricsRoutesWithOptions(router, *opts)
+func RegisterMetricsRoutesWithOptions(router transport.Router, opts options.MetricsOptions) {
 	// Ensure collector is initialized
 	GetMetricsCollector(opts.Namespace, opts.Subsystem)
 

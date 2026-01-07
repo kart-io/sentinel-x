@@ -12,6 +12,7 @@ import (
 	"github.com/kart-io/logger"
 	"github.com/kart-io/sentinel-x/pkg/infra/pool"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 	"github.com/kart-io/sentinel-x/pkg/utils/errors"
 	"github.com/kart-io/sentinel-x/pkg/utils/response"
 	"github.com/redis/go-redis/v9"
@@ -27,67 +28,34 @@ type RateLimiter interface {
 	Reset(ctx context.Context, key string) error
 }
 
-// RateLimitConfig defines the configuration for rate limiting middleware.
-type RateLimitConfig struct {
-	// Limit is the maximum number of requests allowed within the time window.
-	// Default: 100
-	Limit int
-
-	// Window is the time window duration for rate limiting.
-	// Default: 1 minute
-	Window time.Duration
-
-	// KeyFunc is a function to extract the rate limit key from the context.
-	// Default: uses client IP address
-	KeyFunc func(c transport.Context) string
-
-	// SkipPaths is a list of paths to skip rate limiting.
-	SkipPaths []string
-
-	// OnLimitReached is called when rate limit is exceeded.
-	// Can be used for custom logging or alerting.
-	OnLimitReached func(c transport.Context)
-
-	// Limiter is the rate limiter implementation to use.
-	// If nil, a memory-based limiter will be created.
-	Limiter RateLimiter
-
-	// TrustedProxies is a list of trusted proxy IP addresses or CIDR ranges.
-	// When empty, proxy headers (X-Forwarded-For, X-Real-IP) are not trusted.
-	// Example: []string{"127.0.0.1", "10.0.0.0/8", "172.16.0.0/12"}
-	// Default: empty (do not trust proxy headers)
-	TrustedProxies []string
-
-	// TrustProxyHeaders controls whether to trust proxy headers for IP extraction.
-	// Even if true, headers are only trusted when requests come from TrustedProxies.
-	// Default: false (do not trust proxy headers)
-	TrustProxyHeaders bool
-}
-
-// DefaultRateLimitConfig is the default rate limit configuration.
-var DefaultRateLimitConfig = RateLimitConfig{
-	Limit:             100,
-	Window:            1 * time.Minute,
-	KeyFunc:           nil, // Will use defaultKeyFunc
-	SkipPaths:         []string{},
-	OnLimitReached:    nil,
-	Limiter:           nil,        // Will create memory limiter
-	TrustedProxies:    []string{}, // Empty by default - do not trust proxy headers
-	TrustProxyHeaders: false,      // Do not trust proxy headers by default
-}
-
 // RateLimit returns a rate limiting middleware with default configuration.
 func RateLimit() transport.MiddlewareFunc {
-	return RateLimitWithConfig(DefaultRateLimitConfig)
+	opts := mwopts.NewRateLimitOptions()
+	limiter := NewMemoryRateLimiter(opts.Limit, opts.GetWindow())
+	return RateLimitWithOptions(*opts, limiter)
 }
 
-// RateLimitWithConfig returns a rate limiting middleware with custom configuration.
-func RateLimitWithConfig(config RateLimitConfig) transport.MiddlewareFunc {
-	// Validate and set defaults
-	config = validateConfig(config)
-
+// RateLimitWithOptions returns a rate limiting middleware with custom options.
+// 这是推荐的 API，使用纯配置选项和运行时依赖注入。
+//
+// 参数：
+//   - opts: RateLimit 配置选项（纯配置，可 JSON 序列化）
+//   - limiter: 限流器实现（运行时依赖注入）
+//
+// 示例：
+//
+//	opts := mwopts.NewRateLimitOptions()
+//	opts.Limit = 200
+//	limiter := resilience.NewMemoryRateLimiter(opts.Limit, opts.GetWindow())
+//	middleware.RateLimitWithOptions(*opts, limiter)
+func RateLimitWithOptions(opts mwopts.RateLimitOptions, limiter RateLimiter) transport.MiddlewareFunc {
 	// Build skip paths map for fast lookup
-	skipPaths := buildSkipPathsMap(config.SkipPaths)
+	skipPaths := buildSkipPathsMap(opts.SkipPaths)
+
+	// 创建 key extraction 函数
+	keyFunc := func(c transport.Context) string {
+		return extractClientIP(c, opts)
+	}
 
 	return func(next transport.HandlerFunc) transport.HandlerFunc {
 		return func(c transport.Context) {
@@ -100,10 +68,10 @@ func RateLimitWithConfig(config RateLimitConfig) transport.MiddlewareFunc {
 			}
 
 			// Extract rate limit key
-			key := extractKey(c, config.KeyFunc, config)
+			key := extractKey(c, keyFunc)
 
 			// Check rate limit
-			allowed, err := checkRateLimit(c.Request(), config.Limiter, key)
+			allowed, err := checkRateLimit(c.Request(), limiter, key)
 			if err != nil {
 				// Log error but allow request to proceed
 				logRateLimitError(err, key)
@@ -113,7 +81,7 @@ func RateLimitWithConfig(config RateLimitConfig) transport.MiddlewareFunc {
 
 			if !allowed {
 				// Rate limit exceeded
-				handleRateLimitExceeded(c, config.OnLimitReached)
+				handleRateLimitExceeded(c)
 				return
 			}
 
@@ -124,44 +92,12 @@ func RateLimitWithConfig(config RateLimitConfig) transport.MiddlewareFunc {
 }
 
 // ============================================================================
-// Configuration Validation
-// ============================================================================
-
-// validateConfig validates and sets default values for the configuration.
-func validateConfig(config RateLimitConfig) RateLimitConfig {
-	if config.Limit <= 0 {
-		config.Limit = DefaultRateLimitConfig.Limit
-	}
-
-	if config.Window <= 0 {
-		config.Window = DefaultRateLimitConfig.Window
-	}
-
-	if config.KeyFunc == nil {
-		// Use closure to capture config for IP extraction
-		config.KeyFunc = func(c transport.Context) string {
-			return extractClientIP(c, config)
-		}
-	}
-
-	if config.SkipPaths == nil {
-		config.SkipPaths = []string{}
-	}
-
-	if config.Limiter == nil {
-		config.Limiter = NewMemoryRateLimiter(config.Limit, config.Window)
-	}
-
-	return config
-}
-
-// ============================================================================
 // Key Extraction
 // ============================================================================
 
 // extractKey extracts the rate limit key using the configured KeyFunc.
 // Falls back to RemoteAddr if the key function returns empty string.
-func extractKey(c transport.Context, keyFunc func(c transport.Context) string, _ RateLimitConfig) string {
+func extractKey(c transport.Context, keyFunc func(c transport.Context) string) string {
 	key := keyFunc(c)
 	if key == "" {
 		// Fallback to remote IP if key function returns empty string
@@ -173,15 +109,15 @@ func extractKey(c transport.Context, keyFunc func(c transport.Context) string, _
 
 // extractClientIP extracts the real client IP from the request.
 // It only trusts proxy headers (X-Forwarded-For, X-Real-IP) when:
-// 1. TrustProxyHeaders is enabled in config
+// 1. TrustProxyHeaders is enabled in opts
 // 2. The request comes from a trusted proxy IP/CIDR
 // This prevents IP spoofing attacks via forged headers.
-func extractClientIP(c transport.Context, config RateLimitConfig) string {
+func extractClientIP(c transport.Context, opts mwopts.RateLimitOptions) string {
 	req := c.HTTPRequest()
 	remoteIP := getRemoteIP(req)
 
 	// Only trust proxy headers if configured and request is from trusted proxy
-	if config.TrustProxyHeaders && isTrustedProxy(remoteIP, config.TrustedProxies) {
+	if opts.TrustProxyHeaders && isTrustedProxy(remoteIP, opts.TrustedProxies) {
 		// Check X-Forwarded-For header (most common)
 		if xff := req.Header.Get("X-Forwarded-For"); xff != "" {
 			// X-Forwarded-For can contain multiple IPs (client, proxy1, proxy2, ...)
@@ -301,12 +237,7 @@ func checkRateLimit(ctx context.Context, limiter RateLimiter, key string) (bool,
 // ============================================================================
 
 // handleRateLimitExceeded handles the case when rate limit is exceeded.
-func handleRateLimitExceeded(c transport.Context, onLimitReached func(c transport.Context)) {
-	// Call custom callback if provided
-	if onLimitReached != nil {
-		onLimitReached(c)
-	}
-
+func handleRateLimitExceeded(c transport.Context) {
 	// Return rate limit error
 	response.Fail(c, errors.ErrRateLimitExceeded)
 }

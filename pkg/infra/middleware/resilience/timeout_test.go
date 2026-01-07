@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 )
 
 func TestTimeout_NormalRequest(t *testing.T) {
@@ -69,13 +70,13 @@ func TestTimeout_SlowRequest(t *testing.T) {
 	}
 }
 
-func TestTimeoutWithConfig_SkipPaths(t *testing.T) {
-	config := TimeoutConfig{
+func TestTimeoutWithOptions_SkipPaths(t *testing.T) {
+	opts := mwopts.TimeoutOptions{
 		Timeout:   50 * time.Millisecond,
 		SkipPaths: []string{"/health", "/metrics"},
 	}
 
-	middleware := TimeoutWithConfig(config)
+	middleware := TimeoutWithOptions(opts)
 
 	tests := []struct {
 		name        string
@@ -128,10 +129,10 @@ func TestTimeoutWithConfig_SkipPaths(t *testing.T) {
 	}
 }
 
-func TestTimeoutWithConfig_DefaultTimeout(t *testing.T) {
+func TestTimeoutWithOptions_DefaultTimeout(t *testing.T) {
 	// Empty config should use default timeout
-	config := TimeoutConfig{}
-	middleware := TimeoutWithConfig(config)
+	opts := mwopts.TimeoutOptions{}
+	middleware := TimeoutWithOptions(opts)
 
 	handlerCalled := false
 	handler := middleware(func(_ transport.Context) {
@@ -291,13 +292,13 @@ func TestTimeout_MultipleTimeouts(t *testing.T) {
 	wg.Wait()
 }
 
-func TestTimeoutWithConfig_ZeroTimeout(t *testing.T) {
+func TestTimeoutWithOptions_ZeroTimeout(t *testing.T) {
 	// Zero timeout should use default
-	config := TimeoutConfig{
+	opts := mwopts.TimeoutOptions{
 		Timeout: 0,
 	}
 
-	middleware := TimeoutWithConfig(config)
+	middleware := TimeoutWithOptions(opts)
 
 	handlerCalled := false
 	handler := middleware(func(_ transport.Context) {

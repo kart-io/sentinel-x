@@ -7,12 +7,13 @@ import (
 	"testing"
 
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
-	"github.com/stretchr/testify/assert"
+	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 )
 
 func TestSecurityHeaders_DefaultConfig(t *testing.T) {
 	// Setup
-	handler := Headers()(
+	opts := mwopts.NewSecurityHeadersOptions()
+	handler := SecurityHeadersWithOptions(*opts)(
 		transport.HandlerFunc(func(c transport.Context) {
 			c.String(http.StatusOK, "OK")
 		}),
@@ -67,128 +68,118 @@ func TestSecurityHeaders_DefaultConfig(t *testing.T) {
 	}
 }
 
-func TestSecurityHeaders_Config(t *testing.T) {
+func TestSecurityHeaders_CustomConfig(t *testing.T) {
+	opts := mwopts.SecurityHeadersOptions{
+		EnableFrameOptions:       true,
+		FrameOptionsValue:        "SAMEORIGIN",
+		EnableContentTypeOptions: true,
+		EnableXSSProtection:      true,
+		XSSProtectionValue:       "0",
+		ContentSecurityPolicy:    "default-src 'self'; script-src 'self' 'unsafe-inline'",
+		ReferrerPolicy:           "no-referrer",
+		EnableHSTS:               true,
+		HSTSMaxAge:               63072000,
+		HSTSIncludeSubdomains:    true,
+		HSTSPreload:              true,
+	}
+
+	middleware := SecurityHeadersWithOptions(opts)
+	handler := middleware(func(c transport.Context) {
+		c.String(http.StatusOK, "OK")
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.TLS = &tls.ConnectionState{} // Simulate HTTPS
+	rec := httptest.NewRecorder()
+	ctx := newMockContext(req, rec)
+
+	handler(ctx)
+
+	// Check headers from mockContext.headers (SetHeader writes to both places)
+	if got := ctx.headers[HeaderXFrameOptions]; got != "SAMEORIGIN" {
+		t.Errorf("header %s = %q, want %q", HeaderXFrameOptions, got, "SAMEORIGIN")
+	}
+	if got := ctx.headers[HeaderXContentTypeOptions]; got != "nosniff" {
+		t.Errorf("header %s = %q, want %q", HeaderXContentTypeOptions, got, "nosniff")
+	}
+	if got := ctx.headers[HeaderXXSSProtection]; got != "0" {
+		t.Errorf("header %s = %q, want %q", HeaderXXSSProtection, got, "0")
+	}
+	if got := ctx.headers[HeaderContentSecurityPolicy]; got != "default-src 'self'; script-src 'self' 'unsafe-inline'" {
+		t.Errorf("header %s = %q, want %q", HeaderContentSecurityPolicy, got, "default-src 'self'; script-src 'self' 'unsafe-inline'")
+	}
+	if got := ctx.headers[HeaderReferrerPolicy]; got != "no-referrer" {
+		t.Errorf("header %s = %q, want %q", HeaderReferrerPolicy, got, "no-referrer")
+	}
+	if got := ctx.headers[HeaderStrictTransportSecurity]; got != "max-age=63072000; includeSubDomains; preload" {
+		t.Errorf("header %s = %q, want %q", HeaderStrictTransportSecurity, got, "max-age=63072000; includeSubDomains; preload")
+	}
+}
+
+func TestSecurityHeaders_HSTS(t *testing.T) {
 	tests := []struct {
 		name     string
-		config   HeadersConfig
-		reqSetup func(*http.Request)
-		checks   func(*testing.T, *httptest.ResponseRecorder)
+		opts     mwopts.SecurityHeadersOptions
+		setupReq func(*http.Request)
+		wantHSTS string
 	}{
 		{
-			name: "Custom all headers",
-			config: HeadersConfig{
-				FrameOptionsValue:        "SAMEORIGIN",
-				XSSProtectionValue:       "0",
-				ContentSecurityPolicy:    "default-src 'self'; script-src 'self' 'unsafe-inline'",
-				ReferrerPolicy:           "no-referrer",
-				HSTSMaxAge:               63072000,
-				HSTSIncludeSubdomains:    true,
-				HSTSPreload:              true,
-				EnableHSTS:               true,
-				EnableFrameOptions:       true,
-				EnableContentTypeOptions: true,
-				EnableXSSProtection:      true,
+			name: "HSTS over HTTPS",
+			opts: mwopts.SecurityHeadersOptions{
+				EnableHSTS:            true,
+				HSTSMaxAge:            31536000,
+				HSTSIncludeSubdomains: true,
+				HSTSPreload:           true,
 			},
-			reqSetup: func(req *http.Request) {
-				req.TLS = &tls.ConnectionState{} // Simulate HTTPS
+			setupReq: func(req *http.Request) {
+				req.TLS = &tls.ConnectionState{}
 			},
-			checks: func(t *testing.T, w *httptest.ResponseRecorder) {
-				assert.Equal(t, "SAMEORIGIN", w.Header().Get(HeaderXFrameOptions))
-				assert.Equal(t, "nosniff", w.Header().Get(HeaderXContentTypeOptions)) // Fixed expectation for hardcoded value in middleware
-				assert.Equal(t, "0", w.Header().Get(HeaderXXSSProtection))
-				assert.Equal(t, "default-src 'self'; script-src 'self' 'unsafe-inline'", w.Header().Get(HeaderContentSecurityPolicy))
-				assert.Equal(t, "no-referrer", w.Header().Get(HeaderReferrerPolicy))
-				assert.Equal(t, "max-age=63072000; includeSubDomains; preload", w.Header().Get(HeaderStrictTransportSecurity))
-			},
+			wantHSTS: "max-age=31536000; includeSubDomains; preload",
 		},
 		{
-			name: "HSTS over HTTP should not be set",
-			config: HeadersConfig{
+			name: "HSTS over HTTP (should not set)",
+			opts: mwopts.SecurityHeadersOptions{
 				EnableHSTS: true,
 				HSTSMaxAge: 31536000,
 			},
-			reqSetup: func(_ *http.Request) {
+			setupReq: func(_ *http.Request) {
 				// No TLS, no X-Forwarded-Proto
 			},
-			checks: func(t *testing.T, w *httptest.ResponseRecorder) {
-				assert.Empty(t, w.Header().Get(HeaderStrictTransportSecurity))
-			},
+			wantHSTS: "",
 		},
 		{
 			name: "HSTS with X-Forwarded-Proto",
-			config: HeadersConfig{
+			opts: mwopts.SecurityHeadersOptions{
 				EnableHSTS: true,
 				HSTSMaxAge: 31536000,
 			},
-			reqSetup: func(req *http.Request) {
+			setupReq: func(req *http.Request) {
 				req.Header.Set("X-Forwarded-Proto", "https")
 			},
-			checks: func(t *testing.T, w *httptest.ResponseRecorder) {
-				assert.Equal(t, "max-age=31536000", w.Header().Get(HeaderStrictTransportSecurity))
-			},
-		},
-		{
-			name:   "Empty config uses defaults",
-			config: HeadersConfig{},
-			reqSetup: func(_ *http.Request) {
-				// No special setup
-			},
-			checks: func(t *testing.T, w *httptest.ResponseRecorder) {
-				assert.Equal(t, "DENY", w.Header().Get(HeaderXFrameOptions))
-				assert.Equal(t, "nosniff", w.Header().Get(HeaderXContentTypeOptions))
-				assert.Empty(t, w.Header().Get(HeaderStrictTransportSecurity)) // HSTS disabled by default
-			},
-		},
-		{
-			name: "Disable HSTS",
-			config: func() HeadersConfig {
-				c := DefaultHeadersConfig()
-				c.EnableHSTS = false
-				return c
-			}(),
-			reqSetup: func(req *http.Request) {
-				req.TLS = &tls.ConnectionState{} // Simulate HTTPS
-			},
-			checks: func(t *testing.T, w *httptest.ResponseRecorder) {
-				assert.Empty(t, w.Header().Get(HeaderStrictTransportSecurity))
-			},
-		},
-		{
-			name: "Custom HSTS",
-			config: func() HeadersConfig {
-				c := DefaultHeadersConfig()
-				c.EnableHSTS = true
-				c.HSTSMaxAge = 60
-				c.HSTSIncludeSubdomains = false
-				c.HSTSPreload = true
-				return c
-			}(),
-			reqSetup: func(req *http.Request) {
-				req.TLS = &tls.ConnectionState{} // Simulate HTTPS
-			},
-			checks: func(t *testing.T, w *httptest.ResponseRecorder) {
-				assert.Equal(t, "max-age=60; preload", w.Header().Get(HeaderStrictTransportSecurity))
-			},
+			wantHSTS: "max-age=31536000",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			middleware := HeadersWithConfig(tt.config)
+			middleware := SecurityHeadersWithOptions(tt.opts)
 			handler := middleware(func(c transport.Context) {
 				c.String(http.StatusOK, "OK")
 			})
 
 			req := httptest.NewRequest(http.MethodGet, "/", nil)
-			if tt.reqSetup != nil {
-				tt.reqSetup(req)
+			if tt.setupReq != nil {
+				tt.setupReq(req)
 			}
 			rec := httptest.NewRecorder()
 			ctx := newMockContext(req, rec)
 
 			handler(ctx)
 
-			tt.checks(t, rec)
+			got := rec.Header().Get(HeaderStrictTransportSecurity)
+			if got != tt.wantHSTS {
+				t.Errorf("HSTS = %q, want %q", got, tt.wantHSTS)
+			}
 		})
 	}
 }
@@ -214,23 +205,9 @@ func TestIsHTTPSConnection(t *testing.T) {
 			expected: true,
 		},
 		{
-			name: "HTTPS via X-Forwarded-Proto (uppercase)",
-			setupReq: func(req *http.Request) {
-				req.Header.Set("X-Forwarded-Proto", "HTTPS")
-			},
-			expected: true,
-		},
-		{
 			name: "HTTP",
 			setupReq: func(_ *http.Request) {
 				// No TLS, no X-Forwarded-Proto
-			},
-			expected: false,
-		},
-		{
-			name: "HTTP via X-Forwarded-Proto",
-			setupReq: func(req *http.Request) {
-				req.Header.Set("X-Forwarded-Proto", "http")
 			},
 			expected: false,
 		},

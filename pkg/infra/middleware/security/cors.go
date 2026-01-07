@@ -8,80 +8,24 @@ import (
 	"strings"
 
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 )
-
-// CORSConfig defines the config for CORS middleware.
-type CORSConfig struct {
-	// AllowOrigins is a list of origins that may access the resource.
-	// Default: ["*"]
-	AllowOrigins []string
-
-	// AllowMethods is a list of methods allowed when accessing the resource.
-	// Default: ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]
-	AllowMethods []string
-
-	// AllowHeaders is a list of headers that can be used when making the request.
-	// Default: ["Origin", "Content-Type", "Accept", "Authorization", "X-Request-ID"]
-	AllowHeaders []string
-
-	// ExposeHeaders is a list of headers that browsers are allowed to access.
-	// Default: []
-	ExposeHeaders []string
-
-	// AllowCredentials indicates whether credentials are allowed.
-	// Default: false
-	AllowCredentials bool
-
-	// MaxAge indicates how long the results of a preflight request can be cached.
-	// Default: 86400 (24 hours)
-	MaxAge int
-}
-
-// DefaultCORSConfig is the default CORS middleware config.
-// Provides secure defaults for local development environments.
-// IMPORTANT: For production, explicitly configure AllowOrigins with your actual domains.
-var DefaultCORSConfig = CORSConfig{
-	AllowOrigins: []string{
-		"http://localhost:3000",
-		"http://localhost:8080",
-		"http://127.0.0.1:3000",
-		"http://127.0.0.1:8080",
-	},
-	AllowMethods: []string{
-		http.MethodGet,
-		http.MethodPost,
-		http.MethodPut,
-		http.MethodPatch,
-		http.MethodDelete,
-		http.MethodHead,
-		http.MethodOptions,
-	},
-	AllowHeaders: []string{
-		"Origin",
-		"Content-Type",
-		"Accept",
-		"Authorization",
-		"X-Request-ID",
-	},
-	ExposeHeaders:    []string{},
-	AllowCredentials: false,
-	MaxAge:           86400,
-}
 
 // CORS returns a middleware that adds CORS headers.
 func CORS() transport.MiddlewareFunc {
-	return CORSWithConfig(DefaultCORSConfig)
+	return CORSWithOptions(*mwopts.NewCORSOptions())
 }
 
-// Validate checks if the CORS configuration is valid.
-func (c CORSConfig) Validate() error {
-	if len(c.AllowOrigins) == 0 {
+// validateCORSOptions validates CORS options.
+// 提取验证逻辑以便 CORSConfig.Validate() 和 CORSWithOptions 共用。
+func validateCORSOptions(opts mwopts.CORSOptions) error {
+	if len(opts.AllowOrigins) == 0 {
 		return fmt.Errorf("CORS: AllowOrigins must be explicitly configured, empty list not allowed")
 	}
 
 	// Check for wildcard and credentials conflict
 	hasWildcard := false
-	for _, origin := range c.AllowOrigins {
+	for _, origin := range opts.AllowOrigins {
 		if origin == "*" {
 			hasWildcard = true
 		}
@@ -95,7 +39,7 @@ func (c CORSConfig) Validate() error {
 	}
 
 	// Wildcard cannot be used with credentials
-	if hasWildcard && c.AllowCredentials {
+	if hasWildcard && opts.AllowCredentials {
 		return fmt.Errorf("CORS: cannot use wildcard origin '*' with AllowCredentials=true (RFC6454 security requirement)")
 	}
 
@@ -126,31 +70,46 @@ func validateOriginFormat(origin string) error {
 	return nil
 }
 
-// CORSWithConfig returns a CORS middleware with custom config.
-func CORSWithConfig(config CORSConfig) transport.MiddlewareFunc {
+// CORSWithOptions returns a CORS middleware with CORSOptions.
+// 这是推荐的构造函数，直接使用 pkg/options/middleware.CORSOptions。
+func CORSWithOptions(opts mwopts.CORSOptions) transport.MiddlewareFunc {
 	// Validate configuration
-	if err := config.Validate(); err != nil {
+	if err := validateCORSOptions(opts); err != nil {
 		panic(err) // 配置错误应该在启动时失败
 	}
 
-	// Set defaults
-	if len(config.AllowOrigins) == 0 {
-		config.AllowOrigins = DefaultCORSConfig.AllowOrigins
+	// Set defaults (NewCORSOptions 已经设置了默认值，这里只做兜底)
+	if len(opts.AllowOrigins) == 0 {
+		opts.AllowOrigins = []string{"*"}
 	}
-	if len(config.AllowMethods) == 0 {
-		config.AllowMethods = DefaultCORSConfig.AllowMethods
+	if len(opts.AllowMethods) == 0 {
+		opts.AllowMethods = []string{
+			http.MethodGet,
+			http.MethodPost,
+			http.MethodPut,
+			http.MethodPatch,
+			http.MethodDelete,
+			http.MethodHead,
+			http.MethodOptions,
+		}
 	}
-	if len(config.AllowHeaders) == 0 {
-		config.AllowHeaders = DefaultCORSConfig.AllowHeaders
+	if len(opts.AllowHeaders) == 0 {
+		opts.AllowHeaders = []string{
+			"Origin",
+			"Content-Type",
+			"Accept",
+			"Authorization",
+			"X-Request-ID",
+		}
 	}
-	if config.MaxAge == 0 {
-		config.MaxAge = DefaultCORSConfig.MaxAge
+	if opts.MaxAge == 0 {
+		opts.MaxAge = 86400
 	}
 
-	allowMethods := strings.Join(config.AllowMethods, ", ")
-	allowHeaders := strings.Join(config.AllowHeaders, ", ")
-	exposeHeaders := strings.Join(config.ExposeHeaders, ", ")
-	maxAge := strconv.Itoa(config.MaxAge)
+	allowMethods := strings.Join(opts.AllowMethods, ", ")
+	allowHeaders := strings.Join(opts.AllowHeaders, ", ")
+	exposeHeaders := strings.Join(opts.ExposeHeaders, ", ")
+	maxAge := strconv.Itoa(opts.MaxAge)
 
 	return func(next transport.HandlerFunc) transport.HandlerFunc {
 		return func(c transport.Context) {
@@ -159,7 +118,7 @@ func CORSWithConfig(config CORSConfig) transport.MiddlewareFunc {
 
 			// Check if origin is allowed
 			allowedOrigin := ""
-			for _, o := range config.AllowOrigins {
+			for _, o := range opts.AllowOrigins {
 				if o == "*" || o == origin {
 					allowedOrigin = o
 					break
@@ -174,7 +133,7 @@ func CORSWithConfig(config CORSConfig) transport.MiddlewareFunc {
 			// Set CORS headers
 			c.SetHeader("Access-Control-Allow-Origin", allowedOrigin)
 
-			if config.AllowCredentials {
+			if opts.AllowCredentials {
 				c.SetHeader("Access-Control-Allow-Credentials", "true")
 			}
 

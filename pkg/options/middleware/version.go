@@ -21,7 +21,7 @@ type VersionOptions struct {
 // NewVersionOptions creates default version options.
 func NewVersionOptions() *VersionOptions {
 	return &VersionOptions{
-		Enabled:     true,  // 默认启用
+		Enabled:     true, // 默认启用
 		Path:        "/version",
 		HideDetails: false, // 默认显示完整信息
 	}

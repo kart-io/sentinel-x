@@ -7,40 +7,47 @@ import (
 
 	"github.com/kart-io/logger"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 	"github.com/kart-io/sentinel-x/pkg/utils/errors"
 	"github.com/kart-io/sentinel-x/pkg/utils/response"
 )
 
-// RecoveryConfig defines the config for Recovery middleware.
-type RecoveryConfig struct {
-	// EnableStackTrace includes stack trace in error response (for development).
-	// Note: In production environment, this will be automatically disabled for client responses.
-	EnableStackTrace bool
+// PanicHandler 定义 panic 处理器类型。
+// 参数：
+//   - ctx: 请求上下文
+//   - err: panic 值
+//   - stack: 堆栈跟踪信息
+type PanicHandler func(ctx transport.Context, err interface{}, stack []byte)
 
-	// OnPanic is called when a panic occurs.
-	// Can be used for logging or alerting.
-	OnPanic func(ctx transport.Context, err interface{}, stack []byte)
-}
-
-// DefaultRecoveryConfig is the default Recovery middleware config.
-var DefaultRecoveryConfig = RecoveryConfig{
-	EnableStackTrace: false,
-	OnPanic:          nil,
-}
-
-// Recovery returns a middleware that recovers from panics.
-// It converts panics to JSON error responses using the error code system.
+// Recovery returns a middleware that recovers from panics with default options.
 func Recovery() transport.MiddlewareFunc {
-	return RecoveryWithConfig(DefaultRecoveryConfig)
+	return RecoveryWithOptions(*mwopts.NewRecoveryOptions(), nil)
 }
 
-// RecoveryWithConfig returns a Recovery middleware with custom config.
-func RecoveryWithConfig(config RecoveryConfig) transport.MiddlewareFunc {
+// RecoveryWithOptions 返回一个使用纯配置选项和运行时依赖注入的 Recovery 中间件。
+// 这是推荐的 API，适用于配置中心场景（配置必须可序列化）。
+//
+// 参数：
+//   - opts: 纯配置选项（可 JSON 序列化）
+//   - onPanic: 可选的 panic 处理器，用于自定义日志或告警逻辑
+//     如果为 nil，则不执行额外处理（仅记录日志和返回错误响应）
+//
+// 示例：
+//
+//	// 使用默认行为
+//	middleware.RecoveryWithOptions(opts, nil)
+//
+//	// 自定义 panic 处理器
+//	middleware.RecoveryWithOptions(opts, func(ctx transport.Context, err interface{}, stack []byte) {
+//	    // 发送告警到监控系统
+//	    alerting.SendPanicAlert(err, stack)
+//	})
+func RecoveryWithOptions(opts mwopts.RecoveryOptions, onPanic PanicHandler) transport.MiddlewareFunc {
 	// Check if running in production environment
 	isProd := isProductionEnvironment()
 
 	// Validate and adjust config for production environment
-	shouldReturnStackToClient := validateStackTraceConfig(config.EnableStackTrace, isProd)
+	shouldReturnStackToClient := validateStackTraceConfig(opts.EnableStackTrace, isProd)
 
 	return func(next transport.HandlerFunc) transport.HandlerFunc {
 		return func(c transport.Context) {
@@ -52,8 +59,8 @@ func RecoveryWithConfig(config RecoveryConfig) transport.MiddlewareFunc {
 					logPanicWithStackTrace(c, r, stack)
 
 					// Call panic handler if configured
-					if config.OnPanic != nil {
-						config.OnPanic(c, r, stack)
+					if onPanic != nil {
+						onPanic(c, r, stack)
 					}
 
 					// Build client error response

@@ -9,6 +9,7 @@ import (
 	"github.com/kart-io/logger"
 	"github.com/kart-io/sentinel-x/pkg/infra/middleware/requestutil"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 )
 
 // fieldsPool is a sync.Pool for reusing fields slices to reduce heap allocations.
@@ -31,42 +32,36 @@ func releaseFields(fields *[]interface{}) {
 	fieldsPool.Put(fields)
 }
 
-// LoggerConfig defines the config for Logger middleware.
-type LoggerConfig struct {
-	// SkipPaths is a list of paths to skip logging.
-	SkipPaths []string
-
-	// Output is the logger output function.
-	// Default: log.Printf (used only if UseStructuredLogger is false)
-	Output func(format string, args ...interface{})
-
-	// UseStructuredLogger enables structured logging using kart-io/logger.
-	// When true, Output is ignored and the global structured logger is used.
-	// Default: true
-	UseStructuredLogger bool
-}
-
-// DefaultLoggerConfig is the default Logger middleware config.
-var DefaultLoggerConfig = LoggerConfig{
-	SkipPaths:           []string{"/health", "/ready", "/metrics"},
-	Output:              log.Printf,
-	UseStructuredLogger: true,
-}
-
-// Logger returns a middleware that logs HTTP requests.
+// Logger returns a middleware that logs HTTP requests with default options.
 func Logger() transport.MiddlewareFunc {
-	return LoggerWithConfig(DefaultLoggerConfig)
+	return LoggerWithOptions(*mwopts.NewLoggerOptions(), nil)
 }
 
-// LoggerWithConfig returns a Logger middleware with custom config.
-func LoggerWithConfig(config LoggerConfig) transport.MiddlewareFunc {
+// LoggerWithOptions 返回一个使用纯配置选项和运行时依赖注入的 Logger 中间件。
+// 这是推荐的 API，适用于配置中心场景（配置必须可序列化）。
+//
+// 参数：
+//   - opts: 纯配置选项（可 JSON 序列化）
+//   - output: 可选的日志输出函数（仅在 UseStructuredLogger=false 时使用）
+//     如果为 nil，默认使用 log.Printf
+//
+// 示例：
+//
+//	// 使用默认输出
+//	middleware.LoggerWithOptions(opts, nil)
+//
+//	// 自定义输出
+//	middleware.LoggerWithOptions(opts, func(format string, args ...interface{}) {
+//	    myLogger.Printf(format, args...)
+//	})
+func LoggerWithOptions(opts mwopts.LoggerOptions, output func(format string, args ...interface{})) transport.MiddlewareFunc {
 	// Set defaults
-	if config.Output == nil {
-		config.Output = log.Printf
+	if output == nil {
+		output = log.Printf
 	}
 
 	skipPaths := make(map[string]bool)
-	for _, path := range config.SkipPaths {
+	for _, path := range opts.SkipPaths {
 		skipPaths[path] = true
 	}
 
@@ -95,7 +90,7 @@ func LoggerWithConfig(config LoggerConfig) transport.MiddlewareFunc {
 			latency := time.Since(start)
 
 			// Log the request
-			if config.UseStructuredLogger {
+			if opts.UseStructuredLogger {
 				// Acquire fields slice from pool
 				fields := acquireFields()
 				defer releaseFields(fields)
@@ -115,7 +110,7 @@ func LoggerWithConfig(config LoggerConfig) transport.MiddlewareFunc {
 			} else {
 				// Use legacy printf-style logging
 				if requestID != "" {
-					config.Output("[%s] %s %s %s %v",
+					output("[%s] %s %s %s %v",
 						requestID,
 						req.Method,
 						path,
@@ -123,7 +118,7 @@ func LoggerWithConfig(config LoggerConfig) transport.MiddlewareFunc {
 						latency,
 					)
 				} else {
-					config.Output("%s %s %s %v",
+					output("%s %s %s %v",
 						req.Method,
 						path,
 						req.RemoteAddr,

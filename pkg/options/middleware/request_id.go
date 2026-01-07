@@ -3,7 +3,6 @@ package middleware
 import (
 	"errors"
 
-	"github.com/google/uuid"
 	"github.com/kart-io/sentinel-x/pkg/options"
 	"github.com/spf13/pflag"
 )
@@ -18,18 +17,15 @@ func init() {
 var _ MiddlewareConfig = (*RequestIDOptions)(nil)
 
 // RequestIDOptions defines request ID middleware options.
+// 此结构体必须保持可 JSON 序列化，运行时依赖（如 Generator）应通过函数参数注入。
 type RequestIDOptions struct {
-	Header    string        `json:"header" mapstructure:"header"`
-	Generator func() string `json:"-" mapstructure:"-"`
+	Header string `json:"header" mapstructure:"header"`
 }
 
 // NewRequestIDOptions creates default request ID middleware options.
 func NewRequestIDOptions() *RequestIDOptions {
 	return &RequestIDOptions{
 		Header: "X-Request-ID",
-		Generator: func() string {
-			return uuid.New().String()
-		},
 	}
 }
 

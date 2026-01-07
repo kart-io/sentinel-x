@@ -9,42 +9,28 @@ import (
 	"github.com/kart-io/logger"
 	"github.com/kart-io/sentinel-x/pkg/infra/pool"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 	"github.com/kart-io/sentinel-x/pkg/utils/errors"
 	"github.com/kart-io/sentinel-x/pkg/utils/response"
 )
 
-// TimeoutConfig defines the config for Timeout middleware.
-type TimeoutConfig struct {
-	// Timeout is the request timeout duration.
-	// Default: 30s
-	Timeout time.Duration
-
-	// SkipPaths is a list of paths to skip timeout.
-	SkipPaths []string
-}
-
-// DefaultTimeoutConfig is the default Timeout middleware config.
-var DefaultTimeoutConfig = TimeoutConfig{
-	Timeout:   30 * time.Second,
-	SkipPaths: []string{},
-}
-
 // Timeout returns a middleware that limits request processing time.
 func Timeout(timeout time.Duration) transport.MiddlewareFunc {
-	return TimeoutWithConfig(TimeoutConfig{
+	return TimeoutWithOptions(mwopts.TimeoutOptions{
 		Timeout: timeout,
 	})
 }
 
-// TimeoutWithConfig returns a Timeout middleware with custom config.
-func TimeoutWithConfig(config TimeoutConfig) transport.MiddlewareFunc {
+// TimeoutWithOptions returns a Timeout middleware with TimeoutOptions.
+// 这是推荐的构造函数，直接使用 pkg/options/middleware.TimeoutOptions。
+func TimeoutWithOptions(opts mwopts.TimeoutOptions) transport.MiddlewareFunc {
 	// Set defaults
-	if config.Timeout == 0 {
-		config.Timeout = DefaultTimeoutConfig.Timeout
+	if opts.Timeout == 0 {
+		opts.Timeout = 30 * time.Second
 	}
 
 	skipPaths := make(map[string]bool)
-	for _, path := range config.SkipPaths {
+	for _, path := range opts.SkipPaths {
 		skipPaths[path] = true
 	}
 
@@ -59,7 +45,7 @@ func TimeoutWithConfig(config TimeoutConfig) transport.MiddlewareFunc {
 			}
 
 			// Create timeout context to propagate cancellation to downstream handlers
-			ctx, cancel := context.WithTimeout(c.Request(), config.Timeout)
+			ctx, cancel := context.WithTimeout(c.Request(), opts.Timeout)
 			defer cancel()
 
 			// Update request context so downstream handlers can detect timeout
