@@ -31,6 +31,7 @@ const (
 	MiddlewareCompression     = "compression"
 	MiddlewareSecurityHeaders = "security-headers"
 	MiddlewareRateLimit       = "rate-limit"
+	MiddlewareCircuitBreaker  = "circuit-breaker"
 )
 
 // AllMiddlewares 所有支持的中间件名称。
@@ -50,6 +51,7 @@ var AllMiddlewares = []string{
 	MiddlewareCompression,
 	MiddlewareSecurityHeaders,
 	MiddlewareRateLimit,
+	MiddlewareCircuitBreaker,
 }
 
 // Options contains all middleware configuration.
@@ -98,6 +100,9 @@ type Options struct {
 
 	// RateLimit 配置。
 	RateLimit *RateLimitOptions `json:"rate-limit" mapstructure:"rate-limit"`
+
+	// CircuitBreaker 配置。
+	CircuitBreaker *CircuitBreakerOptions `json:"circuit-breaker" mapstructure:"circuit-breaker"`
 }
 
 // Option is a function that configures Options.
@@ -187,6 +192,10 @@ func (o *Options) Validate() []error {
 		errs = append(errs, o.RateLimit.Validate()...)
 	}
 
+	if o.CircuitBreaker != nil {
+		errs = append(errs, o.CircuitBreaker.Validate()...)
+	}
+
 	return errs
 }
 
@@ -268,6 +277,11 @@ func (o *Options) Complete() error {
 			return err
 		}
 	}
+	if o.CircuitBreaker != nil {
+		if err := o.CircuitBreaker.Complete(); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
@@ -306,6 +320,8 @@ func (o *Options) IsEnabled(name string) bool {
 		return o.SecurityHeaders != nil
 	case MiddlewareRateLimit:
 		return o.RateLimit != nil
+	case MiddlewareCircuitBreaker:
+		return o.CircuitBreaker != nil && o.CircuitBreaker.Enabled
 	default:
 		return false
 	}
@@ -356,6 +372,8 @@ func (o *Options) GetConfig(name string) MiddlewareConfig {
 		return o.SecurityHeaders
 	case MiddlewareRateLimit:
 		return o.RateLimit
+	case MiddlewareCircuitBreaker:
+		return o.CircuitBreaker
 	default:
 		return nil
 	}
@@ -408,6 +426,9 @@ func (o *Options) AddFlags(fs *pflag.FlagSet, prefixes ...string) {
 	}
 	if o.RateLimit != nil {
 		o.RateLimit.AddFlags(fs, prefixes...)
+	}
+	if o.CircuitBreaker != nil {
+		o.CircuitBreaker.AddFlags(fs, prefixes...)
 	}
 }
 

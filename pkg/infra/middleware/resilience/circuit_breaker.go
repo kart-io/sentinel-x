@@ -1,0 +1,113 @@
+package resilience
+
+import (
+	"net/http"
+
+	"github.com/kart-io/logger"
+	"github.com/kart-io/sentinel-x/pkg/infra/middleware/internal/pathutil"
+	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	llmresilience "github.com/kart-io/sentinel-x/pkg/llm/resilience"
+	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
+	"github.com/kart-io/sentinel-x/pkg/utils/errors"
+	"github.com/kart-io/sentinel-x/pkg/utils/response"
+)
+
+// CircuitBreaker 返回一个熔断器中间件。
+//
+// 熔断器用于防止级联失败：当下游服务持续出错时，自动熔断请求，
+// 避免资源浪费并给下游服务恢复时间。
+//
+// 参数:
+//   - maxFailures: 触发熔断的最大失败次数
+//   - timeout: 熔断器打开后的超时时间（秒）
+//   - halfOpenMaxCalls: 半开状态允许的最大调用次数
+//
+// 示例:
+//
+//	router.Use(CircuitBreaker(5, 60, 1))
+func CircuitBreaker(maxFailures int, timeout, halfOpenMaxCalls int) transport.MiddlewareFunc {
+	return CircuitBreakerWithOptions(mwopts.CircuitBreakerOptions{
+		MaxFailures:      maxFailures,
+		Timeout:          timeout,
+		HalfOpenMaxCalls: halfOpenMaxCalls,
+		ErrorThreshold:   500, // 默认 5xx 错误触发熔断
+		Enabled:          true,
+	})
+}
+
+// CircuitBreakerWithOptions 返回一个带配置选项的熔断器中间件。
+// 这是推荐的构造函数，直接使用 pkg/options/middleware.CircuitBreakerOptions。
+//
+// 工作原理:
+//  1. 关闭状态(Closed): 正常处理请求，记录失败次数
+//  2. 打开状态(Open): 失败次数达到阈值，拒绝所有请求
+//  3. 半开状态(Half-Open): 超时后允许少量请求探测，成功则关闭，失败则重新打开
+//
+// HTTP 状态码判定:
+//   - >= ErrorThreshold 视为失败（默认 500，即 5xx 错误）
+//   - < ErrorThreshold 视为成功
+//
+// 注意事项:
+//   - 熔断器状态是单实例的，不跨实例共享
+//   - 跳过的路径（SkipPaths）不会影响熔断器状态
+//   - 熔断器打开时返回 503 Service Unavailable
+func CircuitBreakerWithOptions(opts mwopts.CircuitBreakerOptions) transport.MiddlewareFunc {
+	// 创建路径匹配器
+	pathMatcher := pathutil.NewPathMatcher(opts.SkipPaths, opts.SkipPathPrefixes)
+
+	// 创建熔断器实例
+	breaker := llmresilience.NewCircuitBreaker(&llmresilience.CircuitBreakerConfig{
+		MaxFailures:      opts.MaxFailures,
+		Timeout:          opts.GetTimeout(),
+		HalfOpenMaxCalls: opts.HalfOpenMaxCalls,
+	})
+
+	return func(next transport.HandlerFunc) transport.HandlerFunc {
+		return func(c transport.Context) {
+			req := c.HTTPRequest()
+
+			// 检查是否跳过此路径
+			if pathMatcher(req.URL.Path) {
+				next(c)
+				return
+			}
+
+			// 通过熔断器执行请求
+			err := breaker.Execute(func() error {
+				// 调用下一个处理器
+				next(c)
+
+				// 获取响应状态码
+				// 注意：这依赖于框架适配器实现 Status() 方法
+				statusCode := http.StatusOK
+				if w, ok := c.ResponseWriter().(interface{ Status() int }); ok {
+					if status := w.Status(); status != 0 {
+						statusCode = status
+					}
+				}
+
+				// 根据 HTTP 状态码判断是否失败
+				if statusCode >= opts.ErrorThreshold {
+					logger.Debugw("circuit breaker detected error response",
+						"path", req.URL.Path,
+						"status_code", statusCode,
+						"threshold", opts.ErrorThreshold,
+					)
+					return errors.ErrInternal
+				}
+				return nil
+			})
+
+			// 如果熔断器打开，返回 503
+			if err == llmresilience.ErrCircuitBreakerOpen {
+				logger.Warnw("circuit breaker open, rejecting request",
+					"path", req.URL.Path,
+					"state", breaker.State().String(),
+					"stats", breaker.Stats(),
+				)
+				response.Fail(c, errors.ErrServiceUnavailable)
+				return
+			}
+		}
+	}
+}
