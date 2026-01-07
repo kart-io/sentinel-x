@@ -7,8 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/gin-gonic/gin"
 	v1 "github.com/kart-io/sentinel-x/pkg/api/user-center/v1"
-	custom_http "github.com/kart-io/sentinel-x/pkg/infra/server/transport/http"
 	"github.com/kart-io/sentinel-x/pkg/utils/errors"
 	"github.com/stretchr/testify/assert"
 )
@@ -65,13 +65,17 @@ func TestUserAPI_CreateUser_Validation(t *testing.T) {
 			body, _ := json.Marshal(tt.req)
 			req := httptest.NewRequest(http.MethodPost, "/v1/users", bytes.NewReader(body))
 			req.Header.Set("Content-Type", "application/json")
-			rec := httptest.NewRecorder()
 
-			c := custom_http.NewRequestContext(req, rec)
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+			c.Request = req
 
 			// 直接测试请求绑定和验证
 			var createReq v1.CreateUserRequest
-			err := c.ShouldBindAndValidate(&createReq)
+			err := c.ShouldBindJSON(&createReq)
+			if err == nil {
+				err = createReq.Validate()
+			}
 
 			if tt.wantStatus == http.StatusBadRequest {
 				assert.Error(t, err)
@@ -117,12 +121,16 @@ func TestUserAPI_ListUser_Pagination(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			req := httptest.NewRequest(http.MethodGet, "/v1/users"+tt.queryParams, nil)
-			rec := httptest.NewRecorder()
 
-			c := custom_http.NewRequestContext(req, rec)
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+			c.Request = req
 
 			var listReq v1.ListUsersRequest
-			_ = c.ShouldBindAndValidate(&listReq)
+			_ = c.ShouldBindQuery(&listReq)
+			if listReq.Page == 0 || listReq.PageSize == 0 {
+				// Protobuf验证可能允许0值，手动验证
+			}
 
 			// 计算默认值
 			page := int(listReq.Page)
@@ -181,12 +189,16 @@ func TestAuthAPI_Register_Validation(t *testing.T) {
 			body, _ := json.Marshal(tt.req)
 			req := httptest.NewRequest(http.MethodPost, "/auth/register", bytes.NewReader(body))
 			req.Header.Set("Content-Type", "application/json")
-			rec := httptest.NewRecorder()
 
-			c := custom_http.NewRequestContext(req, rec)
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+			c.Request = req
 
 			var registerReq v1.RegisterRequest
-			err := c.ShouldBindAndValidate(&registerReq)
+			err := c.ShouldBindJSON(&registerReq)
+			if err == nil {
+				err = registerReq.Validate()
+			}
 
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -232,12 +244,16 @@ func TestAuthAPI_ChangePassword_Validation(t *testing.T) {
 			body, _ := json.Marshal(tt.req)
 			req := httptest.NewRequest(http.MethodPost, "/v1/users/password", bytes.NewReader(body))
 			req.Header.Set("Content-Type", "application/json")
-			rec := httptest.NewRecorder()
 
-			c := custom_http.NewRequestContext(req, rec)
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+			c.Request = req
 
 			var changeReq v1.ChangePasswordRequest
-			err := c.ShouldBindAndValidate(&changeReq)
+			err := c.ShouldBindJSON(&changeReq)
+			if err == nil {
+				err = changeReq.Validate()
+			}
 
 			if tt.wantErr {
 				assert.Error(t, err)

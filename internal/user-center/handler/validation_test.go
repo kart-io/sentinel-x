@@ -7,9 +7,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/gin-gonic/gin"
 	"github.com/kart-io/sentinel-x/internal/user-center/handler"
 	v1 "github.com/kart-io/sentinel-x/pkg/api/user-center/v1"
-	custom_http "github.com/kart-io/sentinel-x/pkg/infra/server/transport/http"
 	"github.com/kart-io/sentinel-x/pkg/utils/errors"
 	"github.com/stretchr/testify/assert"
 )
@@ -66,10 +66,10 @@ func TestAuthHandler_Login_Validation(t *testing.T) {
 			body, _ := json.Marshal(tt.req)
 			req := httptest.NewRequest(http.MethodPost, "/auth/login", bytes.NewReader(body))
 			req.Header.Set("Content-Type", "application/json")
-			rec := httptest.NewRecorder()
 
-			// Create Context using our custom http implementation
-			c := custom_http.NewRequestContext(req, rec)
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+			c.Request = req
 
 			// Run Handler
 			defer func() {
@@ -86,11 +86,11 @@ func TestAuthHandler_Login_Validation(t *testing.T) {
 
 			// Check Status Code (only if no panic)
 			if tt.wantStatus != -1 {
-				assert.Equal(t, tt.wantStatus, c.ResponseWriter().(*httptest.ResponseRecorder).Code)
+				assert.Equal(t, tt.wantStatus, w.Code)
 
 				// Optional: Check Response Body structure for error
 				var resp map[string]interface{}
-				_ = json.NewDecoder(c.ResponseWriter().(*httptest.ResponseRecorder).Body).Decode(&resp)
+				_ = json.NewDecoder(w.Body).Decode(&resp)
 
 				// Assuming standard error response format
 				if code, ok := resp["code"]; ok {

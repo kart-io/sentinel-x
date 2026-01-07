@@ -3,9 +3,9 @@ package resilience
 import (
 	"net/http"
 
+	"github.com/gin-gonic/gin"
 	"github.com/kart-io/logger"
 	"github.com/kart-io/sentinel-x/pkg/infra/middleware/internal/pathutil"
-	"github.com/gin-gonic/gin"
 	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 	"github.com/kart-io/sentinel-x/pkg/utils/errors"
 	"github.com/kart-io/sentinel-x/pkg/utils/response"
@@ -47,32 +47,32 @@ func BodyLimitWithOptions(opts mwopts.BodyLimitOptions) gin.HandlerFunc {
 	// 创建路径匹配器
 	pathMatcher := pathutil.NewPathMatcher(opts.SkipPaths, opts.SkipPathPrefixes)
 	return func(c *gin.Context) {
-			req := c.Request
+		req := c.Request
 
-			// 检查是否跳过此路径（精确匹配）
-			if pathMatcher(req.URL.Path) {
-				c.Next()
-				return
-			}
-
-			// 早期检查：如果 Content-Length 头已经超过限制，立即拒绝
-			// 这样可以避免读取任何数据，节省资源
-			if req.ContentLength > opts.MaxSize {
-				logger.Warnw("request body too large (Content-Length check)",
-					"path", req.URL.Path,
-					"content_length", req.ContentLength,
-					"max_size", opts.MaxSize,
-				)
-				response.Fail(c, errors.ErrRequestTooLarge)
-				return
-			}
-
-			// 使用 http.MaxBytesReader 限制实际读取的字节数
-			// 即使客户端没有设置 Content-Length 或设置了错误的值，
-			// 在读取超过 MaxSize 字节时也会返回错误
-			req.Body = http.MaxBytesReader(c.Writer, req.Body, opts.MaxSize)
-
-			// 继续处理请求
+		// 检查是否跳过此路径（精确匹配）
+		if pathMatcher(req.URL.Path) {
 			c.Next()
+			return
 		}
+
+		// 早期检查：如果 Content-Length 头已经超过限制，立即拒绝
+		// 这样可以避免读取任何数据，节省资源
+		if req.ContentLength > opts.MaxSize {
+			logger.Warnw("request body too large (Content-Length check)",
+				"path", req.URL.Path,
+				"content_length", req.ContentLength,
+				"max_size", opts.MaxSize,
+			)
+			response.Fail(c, errors.ErrRequestTooLarge)
+			return
+		}
+
+		// 使用 http.MaxBytesReader 限制实际读取的字节数
+		// 即使客户端没有设置 Content-Length 或设置了错误的值，
+		// 在读取超过 MaxSize 字节时也会返回错误
+		req.Body = http.MaxBytesReader(c.Writer, req.Body, opts.MaxSize)
+
+		// 继续处理请求
+		c.Next()
+	}
 }

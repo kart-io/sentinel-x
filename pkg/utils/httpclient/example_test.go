@@ -6,10 +6,11 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/kart-io/sentinel-x/pkg/utils/httpclient"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+
+	"github.com/kart-io/sentinel-x/pkg/utils/httpclient"
 )
 
 // ExampleClient_basic 演示 HTTP 客户端的基本使用。

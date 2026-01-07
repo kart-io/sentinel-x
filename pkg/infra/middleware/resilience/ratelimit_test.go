@@ -8,39 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	"github.com/gin-gonic/gin"
 	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 )
-
-// ============================================================================
-// Mock Context Implementation
-// ============================================================================
-
-type mockRateLimitContext struct {
-	*mockContext
-}
-
-func newMockRateLimitContext(path string) *mockRateLimitContext {
-	req := httptest.NewRequest(http.MethodGet, path, nil)
-	req.RemoteAddr = "192.168.1.1:12345"
-	rec := httptest.NewRecorder()
-
-	return &mockRateLimitContext{
-		mockContext: newMockContext(req, rec),
-	}
-}
-
-func (m *mockRateLimitContext) SetTestHeader(key, value string) {
-	m.req.Header.Set(key, value)
-}
-
-func (m *mockRateLimitContext) SetRemoteAddr(addr string) {
-	m.req.RemoteAddr = addr
-}
-
-func (m *mockRateLimitContext) GetStatusCode() int {
-	return m.jsonCode
-}
 
 // ============================================================================
 // Mock Rate Limiter Implementation
@@ -94,18 +64,18 @@ func (m *mockRateLimiter) GetCallCount(key string) int {
 func TestExtractClientIP(t *testing.T) {
 	tests := []struct {
 		name       string
-		setupCtx   func() *mockRateLimitContext
+		setupReq   func() *http.Request
 		opts       mwopts.RateLimitOptions
 		expectedIP string
 	}{
 		{
 			name: "extracts from RemoteAddr when proxy headers not trusted",
-			setupCtx: func() *mockRateLimitContext {
-				ctx := newMockRateLimitContext("/test")
-				ctx.SetTestHeader("X-Forwarded-For", "203.0.113.1, 198.51.100.1")
-				ctx.SetTestHeader("X-Real-IP", "203.0.113.2")
-				ctx.SetRemoteAddr("192.168.1.1:12345")
-				return ctx
+			setupReq: func() *http.Request {
+				req := httptest.NewRequest(http.MethodGet, "/test", nil)
+				req.Header.Set("X-Forwarded-For", "203.0.113.1, 198.51.100.1")
+				req.Header.Set("X-Real-IP", "203.0.113.2")
+				req.RemoteAddr = "192.168.1.1:12345"
+				return req
 			},
 			opts: mwopts.RateLimitOptions{
 				TrustProxyHeaders: false,
@@ -115,11 +85,11 @@ func TestExtractClientIP(t *testing.T) {
 		},
 		{
 			name: "extracts from X-Forwarded-For when request from trusted proxy",
-			setupCtx: func() *mockRateLimitContext {
-				ctx := newMockRateLimitContext("/test")
-				ctx.SetTestHeader("X-Forwarded-For", "203.0.113.1, 198.51.100.1")
-				ctx.SetRemoteAddr("127.0.0.1:12345")
-				return ctx
+			setupReq: func() *http.Request {
+				req := httptest.NewRequest(http.MethodGet, "/test", nil)
+				req.Header.Set("X-Forwarded-For", "203.0.113.1, 198.51.100.1")
+				req.RemoteAddr = "127.0.0.1:12345"
+				return req
 			},
 			opts: mwopts.RateLimitOptions{
 				TrustProxyHeaders: true,
@@ -131,8 +101,12 @@ func TestExtractClientIP(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := tt.setupCtx()
-			ip := extractClientIP(ctx, tt.opts)
+			req := tt.setupReq()
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+			c.Request = req
+
+			ip := extractClientIP(c, tt.opts)
 			if ip != tt.expectedIP {
 				t.Errorf("Expected IP %s, got %s", tt.expectedIP, ip)
 			}
@@ -187,15 +161,22 @@ func TestRateLimitMiddleware(t *testing.T) {
 		}
 
 		middleware := RateLimitWithOptions(opts, limiter)
-		handler := middleware(func(c transport.Context) {
+
+		req := httptest.NewRequest(http.MethodGet, "/api/test", nil)
+		req.RemoteAddr = "192.168.1.1:12345"
+		w := httptest.NewRecorder()
+
+		// 使用 Gin 测试上下文
+		c, r := gin.CreateTestContext(w)
+		c.Request = req
+		r.Use(middleware)
+		r.GET("/api/test", func(c *gin.Context) {
 			c.JSON(http.StatusOK, map[string]string{"status": "ok"})
 		})
+		r.ServeHTTP(w, req)
 
-		ctx := newMockRateLimitContext("/api/test")
-		handler(ctx)
-
-		if ctx.GetStatusCode() != http.StatusOK {
-			t.Errorf("Expected status 200, got %d", ctx.GetStatusCode())
+		if w.Code != http.StatusOK {
+			t.Errorf("Expected status 200, got %d", w.Code)
 		}
 	})
 
@@ -211,15 +192,22 @@ func TestRateLimitMiddleware(t *testing.T) {
 		}
 
 		middleware := RateLimitWithOptions(opts, limiter)
-		handler := middleware(func(c transport.Context) {
+
+		req := httptest.NewRequest(http.MethodGet, "/api/test", nil)
+		req.RemoteAddr = "192.168.1.1:12345"
+		w := httptest.NewRecorder()
+
+		// 使用 Gin 测试上下文
+		c, r := gin.CreateTestContext(w)
+		c.Request = req
+		r.Use(middleware)
+		r.GET("/api/test", func(c *gin.Context) {
 			c.JSON(http.StatusOK, map[string]string{"status": "ok"})
 		})
+		r.ServeHTTP(w, req)
 
-		ctx := newMockRateLimitContext("/api/test")
-		handler(ctx)
-
-		if ctx.GetStatusCode() != http.StatusTooManyRequests {
-			t.Errorf("Expected status 429, got %d", ctx.GetStatusCode())
+		if w.Code != http.StatusTooManyRequests {
+			t.Errorf("Expected status 429, got %d", w.Code)
 		}
 	})
 }
@@ -227,15 +215,20 @@ func TestRateLimitMiddleware(t *testing.T) {
 func TestRateLimit(t *testing.T) {
 	middleware := RateLimit()
 
-	handler := middleware(func(c transport.Context) {
+	req := httptest.NewRequest(http.MethodGet, "/api/test", nil)
+	req.RemoteAddr = "192.168.1.1:12345"
+	w := httptest.NewRecorder()
+
+	// 使用 Gin 测试上下文
+	_, r := gin.CreateTestContext(w)
+	r.Use(middleware)
+	r.GET("/api/test", func(c *gin.Context) {
 		c.JSON(http.StatusOK, map[string]string{"status": "ok"})
 	})
+	r.ServeHTTP(w, req)
 
-	ctx := newMockRateLimitContext("/api/test")
-	handler(ctx)
-
-	if ctx.GetStatusCode() != http.StatusOK {
-		t.Errorf("Expected status 200, got %d", ctx.GetStatusCode())
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", w.Code)
 	}
 }
 

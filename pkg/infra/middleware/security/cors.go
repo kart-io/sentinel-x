@@ -145,7 +145,7 @@ func CORSWithOptions(opts mwopts.CORSOptions) gin.HandlerFunc {
 			c.Header("Access-Control-Allow-Methods", allowMethods)
 			c.Header("Access-Control-Allow-Headers", allowHeaders)
 			c.Header("Access-Control-Max-Age", maxAge)
-			c.JSON(http.StatusNoContent, nil)
+			c.AbortWithStatus(http.StatusNoContent)
 			return
 		}
 

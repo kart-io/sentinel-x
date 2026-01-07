@@ -9,8 +9,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/kart-io/sentinel-x/pkg/infra/middleware/internal/pathutil"
 	"github.com/gin-gonic/gin"
+	"github.com/kart-io/sentinel-x/pkg/infra/middleware/internal/pathutil"
 	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 )
 
@@ -80,40 +80,40 @@ func CompressionWithOptions(opts mwopts.CompressionOptions) gin.HandlerFunc {
 	}
 
 	return func(c *gin.Context) {
-			req := c.Request
-			w := c.Writer
+		req := c.Request
+		w := c.Writer
 
-			// 检查是否跳过此路径
-			if pathMatcher(req.URL.Path) {
-				c.Next()
-				return
-			}
-
-			// 检查客户端是否支持 gzip
-			if !strings.Contains(req.Header.Get("Accept-Encoding"), "gzip") {
-				c.Next()
-				return
-			}
-
-			// 创建压缩 ResponseWriter
-			gw := &gzipResponseWriter{
-				ResponseWriter: w,
-				minSize:        opts.MinSize,
-				compressTypes:  compressTypes,
-				gzipPool:       &gzipPool,
-			}
-
-			// 注意：我们不能直接替换 ResponseWriter，因为 *gin.Context
-			// 接口没有 SetResponseWriter 方法。
-			// 实际的实现需要依赖框架适配器的支持。
-			// 这里我们通过包装的方式工作，后续处理程序会使用包装后的 writer。
-
-			// 执行业务逻辑
+		// 检查是否跳过此路径
+		if pathMatcher(req.URL.Path) {
 			c.Next()
-
-			// 确保写入完成
-			gw.Close()
+			return
 		}
+
+		// 检查客户端是否支持 gzip
+		if !strings.Contains(req.Header.Get("Accept-Encoding"), "gzip") {
+			c.Next()
+			return
+		}
+
+		// 创建压缩 ResponseWriter
+		gw := &gzipResponseWriter{
+			ResponseWriter: w,
+			minSize:        opts.MinSize,
+			compressTypes:  compressTypes,
+			gzipPool:       &gzipPool,
+		}
+
+		// 注意：我们不能直接替换 ResponseWriter，因为 *gin.Context
+		// 接口没有 SetResponseWriter 方法。
+		// 实际的实现需要依赖框架适配器的支持。
+		// 这里我们通过包装的方式工作，后续处理程序会使用包装后的 writer。
+
+		// 执行业务逻辑
+		c.Next()
+
+		// 确保写入完成
+		gw.Close()
+	}
 }
 
 // gzipResponseWriter 是支持 gzip 压缩的 ResponseWriter。

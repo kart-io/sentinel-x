@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	"github.com/gin-gonic/gin"
 	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 )
 
@@ -17,23 +17,24 @@ func TestTimeout_NormalRequest(t *testing.T) {
 	middleware := Timeout(timeout)
 
 	handlerCalled := false
-	handler := middleware(func(_ transport.Context) {
+
+	w := httptest.NewRecorder()
+	_, r := gin.CreateTestContext(w)
+	r.Use(middleware)
+	r.GET("/test", func(_ *gin.Context) {
 		handlerCalled = true
 		// Fast request that completes before timeout
 		time.Sleep(10 * time.Millisecond)
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
-	w := httptest.NewRecorder()
-	mockCtx := newMockContext(req, w)
-
-	handler(mockCtx)
+	r.ServeHTTP(w, req)
 
 	if !handlerCalled {
 		t.Error("Expected handler to be called for normal request")
 	}
 
-	if mockCtx.jsonCalled {
+	if w.Code == http.StatusRequestTimeout {
 		t.Error("Expected no timeout response for fast request")
 	}
 }
@@ -45,28 +46,24 @@ func TestTimeout_SlowRequest(t *testing.T) {
 	var handlerStarted sync.WaitGroup
 	handlerStarted.Add(1)
 
-	handler := middleware(func(_ transport.Context) {
+	w := httptest.NewRecorder()
+	_, r := gin.CreateTestContext(w)
+	r.Use(middleware)
+	r.GET("/test", func(_ *gin.Context) {
 		handlerStarted.Done()
 		// Slow request that exceeds timeout
 		time.Sleep(200 * time.Millisecond)
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
-	w := httptest.NewRecorder()
-	mockCtx := newMockContext(req, w)
-
-	handler(mockCtx)
+	r.ServeHTTP(w, req)
 
 	// Wait for handler to actually start
 	handlerStarted.Wait()
 
 	// Should have sent timeout error response
-	if !mockCtx.jsonCalled {
-		t.Error("Expected timeout error response for slow request")
-	}
-
-	if mockCtx.jsonCode != http.StatusRequestTimeout {
-		t.Errorf("Expected status code %d, got %d", http.StatusRequestTimeout, mockCtx.jsonCode)
+	if w.Code != http.StatusRequestTimeout {
+		t.Errorf("Expected status code %d, got %d", http.StatusRequestTimeout, w.Code)
 	}
 }
 
@@ -106,22 +103,22 @@ func TestTimeoutWithOptions_SkipPaths(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			handler := middleware(func(_ transport.Context) {
+			w := httptest.NewRecorder()
+			_, r := gin.CreateTestContext(w)
+			r.Use(middleware)
+			r.GET(tt.path, func(_ *gin.Context) {
 				time.Sleep(tt.sleepTime)
 			})
 
 			req := httptest.NewRequest(http.MethodGet, tt.path, nil)
-			w := httptest.NewRecorder()
-			mockCtx := newMockContext(req, w)
-
-			handler(mockCtx)
+			r.ServeHTTP(w, req)
 
 			if tt.wantTimeout {
-				if !mockCtx.jsonCalled {
-					t.Error("Expected timeout response but got none")
+				if w.Code != http.StatusRequestTimeout {
+					t.Errorf("Expected timeout response (code %d) but got code %d", http.StatusRequestTimeout, w.Code)
 				}
 			} else {
-				if mockCtx.jsonCalled {
+				if w.Code == http.StatusRequestTimeout {
 					t.Error("Expected no timeout response for skipped path")
 				}
 			}
@@ -135,15 +132,16 @@ func TestTimeoutWithOptions_DefaultTimeout(t *testing.T) {
 	middleware := TimeoutWithOptions(opts)
 
 	handlerCalled := false
-	handler := middleware(func(_ transport.Context) {
+
+	w := httptest.NewRecorder()
+	_, r := gin.CreateTestContext(w)
+	r.Use(middleware)
+	r.GET("/test", func(_ *gin.Context) {
 		handlerCalled = true
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
-	w := httptest.NewRecorder()
-	mockCtx := newMockContext(req, w)
-
-	handler(mockCtx)
+	r.ServeHTTP(w, req)
 
 	if !handlerCalled {
 		t.Error("Expected handler to be called with default config")
@@ -157,15 +155,15 @@ func TestTimeout_ContextDeadline(t *testing.T) {
 	var contextDeadline time.Time
 	var hasDeadline bool
 
-	handler := middleware(func(ctx transport.Context) {
-		contextDeadline, hasDeadline = ctx.Request().Deadline()
+	w := httptest.NewRecorder()
+	_, r := gin.CreateTestContext(w)
+	r.Use(middleware)
+	r.GET("/test", func(c *gin.Context) {
+		contextDeadline, hasDeadline = c.Request.Context().Deadline()
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
-	w := httptest.NewRecorder()
-	mockCtx := newMockContext(req, w)
-
-	handler(mockCtx)
+	r.ServeHTTP(w, req)
 
 	if !hasDeadline {
 		t.Error("Expected context to have a deadline")
@@ -190,18 +188,18 @@ func TestTimeout_CanceledContext(t *testing.T) {
 	// Use channel to receive result from background goroutine
 	resultCh := make(chan error, 1)
 
-	handler := middleware(func(ctx transport.Context) {
+	w := httptest.NewRecorder()
+	_, r := gin.CreateTestContext(w)
+	r.Use(middleware)
+	r.GET("/test", func(c *gin.Context) {
 		// Sleep longer than timeout
 		time.Sleep(100 * time.Millisecond)
 		// Check context after timeout
-		resultCh <- ctx.Request().Err()
+		resultCh <- c.Request.Context().Err()
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
-	w := httptest.NewRecorder()
-	mockCtx := newMockContext(req, w)
-
-	handler(mockCtx)
+	r.ServeHTTP(w, req)
 
 	// Wait for goroutine to finish checking context
 	select {
@@ -225,16 +223,16 @@ func TestTimeout_GoroutineDoesNotLeak(_ *testing.T) {
 
 	// Run multiple requests to check for goroutine leaks
 	for i := 0; i < 10; i++ {
-		handler := middleware(func(_ transport.Context) {
+		w := httptest.NewRecorder()
+		_, r := gin.CreateTestContext(w)
+		r.Use(middleware)
+		r.GET("/test", func(_ *gin.Context) {
 			// Fast completion
 			time.Sleep(10 * time.Millisecond)
 		})
 
 		req := httptest.NewRequest(http.MethodGet, "/test", nil)
-		w := httptest.NewRecorder()
-		mockCtx := newMockContext(req, w)
-
-		handler(mockCtx)
+		r.ServeHTTP(w, req)
 	}
 
 	// If there are goroutine leaks, test might hang or fail
@@ -245,17 +243,18 @@ func TestTimeout_PanicInHandler(_ *testing.T) {
 	timeout := 100 * time.Millisecond
 	middleware := Timeout(timeout)
 
-	handler := middleware(func(_ transport.Context) {
+	w := httptest.NewRecorder()
+	_, r := gin.CreateTestContext(w)
+	r.Use(middleware)
+	r.GET("/test", func(_ *gin.Context) {
 		panic("test panic in timeout handler")
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
-	w := httptest.NewRecorder()
-	mockCtx := newMockContext(req, w)
 
 	// Should not panic at the middleware level
 	// The panic will be caught by the done channel mechanism
-	handler(mockCtx)
+	r.ServeHTTP(w, req)
 
 	// The goroutine should complete without leaking
 	// Wait a bit to ensure goroutine cleanup
@@ -273,18 +272,18 @@ func TestTimeout_MultipleTimeouts(t *testing.T) {
 		go func() {
 			defer wg.Done()
 
-			handler := middleware(func(_ transport.Context) {
+			w := httptest.NewRecorder()
+			_, r := gin.CreateTestContext(w)
+			r.Use(middleware)
+			r.GET("/test", func(_ *gin.Context) {
 				time.Sleep(100 * time.Millisecond)
 			})
 
 			req := httptest.NewRequest(http.MethodGet, "/test", nil)
-			w := httptest.NewRecorder()
-			mockCtx := newMockContext(req, w)
+			r.ServeHTTP(w, req)
 
-			handler(mockCtx)
-
-			if !mockCtx.jsonCalled {
-				t.Error("Expected timeout response")
+			if w.Code != http.StatusRequestTimeout {
+				t.Errorf("Expected timeout response (code %d) but got code %d", http.StatusRequestTimeout, w.Code)
 			}
 		}()
 	}
@@ -301,15 +300,16 @@ func TestTimeoutWithOptions_ZeroTimeout(t *testing.T) {
 	middleware := TimeoutWithOptions(opts)
 
 	handlerCalled := false
-	handler := middleware(func(_ transport.Context) {
+
+	w := httptest.NewRecorder()
+	_, r := gin.CreateTestContext(w)
+	r.Use(middleware)
+	r.GET("/test", func(_ *gin.Context) {
 		handlerCalled = true
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
-	w := httptest.NewRecorder()
-	mockCtx := newMockContext(req, w)
-
-	handler(mockCtx)
+	r.ServeHTTP(w, req)
 
 	if !handlerCalled {
 		t.Error("Expected handler to be called")
@@ -320,18 +320,18 @@ func TestTimeout_VeryShortTimeout(t *testing.T) {
 	timeout := 1 * time.Millisecond
 	middleware := Timeout(timeout)
 
-	handler := middleware(func(_ transport.Context) {
+	w := httptest.NewRecorder()
+	_, r := gin.CreateTestContext(w)
+	r.Use(middleware)
+	r.GET("/test", func(_ *gin.Context) {
 		// Even a small sleep should trigger timeout
 		time.Sleep(10 * time.Millisecond)
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
-	w := httptest.NewRecorder()
-	mockCtx := newMockContext(req, w)
+	r.ServeHTTP(w, req)
 
-	handler(mockCtx)
-
-	if !mockCtx.jsonCalled {
-		t.Error("Expected timeout response for very short timeout")
+	if w.Code != http.StatusRequestTimeout {
+		t.Errorf("Expected timeout response (code %d) for very short timeout but got code %d", http.StatusRequestTimeout, w.Code)
 	}
 }

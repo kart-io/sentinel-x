@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	"github.com/gin-gonic/gin"
 	"github.com/kart-io/sentinel-x/pkg/utils/errors"
 	"github.com/kart-io/sentinel-x/pkg/utils/response"
 )
@@ -12,7 +12,7 @@ import (
 // Example_automaticPooling demonstrates automatic pooling with Writer
 func Example_automaticPooling() {
 	// Mock context (in real code, this comes from your HTTP framework)
-	var ctx transport.Context
+	var ctx *gin.Context
 
 	// Recommended: Use Writer for automatic pooling
 	w := response.NewWriter(ctx)
@@ -82,7 +82,7 @@ func Example_helperFunctions() {
 // Example_highThroughputHandler demonstrates pooling in a high-traffic handler
 func Example_highThroughputHandler() {
 	// Simulated HTTP handler for high-traffic endpoint
-	handler := func(ctx transport.Context) {
+	handler := func(ctx *gin.Context) {
 		// Option 1: Use Writer (recommended)
 		response.NewWriter(ctx).OK(map[string]interface{}{
 			"status":    "ok",

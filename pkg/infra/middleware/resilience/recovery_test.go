@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	"github.com/gin-gonic/gin"
 	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 )
 
@@ -13,47 +13,42 @@ func TestRecovery_NoPanic(t *testing.T) {
 	middleware := Recovery()
 	handlerCalled := false
 
-	handler := middleware(func(_ transport.Context) {
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	w := httptest.NewRecorder()
+	_, r := gin.CreateTestContext(w)
+	r.Use(middleware)
+	r.GET("/test", func(_ *gin.Context) {
 		handlerCalled = true
 	})
 
-	req := httptest.NewRequest(http.MethodGet, "/test", nil)
-	w := httptest.NewRecorder()
-	mockCtx := newMockContext(req, w)
-
-	handler(mockCtx)
+	r.ServeHTTP(w, req)
 
 	if !handlerCalled {
 		t.Error("Expected handler to be called when no panic occurs")
 	}
 
-	if mockCtx.jsonCalled {
-		t.Error("Expected no JSON response when no panic occurs")
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", w.Code)
 	}
 }
 
 func TestRecovery_CatchesPanic(t *testing.T) {
 	middleware := Recovery()
 
-	handler := middleware(func(_ transport.Context) {
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	w := httptest.NewRecorder()
+	_, r := gin.CreateTestContext(w)
+	r.Use(middleware)
+	r.GET("/test", func(_ *gin.Context) {
 		panic("test panic")
 	})
 
-	req := httptest.NewRequest(http.MethodGet, "/test", nil)
-	w := httptest.NewRecorder()
-	mockCtx := newMockContext(req, w)
-
 	// Should not panic
-	handler(mockCtx)
-
-	// Should have sent JSON error response
-	if !mockCtx.jsonCalled {
-		t.Error("Expected JSON response to be called after panic")
-	}
+	r.ServeHTTP(w, req)
 
 	// Should have http.StatusInternalServerError status code
-	if mockCtx.jsonCode != http.StatusInternalServerError {
-		t.Errorf("Expected status code %d, got %d", http.StatusInternalServerError, mockCtx.jsonCode)
+	if w.Code != http.StatusInternalServerError {
+		t.Errorf("Expected status code %d, got %d", http.StatusInternalServerError, w.Code)
 	}
 }
 
@@ -82,24 +77,20 @@ func TestRecoveryWithConfig_StackTrace(t *testing.T) {
 			}
 			middleware := RecoveryWithOptions(opts, nil)
 
-			handler := middleware(func(_ transport.Context) {
+			w := httptest.NewRecorder()
+			_, r := gin.CreateTestContext(w)
+			r.Use(middleware)
+			r.GET("/test", func(_ *gin.Context) {
 				panic("test panic with stack")
 			})
 
 			req := httptest.NewRequest(http.MethodGet, "/test", nil)
-			w := httptest.NewRecorder()
-			mockCtx := newMockContext(req, w)
-
-			handler(mockCtx)
-
-			if !mockCtx.jsonCalled {
-				t.Fatal("Expected JSON response to be called")
-			}
+			r.ServeHTTP(w, req)
 
 			// The response.Fail function wraps the error in a Response structure
 			// We just verify that JSON was called with error status
-			if mockCtx.jsonCode != http.StatusInternalServerError {
-				t.Errorf("Expected status code %d, got %d", http.StatusInternalServerError, mockCtx.jsonCode)
+			if w.Code != http.StatusInternalServerError {
+				t.Errorf("Expected status code %d, got %d", http.StatusInternalServerError, w.Code)
 			}
 		})
 	}
@@ -113,22 +104,23 @@ func TestRecoveryWithOptions_OnPanicCallback(t *testing.T) {
 	opts := mwopts.RecoveryOptions{
 		EnableStackTrace: false,
 	}
-	onPanic := func(_ transport.Context, err interface{}, stack []byte) {
+	onPanic := func(_ *gin.Context, err interface{}, stack []byte) {
 		panicCalled = true
 		panicErr = err
 		panicStack = stack
 	}
 
 	middleware := RecoveryWithOptions(opts, onPanic)
-	handler := middleware(func(_ transport.Context) {
+
+	w := httptest.NewRecorder()
+	_, r := gin.CreateTestContext(w)
+	r.Use(middleware)
+	r.GET("/test", func(_ *gin.Context) {
 		panic("callback test panic")
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
-	w := httptest.NewRecorder()
-	mockCtx := newMockContext(req, w)
-
-	handler(mockCtx)
+	r.ServeHTTP(w, req)
 
 	if !panicCalled {
 		t.Error("Expected OnPanic callback to be called")
@@ -178,19 +170,21 @@ func TestRecoveryWithConfig_PanicWithDifferentTypes(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			middleware := Recovery()
-			handler := middleware(func(_ transport.Context) {
+
+			w := httptest.NewRecorder()
+			_, r := gin.CreateTestContext(w)
+			r.Use(middleware)
+			r.GET("/test", func(_ *gin.Context) {
 				panic(tt.panicVal)
 			})
 
 			req := httptest.NewRequest(http.MethodGet, "/test", nil)
-			w := httptest.NewRecorder()
-			mockCtx := newMockContext(req, w)
 
 			// Should not panic
-			handler(mockCtx)
+			r.ServeHTTP(w, req)
 
-			if !mockCtx.jsonCalled {
-				t.Error("Expected JSON response after panic")
+			if w.Code != http.StatusInternalServerError {
+				t.Error("Expected error response after panic")
 			}
 		})
 	}
@@ -199,19 +193,18 @@ func TestRecoveryWithConfig_PanicWithDifferentTypes(t *testing.T) {
 func TestRecovery_DefaultConfig(t *testing.T) {
 	middleware := Recovery()
 
-	// Verify default config is applied
-	handler := middleware(func(_ transport.Context) {
+	w := httptest.NewRecorder()
+	_, r := gin.CreateTestContext(w)
+	r.Use(middleware)
+	r.GET("/test", func(_ *gin.Context) {
 		panic("default config test")
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
-	w := httptest.NewRecorder()
-	mockCtx := newMockContext(req, w)
+	r.ServeHTTP(w, req)
 
-	handler(mockCtx)
-
-	if !mockCtx.jsonCalled {
-		t.Error("Expected JSON response with default config")
+	if w.Code != http.StatusInternalServerError {
+		t.Error("Expected error response with default config")
 	}
 }
 

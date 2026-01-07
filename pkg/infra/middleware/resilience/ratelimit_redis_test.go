@@ -14,7 +14,8 @@ import (
 // BenchmarkRedisRateLimiterAllow 测试 Redis 限流器的性能
 //
 // 注意: 需要本地运行 Redis 服务器
-//   docker run -d -p 6379:6379 redis:7-alpine
+//
+//	docker run -d -p 6379:6379 redis:7-alpine
 func BenchmarkRedisRateLimiterAllow(b *testing.B) {
 	// 创建 Redis 客户端
 	client := redis.NewClient(&redis.Options{

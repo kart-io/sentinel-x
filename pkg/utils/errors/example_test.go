@@ -15,7 +15,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	"github.com/gin-gonic/gin"
 	"github.com/kart-io/sentinel-x/pkg/utils/errors"
 	"github.com/kart-io/sentinel-x/pkg/utils/response"
 )
@@ -70,7 +70,7 @@ type HTTPHandlerExample struct{}
 
 // CreateOrder handles POST /api/v1/orders
 // Returns appropriate error responses based on the error type.
-func (h *HTTPHandlerExample) CreateOrder(c transport.Context) {
+func (h *HTTPHandlerExample) CreateOrder(c *gin.Context) {
 	var req CreateOrderRequest
 	if err := c.Bind(&req); err != nil {
 		// Return validation error with custom message
@@ -97,7 +97,7 @@ func (h *HTTPHandlerExample) CreateOrder(c transport.Context) {
 }
 
 // GetOrder handles GET /api/v1/orders/:id
-func (h *HTTPHandlerExample) GetOrder(c transport.Context) {
+func (h *HTTPHandlerExample) GetOrder(c *gin.Context) {
 	orderID := c.Param("id")
 
 	// Simulate order lookup
@@ -116,7 +116,7 @@ func (h *HTTPHandlerExample) GetOrder(c transport.Context) {
 }
 
 // PayOrder handles POST /api/v1/orders/:id/pay
-func (h *HTTPHandlerExample) PayOrder(c transport.Context) {
+func (h *HTTPHandlerExample) PayOrder(c *gin.Context) {
 	orderID := c.Param("id")
 
 	// Check if order exists

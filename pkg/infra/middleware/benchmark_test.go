@@ -8,11 +8,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/kart-io/sentinel-x/pkg/infra/middleware/observability"
 	"github.com/kart-io/sentinel-x/pkg/infra/middleware/requestutil"
 	"github.com/kart-io/sentinel-x/pkg/infra/middleware/resilience"
 	"github.com/kart-io/sentinel-x/pkg/infra/middleware/security"
-	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 )
 
@@ -35,19 +35,24 @@ func BenchmarkLoggerMiddleware(b *testing.B) {
 	}
 	middleware := observability.LoggerWithOptions(opts, nil)
 
-	handler := middleware(func(c transport.Context) {
+	handler := gin.HandlerFunc(func(c *gin.Context) {
 		// Simulate minimal handler work
 		c.JSON(200, map[string]string{"status": statusMsg})
 	})
+
+	w := httptest.NewRecorder()
+	_, r := gin.CreateTestContext(w)
+	r.Use(middleware)
+	r.GET(testPath, handler)
+
+	req := httptest.NewRequest(http.MethodGet, testPath, nil)
 
 	b.ResetTimer()
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		req := httptest.NewRequest(http.MethodGet, testPath, nil)
-		w := httptest.NewRecorder()
-		ctx := newMockContext(req, w)
-		handler(ctx)
+		w = httptest.NewRecorder()
+		r.ServeHTTP(w, req)
 	}
 }
 
@@ -60,18 +65,23 @@ func BenchmarkLoggerMiddlewareWithSkip(b *testing.B) {
 	}
 	middleware := observability.LoggerWithOptions(opts, nil)
 
-	handler := middleware(func(c transport.Context) {
+	handler := gin.HandlerFunc(func(c *gin.Context) {
 		c.JSON(200, map[string]string{"status": "ok"})
 	})
+
+	w := httptest.NewRecorder()
+	_, r := gin.CreateTestContext(w)
+	r.Use(middleware)
+	r.GET("/health", handler)
+
+	req := httptest.NewRequest(http.MethodGet, "/health", nil)
 
 	b.ResetTimer()
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		req := httptest.NewRequest(http.MethodGet, "/health", nil)
-		w := httptest.NewRecorder()
-		ctx := newMockContext(req, w)
-		handler(ctx)
+		w = httptest.NewRecorder()
+		r.ServeHTTP(w, req)
 	}
 }
 
@@ -85,18 +95,23 @@ func BenchmarkRecoveryMiddleware(b *testing.B) {
 	opts := mwopts.NewRecoveryOptions()
 	middleware := resilience.RecoveryWithOptions(*opts, nil)
 
-	handler := middleware(func(c transport.Context) {
+	handler := gin.HandlerFunc(func(c *gin.Context) {
 		c.JSON(200, map[string]string{"status": "ok"})
 	})
+
+	w := httptest.NewRecorder()
+	_, r := gin.CreateTestContext(w)
+	r.Use(middleware)
+	r.GET(testPath, handler)
+
+	req := httptest.NewRequest(http.MethodGet, testPath, nil)
 
 	b.ResetTimer()
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		req := httptest.NewRequest(http.MethodGet, testPath, nil)
-		w := httptest.NewRecorder()
-		ctx := newMockContext(req, w)
-		handler(ctx)
+		w = httptest.NewRecorder()
+		r.ServeHTTP(w, req)
 	}
 }
 
@@ -108,18 +123,23 @@ func BenchmarkRecoveryMiddlewareWithPanic(b *testing.B) {
 	}
 	middleware := resilience.RecoveryWithOptions(opts, nil)
 
-	handler := middleware(func(_ transport.Context) {
+	handler := gin.HandlerFunc(func(_ *gin.Context) {
 		panic("test panic")
 	})
+
+	w := httptest.NewRecorder()
+	_, r := gin.CreateTestContext(w)
+	r.Use(middleware)
+	r.GET(testPath, handler)
+
+	req := httptest.NewRequest(http.MethodGet, testPath, nil)
 
 	b.ResetTimer()
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		req := httptest.NewRequest(http.MethodGet, testPath, nil)
-		w := httptest.NewRecorder()
-		ctx := newMockContext(req, w)
-		handler(ctx)
+		w = httptest.NewRecorder()
+		r.ServeHTTP(w, req)
 	}
 }
 
@@ -133,18 +153,23 @@ func BenchmarkRequestIDMiddleware(b *testing.B) {
 	opts := mwopts.NewRequestIDOptions()
 	middleware := RequestIDWithOptions(*opts, nil)
 
-	handler := middleware(func(c transport.Context) {
+	handler := gin.HandlerFunc(func(c *gin.Context) {
 		c.JSON(200, map[string]string{"status": "ok"})
 	})
+
+	w := httptest.NewRecorder()
+	_, r := gin.CreateTestContext(w)
+	r.Use(middleware)
+	r.GET(testPath, handler)
+
+	req := httptest.NewRequest(http.MethodGet, testPath, nil)
 
 	b.ResetTimer()
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		req := httptest.NewRequest(http.MethodGet, testPath, nil)
-		w := httptest.NewRecorder()
-		ctx := newMockContext(req, w)
-		handler(ctx)
+		w = httptest.NewRecorder()
+		r.ServeHTTP(w, req)
 	}
 }
 
@@ -154,19 +179,24 @@ func BenchmarkRequestIDMiddlewareWithExisting(b *testing.B) {
 	opts := mwopts.NewRequestIDOptions()
 	middleware := RequestIDWithOptions(*opts, nil)
 
-	handler := middleware(func(c transport.Context) {
+	handler := gin.HandlerFunc(func(c *gin.Context) {
 		c.JSON(200, map[string]string{"status": "ok"})
 	})
+
+	w := httptest.NewRecorder()
+	_, r := gin.CreateTestContext(w)
+	r.Use(middleware)
+	r.GET(testPath, handler)
+
+	req := httptest.NewRequest(http.MethodGet, testPath, nil)
+	req.Header.Set("X-Request-ID", "existing-id-12345678")
 
 	b.ResetTimer()
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		req := httptest.NewRequest(http.MethodGet, testPath, nil)
-		req.Header.Set("X-Request-ID", "existing-id-12345678")
-		w := httptest.NewRecorder()
-		ctx := newMockContext(req, w)
-		handler(ctx)
+		w = httptest.NewRecorder()
+		r.ServeHTTP(w, req)
 	}
 }
 
@@ -196,19 +226,24 @@ func BenchmarkRateLimitMiddleware(b *testing.B) {
 	}
 	middleware := resilience.RateLimitWithOptions(opts, limiter)
 
-	handler := middleware(func(c transport.Context) {
+	handler := gin.HandlerFunc(func(c *gin.Context) {
 		c.JSON(200, map[string]string{"status": "ok"})
 	})
+
+	w := httptest.NewRecorder()
+	_, r := gin.CreateTestContext(w)
+	r.Use(middleware)
+	r.GET(testPath, handler)
+
+	req := httptest.NewRequest(http.MethodGet, testPath, nil)
+	req.RemoteAddr = testAddr
 
 	b.ResetTimer()
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		req := httptest.NewRequest(http.MethodGet, testPath, nil)
-		req.RemoteAddr = testAddr
-		w := httptest.NewRecorder()
-		ctx := newMockContext(req, w)
-		handler(ctx)
+		w = httptest.NewRecorder()
+		r.ServeHTTP(w, req)
 	}
 }
 
@@ -224,18 +259,23 @@ func BenchmarkRateLimitMiddlewareWithSkip(b *testing.B) {
 	}
 	middleware := resilience.RateLimitWithOptions(opts, limiter)
 
-	handler := middleware(func(c transport.Context) {
+	handler := gin.HandlerFunc(func(c *gin.Context) {
 		c.JSON(200, map[string]string{"status": "ok"})
 	})
+
+	w := httptest.NewRecorder()
+	_, r := gin.CreateTestContext(w)
+	r.Use(middleware)
+	r.GET("/health", handler)
+
+	req := httptest.NewRequest(http.MethodGet, "/health", nil)
 
 	b.ResetTimer()
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		req := httptest.NewRequest(http.MethodGet, "/health", nil)
-		w := httptest.NewRecorder()
-		ctx := newMockContext(req, w)
-		handler(ctx)
+		w = httptest.NewRecorder()
+		r.ServeHTTP(w, req)
 	}
 }
 
@@ -264,19 +304,25 @@ func BenchmarkMemoryRateLimiterAllow(b *testing.B) {
 func BenchmarkSecurityHeaders(b *testing.B) {
 	// Setup
 	opts := mwopts.NewSecurityHeadersOptions()
-	mw := security.SecurityHeadersWithOptions(*opts)
-	handler := mw(func(c transport.Context) {
+	middleware := security.SecurityHeadersWithOptions(*opts)
+
+	handler := gin.HandlerFunc(func(c *gin.Context) {
 		c.String(http.StatusOK, "OK")
 	})
+
+	w := httptest.NewRecorder()
+	_, r := gin.CreateTestContext(w)
+	r.Use(middleware)
+	r.GET(testPath, handler)
+
+	req := httptest.NewRequest(http.MethodGet, testPath, nil)
 
 	b.ResetTimer()
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		req := httptest.NewRequest(http.MethodGet, testPath, nil)
-		w := httptest.NewRecorder()
-		ctx := newMockContext(req, w)
-		handler(ctx)
+		w = httptest.NewRecorder()
+		r.ServeHTTP(w, req)
 	}
 }
 
@@ -294,18 +340,23 @@ func BenchmarkSecurityHeadersMiddlewareWithHSTS(b *testing.B) {
 	}
 	middleware := security.SecurityHeadersWithOptions(opts)
 
-	handler := middleware(func(c transport.Context) {
+	handler := gin.HandlerFunc(func(c *gin.Context) {
 		c.JSON(200, map[string]string{"status": "ok"})
 	})
+
+	w := httptest.NewRecorder()
+	_, r := gin.CreateTestContext(w)
+	r.Use(middleware)
+	r.GET(testPath, handler)
+
+	req := httptest.NewRequest(http.MethodGet, testPath, nil)
 
 	b.ResetTimer()
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		req := httptest.NewRequest(http.MethodGet, testPath, nil)
-		w := httptest.NewRecorder()
-		ctx := newMockContext(req, w)
-		handler(ctx)
+		w = httptest.NewRecorder()
+		r.ServeHTTP(w, req)
 	}
 }
 
@@ -321,18 +372,23 @@ func BenchmarkTimeoutMiddleware(b *testing.B) {
 	}
 	middleware := TimeoutWithOptions(opts)
 
-	handler := middleware(func(c transport.Context) {
+	handler := gin.HandlerFunc(func(c *gin.Context) {
 		c.JSON(200, map[string]string{"status": "ok"})
 	})
+
+	w := httptest.NewRecorder()
+	_, r := gin.CreateTestContext(w)
+	r.Use(middleware)
+	r.GET(testPath, handler)
+
+	req := httptest.NewRequest(http.MethodGet, testPath, nil)
 
 	b.ResetTimer()
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		req := httptest.NewRequest(http.MethodGet, testPath, nil)
-		w := httptest.NewRecorder()
-		ctx := newMockContext(req, w)
-		handler(ctx)
+		w = httptest.NewRecorder()
+		r.ServeHTTP(w, req)
 	}
 }
 
@@ -344,18 +400,23 @@ func BenchmarkTimeoutMiddlewareWithSkip(b *testing.B) {
 	}
 	middleware := TimeoutWithOptions(opts)
 
-	handler := middleware(func(c transport.Context) {
+	handler := gin.HandlerFunc(func(c *gin.Context) {
 		c.JSON(200, map[string]string{"status": "ok"})
 	})
+
+	w := httptest.NewRecorder()
+	_, r := gin.CreateTestContext(w)
+	r.Use(middleware)
+	r.GET("/health", handler)
+
+	req := httptest.NewRequest(http.MethodGet, "/health", nil)
 
 	b.ResetTimer()
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		req := httptest.NewRequest(http.MethodGet, "/health", nil)
-		w := httptest.NewRecorder()
-		ctx := newMockContext(req, w)
-		handler(ctx)
+		w = httptest.NewRecorder()
+		r.ServeHTTP(w, req)
 	}
 }
 
@@ -367,20 +428,25 @@ func BenchmarkTimeoutMiddlewareWithDelay(b *testing.B) {
 	}
 	middleware := TimeoutWithOptions(opts)
 
-	handler := middleware(func(c transport.Context) {
+	handler := gin.HandlerFunc(func(c *gin.Context) {
 		// Simulate 1ms processing time
 		time.Sleep(1 * time.Millisecond)
 		c.JSON(200, map[string]string{"status": "ok"})
 	})
 
+	w := httptest.NewRecorder()
+	_, r := gin.CreateTestContext(w)
+	r.Use(middleware)
+	r.GET(testPath, handler)
+
+	req := httptest.NewRequest(http.MethodGet, testPath, nil)
+
 	b.ResetTimer()
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		req := httptest.NewRequest(http.MethodGet, testPath, nil)
-		w := httptest.NewRecorder()
-		ctx := newMockContext(req, w)
-		handler(ctx)
+		w = httptest.NewRecorder()
+		r.ServeHTTP(w, req)
 	}
 }
 
@@ -408,27 +474,24 @@ func BenchmarkMiddlewareChain(b *testing.B) {
 	rateLimitMiddleware := resilience.RateLimitWithOptions(rateLimitOpts, limiter)
 
 	// Build handler with complete middleware chain
-	handler := func(c transport.Context) {
+	handler := gin.HandlerFunc(func(c *gin.Context) {
 		c.JSON(200, map[string]string{"status": "ok"})
-	}
+	})
 
-	// Chain middlewares (in reverse order)
-	handler = timeoutMiddleware(handler)
-	handler = rateLimitMiddleware(handler)
-	handler = securityMiddleware(handler)
-	handler = recoveryMiddleware(handler)
-	handler = loggerMiddleware(handler)
-	handler = requestIDMiddleware(handler)
+	w := httptest.NewRecorder()
+	_, r := gin.CreateTestContext(w)
+	r.Use(requestIDMiddleware, loggerMiddleware, recoveryMiddleware, securityMiddleware, timeoutMiddleware, rateLimitMiddleware)
+	r.GET(testPath, handler)
+
+	req := httptest.NewRequest(http.MethodGet, testPath, nil)
+	req.RemoteAddr = testAddr
 
 	b.ResetTimer()
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		req := httptest.NewRequest(http.MethodGet, testPath, nil)
-		req.RemoteAddr = testAddr
-		w := httptest.NewRecorder()
-		ctx := newMockContext(req, w)
-		handler(ctx)
+		w = httptest.NewRecorder()
+		r.ServeHTTP(w, req)
 	}
 }
 
@@ -439,22 +502,23 @@ func BenchmarkMiddlewareChainMinimal(b *testing.B) {
 	loggerMiddleware := Logger()
 	recoveryMiddleware := Recovery()
 
-	handler := func(c transport.Context) {
+	handler := gin.HandlerFunc(func(c *gin.Context) {
 		c.JSON(200, map[string]string{"status": "ok"})
-	}
+	})
 
-	handler = recoveryMiddleware(handler)
-	handler = loggerMiddleware(handler)
-	handler = requestIDMiddleware(handler)
+	w := httptest.NewRecorder()
+	_, r := gin.CreateTestContext(w)
+	r.Use(requestIDMiddleware, loggerMiddleware, recoveryMiddleware)
+	r.GET(testPath, handler)
+
+	req := httptest.NewRequest(http.MethodGet, testPath, nil)
 
 	b.ResetTimer()
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		req := httptest.NewRequest(http.MethodGet, testPath, nil)
-		w := httptest.NewRecorder()
-		ctx := newMockContext(req, w)
-		handler(ctx)
+		w = httptest.NewRecorder()
+		r.ServeHTTP(w, req)
 	}
 }
 
@@ -492,25 +556,24 @@ func BenchmarkMiddlewareChainProduction(b *testing.B) {
 	}
 	rateLimitMiddleware := resilience.RateLimitWithOptions(rateLimitOpts, limiter)
 
-	handler := func(c transport.Context) {
+	handler := gin.HandlerFunc(func(c *gin.Context) {
 		c.JSON(200, map[string]string{"status": "ok"})
-	}
+	})
 
-	handler = rateLimitMiddleware(handler)
-	handler = securityMiddleware(handler)
-	handler = recoveryMiddleware(handler)
-	handler = loggerMiddleware(handler)
-	handler = requestIDMiddleware(handler)
+	w := httptest.NewRecorder()
+	_, r := gin.CreateTestContext(w)
+	r.Use(requestIDMiddleware, loggerMiddleware, recoveryMiddleware, securityMiddleware, rateLimitMiddleware)
+	r.GET(testPath, handler)
+
+	req := httptest.NewRequest(http.MethodGet, testPath, nil)
+	req.RemoteAddr = "127.0.0.1:12345"
 
 	b.ResetTimer()
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		req := httptest.NewRequest(http.MethodGet, testPath, nil)
-		req.RemoteAddr = "127.0.0.1:12345"
-		w := httptest.NewRecorder()
-		ctx := newMockContext(req, w)
-		handler(ctx)
+		w = httptest.NewRecorder()
+		r.ServeHTTP(w, req)
 	}
 }
 
@@ -533,25 +596,25 @@ func BenchmarkMiddlewareChainConcurrent(b *testing.B) {
 	}
 	rateLimitMiddleware := resilience.RateLimitWithOptions(rateLimitOpts, limiter)
 
-	handler := func(c transport.Context) {
+	handler := gin.HandlerFunc(func(c *gin.Context) {
 		c.JSON(200, map[string]string{"status": "ok"})
-	}
+	})
 
-	handler = rateLimitMiddleware(handler)
-	handler = recoveryMiddleware(handler)
-	handler = loggerMiddleware(handler)
-	handler = requestIDMiddleware(handler)
+	w := httptest.NewRecorder()
+	_, r := gin.CreateTestContext(w)
+	r.Use(requestIDMiddleware, loggerMiddleware, recoveryMiddleware, rateLimitMiddleware)
+	r.GET(testPath, handler)
+
+	req := httptest.NewRequest(http.MethodGet, testPath, nil)
+	req.RemoteAddr = "127.0.0.1:12345"
 
 	b.ResetTimer()
 	b.ReportAllocs()
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			req := httptest.NewRequest(http.MethodGet, testPath, nil)
-			req.RemoteAddr = "127.0.0.1:12345"
 			w := httptest.NewRecorder()
-			ctx := newMockContext(req, w)
-			handler(ctx)
+			r.ServeHTTP(w, req)
 		}
 	})
 }
@@ -565,7 +628,7 @@ func BenchmarkMiddlewareChainConcurrent(b *testing.B) {
 func BenchmarkMiddlewareMemoryAllocation(b *testing.B) {
 	tests := []struct {
 		name       string
-		middleware transport.MiddlewareFunc
+		middleware gin.HandlerFunc
 	}{
 		{
 			name:       "RequestID",
@@ -587,18 +650,23 @@ func BenchmarkMiddlewareMemoryAllocation(b *testing.B) {
 
 	for _, tt := range tests {
 		b.Run(tt.name, func(b *testing.B) {
-			handler := tt.middleware(func(c transport.Context) {
+			handler := gin.HandlerFunc(func(c *gin.Context) {
 				c.JSON(200, map[string]string{"status": "ok"})
 			})
+
+			w := httptest.NewRecorder()
+			_, r := gin.CreateTestContext(w)
+			r.Use(tt.middleware)
+			r.GET(testPath, handler)
+
+			req := httptest.NewRequest(http.MethodGet, testPath, nil)
 
 			b.ResetTimer()
 			b.ReportAllocs()
 
 			for i := 0; i < b.N; i++ {
-				req := httptest.NewRequest(http.MethodGet, testPath, nil)
-				w := httptest.NewRecorder()
-				ctx := newMockContext(req, w)
-				handler(ctx)
+				w = httptest.NewRecorder()
+				r.ServeHTTP(w, req)
 			}
 		})
 	}
@@ -615,13 +683,14 @@ func BenchmarkMiddlewareChainWithBody(b *testing.B) {
 	loggerMiddleware := Logger()
 	recoveryMiddleware := Recovery()
 
-	handler := func(c transport.Context) {
+	handler := gin.HandlerFunc(func(c *gin.Context) {
 		c.JSON(200, map[string]string{"status": "ok"})
-	}
+	})
 
-	handler = recoveryMiddleware(handler)
-	handler = loggerMiddleware(handler)
-	handler = requestIDMiddleware(handler)
+	w := httptest.NewRecorder()
+	_, r := gin.CreateTestContext(w)
+	r.Use(requestIDMiddleware, loggerMiddleware, recoveryMiddleware)
+	r.POST("/login", handler)
 
 	// Prepare request body
 	body := []byte(`{"username":"test","password":"secret"}`)
@@ -632,8 +701,7 @@ func BenchmarkMiddlewareChainWithBody(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		req := httptest.NewRequest(http.MethodPost, "/login", bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
-		w := httptest.NewRecorder()
-		ctx := newMockContext(req, w)
-		handler(ctx)
+		w = httptest.NewRecorder()
+		r.ServeHTTP(w, req)
 	}
 }

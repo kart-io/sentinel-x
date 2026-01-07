@@ -8,9 +8,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/kart-io/sentinel-x/pkg/utils/json"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
+
+	"github.com/kart-io/sentinel-x/pkg/utils/json"
 )
 
 // Client is a wrapper around http.Client with additional functionality.

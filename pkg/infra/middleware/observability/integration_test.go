@@ -7,25 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	"github.com/gin-gonic/gin"
 	"github.com/kart-io/sentinel-x/pkg/observability/metrics"
 	options "github.com/kart-io/sentinel-x/pkg/options/middleware"
 )
-
-// mockContext mocks transport.Context for testing
-type mockContext struct {
-	transport.Context
-	req *http.Request
-	res *httptest.ResponseRecorder
-}
-
-func (c *mockContext) HTTPRequest() *http.Request {
-	return c.req
-}
-
-func (c *mockContext) ResponseWriter() http.ResponseWriter {
-	return c.res
-}
 
 func TestMetricsMiddlewareIntegration(t *testing.T) {
 	// Reset registry
@@ -40,20 +25,21 @@ func TestMetricsMiddlewareIntegration(t *testing.T) {
 	}
 	middleware := MetricsMiddleware(opts)
 
-	// Create dummy handler
-	handler := func(c transport.Context) {
-		// Simulate work
-		time.Sleep(10 * time.Millisecond)
-		c.ResponseWriter().WriteHeader(http.StatusOK)
-	}
-
 	// Create request
 	req := httptest.NewRequest("GET", "/api/test", nil)
-	res := httptest.NewRecorder()
-	c := &mockContext{req: req, res: res}
+	w := httptest.NewRecorder()
+	_, r := gin.CreateTestContext(w)
+	r.Use(middleware)
+
+	// Create dummy handler
+	r.GET("/api/test", func(c *gin.Context) {
+		// Simulate work
+		time.Sleep(10 * time.Millisecond)
+		c.Status(http.StatusOK)
+	})
 
 	// Execute middleware
-	middleware(handler)(c)
+	r.ServeHTTP(w, req)
 
 	// Check collector state directly
 	collector := GetMetricsCollector(opts.Namespace, opts.Subsystem)

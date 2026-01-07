@@ -46,7 +46,7 @@ type CircuitBreakerOptions struct {
 func NewCircuitBreakerOptions() *CircuitBreakerOptions {
 	return &CircuitBreakerOptions{
 		MaxFailures:      5,
-		Timeout:          60,  // 60 秒
+		Timeout:          60, // 60 秒
 		HalfOpenMaxCalls: 1,
 		SkipPaths:        []string{"/health", "/metrics"},
 		SkipPathPrefixes: []string{},

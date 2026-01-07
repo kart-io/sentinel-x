@@ -1,8 +1,6 @@
 package observability
 
 import (
-	"context"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -12,91 +10,9 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 
-	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	"github.com/gin-gonic/gin"
 	"github.com/kart-io/sentinel-x/pkg/infra/tracing"
 )
-
-// mockContext implements transport.Context for testing
-type mockTracingContext struct {
-	req    *http.Request
-	rw     http.ResponseWriter
-	params map[string]string
-}
-
-func (m *mockTracingContext) Request() context.Context {
-	return m.req.Context()
-}
-
-func (m *mockTracingContext) SetRequest(ctx context.Context) {
-	m.req = m.req.WithContext(ctx)
-}
-
-func (m *mockTracingContext) HTTPRequest() *http.Request {
-	return m.req
-}
-
-func (m *mockTracingContext) ResponseWriter() http.ResponseWriter {
-	return m.rw
-}
-
-func (m *mockTracingContext) Body() io.ReadCloser {
-	return m.req.Body
-}
-
-func (m *mockTracingContext) Param(key string) string {
-	return m.params[key]
-}
-
-func (m *mockTracingContext) Query(key string) string {
-	return m.req.URL.Query().Get(key)
-}
-
-func (m *mockTracingContext) Header(key string) string {
-	return m.req.Header.Get(key)
-}
-
-func (m *mockTracingContext) SetHeader(key, value string) {
-	m.rw.Header().Set(key, value)
-}
-
-func (m *mockTracingContext) Bind(_ interface{}) error {
-	return nil
-}
-
-func (m *mockTracingContext) Validate(_ interface{}) error {
-	return nil
-}
-
-func (m *mockTracingContext) ShouldBindAndValidate(_ interface{}) error {
-	return nil
-}
-
-func (m *mockTracingContext) MustBindAndValidate(_ interface{}) (string, bool) {
-	return "", true
-}
-
-func (m *mockTracingContext) JSON(code int, _ interface{}) {
-	m.rw.WriteHeader(code)
-}
-
-func (m *mockTracingContext) String(code int, _ string) {
-	m.rw.WriteHeader(code)
-}
-
-func (m *mockTracingContext) Error(code int, _ error) {
-	m.rw.WriteHeader(code)
-}
-
-func (m *mockTracingContext) GetRawContext() interface{} {
-	return nil
-}
-
-func (m *mockTracingContext) Lang() string {
-	return "en"
-}
-
-func (m *mockTracingContext) SetLang(_ string) {
-}
 
 func TestNewTracingOptions(t *testing.T) {
 	opts := NewTracingOptions()
@@ -154,7 +70,7 @@ func TestTracingOptions(t *testing.T) {
 	}
 
 	// Test WithSpanNameFormatter
-	customFormatter := func(_ transport.Context) string {
+	customFormatter := func(ctx *gin.Context) string {
 		return "custom-span"
 	}
 	WithSpanNameFormatter(customFormatter)(opts)
@@ -163,7 +79,7 @@ func TestTracingOptions(t *testing.T) {
 	}
 
 	// Test WithAttributeExtractor
-	customExtractor := func(_ transport.Context) []attribute.KeyValue {
+	customExtractor := func(ctx *gin.Context) []attribute.KeyValue {
 		return []attribute.KeyValue{
 			attribute.String("custom", "value"),
 		}
@@ -191,30 +107,24 @@ func TestTracing_BasicRequest(t *testing.T) {
 	// Create middleware
 	middleware := Tracing()
 
-	// Create handler
-	handler := middleware(func(ctx transport.Context) {
-		// Handler just returns
-		ctx.JSON(http.StatusOK, map[string]string{"status": "ok"})
-	})
-
 	// Create request
 	req := httptest.NewRequest("GET", "/test", nil)
-	rw := httptest.NewRecorder()
+	w := httptest.NewRecorder()
+	_, r := gin.CreateTestContext(w)
+	r.Use(middleware)
 
-	// Create mock context
-	mockCtx := &mockTracingContext{
-		req:    req,
-		rw:     rw,
-		params: make(map[string]string),
-	}
+	// Create handler
+	r.GET("/test", func(c *gin.Context) {
+		c.JSON(http.StatusOK, map[string]string{"status": "ok"})
+	})
 
 	// Execute handler
-	handler(mockCtx)
+	r.ServeHTTP(w, req)
 
 	// Note: Since we're using the global tracer, spans might not be captured
 	// This is a basic test to ensure the middleware doesn't panic
-	if rw.Code != http.StatusOK {
-		t.Errorf("Expected status code %d, got %d", http.StatusOK, rw.Code)
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status code %d, got %d", http.StatusOK, w.Code)
 	}
 
 	_ = tp
@@ -254,20 +164,15 @@ func TestTracing_SkipPaths(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			handlerCalled := false
 
-			handler := middleware(func(_ transport.Context) {
+			req := httptest.NewRequest("GET", tt.path, nil)
+			w := httptest.NewRecorder()
+			_, r := gin.CreateTestContext(w)
+			r.Use(middleware)
+			r.GET(tt.path, func(c *gin.Context) {
 				handlerCalled = true
 			})
 
-			req := httptest.NewRequest("GET", tt.path, nil)
-			rw := httptest.NewRecorder()
-
-			mockCtx := &mockTracingContext{
-				req:    req,
-				rw:     rw,
-				params: make(map[string]string),
-			}
-
-			handler(mockCtx)
+			r.ServeHTTP(w, req)
 
 			if !handlerCalled {
 				t.Error("Expected handler to be called")
@@ -309,20 +214,15 @@ func TestTracing_SkipPathPrefixes(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			handlerCalled := false
 
-			handler := middleware(func(_ transport.Context) {
+			req := httptest.NewRequest("GET", tt.path, nil)
+			w := httptest.NewRecorder()
+			_, r := gin.CreateTestContext(w)
+			r.Use(middleware)
+			r.GET(tt.path, func(c *gin.Context) {
 				handlerCalled = true
 			})
 
-			req := httptest.NewRequest("GET", tt.path, nil)
-			rw := httptest.NewRecorder()
-
-			mockCtx := &mockTracingContext{
-				req:    req,
-				rw:     rw,
-				params: make(map[string]string),
-			}
-
-			handler(mockCtx)
+			r.ServeHTTP(w, req)
 
 			if !handlerCalled {
 				t.Error("Expected handler to be called")
@@ -333,13 +233,11 @@ func TestTracing_SkipPathPrefixes(t *testing.T) {
 
 func TestDefaultSpanNameFormatter(t *testing.T) {
 	req := httptest.NewRequest("GET", "/api/users", nil)
-	mockCtx := &mockTracingContext{
-		req:    req,
-		rw:     httptest.NewRecorder(),
-		params: make(map[string]string),
-	}
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = req
 
-	name := defaultSpanNameFormatter(mockCtx)
+	name := defaultSpanNameFormatter(c)
 	expected := "GET /api/users"
 
 	if name != expected {
@@ -349,14 +247,12 @@ func TestDefaultSpanNameFormatter(t *testing.T) {
 
 func TestExtractTraceID(t *testing.T) {
 	req := httptest.NewRequest("GET", "/test", nil)
-	mockCtx := &mockTracingContext{
-		req:    req,
-		rw:     httptest.NewRecorder(),
-		params: make(map[string]string),
-	}
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = req
 
 	// Without a trace context, should return empty string
-	traceID := ExtractTraceID(mockCtx)
+	traceID := ExtractTraceID(c)
 	if traceID != "" {
 		t.Errorf("Expected empty trace ID, got %s", traceID)
 	}
@@ -364,14 +260,12 @@ func TestExtractTraceID(t *testing.T) {
 
 func TestExtractSpanID(t *testing.T) {
 	req := httptest.NewRequest("GET", "/test", nil)
-	mockCtx := &mockTracingContext{
-		req:    req,
-		rw:     httptest.NewRecorder(),
-		params: make(map[string]string),
-	}
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = req
 
 	// Without a span context, should return empty string
-	spanID := ExtractSpanID(mockCtx)
+	spanID := ExtractSpanID(c)
 	if spanID != "" {
 		t.Errorf("Expected empty span ID, got %s", spanID)
 	}
@@ -416,21 +310,17 @@ func TestTracingResponseWriter(t *testing.T) {
 func BenchmarkTracing(b *testing.B) {
 	middleware := Tracing()
 
-	handler := middleware(func(ctx transport.Context) {
-		ctx.JSON(http.StatusOK, map[string]string{"status": "ok"})
-	})
-
 	req := httptest.NewRequest("GET", "/test", nil)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		rw := httptest.NewRecorder()
-		mockCtx := &mockTracingContext{
-			req:    req,
-			rw:     rw,
-			params: make(map[string]string),
-		}
-		handler(mockCtx)
+		w := httptest.NewRecorder()
+		_, r := gin.CreateTestContext(w)
+		r.Use(middleware)
+		r.GET("/test", func(c *gin.Context) {
+			c.JSON(http.StatusOK, map[string]string{"status": "ok"})
+		})
+		r.ServeHTTP(w, req)
 	}
 }
 
@@ -439,21 +329,17 @@ func BenchmarkTracing_WithSkipPaths(b *testing.B) {
 		WithTracingSkipPaths([]string{"/health", "/metrics"}),
 	)
 
-	handler := middleware(func(ctx transport.Context) {
-		ctx.JSON(http.StatusOK, map[string]string{"status": "ok"})
-	})
-
 	req := httptest.NewRequest("GET", "/health", nil)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		rw := httptest.NewRecorder()
-		mockCtx := &mockTracingContext{
-			req:    req,
-			rw:     rw,
-			params: make(map[string]string),
-		}
-		handler(mockCtx)
+		w := httptest.NewRecorder()
+		_, r := gin.CreateTestContext(w)
+		r.Use(middleware)
+		r.GET("/health", func(c *gin.Context) {
+			c.JSON(http.StatusOK, map[string]string{"status": "ok"})
+		})
+		r.ServeHTTP(w, req)
 	}
 }
 

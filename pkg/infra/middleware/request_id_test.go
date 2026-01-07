@@ -6,23 +6,23 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/gin-gonic/gin"
 	"github.com/kart-io/sentinel-x/pkg/infra/middleware/requestutil"
-	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 )
 
 func TestRequestID_GeneratesID(t *testing.T) {
 	middleware := RequestID()
-	handler := middleware(func(_ transport.Context) {})
 
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 	w := httptest.NewRecorder()
-	mockCtx := newMockContext(req, w)
-
-	handler(mockCtx)
+	_, r := gin.CreateTestContext(w)
+	r.Use(middleware)
+	r.GET("/test", func(_ *gin.Context) {})
+	r.ServeHTTP(w, req)
 
 	// Check that request ID was set in response header
-	requestID := mockCtx.headers[HeaderXRequestID]
+	requestID := w.Header().Get(HeaderXRequestID)
 	if requestID == "" {
 		t.Error("Expected X-Request-ID header to be set")
 	}
@@ -35,18 +35,18 @@ func TestRequestID_GeneratesID(t *testing.T) {
 
 func TestRequestID_PreservesExistingID(t *testing.T) {
 	middleware := RequestID()
-	handler := middleware(func(_ transport.Context) {})
 
 	existingID := "existing-request-id-12345"
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 	req.Header.Set(HeaderXRequestID, existingID)
 	w := httptest.NewRecorder()
-	mockCtx := newMockContext(req, w)
-
-	handler(mockCtx)
+	_, r := gin.CreateTestContext(w)
+	r.Use(middleware)
+	r.GET("/test", func(_ *gin.Context) {})
+	r.ServeHTTP(w, req)
 
 	// Check that existing request ID was preserved
-	requestID := mockCtx.headers[HeaderXRequestID]
+	requestID := w.Header().Get(HeaderXRequestID)
 	if requestID != existingID {
 		t.Errorf("Expected request ID %s, got %s", existingID, requestID)
 	}
@@ -58,22 +58,22 @@ func TestRequestIDWithOptions_CustomHeader(t *testing.T) {
 	}
 
 	middleware := RequestIDWithOptions(opts, nil)
-	handler := middleware(func(_ transport.Context) {})
 
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 	w := httptest.NewRecorder()
-	mockCtx := newMockContext(req, w)
-
-	handler(mockCtx)
+	_, r := gin.CreateTestContext(w)
+	r.Use(middleware)
+	r.GET("/test", func(_ *gin.Context) {})
+	r.ServeHTTP(w, req)
 
 	// Check that custom header was used
-	requestID := mockCtx.headers["X-Custom-Request-ID"]
+	requestID := w.Header().Get("X-Custom-Request-ID")
 	if requestID == "" {
 		t.Error("Expected X-Custom-Request-ID header to be set")
 	}
 
 	// Default header should not be set
-	if mockCtx.headers[HeaderXRequestID] != "" {
+	if w.Header().Get(HeaderXRequestID) != "" {
 		t.Error("Expected X-Request-ID header not to be set")
 	}
 }
@@ -87,16 +87,16 @@ func TestRequestIDWithOptions_CustomGenerator(t *testing.T) {
 	}
 
 	middleware := RequestIDWithOptions(opts, customGen)
-	handler := middleware(func(_ transport.Context) {})
 
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 	w := httptest.NewRecorder()
-	mockCtx := newMockContext(req, w)
-
-	handler(mockCtx)
+	_, r := gin.CreateTestContext(w)
+	r.Use(middleware)
+	r.GET("/test", func(_ *gin.Context) {})
+	r.ServeHTTP(w, req)
 
 	// Check that custom generator was used
-	requestID := mockCtx.headers[HeaderXRequestID]
+	requestID := w.Header().Get(HeaderXRequestID)
 	if requestID != customID {
 		t.Errorf("Expected request ID %s, got %s", customID, requestID)
 	}
@@ -106,15 +106,14 @@ func TestRequestID_StoresInContext(t *testing.T) {
 	middleware := RequestID()
 	var capturedCtx context.Context
 
-	handler := middleware(func(ctx transport.Context) {
-		capturedCtx = ctx.Request()
-	})
-
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 	w := httptest.NewRecorder()
-	mockCtx := newMockContext(req, w)
-
-	handler(mockCtx)
+	_, r := gin.CreateTestContext(w)
+	r.Use(middleware)
+	r.GET("/test", func(c *gin.Context) {
+		capturedCtx = c.Request.Context()
+	})
+	r.ServeHTTP(w, req)
 
 	// Check that request ID was stored in context
 	requestID := GetRequestID(capturedCtx)
@@ -123,7 +122,7 @@ func TestRequestID_StoresInContext(t *testing.T) {
 	}
 
 	// Should match the header
-	headerID := mockCtx.headers[HeaderXRequestID]
+	headerID := w.Header().Get(HeaderXRequestID)
 	if requestID != headerID {
 		t.Errorf("Context request ID %s does not match header %s", requestID, headerID)
 	}
@@ -152,16 +151,16 @@ func TestRequestIDWithOptions_Defaults(t *testing.T) {
 	opts := mwopts.RequestIDOptions{}
 
 	middleware := RequestIDWithOptions(opts, nil)
-	handler := middleware(func(_ transport.Context) {})
 
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 	w := httptest.NewRecorder()
-	mockCtx := newMockContext(req, w)
-
-	handler(mockCtx)
+	_, r := gin.CreateTestContext(w)
+	r.Use(middleware)
+	r.GET("/test", func(_ *gin.Context) {})
+	r.ServeHTTP(w, req)
 
 	// Should use default header
-	requestID := mockCtx.headers[HeaderXRequestID]
+	requestID := w.Header().Get(HeaderXRequestID)
 	if requestID == "" {
 		t.Error("Expected default header X-Request-ID to be set")
 	}
@@ -202,15 +201,14 @@ func TestRequestID_MultipleRequests(t *testing.T) {
 	ids := make(map[string]bool)
 
 	for i := 0; i < 10; i++ {
-		handler := middleware(func(_ transport.Context) {})
-
 		req := httptest.NewRequest(http.MethodGet, "/test", nil)
 		w := httptest.NewRecorder()
-		mockCtx := newMockContext(req, w)
+		_, r := gin.CreateTestContext(w)
+		r.Use(middleware)
+		r.GET("/test", func(_ *gin.Context) {})
+		r.ServeHTTP(w, req)
 
-		handler(mockCtx)
-
-		requestID := mockCtx.headers[HeaderXRequestID]
+		requestID := w.Header().Get(HeaderXRequestID)
 		if ids[requestID] {
 			t.Errorf("Duplicate request ID generated: %s", requestID)
 		}
@@ -224,16 +222,16 @@ func TestRequestIDWithOptions_EmptyHeader(t *testing.T) {
 	}
 
 	middleware := RequestIDWithOptions(opts, nil)
-	handler := middleware(func(_ transport.Context) {})
 
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 	w := httptest.NewRecorder()
-	mockCtx := newMockContext(req, w)
-
-	handler(mockCtx)
+	_, r := gin.CreateTestContext(w)
+	r.Use(middleware)
+	r.GET("/test", func(_ *gin.Context) {})
+	r.ServeHTTP(w, req)
 
 	// Should use default header
-	requestID := mockCtx.headers[HeaderXRequestID]
+	requestID := w.Header().Get(HeaderXRequestID)
 	if requestID == "" {
 		t.Error("Expected default header to be used when config header is empty")
 	}

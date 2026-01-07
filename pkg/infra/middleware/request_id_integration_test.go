@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	"github.com/gin-gonic/gin"
 	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 )
 
@@ -17,15 +17,17 @@ func TestRequestIDWithOptions_ULIDGenerator(t *testing.T) {
 	}
 	middleware := RequestIDWithOptions(opts, nil)
 
-	handler := middleware(func(c transport.Context) {
-		c.JSON(200, map[string]string{"status": "ok"})
-	})
-
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 	w := httptest.NewRecorder()
-	ctx := newMockContext(req, w)
 
-	handler(ctx)
+	var capturedCtx *gin.Context
+	_, r := gin.CreateTestContext(w)
+	r.Use(middleware)
+	r.GET("/test", func(c *gin.Context) {
+		capturedCtx = c
+		c.JSON(200, map[string]string{"status": "ok"})
+	})
+	r.ServeHTTP(w, req)
 
 	// 验证响应头包含 request ID
 	requestID := w.Header().Get("X-Request-ID")
@@ -39,7 +41,7 @@ func TestRequestIDWithOptions_ULIDGenerator(t *testing.T) {
 	}
 
 	// 验证 request ID 存储在 context 中
-	storedID := GetRequestID(ctx.Request())
+	storedID := GetRequestID(capturedCtx.Request.Context())
 	if storedID != requestID {
 		t.Errorf("Request ID mismatch: expected %s, got %s", requestID, storedID)
 	}
@@ -65,15 +67,14 @@ func TestRequestIDWithOptions_RandomHexGenerator(t *testing.T) {
 			}
 			middleware := RequestIDWithOptions(opts, nil)
 
-			handler := middleware(func(c transport.Context) {
-				c.JSON(200, map[string]string{"status": "ok"})
-			})
-
 			req := httptest.NewRequest(http.MethodGet, "/test", nil)
 			w := httptest.NewRecorder()
-			ctx := newMockContext(req, w)
-
-			handler(ctx)
+			_, r := gin.CreateTestContext(w)
+			r.Use(middleware)
+			r.GET("/test", func(c *gin.Context) {
+				c.JSON(200, map[string]string{"status": "ok"})
+			})
+			r.ServeHTTP(w, req)
 
 			requestID := w.Header().Get("X-Request-ID")
 			if requestID == "" {
@@ -105,18 +106,17 @@ func TestRequestIDWithOptions_GeneratorPerformance(t *testing.T) {
 			}
 			middleware := RequestIDWithOptions(opts, nil)
 
-			handler := middleware(func(c transport.Context) {
-				c.JSON(200, map[string]string{"status": "ok"})
-			})
-
 			// 生成多个 ID 验证唯一性
 			seen := make(map[string]bool)
 			for i := 0; i < 1000; i++ {
 				req := httptest.NewRequest(http.MethodGet, "/test", nil)
 				w := httptest.NewRecorder()
-				ctx := newMockContext(req, w)
-
-				handler(ctx)
+				_, r := gin.CreateTestContext(w)
+				r.Use(middleware)
+				r.GET("/test", func(c *gin.Context) {
+					c.JSON(200, map[string]string{"status": "ok"})
+				})
+				r.ServeHTTP(w, req)
 
 				requestID := w.Header().Get("X-Request-ID")
 				if seen[requestID] {
@@ -138,18 +138,17 @@ func TestRequestIDWithOptions_ULIDSortability(t *testing.T) {
 	}
 	middleware := RequestIDWithOptions(opts, nil)
 
-	handler := middleware(func(c transport.Context) {
-		c.JSON(200, map[string]string{"status": "ok"})
-	})
-
 	// 连续生成多个 ID
 	var ids []string
 	for i := 0; i < 100; i++ {
 		req := httptest.NewRequest(http.MethodGet, "/test", nil)
 		w := httptest.NewRecorder()
-		ctx := newMockContext(req, w)
-
-		handler(ctx)
+		_, r := gin.CreateTestContext(w)
+		r.Use(middleware)
+		r.GET("/test", func(c *gin.Context) {
+			c.JSON(200, map[string]string{"status": "ok"})
+		})
+		r.ServeHTTP(w, req)
 
 		requestID := w.Header().Get("X-Request-ID")
 		ids = append(ids, requestID)

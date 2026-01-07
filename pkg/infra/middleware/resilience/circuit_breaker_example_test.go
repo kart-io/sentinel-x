@@ -3,10 +3,8 @@ package resilience_test
 import (
 	"context"
 	"fmt"
-	"net/http"
 
 	"github.com/kart-io/sentinel-x/pkg/infra/middleware/resilience"
-	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 )
 
@@ -19,15 +17,14 @@ import (
 func ExampleCircuitBreaker_basic() {
 	// 创建熔断器中间件
 	// 参数: maxFailures=5, timeout=60秒, halfOpenMaxCalls=1
-	middleware := resilience.CircuitBreaker(5, 60, 1)
+	_ = resilience.CircuitBreaker(5, 60, 1)
 
-	// 应用到路由
-	_ = middleware(func(c transport.Context) {
-		// 业务逻辑
-		c.JSON(http.StatusOK, map[string]string{
-			"message": "请求成功",
-		})
-	})
+	// 在 Gin 路由中使用:
+	// router := gin.Default()
+	// router.Use(middleware)
+	// router.GET("/api", func(c *gin.Context) {
+	//     c.JSON(http.StatusOK, map[string]string{"message": "请求成功"})
+	// })
 
 	fmt.Println("熔断器中间件已启动")
 	fmt.Println("配置: 5次失败后熔断，60秒后尝试恢复")
@@ -50,7 +47,7 @@ func ExampleCircuitBreakerWithOptions_advanced() {
 	// 配置熔断器选项
 	opts := mwopts.CircuitBreakerOptions{
 		MaxFailures:      5,
-		Timeout:          60,  // 60 秒
+		Timeout:          60, // 60 秒
 		HalfOpenMaxCalls: 1,
 		SkipPaths:        []string{"/health", "/metrics"},
 		SkipPathPrefixes: []string{"/static/"},
@@ -59,15 +56,14 @@ func ExampleCircuitBreakerWithOptions_advanced() {
 	}
 
 	// 创建中间件
-	middleware := resilience.CircuitBreakerWithOptions(opts)
+	_ = resilience.CircuitBreakerWithOptions(opts)
 
-	// 应用到路由
-	_ = middleware(func(c transport.Context) {
-		// 模拟业务逻辑
-		c.JSON(http.StatusOK, map[string]string{
-			"message": "请求成功",
-		})
-	})
+	// 在 Gin 路由中使用:
+	// router := gin.Default()
+	// router.Use(middleware)
+	// router.GET("/api", func(c *gin.Context) {
+	//     c.JSON(http.StatusOK, map[string]string{"message": "请求成功"})
+	// })
 
 	fmt.Println("熔断器中间件已配置")
 	fmt.Println("跳过路径: /health, /metrics")

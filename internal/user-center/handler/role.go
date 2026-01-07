@@ -3,9 +3,9 @@ package handler
 import (
 	"context"
 
-	"github.com/gin-gonic/gin"
 	"google.golang.org/protobuf/types/known/emptypb"
 
+	"github.com/gin-gonic/gin"
 	"github.com/kart-io/sentinel-x/internal/model"
 	"github.com/kart-io/sentinel-x/internal/pkg/httputils"
 	"github.com/kart-io/sentinel-x/internal/user-center/biz"

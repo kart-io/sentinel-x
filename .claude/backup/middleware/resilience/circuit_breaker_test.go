@@ -36,7 +36,7 @@ func newMockCircuitBreakerContext(w http.ResponseWriter, r *http.Request) *mockC
 
 func (m *mockCircuitBreakerContext) JSON(code int, data interface{}) {
 	m.statusCode = code
-	m.recorder.WriteHeader(code)  // 确保 WriteHeader 被调用
+	m.recorder.WriteHeader(code) // 确保 WriteHeader 被调用
 	m.mockContext.JSON(code, data)
 }
 

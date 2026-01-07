@@ -6,24 +6,24 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	"github.com/gin-gonic/gin"
 	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 )
 
 func TestSecurityHeaders_DefaultConfig(t *testing.T) {
 	// Setup
 	opts := mwopts.NewSecurityHeadersOptions()
-	handler := SecurityHeadersWithOptions(*opts)(
-		transport.HandlerFunc(func(c transport.Context) {
-			c.String(http.StatusOK, "OK")
-		}),
-	)
+	middleware := SecurityHeadersWithOptions(*opts)
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	rec := httptest.NewRecorder()
-	ctx := newMockContext(req, rec)
+	_, r := gin.CreateTestContext(rec)
+	r.Use(middleware)
+	r.GET("/", func(c *gin.Context) {
+		c.String(http.StatusOK, "OK")
+	})
 
-	handler(ctx)
+	r.ServeHTTP(rec, req)
 
 	// Verify default security headers
 	tests := []struct {
@@ -84,34 +84,35 @@ func TestSecurityHeaders_CustomConfig(t *testing.T) {
 	}
 
 	middleware := SecurityHeadersWithOptions(opts)
-	handler := middleware(func(c transport.Context) {
-		c.String(http.StatusOK, "OK")
-	})
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.TLS = &tls.ConnectionState{} // Simulate HTTPS
 	rec := httptest.NewRecorder()
-	ctx := newMockContext(req, rec)
+	_, r := gin.CreateTestContext(rec)
+	r.Use(middleware)
+	r.GET("/", func(c *gin.Context) {
+		c.String(http.StatusOK, "OK")
+	})
 
-	handler(ctx)
+	r.ServeHTTP(rec, req)
 
-	// Check headers from mockContext.headers (SetHeader writes to both places)
-	if got := ctx.headers[HeaderXFrameOptions]; got != "SAMEORIGIN" {
+	// Check headers
+	if got := rec.Header().Get(HeaderXFrameOptions); got != "SAMEORIGIN" {
 		t.Errorf("header %s = %q, want %q", HeaderXFrameOptions, got, "SAMEORIGIN")
 	}
-	if got := ctx.headers[HeaderXContentTypeOptions]; got != "nosniff" {
+	if got := rec.Header().Get(HeaderXContentTypeOptions); got != "nosniff" {
 		t.Errorf("header %s = %q, want %q", HeaderXContentTypeOptions, got, "nosniff")
 	}
-	if got := ctx.headers[HeaderXXSSProtection]; got != "0" {
+	if got := rec.Header().Get(HeaderXXSSProtection); got != "0" {
 		t.Errorf("header %s = %q, want %q", HeaderXXSSProtection, got, "0")
 	}
-	if got := ctx.headers[HeaderContentSecurityPolicy]; got != "default-src 'self'; script-src 'self' 'unsafe-inline'" {
+	if got := rec.Header().Get(HeaderContentSecurityPolicy); got != "default-src 'self'; script-src 'self' 'unsafe-inline'" {
 		t.Errorf("header %s = %q, want %q", HeaderContentSecurityPolicy, got, "default-src 'self'; script-src 'self' 'unsafe-inline'")
 	}
-	if got := ctx.headers[HeaderReferrerPolicy]; got != "no-referrer" {
+	if got := rec.Header().Get(HeaderReferrerPolicy); got != "no-referrer" {
 		t.Errorf("header %s = %q, want %q", HeaderReferrerPolicy, got, "no-referrer")
 	}
-	if got := ctx.headers[HeaderStrictTransportSecurity]; got != "max-age=63072000; includeSubDomains; preload" {
+	if got := rec.Header().Get(HeaderStrictTransportSecurity); got != "max-age=63072000; includeSubDomains; preload" {
 		t.Errorf("header %s = %q, want %q", HeaderStrictTransportSecurity, got, "max-age=63072000; includeSubDomains; preload")
 	}
 }
@@ -163,18 +164,19 @@ func TestSecurityHeaders_HSTS(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			middleware := SecurityHeadersWithOptions(tt.opts)
-			handler := middleware(func(c transport.Context) {
-				c.String(http.StatusOK, "OK")
-			})
 
 			req := httptest.NewRequest(http.MethodGet, "/", nil)
 			if tt.setupReq != nil {
 				tt.setupReq(req)
 			}
 			rec := httptest.NewRecorder()
-			ctx := newMockContext(req, rec)
+			_, r := gin.CreateTestContext(rec)
+			r.Use(middleware)
+			r.GET("/", func(c *gin.Context) {
+				c.String(http.StatusOK, "OK")
+			})
 
-			handler(ctx)
+			r.ServeHTTP(rec, req)
 
 			got := rec.Header().Get(HeaderStrictTransportSecurity)
 			if got != tt.wantHSTS {
@@ -218,9 +220,10 @@ func TestIsHTTPSConnection(t *testing.T) {
 			req := httptest.NewRequest(http.MethodGet, "/", nil)
 			tt.setupReq(req)
 			rec := httptest.NewRecorder()
-			ctx := newMockContext(req, rec)
+			c, _ := gin.CreateTestContext(rec)
+			c.Request = req
 
-			got := isHTTPSConnection(ctx)
+			got := isHTTPSConnection(c)
 			if got != tt.expected {
 				t.Errorf("isHTTPSConnection() = %v, want %v", got, tt.expected)
 			}

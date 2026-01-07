@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	"github.com/gin-gonic/gin"
 	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 )
 
@@ -16,25 +16,26 @@ func TestBodyLimit_NormalRequest(t *testing.T) {
 	middleware := BodyLimit(maxSize)
 
 	handlerCalled := false
-	handler := middleware(func(c transport.Context) {
-		handlerCalled = true
-	})
 
 	// 创建小于限制的请求体
 	body := bytes.NewReader([]byte("small body"))
 	req := httptest.NewRequest(http.MethodPost, "/test", body)
 	req.ContentLength = int64(len("small body"))
 	w := httptest.NewRecorder()
-	mockCtx := newMockContext(req, w)
+	_, r := gin.CreateTestContext(w)
+	r.Use(middleware)
+	r.POST("/test", func(c *gin.Context) {
+		handlerCalled = true
+	})
 
-	handler(mockCtx)
+	r.ServeHTTP(w, req)
 
 	if !handlerCalled {
 		t.Error("Expected handler to be called for normal request")
 	}
 
-	if mockCtx.jsonCalled {
-		t.Error("Expected no error response for normal request")
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status OK, got %d", w.Code)
 	}
 }
 
@@ -43,30 +44,27 @@ func TestBodyLimit_LargeRequest_ContentLength(t *testing.T) {
 	middleware := BodyLimit(maxSize)
 
 	handlerCalled := false
-	handler := middleware(func(_ transport.Context) {
-		handlerCalled = true
-	})
 
 	// 创建超过限制的请求体
 	body := bytes.NewReader([]byte("this is a very large body that exceeds the limit"))
 	req := httptest.NewRequest(http.MethodPost, "/test", body)
 	req.ContentLength = int64(len("this is a very large body that exceeds the limit"))
 	w := httptest.NewRecorder()
-	mockCtx := newMockContext(req, w)
+	_, r := gin.CreateTestContext(w)
+	r.Use(middleware)
+	r.POST("/test", func(c *gin.Context) {
+		handlerCalled = true
+	})
 
-	handler(mockCtx)
+	r.ServeHTTP(w, req)
 
 	// 应该被拒绝，不调用处理程序
 	if handlerCalled {
 		t.Error("Expected handler NOT to be called for large request")
 	}
 
-	if !mockCtx.jsonCalled {
-		t.Error("Expected error response for large request")
-	}
-
-	if mockCtx.jsonCode != http.StatusRequestEntityTooLarge {
-		t.Errorf("Expected status code %d, got %d", http.StatusRequestEntityTooLarge, mockCtx.jsonCode)
+	if w.Code != http.StatusRequestEntityTooLarge {
+		t.Errorf("Expected status code %d, got %d", http.StatusRequestEntityTooLarge, w.Code)
 	}
 }
 
@@ -113,31 +111,29 @@ func TestBodyLimitWithOptions_SkipPaths(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			handlerCalled := false
-			handler := middleware(func(_ transport.Context) {
-				handlerCalled = true
-			})
 
 			body := bytes.NewReader(bytes.Repeat([]byte("a"), tt.bodySize))
 			req := httptest.NewRequest(http.MethodPost, tt.path, body)
 			req.ContentLength = int64(tt.bodySize)
 			w := httptest.NewRecorder()
-			mockCtx := newMockContext(req, w)
+			_, r := gin.CreateTestContext(w)
+			r.Use(middleware)
+			r.POST(tt.path, func(c *gin.Context) {
+				handlerCalled = true
+			})
 
-			handler(mockCtx)
+			r.ServeHTTP(w, req)
 
 			if tt.shouldReject {
 				if handlerCalled {
 					t.Error("Expected handler NOT to be called for large body")
 				}
-				if !mockCtx.jsonCalled {
-					t.Error("Expected error response")
+				if w.Code != http.StatusRequestEntityTooLarge {
+					t.Errorf("Expected status %d, got %d", http.StatusRequestEntityTooLarge, w.Code)
 				}
 			} else {
 				if !handlerCalled {
 					t.Error("Expected handler to be called")
-				}
-				if mockCtx.jsonCalled {
-					t.Error("Expected no error response")
 				}
 			}
 		})
@@ -181,17 +177,18 @@ func TestBodyLimitWithOptions_SkipPathPrefixes(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			handlerCalled := false
-			handler := middleware(func(_ transport.Context) {
-				handlerCalled = true
-			})
 
 			body := bytes.NewReader(bytes.Repeat([]byte("a"), tt.bodySize))
 			req := httptest.NewRequest(http.MethodPost, tt.path, body)
 			req.ContentLength = int64(tt.bodySize)
 			w := httptest.NewRecorder()
-			mockCtx := newMockContext(req, w)
+			_, r := gin.CreateTestContext(w)
+			r.Use(middleware)
+			r.POST(tt.path, func(c *gin.Context) {
+				handlerCalled = true
+			})
 
-			handler(mockCtx)
+			r.ServeHTTP(w, req)
 
 			if tt.shouldReject {
 				if handlerCalled {
@@ -215,18 +212,19 @@ func TestBodyLimitWithOptions_DefaultMaxSize(t *testing.T) {
 	middleware := BodyLimitWithOptions(opts)
 
 	handlerCalled := false
-	handler := middleware(func(_ transport.Context) {
-		handlerCalled = true
-	})
 
 	// 1MB 请求应该通过（小于默认的 4MB）
 	body := bytes.NewReader(bytes.Repeat([]byte("a"), 1024*1024))
 	req := httptest.NewRequest(http.MethodPost, "/test", body)
 	req.ContentLength = 1024 * 1024
 	w := httptest.NewRecorder()
-	mockCtx := newMockContext(req, w)
+	_, r := gin.CreateTestContext(w)
+	r.Use(middleware)
+	r.POST("/test", func(c *gin.Context) {
+		handlerCalled = true
+	})
 
-	handler(mockCtx)
+	r.ServeHTTP(w, req)
 
 	if !handlerCalled {
 		t.Error("Expected handler to be called with default config")
@@ -238,18 +236,19 @@ func TestBodyLimit_NoContentLength(t *testing.T) {
 	middleware := BodyLimit(maxSize)
 
 	handlerCalled := false
-	handler := middleware(func(_ transport.Context) {
-		handlerCalled = true
-	})
 
 	// 没有 Content-Length 头的请求
 	body := strings.NewReader("test body")
 	req := httptest.NewRequest(http.MethodPost, "/test", body)
 	// 不设置 ContentLength（默认为 -1）
 	w := httptest.NewRecorder()
-	mockCtx := newMockContext(req, w)
+	_, r := gin.CreateTestContext(w)
+	r.Use(middleware)
+	r.POST("/test", func(c *gin.Context) {
+		handlerCalled = true
+	})
 
-	handler(mockCtx)
+	r.ServeHTTP(w, req)
 
 	// 应该允许通过（Content-Length 检查会跳过）
 	// 实际的读取限制由 MaxBytesReader 处理

@@ -7,56 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	"github.com/gin-gonic/gin"
 	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 )
-
-// ============================================================================
-// Mock Context Implementation for Circuit Breaker Tests
-// ============================================================================
-
-type mockCircuitBreakerContext struct {
-	*mockContext
-	statusCode int
-	recorder   *httptest.ResponseRecorder
-}
-
-func newMockCircuitBreakerContext(w http.ResponseWriter, r *http.Request) *mockCircuitBreakerContext {
-	rec, ok := w.(*httptest.ResponseRecorder)
-	if !ok {
-		rec = httptest.NewRecorder()
-	}
-
-	return &mockCircuitBreakerContext{
-		mockContext: newMockContext(r, rec),
-		statusCode:  http.StatusOK,
-		recorder:    rec,
-	}
-}
-
-func (m *mockCircuitBreakerContext) JSON(code int, data interface{}) {
-	m.statusCode = code
-	m.recorder.WriteHeader(code)  // 确保 WriteHeader 被调用
-	m.mockContext.JSON(code, data)
-}
-
-func (m *mockCircuitBreakerContext) ResponseWriter() http.ResponseWriter {
-	// 返回一个包装器，实现 Status() 方法
-	return &mockResponseWriter{
-		ResponseWriter: m.recorder,
-		statusCode:     &m.statusCode,
-	}
-}
-
-// mockResponseWriter 包装 ResponseWriter 并实现 Status() 方法
-type mockResponseWriter struct {
-	http.ResponseWriter
-	statusCode *int
-}
-
-func (m *mockResponseWriter) Status() int {
-	return *m.statusCode
-}
 
 // TestCircuitBreakerWithOptions_Basic 测试熔断器基本功能。
 func TestCircuitBreakerWithOptions_Basic(t *testing.T) {
@@ -71,24 +24,25 @@ func TestCircuitBreakerWithOptions_Basic(t *testing.T) {
 	middleware := CircuitBreakerWithOptions(opts)
 
 	// 创建测试处理器
-	successHandler := func(c transport.Context) {
+	successHandler := gin.HandlerFunc(func(c *gin.Context) {
 		c.JSON(http.StatusOK, map[string]string{"message": "success"})
-	}
+	})
 
-	errorHandler := func(c transport.Context) {
+	errorHandler := gin.HandlerFunc(func(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, map[string]string{"error": "internal error"})
-	}
+	})
 
 	// 测试正常请求
 	t.Run("normal requests succeed", func(t *testing.T) {
-		handler := middleware(successHandler)
+		w := httptest.NewRecorder()
+		_, r := gin.CreateTestContext(w)
+		r.Use(middleware)
+		r.GET("/test", successHandler)
 
 		for i := 0; i < 5; i++ {
+			w = httptest.NewRecorder()
 			req := httptest.NewRequest(http.MethodGet, "/test", nil)
-			w := httptest.NewRecorder()
-			c := newMockCircuitBreakerContext(w, req)
-
-			handler(c)
+			r.ServeHTTP(w, req)
 
 			if w.Code != http.StatusOK {
 				t.Errorf("expected status 200, got %d", w.Code)
@@ -100,23 +54,23 @@ func TestCircuitBreakerWithOptions_Basic(t *testing.T) {
 	t.Run("circuit opens after failures", func(t *testing.T) {
 		// 为这个测试创建独立的中间件实例
 		middleware2 := CircuitBreakerWithOptions(opts)
-		handler := middleware2(errorHandler)
+
+		w := httptest.NewRecorder()
+		_, r := gin.CreateTestContext(w)
+		r.Use(middleware2)
+		r.GET("/test", errorHandler)
 
 		// 发送失败请求直到熔断器打开
 		for i := 0; i < opts.MaxFailures; i++ {
+			w = httptest.NewRecorder()
 			req := httptest.NewRequest(http.MethodGet, "/test", nil)
-			w := httptest.NewRecorder()
-			c := newMockCircuitBreakerContext(w, req)
-
-			handler(c)
+			r.ServeHTTP(w, req)
 		}
 
 		// 下一个请求应该被熔断器拒绝
+		w = httptest.NewRecorder()
 		req := httptest.NewRequest(http.MethodGet, "/test", nil)
-		w := httptest.NewRecorder()
-		c := newMockCircuitBreakerContext(w, req)
-
-		handler(c)
+		r.ServeHTTP(w, req)
 
 		if w.Code != http.StatusServiceUnavailable {
 			t.Errorf("expected circuit breaker to reject request with 503, got %d", w.Code)
@@ -137,21 +91,22 @@ func TestCircuitBreakerWithOptions_SkipPaths(t *testing.T) {
 
 	middleware := CircuitBreakerWithOptions(opts)
 
-	errorHandler := func(c transport.Context) {
+	errorHandler := gin.HandlerFunc(func(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, map[string]string{"error": "error"})
-	}
-
-	handler := middleware(errorHandler)
+	})
 
 	// 跳过的路径不应触发熔断器
 	skipPaths := []string{"/health", "/metrics"}
 	for _, path := range skipPaths {
-		for i := 0; i < 5; i++ {
-			req := httptest.NewRequest(http.MethodGet, path, nil)
-			w := httptest.NewRecorder()
-			c := newMockCircuitBreakerContext(w, req)
+		w := httptest.NewRecorder()
+		_, r := gin.CreateTestContext(w)
+		r.Use(middleware)
+		r.GET(path, errorHandler)
 
-			handler(c)
+		for i := 0; i < 5; i++ {
+			w = httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodGet, path, nil)
+			r.ServeHTTP(w, req)
 
 			// 即使返回 500，跳过的路径也不应触发熔断器
 			if w.Code != http.StatusInternalServerError {
@@ -161,11 +116,13 @@ func TestCircuitBreakerWithOptions_SkipPaths(t *testing.T) {
 	}
 
 	// 验证其他路径仍然正常工作
-	req := httptest.NewRequest(http.MethodGet, "/api/test", nil)
 	w := httptest.NewRecorder()
-	c := newMockCircuitBreakerContext(w, req)
+	_, r := gin.CreateTestContext(w)
+	r.Use(middleware)
+	r.GET("/api/test", errorHandler)
 
-	handler(c)
+	req := httptest.NewRequest(http.MethodGet, "/api/test", nil)
+	r.ServeHTTP(w, req)
 
 	// 第一次请求应该正常处理（即使失败）
 	if w.Code != http.StatusInternalServerError {
@@ -186,11 +143,9 @@ func TestCircuitBreakerWithOptions_SkipPathPrefixes(t *testing.T) {
 
 	middleware := CircuitBreakerWithOptions(opts)
 
-	errorHandler := func(c transport.Context) {
+	errorHandler := gin.HandlerFunc(func(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, map[string]string{"error": "error"})
-	}
-
-	handler := middleware(errorHandler)
+	})
 
 	// 匹配前缀的路径不应触发熔断器
 	skipPaths := []string{
@@ -200,12 +155,15 @@ func TestCircuitBreakerWithOptions_SkipPathPrefixes(t *testing.T) {
 	}
 
 	for _, path := range skipPaths {
-		for i := 0; i < 5; i++ {
-			req := httptest.NewRequest(http.MethodGet, path, nil)
-			w := httptest.NewRecorder()
-			c := newMockCircuitBreakerContext(w, req)
+		w := httptest.NewRecorder()
+		_, r := gin.CreateTestContext(w)
+		r.Use(middleware)
+		r.GET(path, errorHandler)
 
-			handler(c)
+		for i := 0; i < 5; i++ {
+			w = httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodGet, path, nil)
+			r.ServeHTTP(w, req)
 
 			if w.Code != http.StatusInternalServerError {
 				t.Errorf("path %s should skip circuit breaker, got status %d", path, w.Code)
@@ -260,25 +218,26 @@ func TestCircuitBreakerWithOptions_ErrorThreshold(t *testing.T) {
 
 			middleware := CircuitBreakerWithOptions(opts)
 
-			handler := middleware(func(c transport.Context) {
+			handler := gin.HandlerFunc(func(c *gin.Context) {
 				c.JSON(tt.statusCode, map[string]string{"status": "test"})
 			})
 
+			w := httptest.NewRecorder()
+			_, r := gin.CreateTestContext(w)
+			r.Use(middleware)
+			r.GET("/test", handler)
+
 			// 发送多次请求
 			for i := 0; i < opts.MaxFailures+1; i++ {
+				w = httptest.NewRecorder()
 				req := httptest.NewRequest(http.MethodGet, "/test", nil)
-				w := httptest.NewRecorder()
-				c := newMockCircuitBreakerContext(w, req)
-
-				handler(c)
+				r.ServeHTTP(w, req)
 			}
 
 			// 再发送一次，检查是否被熔断
+			w = httptest.NewRecorder()
 			req := httptest.NewRequest(http.MethodGet, "/test", nil)
-			w := httptest.NewRecorder()
-			c := newMockCircuitBreakerContext(w, req)
-
-			handler(c)
+			r.ServeHTTP(w, req)
 
 			if tt.shouldTrigger {
 				if w.Code != http.StatusServiceUnavailable {
@@ -305,28 +264,30 @@ func TestCircuitBreakerWithOptions_HalfOpen(t *testing.T) {
 
 	middleware := CircuitBreakerWithOptions(opts)
 
-	successHandler := func(c transport.Context) {
+	successHandler := gin.HandlerFunc(func(c *gin.Context) {
 		c.JSON(http.StatusOK, map[string]string{"message": "success"})
-	}
+	})
 
-	errorHandler := func(c transport.Context) {
+	errorHandler := gin.HandlerFunc(func(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, map[string]string{"error": "error"})
-	}
+	})
 
 	// 1. 触发熔断器打开
-	handler := middleware(errorHandler)
+	w := httptest.NewRecorder()
+	_, r := gin.CreateTestContext(w)
+	r.Use(middleware)
+	r.GET("/test", errorHandler)
+
 	for i := 0; i < opts.MaxFailures; i++ {
+		w = httptest.NewRecorder()
 		req := httptest.NewRequest(http.MethodGet, "/test", nil)
-		w := httptest.NewRecorder()
-		c := newMockCircuitBreakerContext(w, req)
-		handler(c)
+		r.ServeHTTP(w, req)
 	}
 
 	// 2. 验证熔断器已打开
+	w = httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
-	w := httptest.NewRecorder()
-	c := newMockCircuitBreakerContext(w, req)
-	handler(c)
+	r.ServeHTTP(w, req)
 
 	if w.Code != http.StatusServiceUnavailable {
 		t.Fatalf("expected circuit breaker to be open (503), got %d", w.Code)
@@ -336,11 +297,13 @@ func TestCircuitBreakerWithOptions_HalfOpen(t *testing.T) {
 	time.Sleep(time.Duration(opts.Timeout+1) * time.Second)
 
 	// 4. 切换到成功处理器，验证半开状态允许请求
-	handler = middleware(successHandler)
-	req = httptest.NewRequest(http.MethodGet, "/test", nil)
 	w = httptest.NewRecorder()
-	c = newMockCircuitBreakerContext(w, req)
-	handler(c)
+	_, r = gin.CreateTestContext(w)
+	r.Use(middleware)
+	r.GET("/test", successHandler)
+
+	req = httptest.NewRequest(http.MethodGet, "/test", nil)
+	r.ServeHTTP(w, req)
 
 	if w.Code != http.StatusOK {
 		t.Errorf("expected half-open state to allow request (200), got %d", w.Code)
@@ -348,10 +311,9 @@ func TestCircuitBreakerWithOptions_HalfOpen(t *testing.T) {
 
 	// 5. 成功后应该恢复到关闭状态
 	// 再发送一次请求验证
-	req = httptest.NewRequest(http.MethodGet, "/test", nil)
 	w = httptest.NewRecorder()
-	c = newMockCircuitBreakerContext(w, req)
-	handler(c)
+	req = httptest.NewRequest(http.MethodGet, "/test", nil)
+	r.ServeHTTP(w, req)
 
 	if w.Code != http.StatusOK {
 		t.Errorf("expected circuit breaker to be closed (200), got %d", w.Code)
@@ -370,22 +332,24 @@ func BenchmarkCircuitBreaker_Success(b *testing.B) {
 
 	middleware := CircuitBreakerWithOptions(opts)
 
-	handler := middleware(func(c transport.Context) {
+	handler := gin.HandlerFunc(func(c *gin.Context) {
 		c.JSON(http.StatusOK, map[string]string{"message": "success"})
 	})
 
-	ctx := context.Background()
+	w := httptest.NewRecorder()
+	_, r := gin.CreateTestContext(w)
+	r.Use(middleware)
+	r.GET("/test", handler)
+
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req = req.WithContext(context.Background())
 
 	b.ResetTimer()
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		req := httptest.NewRequest(http.MethodGet, "/test", nil)
-		req = req.WithContext(ctx)
-		w := httptest.NewRecorder()
-		c := newMockCircuitBreakerContext(w, req)
-
-		handler(c)
+		w = httptest.NewRecorder()
+		r.ServeHTTP(w, req)
 	}
 }
 
@@ -401,31 +365,30 @@ func BenchmarkCircuitBreaker_Open(b *testing.B) {
 
 	middleware := CircuitBreakerWithOptions(opts)
 
-	errorHandler := func(c transport.Context) {
+	errorHandler := gin.HandlerFunc(func(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, map[string]string{"error": "error"})
-	}
+	})
 
-	handler := middleware(errorHandler)
+	w := httptest.NewRecorder()
+	_, r := gin.CreateTestContext(w)
+	r.Use(middleware)
+	r.GET("/test", errorHandler)
 
 	// 触发熔断器打开
 	for i := 0; i < opts.MaxFailures; i++ {
+		w = httptest.NewRecorder()
 		req := httptest.NewRequest(http.MethodGet, "/test", nil)
-		w := httptest.NewRecorder()
-		c := newMockCircuitBreakerContext(w, req)
-		handler(c)
+		r.ServeHTTP(w, req)
 	}
 
-	ctx := context.Background()
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req = req.WithContext(context.Background())
 
 	b.ResetTimer()
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		req := httptest.NewRequest(http.MethodGet, "/test", nil)
-		req = req.WithContext(ctx)
-		w := httptest.NewRecorder()
-		c := newMockCircuitBreakerContext(w, req)
-
-		handler(c)
+		w = httptest.NewRecorder()
+		r.ServeHTTP(w, req)
 	}
 }

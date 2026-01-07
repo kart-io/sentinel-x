@@ -181,36 +181,36 @@ func MetricsWithOptions(opts options.MetricsOptions) gin.HandlerFunc {
 	collector := GetMetricsCollector(opts.Namespace, opts.Subsystem)
 
 	return func(c *gin.Context) {
-			req := c.Request
-			path := req.URL.Path
+		req := c.Request
+		path := req.URL.Path
 
-			// Skip metrics endpoint itself
-			if path == opts.Path {
-				c.Next()
-				return
-			}
-
-			collector.IncrementActive()
-			start := time.Now()
-
-			// Wrap response writer to capture status code
-			rw := c.Writer
-			mrw := newMetricsResponseWriter(rw)
-
-			// Execute handler
+		// Skip metrics endpoint itself
+		if path == opts.Path {
 			c.Next()
-
-			duration := time.Since(start)
-			collector.DecrementActive()
-
-			// Try to get status code - default to 200 if not available
-			// Note: In a real Gin/Echo wrapper, we'd need to properly wrap the ResponseWriter in the context
-			// But for now we rely on the implementation status
-			status := mrw.statusCode
-			// If possible, get status from context specific response if wrapper didn't work (framework dependent)
-
-			collector.RecordRequest(req.Method, path, status, duration)
+			return
 		}
+
+		collector.IncrementActive()
+		start := time.Now()
+
+		// Wrap response writer to capture status code
+		rw := c.Writer
+		mrw := newMetricsResponseWriter(rw)
+
+		// Execute handler
+		c.Next()
+
+		duration := time.Since(start)
+		collector.DecrementActive()
+
+		// Try to get status code - default to 200 if not available
+		// Note: In a real Gin/Echo wrapper, we'd need to properly wrap the ResponseWriter in the context
+		// But for now we rely on the implementation status
+		status := mrw.statusCode
+		// If possible, get status from context specific response if wrapper didn't work (framework dependent)
+
+		collector.RecordRequest(req.Method, path, status, duration)
+	}
 }
 
 // RegisterMetricsRoutesWithOptions 注册 Metrics 路由端点。
