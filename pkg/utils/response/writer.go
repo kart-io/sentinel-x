@@ -4,21 +4,21 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	"github.com/gin-gonic/gin"
 	"github.com/kart-io/sentinel-x/pkg/utils/errors"
 	"github.com/kart-io/sentinel-x/pkg/utils/validator"
 )
 
-// Writer provides convenient methods to write responses to transport.Context.
+// Writer provides convenient methods to write responses to *gin.Context.
 type Writer struct {
-	ctx       transport.Context
+	ctx       *gin.Context
 	withTime  bool
 	requestID string
 	lang      string
 }
 
 // NewWriter creates a new response writer for the given context.
-func NewWriter(ctx transport.Context) *Writer {
+func NewWriter(ctx *gin.Context) *Writer {
 	return &Writer{ctx: ctx}
 }
 
@@ -138,52 +138,52 @@ func (w *Writer) Send(r *Response) {
 }
 
 // ============================================================================
-// Convenience functions that work directly with transport.Context
+// Convenience functions that work directly with *gin.Context
 // ============================================================================
 
 // OK sends a successful response.
-func OK(ctx transport.Context, data interface{}) {
+func OK(ctx *gin.Context, data interface{}) {
 	NewWriter(ctx).OK(data)
 }
 
 // OKWithMessage sends a successful response with message.
-func OKWithMessage(ctx transport.Context, message string, data interface{}) {
+func OKWithMessage(ctx *gin.Context, message string, data interface{}) {
 	NewWriter(ctx).OKWithMessage(message, data)
 }
 
 // Fail sends an error response using Errno.
-func Fail(ctx transport.Context, e *errors.Errno) {
+func Fail(ctx *gin.Context, e *errors.Errno) {
 	NewWriter(ctx).Fail(e)
 }
 
 // FailWithLang sends an error response with language-specific message.
-func FailWithLang(ctx transport.Context, e *errors.Errno, lang string) {
+func FailWithLang(ctx *gin.Context, e *errors.Errno, lang string) {
 	NewWriter(ctx).FailWithLang(e, lang)
 }
 
 // FailWithCode sends an error response with code and message.
-func FailWithCode(ctx transport.Context, code int, message string) {
+func FailWithCode(ctx *gin.Context, code int, message string) {
 	NewWriter(ctx).FailWithCode(code, message)
 }
 
 // FailWithError sends an error response from a standard error.
-func FailWithError(ctx transport.Context, err error) {
+func FailWithError(ctx *gin.Context, err error) {
 	NewWriter(ctx).FailWithError(err)
 }
 
 // PageOK sends a paginated response.
-func PageOK(ctx transport.Context, list interface{}, total int64, page, pageSize int) {
+func PageOK(ctx *gin.Context, list interface{}, total int64, page, pageSize int) {
 	NewWriter(ctx).PageOK(list, total, page, pageSize)
 }
 
 // FailWithValidation sends a validation error response.
-func FailWithValidation(ctx transport.Context, verr *validator.ValidationErrors) {
+func FailWithValidation(ctx *gin.Context, verr *validator.ValidationErrors) {
 	NewWriter(ctx).FailWithValidation(verr)
 }
 
 // FailWithBindOrValidation handles binding or validation errors.
 // If err is a ValidationErrors, sends detailed validation error response.
 // Otherwise, sends a generic invalid parameter error.
-func FailWithBindOrValidation(ctx transport.Context, err error) {
+func FailWithBindOrValidation(ctx *gin.Context, err error) {
 	NewWriter(ctx).FailWithBindOrValidation(err)
 }
