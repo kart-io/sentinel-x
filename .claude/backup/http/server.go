@@ -3,10 +3,9 @@ package http
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 
-	"github.com/gin-gonic/gin"
-	"github.com/gin-gonic/gin/binding"
 	"github.com/kart-io/sentinel-x/pkg/infra/middleware"
 	"github.com/kart-io/sentinel-x/pkg/infra/middleware/observability"
 	"github.com/kart-io/sentinel-x/pkg/infra/middleware/resilience"
@@ -15,6 +14,7 @@ import (
 	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 	options "github.com/kart-io/sentinel-x/pkg/options/server/http"
 	apierrors "github.com/kart-io/sentinel-x/pkg/utils/errors"
+	"github.com/kart-io/sentinel-x/pkg/utils/response"
 )
 
 // Re-export types from options package for convenience
@@ -47,7 +47,7 @@ var (
 type Server struct {
 	opts     *options.Options
 	mwOpts   *mwopts.Options
-	engine   *gin.Engine
+	adapter  Adapter
 	server   *http.Server
 	handlers []registeredHandler
 }
@@ -55,19 +55,6 @@ type Server struct {
 type registeredHandler struct {
 	svc     service.Service
 	handler transport.HTTPHandler
-}
-
-// ginValidator wraps transport.Validator for gin binding.
-type ginValidator struct {
-	validator transport.Validator
-}
-
-func (v *ginValidator) ValidateStruct(obj interface{}) error {
-	return v.validator.Validate(obj)
-}
-
-func (v *ginValidator) Engine() interface{} {
-	return nil
 }
 
 // NewServer creates a new HTTP server with the given options.
@@ -79,29 +66,37 @@ func NewServer(serverOpts *options.Options, middlewareOpts *mwopts.Options) *Ser
 		middlewareOpts = mwopts.NewOptions()
 	}
 
-	// 设置 Gin 模式
-	gin.SetMode(gin.ReleaseMode)
+	adapter := GetAdapter(serverOpts.Adapter)
+	if adapter == nil {
+		// Default to gin if no adapter is registered
+		adapter = GetAdapter(options.AdapterGin)
+	}
 
-	// 创建 Gin 引擎（不使用默认中间件）
-	engine := gin.New()
+	// Note: adapter may still be nil if no adapters are registered
+	// This will be checked in Start()
 
 	s := &Server{
 		opts:     serverOpts,
 		mwOpts:   middlewareOpts,
-		engine:   engine,
+		adapter:  adapter,
 		handlers: make([]registeredHandler, 0),
 	}
 
-	// 在创建 Server 时就应用中间件
+	// 关键：在创建 Server 时就应用中间件
 	// 这样所有后续创建的路由组都会继承这些中间件
-	s.applyMiddleware(middlewareOpts)
+	if adapter != nil {
+		s.applyMiddleware(adapter.Router(), middlewareOpts)
+	}
 
 	return s
 }
 
 // Name returns the server name.
 func (s *Server) Name() string {
-	return "http[gin]"
+	if s.adapter == nil {
+		return "http[uninitialized]"
+	}
+	return fmt.Sprintf("http[%s]", s.adapter.Name())
 }
 
 // RegisterHTTPHandler registers an HTTP handler for a service.
@@ -116,75 +111,74 @@ func (s *Server) RegisterHTTPHandler(svc service.Service, handler transport.HTTP
 	return nil
 }
 
-// Engine returns the underlying gin.Engine.
-func (s *Server) Engine() *gin.Engine {
-	return s.engine
-}
-
-// Router returns the HTTP router (deprecated, use Engine instead).
-// Deprecated: Use Engine() to get *gin.Engine directly.
+// Router returns the HTTP router.
 func (s *Server) Router() transport.Router {
-	// 返回 nil 或者可以考虑返回一个兼容层
-	// 为了保持向后兼容，这里暂时保留方法但返回 nil
-	return nil
+	if s.adapter == nil {
+		return nil
+	}
+	return s.adapter.Router()
 }
 
 // SetValidator sets the global validator for the server.
 func (s *Server) SetValidator(v transport.Validator) {
-	binding.Validator = &ginValidator{validator: v}
+	if s.adapter != nil {
+		s.adapter.SetValidator(v)
+	}
+}
+
+// Adapter returns the underlying adapter.
+func (s *Server) Adapter() Adapter {
+	return s.adapter
 }
 
 // Start starts the HTTP server.
 func (s *Server) Start(ctx context.Context) error {
+	// Check if adapter is initialized
+	if s.adapter == nil {
+		return errors.New("HTTP server adapter not initialized: no adapter registered for the configured type. " +
+			"Make sure to import the adapter package (e.g., _ \"github.com/kart-io/sentinel-x/pkg/infra/server/transport/http/gin\")")
+	}
+
 	// Set default 404 handler with JSON response
-	s.engine.NoRoute(func(c *gin.Context) {
-		c.JSON(http.StatusNotFound, gin.H{
-			"code":    apierrors.ErrRouteNotFound.Code,
-			"message": apierrors.ErrRouteNotFound.Message,
-		})
+	s.adapter.SetNotFoundHandler(func(c transport.Context) {
+		response.Fail(c, apierrors.ErrRouteNotFound)
 	})
+
+	router := s.adapter.Router()
+	mwOpts := s.mwOpts
 
 	// 注意：中间件已在 NewServer 时应用，这里不再重复应用
 	// 这是因为 Gin 的 RouterGroup 在创建子组时会复制当前的 handlers
 	// 如果中间件在路由注册之后才应用，则不会被子组继承
 
-	// TODO: 这些端点注册函数需要重构为直接接受 *gin.Engine 而非 transport.Router
-	// 暂时注释掉，等待中间件层重构完成后再启用
-
 	// Register health endpoints
-	// if s.mwOpts.IsEnabled(mwopts.MiddlewareHealth) {
-	// 	middleware.RegisterHealthRoutesWithGin(s.engine, *s.mwOpts.Health, nil)
-	// }
+	if mwOpts.IsEnabled(mwopts.MiddlewareHealth) {
+		middleware.RegisterHealthRoutesWithOptions(router, *mwOpts.Health, nil)
+	}
 
 	// Register metrics endpoint
-	// if s.mwOpts.IsEnabled(mwopts.MiddlewareMetrics) {
-	// 	middleware.RegisterMetricsRoutesWithGin(s.engine, *s.mwOpts.Metrics)
-	// }
+	if mwOpts.IsEnabled(mwopts.MiddlewareMetrics) {
+		middleware.RegisterMetricsRoutesWithOptions(router, *mwOpts.Metrics)
+	}
 
 	// Register pprof endpoints
-	// if s.mwOpts.IsEnabled(mwopts.MiddlewarePprof) {
-	// 	middleware.RegisterPprofRoutesWithGin(s.engine, *s.mwOpts.Pprof)
-	// }
+	if mwOpts.IsEnabled(mwopts.MiddlewarePprof) {
+		middleware.RegisterPprofRoutesWithOptions(router, *mwOpts.Pprof)
+	}
 
 	// Register version endpoint
-	// if s.mwOpts.IsEnabled(mwopts.MiddlewareVersion) {
-	// 	middleware.RegisterVersionRoutesWithGin(s.engine, *s.mwOpts.Version)
-	// }
+	if mwOpts.IsEnabled(mwopts.MiddlewareVersion) {
+		middleware.RegisterVersionRoutes(router, *mwOpts.Version)
+	}
 
 	// Register all handlers
 	for _, h := range s.handlers {
-		// 注意：HTTPHandler接口需要适配为直接使用gin.Engine
-		// 这里暂时保留，后续可能需要调整HTTPHandler接口
-		if h.handler != nil {
-			// 由于移除了Router接口，这里需要跳过或者重新设计
-			// 暂时注释掉，因为handler.RegisterRoutes期望transport.Router
-			// h.handler.RegisterRoutes(???)
-		}
+		h.handler.RegisterRoutes(router)
 	}
 
 	s.server = &http.Server{
 		Addr:         s.opts.Addr,
-		Handler:      s.engine,
+		Handler:      s.adapter.Handler(),
 		ReadTimeout:  s.opts.ReadTimeout,
 		WriteTimeout: s.opts.WriteTimeout,
 		IdleTimeout:  s.opts.IdleTimeout,
@@ -207,41 +201,62 @@ func (s *Server) Start(ctx context.Context) error {
 	}
 }
 
-// applyMiddleware applies configured middleware to the engine.
-// 使用Gin的中间件机制直接注册中间件。
-func (s *Server) applyMiddleware(opts *mwopts.Options) {
+// applyMiddleware applies configured middleware to the router.
+// 使用优先级注册器自动管理中间件执行顺序。
+func (s *Server) applyMiddleware(router transport.Router, opts *mwopts.Options) {
 	// Ensure all sub-options are initialized with defaults
 	_ = opts.Complete()
 
+	// 创建中间件注册器
+	registrar := middleware.NewRegistrar()
+
 	// Recovery middleware (enabled by default, 最高优先级)
-	if opts.IsEnabled(mwopts.MiddlewareRecovery) {
-		s.engine.Use(resilience.RecoveryWithOptions(*opts.Recovery, nil))
-	}
+	registrar.RegisterIf(
+		opts.IsEnabled(mwopts.MiddlewareRecovery),
+		"recovery",
+		middleware.PriorityRecovery,
+		resilience.RecoveryWithOptions(*opts.Recovery, nil),
+	)
 
 	// RequestID middleware (enabled by default, 为其他中间件提供 RequestID)
-	if opts.IsEnabled(mwopts.MiddlewareRequestID) {
-		s.engine.Use(middleware.RequestIDWithOptions(*opts.RequestID, nil))
-	}
+	registrar.RegisterIf(
+		opts.IsEnabled(mwopts.MiddlewareRequestID),
+		"request-id",
+		middleware.PriorityRequestID,
+		middleware.RequestIDWithOptions(*opts.RequestID, nil),
+	)
 
 	// Logger middleware (enabled by default, 依赖 RequestID)
-	if opts.IsEnabled(mwopts.MiddlewareLogger) {
-		s.engine.Use(observability.LoggerWithOptions(*opts.Logger, nil))
-	}
+	registrar.RegisterIf(
+		opts.IsEnabled(mwopts.MiddlewareLogger),
+		"logger",
+		middleware.PriorityLogger,
+		observability.LoggerWithOptions(*opts.Logger, nil),
+	)
 
 	// Metrics middleware (disabled by default)
-	if opts.IsEnabled(mwopts.MiddlewareMetrics) {
-		s.engine.Use(middleware.MetricsMiddlewareWithOptions(*opts.Metrics))
-	}
+	registrar.RegisterIf(
+		opts.IsEnabled(mwopts.MiddlewareMetrics),
+		"metrics",
+		middleware.PriorityMetrics,
+		middleware.MetricsMiddlewareWithOptions(*opts.Metrics),
+	)
 
 	// CORS middleware (disabled by default)
-	if opts.IsEnabled(mwopts.MiddlewareCORS) {
-		s.engine.Use(middleware.CORSWithOptions(*opts.CORS))
-	}
+	registrar.RegisterIf(
+		opts.IsEnabled(mwopts.MiddlewareCORS),
+		"cors",
+		middleware.PriorityCORS,
+		middleware.CORSWithOptions(*opts.CORS),
+	)
 
 	// Timeout middleware (disabled by default)
-	if opts.IsEnabled(mwopts.MiddlewareTimeout) {
-		s.engine.Use(middleware.TimeoutWithOptions(*opts.Timeout))
-	}
+	registrar.RegisterIf(
+		opts.IsEnabled(mwopts.MiddlewareTimeout),
+		"timeout",
+		middleware.PriorityTimeout,
+		middleware.TimeoutWithOptions(*opts.Timeout),
+	)
 
 	// Auth middleware (JWT authentication, 在业务逻辑前执行)
 	// 注意：Auth 中间件需要运行时注入 Authenticator，不能从配置文件加载
@@ -253,6 +268,15 @@ func (s *Server) applyMiddleware(opts *mwopts.Options) {
 	//       nil,  // errorHandler
 	//       nil,  // successHandler
 	//   )
+	// registrar.RegisterIf(
+	//   opts.IsEnabled(mwopts.MiddlewareAuth),
+	//   "auth",
+	//   middleware.PriorityAuth,
+	//   ... // 需要用户手动注入
+	// )
+
+	// 按优先级顺序应用所有中间件
+	registrar.Apply(router)
 }
 
 // Stop stops the HTTP server gracefully.

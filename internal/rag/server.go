@@ -16,8 +16,6 @@ import (
 	"github.com/kart-io/sentinel-x/internal/rag/store"
 	"github.com/kart-io/sentinel-x/pkg/component/milvus"
 	// 导入适配器以注册 HTTP 框架支持
-	_ "github.com/kart-io/sentinel-x/pkg/infra/adapter/echo"
-	_ "github.com/kart-io/sentinel-x/pkg/infra/adapter/gin"
 	"github.com/kart-io/sentinel-x/pkg/infra/app"
 	"github.com/kart-io/sentinel-x/pkg/infra/server"
 	"github.com/kart-io/sentinel-x/pkg/llm"

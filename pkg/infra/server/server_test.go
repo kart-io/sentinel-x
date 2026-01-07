@@ -8,7 +8,6 @@ import (
 	"time"
 
 	// Import gin adapter to register it
-	_ "github.com/kart-io/sentinel-x/pkg/infra/adapter/gin"
 	grpcopts "github.com/kart-io/sentinel-x/pkg/infra/server/grpc"
 	httpopts "github.com/kart-io/sentinel-x/pkg/infra/server/http"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/service"

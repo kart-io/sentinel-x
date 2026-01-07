@@ -1,0 +1,384 @@
+===========> Run unit test
+	github.com/kart-io/sentinel-x/api/swagger/apisvc		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/api/swagger/rag		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/api/swagger/user-center		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/cmd/api		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/cmd/api/app		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/cmd/api/app/options		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/cmd/rag		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/cmd/rag/app		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/cmd/rag/app/options		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/cmd/scheduler			github.com/kart-io/sentinel-x/cmd/swagger		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/cmd/user-center		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/cmd/user-center/app		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/cmd/user-center/app/options		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/internal/api		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/internal/api/handler		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/internal/api/router		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/internal/model		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/internal/pkg/httputils		coverage: 0.0% of statements
+ok  	github.com/kart-io/sentinel-x/internal/pkg/rag/docutil	1.010s	coverage: 34.8% of statements
+ok  	github.com/kart-io/sentinel-x/internal/pkg/rag/enhancer	1.017s	coverage: 84.7% of statements
+ok  	github.com/kart-io/sentinel-x/internal/pkg/rag/evaluator	1.017s	coverage: 80.4% of statements
+ok  	github.com/kart-io/sentinel-x/internal/pkg/rag/textutil	1.012s	coverage: 73.8% of statements
+	github.com/kart-io/sentinel-x/internal/rag		coverage: 0.0% of statements
+ok  	github.com/kart-io/sentinel-x/internal/rag/biz	4.066s	coverage: 19.1% of statements
+	github.com/kart-io/sentinel-x/internal/rag/grpc		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/internal/rag/handler		coverage: 0.0% of statements
+-test.shuffle 1767768700910698565
+--- FAIL: TestRAGMetricsIntegration (0.00s)
+    integration_test.go:35: expected rag_queries_total 2 in output
+    integration_test.go:38: expected rag_queries_cache_hits_total 1 in output
+    integration_test.go:41: expected rag_retrieval_duration_seconds_total 0.1 in output
+FAIL
+coverage: 98.1% of statements
+FAIL	github.com/kart-io/sentinel-x/internal/rag/metrics	0.039s
+	github.com/kart-io/sentinel-x/internal/rag/router		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/internal/rag/store		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/internal/user-center		coverage: 0.0% of statements
+ok  	github.com/kart-io/sentinel-x/internal/user-center/biz	20.420s	coverage: 0.0% of statements
+ok  	github.com/kart-io/sentinel-x/internal/user-center/handler	1.107s	coverage: 2.2% of statements
+	github.com/kart-io/sentinel-x/internal/user-center/router		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/internal/user-center/store		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/pkg/api/hello/v1		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/pkg/api/rag/v1		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/pkg/api/user-center/v1		coverage: 0.0% of statements
+?   	github.com/kart-io/sentinel-x/pkg/apis/sentinel.sentinel-x.io	[no test files]
+	github.com/kart-io/sentinel-x/pkg/apis/sentinel.sentinel-x.io/v1		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/pkg/app/cliflag		coverage: 0.0% of statements
+ok  	github.com/kart-io/sentinel-x/pkg/cache	1.019s	coverage: 86.7% of statements
+ok  	github.com/kart-io/sentinel-x/pkg/component	1.031s	coverage: [no statements]
+ok  	github.com/kart-io/sentinel-x/pkg/component/etcd	1.023s	coverage: 15.1% of statements
+	github.com/kart-io/sentinel-x/pkg/component/milvus		coverage: 0.0% of statements
+ok  	github.com/kart-io/sentinel-x/pkg/component/mongodb	1.015s	coverage: 5.3% of statements
+	github.com/kart-io/sentinel-x/pkg/component/mongodb/example		coverage: 0.0% of statements
+ok  	github.com/kart-io/sentinel-x/pkg/component/mysql	1.017s	coverage: 34.0% of statements
+	github.com/kart-io/sentinel-x/pkg/component/postgres		coverage: 0.0% of statements
+ok  	github.com/kart-io/sentinel-x/pkg/component/redis	1.015s	coverage: 2.4% of statements
+ok  	github.com/kart-io/sentinel-x/pkg/component/storage	1.012s	coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/pkg/generated/clientset/versioned		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/pkg/generated/clientset/versioned/fake		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/pkg/generated/clientset/versioned/scheme		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/pkg/generated/clientset/versioned/typed/sentinel.sentinel-x.io/v1		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/pkg/generated/clientset/versioned/typed/sentinel.sentinel-x.io/v1/fake		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/pkg/generated/informers/externalversions		coverage: 0.0% of statements
+?   	github.com/kart-io/sentinel-x/pkg/generated/informers/externalversions/internalinterfaces	[no test files]
+	github.com/kart-io/sentinel-x/pkg/generated/informers/externalversions/sentinel.sentinel-x.io		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/pkg/generated/informers/externalversions/sentinel.sentinel-x.io/v1		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/pkg/generated/listers/sentinel.sentinel-x.io/v1		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/pkg/infra/adapter/echo		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/pkg/infra/adapter/gin		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/pkg/infra/app		coverage: 0.0% of statements
+-test.shuffle 1767768718791220088
+{"timestamp":"2026-01-07T14:51:58.791916297+08:00","level":"info","message":"Config watcher: subscribed handler 'M'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.792136787+08:00","level":"info","message":"Config watcher: subscribed handler 'V'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.792280707+08:00","level":"info","message":"Config watcher: subscribed handler 'O'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.792878337+08:00","level":"info","message":"Config watcher: subscribed handler 'L'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.792982856+08:00","level":"info","message":"Config watcher: subscribed handler 'Z'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.793074103+08:00","level":"info","message":"Config watcher: subscribed handler 'A'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.793161352+08:00","level":"info","message":"Config watcher: subscribed handler 'B'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.793243625+08:00","level":"info","message":"Config watcher: subscribed handler 'D'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.793340561+08:00","level":"info","message":"Config watcher: subscribed handler 'E'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.793416022+08:00","level":"info","message":"Config watcher: subscribed handler 'F'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.793493882+08:00","level":"info","message":"Config watcher: subscribed handler 'C'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.793599587+08:00","level":"info","message":"Config watcher: subscribed handler 'H'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.793680749+08:00","level":"info","message":"Config watcher: subscribed handler 'I'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.793778589+08:00","level":"info","message":"Config watcher: subscribed handler 'W'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.793854593+08:00","level":"info","message":"Config watcher: subscribed handler 'E'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.793936926+08:00","level":"info","message":"Config watcher: subscribed handler 'F'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.794021283+08:00","level":"info","message":"Config watcher: subscribed handler 'H'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.794100856+08:00","level":"info","message":"Config watcher: subscribed handler 'I'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.794203834+08:00","level":"info","message":"Config watcher: subscribed handler 'J'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.794289187+08:00","level":"info","message":"Config watcher: subscribed handler 'K'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.794383749+08:00","level":"info","message":"Config watcher: subscribed handler 'L'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.794464676+08:00","level":"info","message":"Config watcher: subscribed handler 'M'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.794546904+08:00","level":"info","message":"Config watcher: subscribed handler 'G'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.794634528+08:00","level":"info","message":"Config watcher: subscribed handler 'O'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.79472162+08:00","level":"info","message":"Config watcher: subscribed handler 'N'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.794807857+08:00","level":"info","message":"Config watcher: subscribed handler 'V'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.794886674+08:00","level":"info","message":"Config watcher: subscribed handler 'P'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.794964254+08:00","level":"info","message":"Config watcher: subscribed handler 'R'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.795041443+08:00","level":"info","message":"Config watcher: subscribed handler 'X'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.795124858+08:00","level":"info","message":"Config watcher: subscribed handler 'S'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.795199854+08:00","level":"info","message":"Config watcher: subscribed handler 'T'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.795279373+08:00","level":"info","message":"Config watcher: subscribed handler 'U'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.795364413+08:00","level":"info","message":"Config watcher: subscribed handler 'Q'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.795435476+08:00","level":"info","message":"Config watcher: subscribed handler 'K'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.795539187+08:00","level":"info","message":"Config watcher: subscribed handler 'J'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.795613477+08:00","level":"info","message":"Config watcher: subscribed handler 'G'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.795674902+08:00","level":"info","message":"Config watcher: subscribed handler 'V'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.795730588+08:00","level":"info","message":"Config watcher: subscribed handler 'V'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.795796909+08:00","level":"info","message":"Config watcher: subscribed handler 'Z'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.795865306+08:00","level":"info","message":"Config watcher: subscribed handler 'X'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.795919206+08:00","level":"info","message":"Config watcher: subscribed handler 'A'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.795979872+08:00","level":"info","message":"Config watcher: subscribed handler 'X'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.796289583+08:00","level":"info","message":"Config watcher: subscribed handler 'Z'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.796472275+08:00","level":"info","message":"Config watcher: subscribed handler 'R'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.796558611+08:00","level":"info","message":"Config watcher: subscribed handler 'B'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.796624086+08:00","level":"info","message":"Config watcher: subscribed handler 'Y'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.796670416+08:00","level":"info","message":"Config watcher: subscribed handler 'J'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.79671297+08:00","level":"info","message":"Config watcher: subscribed handler 'B'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.796764492+08:00","level":"info","message":"Config watcher: subscribed handler 'W'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.79681024+08:00","level":"info","message":"Config watcher: subscribed handler 'C'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.796856345+08:00","level":"info","message":"Config watcher: subscribed handler 'Y'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.796896985+08:00","level":"info","message":"Config watcher: subscribed handler 'D'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.796935118+08:00","level":"info","message":"Config watcher: subscribed handler 'A'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.79697759+08:00","level":"info","message":"Config watcher: subscribed handler 'A'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.797028242+08:00","level":"info","message":"Config watcher: subscribed handler 'O'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.797071565+08:00","level":"info","message":"Config watcher: subscribed handler 'N'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.79711779+08:00","level":"info","message":"Config watcher: subscribed handler 'F'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.797158409+08:00","level":"info","message":"Config watcher: subscribed handler 'B'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.797198912+08:00","level":"info","message":"Config watcher: subscribed handler 'P'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.797245268+08:00","level":"info","message":"Config watcher: subscribed handler 'G'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.797293536+08:00","level":"info","message":"Config watcher: subscribed handler 'C'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.797334417+08:00","level":"info","message":"Config watcher: subscribed handler 'Q'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.797374369+08:00","level":"info","message":"Config watcher: subscribed handler 'E'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.797413639+08:00","level":"info","message":"Config watcher: subscribed handler 'S'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.797464856+08:00","level":"info","message":"Config watcher: subscribed handler 'D'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.797512672+08:00","level":"info","message":"Config watcher: subscribed handler 'I'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.797578427+08:00","level":"info","message":"Config watcher: subscribed handler 'T'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.797649177+08:00","level":"info","message":"Config watcher: subscribed handler 'J'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.797712936+08:00","level":"info","message":"Config watcher: subscribed handler 'U'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.797768442+08:00","level":"info","message":"Config watcher: subscribed handler 'F'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.797822506+08:00","level":"info","message":"Config watcher: subscribed handler 'H'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.797883495+08:00","level":"info","message":"Config watcher: subscribed handler 'C'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.797941632+08:00","level":"info","message":"Config watcher: subscribed handler 'S'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.798006427+08:00","level":"info","message":"Config watcher: subscribed handler 'Y'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.798060747+08:00","level":"info","message":"Config watcher: subscribed handler 'N'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.798144517+08:00","level":"info","message":"Config watcher: subscribed handler 'E'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.798204024+08:00","level":"info","message":"Config watcher: subscribed handler 'Q'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.798256663+08:00","level":"info","message":"Config watcher: subscribed handler 'L'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.798309359+08:00","level":"info","message":"Config watcher: subscribed handler 'K'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.798419307+08:00","level":"info","message":"Config watcher: subscribed handler 'P'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.798479364+08:00","level":"info","message":"Config watcher: subscribed handler 'M'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.798547045+08:00","level":"info","message":"Config watcher: subscribed handler 'D'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.79860502+08:00","level":"info","message":"Config watcher: subscribed handler 'U'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.798665362+08:00","level":"info","message":"Config watcher: subscribed handler 'O'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.798717127+08:00","level":"info","message":"Config watcher: subscribed handler 'T'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.79877683+08:00","level":"info","message":"Config watcher: subscribed handler 'R'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.798838953+08:00","level":"info","message":"Config watcher: subscribed handler 'P'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.79889997+08:00","level":"info","message":"Config watcher: subscribed handler 'M'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.79896393+08:00","level":"info","message":"Config watcher: subscribed handler 'N'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.799019875+08:00","level":"info","message":"Config watcher: subscribed handler 'I'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.799093179+08:00","level":"info","message":"Config watcher: subscribed handler 'H'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.799162393+08:00","level":"info","message":"Config watcher: subscribed handler 'K'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.799211335+08:00","level":"info","message":"Config watcher: subscribed handler 'W'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.799271095+08:00","level":"info","message":"Config watcher: subscribed handler 'R'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.799321567+08:00","level":"info","message":"Config watcher: subscribed handler 'L'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.799389169+08:00","level":"info","message":"Config watcher: subscribed handler 'T'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.799441824+08:00","level":"info","message":"Config watcher: subscribed handler 'S'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.799489+08:00","level":"info","message":"Config watcher: subscribed handler 'Q'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.799712654+08:00","level":"info","message":"Config watcher: subscribed handler 'U'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.799811749+08:00","level":"info","message":"Config watcher: subscribed handler 'G'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.800580751+08:00","level":"info","message":"Config watcher: started watching for configuration changes","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:95"}
+{"timestamp":"2026-01-07T14:51:58.801144115+08:00","level":"info","message":"Config watcher: stopped","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:111"}
+{"timestamp":"2026-01-07T14:51:58.801231804+08:00","level":"info","message":"Config watcher: subscribed handler 'test'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.801456595+08:00","level":"info","message":"Config watcher: subscribed handler 'h1'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.801498098+08:00","level":"info","message":"Config watcher: subscribed handler 'h2'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.801539467+08:00","level":"info","message":"Config watcher: subscribed handler 'h3'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.801587762+08:00","level":"info","message":"Config watcher: unsubscribed handler 'h2'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:56"}
+{"timestamp":"2026-01-07T14:51:58.801675619+08:00","level":"info","message":"Config watcher: subscribed handler 'test-handler'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.801722723+08:00","level":"info","message":"Config watcher: unsubscribed handler 'test-handler'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:56"}
+{"timestamp":"2026-01-07T14:51:58.802387071+08:00","level":"info","message":"Config watcher: subscribed handler 'test'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.802544416+08:00","level":"info","message":"Config watcher: started watching for configuration changes","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:95"}
+{"timestamp":"2026-01-07T14:51:58.903370184+08:00","level":"info","message":"Config file changed: /tmp/config-watcher-test-2459601830/config.yaml","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:75"}
+{"timestamp":"2026-01-07T14:51:58.903476096+08:00","level":"info","message":"Config watcher: handler 'test' processed change successfully","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:90"}
+==================
+WARNING: DATA RACE
+Write at 0x00c0001d9160 by goroutine 127:
+  github.com/spf13/viper.(*Viper).ReadInConfig()
+      /home/hellotalk/code/go/src/github.com/kart-io/sentinel-x/vendor/github.com/spf13/viper/viper.go:1542 +0x3d7
+  github.com/spf13/viper.(*Viper).WatchConfig.func1.1()
+      /home/hellotalk/code/go/src/github.com/kart-io/sentinel-x/vendor/github.com/spf13/viper/viper.go:358 +0x3a8
+
+Previous read at 0x00c0001d9160 by goroutine 124:
+  github.com/spf13/viper.(*Viper).find()
+      /home/hellotalk/code/go/src/github.com/kart-io/sentinel-x/vendor/github.com/spf13/viper/viper.go:1251 +0xcac
+  github.com/spf13/viper.(*Viper).Get()
+      /home/hellotalk/code/go/src/github.com/kart-io/sentinel-x/vendor/github.com/spf13/viper/viper.go:718 +0x75
+  github.com/spf13/viper.(*Viper).GetString()
+      /home/hellotalk/code/go/src/github.com/kart-io/sentinel-x/vendor/github.com/spf13/viper/viper.go:793 +0x3a
+  github.com/kart-io/sentinel-x/pkg/infra/config.TestConfigFileChange()
+      /home/hellotalk/code/go/src/github.com/kart-io/sentinel-x/pkg/infra/config/watcher_test.go:505 +0xadd
+  testing.tRunner()
+      /home/hellotalk/.gvm/gos/go1.25/src/testing/testing.go:1934 +0x21c
+  testing.(*T).Run.gowrap1()
+      /home/hellotalk/.gvm/gos/go1.25/src/testing/testing.go:1997 +0x44
+
+Goroutine 127 (running) created at:
+  github.com/spf13/viper.(*Viper).WatchConfig.func1()
+      /home/hellotalk/code/go/src/github.com/kart-io/sentinel-x/vendor/github.com/spf13/viper/viper.go:342 +0x5d2
+
+Goroutine 124 (running) created at:
+  testing.(*T).Run()
+      /home/hellotalk/.gvm/gos/go1.25/src/testing/testing.go:1997 +0x9d2
+  testing.runTests.func1()
+      /home/hellotalk/.gvm/gos/go1.25/src/testing/testing.go:2477 +0x85
+  testing.tRunner()
+      /home/hellotalk/.gvm/gos/go1.25/src/testing/testing.go:1934 +0x21c
+  testing.runTests()
+      /home/hellotalk/.gvm/gos/go1.25/src/testing/testing.go:2475 +0x96c
+  testing.(*M).Run()
+      /home/hellotalk/.gvm/gos/go1.25/src/testing/testing.go:2337 +0xed4
+  main.main()
+      _testmain.go:101 +0x164
+==================
+{"timestamp":"2026-01-07T14:51:58.904493095+08:00","level":"info","message":"Config file changed: /tmp/config-watcher-test-2459601830/config.yaml","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:75"}
+--- FAIL: TestConfigFileChange (0.10s)
+    testing.go:1617: race detected during execution of test
+{"timestamp":"2026-01-07T14:51:58.904547142+08:00","level":"info","message":"Config watcher: handler 'test' processed change successfully","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:90"}
+{"timestamp":"2026-01-07T14:51:58.904705645+08:00","level":"info","message":"Config watcher: subscribed handler 'handler'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.904788037+08:00","level":"info","message":"Config watcher: subscribed handler 'handler'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.904889757+08:00","level":"info","message":"Config watcher: subscribed handler 'A'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.904944482+08:00","level":"info","message":"Config watcher: subscribed handler 'B'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.904988021+08:00","level":"info","message":"Config watcher: subscribed handler 'C'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.905037216+08:00","level":"info","message":"Config watcher: subscribed handler 'D'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.905074307+08:00","level":"info","message":"Config watcher: subscribed handler 'E'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.905123052+08:00","level":"info","message":"Config watcher: subscribed handler 'F'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.905176676+08:00","level":"info","message":"Config watcher: subscribed handler 'G'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.905215589+08:00","level":"info","message":"Config watcher: subscribed handler 'H'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.905252937+08:00","level":"info","message":"Config watcher: subscribed handler 'I'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.905292837+08:00","level":"info","message":"Config watcher: subscribed handler 'J'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.905341935+08:00","level":"info","message":"Config watcher: subscribed handler 'K'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.905381846+08:00","level":"info","message":"Config watcher: subscribed handler 'L'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.905417288+08:00","level":"info","message":"Config watcher: subscribed handler 'M'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.905451589+08:00","level":"info","message":"Config watcher: subscribed handler 'N'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.905494697+08:00","level":"info","message":"Config watcher: subscribed handler 'O'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.90554107+08:00","level":"info","message":"Config watcher: subscribed handler 'P'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.905578711+08:00","level":"info","message":"Config watcher: subscribed handler 'Q'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.905616654+08:00","level":"info","message":"Config watcher: subscribed handler 'R'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.905651965+08:00","level":"info","message":"Config watcher: subscribed handler 'S'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.905683114+08:00","level":"info","message":"Config watcher: subscribed handler 'T'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.905715822+08:00","level":"info","message":"Config watcher: subscribed handler 'U'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.905758985+08:00","level":"info","message":"Config watcher: subscribed handler 'V'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.905808101+08:00","level":"info","message":"Config watcher: subscribed handler 'W'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.905849922+08:00","level":"info","message":"Config watcher: subscribed handler 'X'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.905883131+08:00","level":"info","message":"Config watcher: subscribed handler 'Y'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.905911003+08:00","level":"info","message":"Config watcher: subscribed handler 'Z'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.906094945+08:00","level":"info","message":"Config watcher: unsubscribed handler 'W'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:56"}
+{"timestamp":"2026-01-07T14:51:58.906179674+08:00","level":"info","message":"Config watcher: unsubscribed handler 'Z'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:56"}
+{"timestamp":"2026-01-07T14:51:58.906315235+08:00","level":"info","message":"Config watcher: unsubscribed handler 'J'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:56"}
+{"timestamp":"2026-01-07T14:51:58.906406409+08:00","level":"info","message":"Config watcher: unsubscribed handler 'B'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:56"}
+{"timestamp":"2026-01-07T14:51:58.906448554+08:00","level":"info","message":"Config watcher: unsubscribed handler 'K'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:56"}
+{"timestamp":"2026-01-07T14:51:58.906481121+08:00","level":"info","message":"Config watcher: unsubscribed handler 'A'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:56"}
+{"timestamp":"2026-01-07T14:51:58.906510795+08:00","level":"info","message":"Config watcher: unsubscribed handler 'C'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:56"}
+{"timestamp":"2026-01-07T14:51:58.906547146+08:00","level":"info","message":"Config watcher: unsubscribed handler 'H'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:56"}
+{"timestamp":"2026-01-07T14:51:58.906582694+08:00","level":"info","message":"Config watcher: unsubscribed handler 'F'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:56"}
+{"timestamp":"2026-01-07T14:51:58.906614184+08:00","level":"info","message":"Config watcher: unsubscribed handler 'I'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:56"}
+{"timestamp":"2026-01-07T14:51:58.90664175+08:00","level":"info","message":"Config watcher: unsubscribed handler 'L'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:56"}
+{"timestamp":"2026-01-07T14:51:58.906668914+08:00","level":"info","message":"Config watcher: unsubscribed handler 'R'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:56"}
+{"timestamp":"2026-01-07T14:51:58.906696846+08:00","level":"info","message":"Config watcher: unsubscribed handler 'D'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:56"}
+{"timestamp":"2026-01-07T14:51:58.906720267+08:00","level":"info","message":"Config watcher: unsubscribed handler 'N'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:56"}
+{"timestamp":"2026-01-07T14:51:58.906749284+08:00","level":"info","message":"Config watcher: unsubscribed handler 'O'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:56"}
+{"timestamp":"2026-01-07T14:51:58.906774376+08:00","level":"info","message":"Config watcher: unsubscribed handler 'M'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:56"}
+{"timestamp":"2026-01-07T14:51:58.906797529+08:00","level":"info","message":"Config watcher: unsubscribed handler 'Q'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:56"}
+{"timestamp":"2026-01-07T14:51:58.906825971+08:00","level":"info","message":"Config watcher: unsubscribed handler 'E'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:56"}
+{"timestamp":"2026-01-07T14:51:58.906850741+08:00","level":"info","message":"Config watcher: unsubscribed handler 'U'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:56"}
+{"timestamp":"2026-01-07T14:51:58.90688183+08:00","level":"info","message":"Config watcher: unsubscribed handler 'T'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:56"}
+{"timestamp":"2026-01-07T14:51:58.906906022+08:00","level":"info","message":"Config watcher: unsubscribed handler 'P'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:56"}
+{"timestamp":"2026-01-07T14:51:58.906934348+08:00","level":"info","message":"Config watcher: unsubscribed handler 'V'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:56"}
+{"timestamp":"2026-01-07T14:51:58.906958097+08:00","level":"info","message":"Config watcher: unsubscribed handler 'Y'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:56"}
+{"timestamp":"2026-01-07T14:51:58.906980515+08:00","level":"info","message":"Config watcher: unsubscribed handler 'S'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:56"}
+{"timestamp":"2026-01-07T14:51:58.907006286+08:00","level":"info","message":"Config watcher: unsubscribed handler 'G'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:56"}
+{"timestamp":"2026-01-07T14:51:58.907038296+08:00","level":"info","message":"Config watcher: unsubscribed handler 'X'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:56"}
+{"timestamp":"2026-01-07T14:51:58.907210468+08:00","level":"info","message":"Config watcher: subscribed handler 'handler'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.907247874+08:00","level":"info","message":"Config watcher: subscribed handler 'handler'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.907312309+08:00","level":"info","message":"Config watcher: subscribed handler 'h1'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.907349469+08:00","level":"info","message":"Config watcher: subscribed handler 'h2'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.907384664+08:00","level":"info","message":"Config watcher: subscribed handler 'h3'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.907467696+08:00","level":"info","message":"Config watcher: subscribed handler 'test'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:46"}
+{"timestamp":"2026-01-07T14:51:58.907515215+08:00","level":"info","message":"Config watcher: unsubscribed handler 'test'","service.name":"unknown","service.version":"unknown","engine":"slog","caller":"config/watcher.go:56"}
+FAIL
+coverage: 95.8% of statements
+FAIL	github.com/kart-io/sentinel-x/pkg/infra/config	0.133s
+	github.com/kart-io/sentinel-x/pkg/infra/config/example		coverage: 0.0% of statements
+ok  	github.com/kart-io/sentinel-x/pkg/infra/datasource	61.055s	coverage: 44.8% of statements
+ok  	github.com/kart-io/sentinel-x/pkg/infra/logger	1.015s	coverage: 32.8% of statements
+ok  	github.com/kart-io/sentinel-x/pkg/infra/middleware	1.042s	coverage: 18.5% of statements
+ok  	github.com/kart-io/sentinel-x/pkg/infra/middleware/auth	1.014s	coverage: 8.3% of statements
+	github.com/kart-io/sentinel-x/pkg/infra/middleware/example/priority		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/pkg/infra/middleware/grpc		coverage: 0.0% of statements
+ok  	github.com/kart-io/sentinel-x/pkg/infra/middleware/internal/pathutil	1.010s	coverage: 100.0% of statements
+ok  	github.com/kart-io/sentinel-x/pkg/infra/middleware/observability	1.028s	coverage: 72.2% of statements
+	github.com/kart-io/sentinel-x/pkg/infra/middleware/performance		coverage: 0.0% of statements
+ok  	github.com/kart-io/sentinel-x/pkg/infra/middleware/requestutil	1.068s	coverage: 45.2% of statements
+ok  	github.com/kart-io/sentinel-x/pkg/infra/middleware/resilience	9.663s	coverage: 79.0% of statements
+ok  	github.com/kart-io/sentinel-x/pkg/infra/middleware/security	1.010s	coverage: 92.0% of statements
+ok  	github.com/kart-io/sentinel-x/pkg/infra/pool	1.418s	coverage: 53.4% of statements
+-test.shuffle 1767768721578714958
+--- FAIL: TestManagerWait_HTTPServerReady (0.00s)
+panic: runtime error: invalid memory address or nil pointer dereference [recovered, repanicked]
+[signal SIGSEGV: segmentation violation code=0x1 addr=0x0 pc=0x1c48f47]
+
+goroutine 12 [running]:
+testing.tRunner.func1.2({0x1fe81a0, 0x307eea0})
+	/home/hellotalk/.gvm/gos/go1.25/src/testing/testing.go:1872 +0x419
+testing.tRunner.func1()
+	/home/hellotalk/.gvm/gos/go1.25/src/testing/testing.go:1875 +0x683
+panic({0x1fe81a0?, 0x307eea0?})
+	/home/hellotalk/.gvm/gos/go1.25/src/runtime/panic.go:783 +0x132
+github.com/kart-io/sentinel-x/pkg/infra/server/transport/http.(*Server).applyMiddleware(0xc000010eb8?, {0x24e2640, 0xc00005f3c0}, 0xc0002b8400)
+	/home/hellotalk/code/go/src/github.com/kart-io/sentinel-x/pkg/infra/server/transport/http/server.go:250 +0x6a7
+github.com/kart-io/sentinel-x/pkg/infra/server/transport/http.NewServer(0xc000455d80, 0xc0002b8400)
+	/home/hellotalk/code/go/src/github.com/kart-io/sentinel-x/pkg/infra/server/transport/http/server.go:88 +0xb1d
+github.com/kart-io/sentinel-x/pkg/infra/server.NewManager({0xc0002e8e78, 0x3, 0xf?})
+	/home/hellotalk/code/go/src/github.com/kart-io/sentinel-x/pkg/infra/server/server.go:73 +0x806
+github.com/kart-io/sentinel-x/pkg/infra/server.TestManagerWait_HTTPServerReady(0xc0001b2e00)
+	/home/hellotalk/code/go/src/github.com/kart-io/sentinel-x/pkg/infra/server/server_test.go:571 +0xa8a
+testing.tRunner(0xc0001b2e00, 0x2206d08)
+	/home/hellotalk/.gvm/gos/go1.25/src/testing/testing.go:1934 +0x21d
+created by testing.(*T).Run in goroutine 1
+	/home/hellotalk/.gvm/gos/go1.25/src/testing/testing.go:1997 +0x9d3
+FAIL	github.com/kart-io/sentinel-x/pkg/infra/server	0.035s
+?   	github.com/kart-io/sentinel-x/pkg/infra/server/grpc	[no test files]
+?   	github.com/kart-io/sentinel-x/pkg/infra/server/http	[no test files]
+?   	github.com/kart-io/sentinel-x/pkg/infra/server/service	[no test files]
+?   	github.com/kart-io/sentinel-x/pkg/infra/server/transport	[no test files]
+	github.com/kart-io/sentinel-x/pkg/infra/server/transport/grpc		coverage: 0.0% of statements
+ok  	github.com/kart-io/sentinel-x/pkg/infra/server/transport/http	1.055s	coverage: 37.9% of statements
+ok  	github.com/kart-io/sentinel-x/pkg/infra/tracing	1.019s	coverage: 37.4% of statements
+ok  	github.com/kart-io/sentinel-x/pkg/llm	1.009s	coverage: 82.6% of statements
+ok  	github.com/kart-io/sentinel-x/pkg/llm/deepseek	1.022s	coverage: 1.4% of statements [no tests to run]
+ok  	github.com/kart-io/sentinel-x/pkg/llm/gemini	1.026s	coverage: 18.9% of statements
+ok  	github.com/kart-io/sentinel-x/pkg/llm/huggingface	1.030s	coverage: 17.8% of statements
+ok  	github.com/kart-io/sentinel-x/pkg/llm/ollama	1.019s	coverage: 16.7% of statements
+ok  	github.com/kart-io/sentinel-x/pkg/llm/openai	1.206s	coverage: 80.5% of statements
+ok  	github.com/kart-io/sentinel-x/pkg/llm/resilience	1.759s	coverage: 42.9% of statements
+ok  	github.com/kart-io/sentinel-x/pkg/llm/siliconflow	1.224s	coverage: 88.0% of statements
+ok  	github.com/kart-io/sentinel-x/pkg/observability/metrics	1.015s	coverage: 56.6% of statements
+	github.com/kart-io/sentinel-x/pkg/options		coverage: 0.0% of statements
+?   	github.com/kart-io/sentinel-x/pkg/options/app	[no test files]
+	github.com/kart-io/sentinel-x/pkg/options/auth/jwt		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/pkg/options/cache		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/pkg/options/etcd		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/pkg/options/llm		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/pkg/options/logger		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/pkg/options/middleware		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/pkg/options/milvus		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/pkg/options/mongodb		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/pkg/options/mysql		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/pkg/options/postgres		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/pkg/options/rag		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/pkg/options/redis		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/pkg/options/server		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/pkg/options/server/grpc		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/pkg/options/server/http		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/pkg/options/storage		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/pkg/options/tracing		coverage: 0.0% of statements
+ok  	github.com/kart-io/sentinel-x/pkg/security/auth	1.021s	coverage: 0.0% of statements
+ok  	github.com/kart-io/sentinel-x/pkg/security/auth/jwt	2.719s	coverage: 66.8% of statements
+	github.com/kart-io/sentinel-x/pkg/security/auth/middleware		coverage: 0.0% of statements
+ok  	github.com/kart-io/sentinel-x/pkg/security/authz	1.366s	coverage: 85.8% of statements
+	github.com/kart-io/sentinel-x/pkg/security/authz/casbin		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/pkg/security/authz/casbin/infrastructure/mysql		coverage: 0.0% of statements
+	github.com/kart-io/sentinel-x/pkg/security/authz/casbin/infrastructure/redis		coverage: 0.0% of statements
+ok  	github.com/kart-io/sentinel-x/pkg/security/authz/rbac	1.019s	coverage: 86.3% of statements
+ok  	github.com/kart-io/sentinel-x/pkg/store	1.026s	coverage: 53.7% of statements
+ok  	github.com/kart-io/sentinel-x/pkg/utils/errors	1.017s	coverage: 83.7% of statements
+ok  	github.com/kart-io/sentinel-x/pkg/utils/httpclient	1.031s	coverage: 37.0% of statements
+ok  	github.com/kart-io/sentinel-x/pkg/utils/id	1.148s	coverage: 82.3% of statements
+ok  	github.com/kart-io/sentinel-x/pkg/utils/json	1.613s	coverage: 72.4% of statements
+ok  	github.com/kart-io/sentinel-x/pkg/utils/response	1.079s	coverage: 38.3% of statements
+ok  	github.com/kart-io/sentinel-x/pkg/utils/validator	1.172s	coverage: 96.6% of statements
+FAIL
+make: *** [scripts/make-rules/golang.mk:31：go.test] 错误 1

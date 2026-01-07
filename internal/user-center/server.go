@@ -13,9 +13,6 @@ import (
 	"github.com/kart-io/sentinel-x/internal/user-center/router"
 	"github.com/kart-io/sentinel-x/internal/user-center/store"
 	"github.com/kart-io/sentinel-x/pkg/component/mysql"
-	// Register adapters
-	_ "github.com/kart-io/sentinel-x/pkg/infra/adapter/echo"
-	_ "github.com/kart-io/sentinel-x/pkg/infra/adapter/gin"
 	"github.com/kart-io/sentinel-x/pkg/infra/app"
 	"github.com/kart-io/sentinel-x/pkg/infra/server"
 	jwtopts "github.com/kart-io/sentinel-x/pkg/options/auth/jwt"
