@@ -153,113 +153,107 @@ func Tracing(opts ...TracingOption) gin.HandlerFunc {
 
 	propagator := tracing.GetGlobalTextMapPropagator()
 
-	return func(next gin.HandlerFunc) gin.HandlerFunc {
-		return func(ctx *gin.Context) {
-			req := ctx.HTTPRequest()
-			path := req.URL.Path
+	return func(ctx *gin.Context) {
+		req := ctx.Request
+		path := req.URL.Path
 
-			// Check if path should be skipped
-			if _, skip := skipPathMap[path]; skip {
-				next(ctx)
+		// Check if path should be skipped
+		if _, skip := skipPathMap[path]; skip {
+			ctx.Next()
+			return
+		}
+
+		// Check if path prefix should be skipped
+		for _, prefix := range options.SkipPathPrefixes {
+			if len(path) >= len(prefix) && path[:len(prefix)] == prefix {
+				ctx.Next()
 				return
 			}
+		}
 
-			// Check if path prefix should be skipped
-			for _, prefix := range options.SkipPathPrefixes {
-				if len(path) >= len(prefix) && path[:len(prefix)] == prefix {
-					next(ctx)
-					return
-				}
+		// Extract trace context from request headers
+		requestCtx := req.Context()
+		requestCtx = propagator.Extract(requestCtx, propagation.HeaderCarrier(req.Header))
+
+		// Start span
+		spanName := options.SpanNameFormatter(ctx)
+		spanCtx, span := tracing.StartSpanWithKind(
+			requestCtx,
+			options.TracerName,
+			spanName,
+			trace.SpanKindServer,
+		)
+		defer span.End()
+
+		// Update request context
+		ctx.Request = ctx.Request.WithContext(spanCtx)
+
+		// Add standard HTTP attributes
+		attrs := []attribute.KeyValue{
+			semconv.HTTPMethod(req.Method),
+			semconv.HTTPURL(req.URL.String()),
+			semconv.HTTPTarget(req.URL.Path),
+			semconv.HTTPScheme(req.URL.Scheme),
+			semconv.ServerAddress(req.Host),
+		}
+
+		if userAgent := req.UserAgent(); userAgent != "" {
+			attrs = append(attrs, semconv.UserAgentOriginal(userAgent))
+		}
+
+		if clientIP := req.RemoteAddr; clientIP != "" {
+			attrs = append(attrs, attribute.String(tracing.HTTPClientIP, clientIP))
+		}
+
+		// Add request ID if present
+		if requestID := ctx.GetHeader(requestutil.HeaderXRequestID); requestID != "" {
+			attrs = append(attrs, attribute.String(tracing.HTTPRequestID, requestID))
+		}
+
+		// Add custom attributes if extractor is provided
+		if options.AttributeExtractor != nil {
+			customAttrs := options.AttributeExtractor(ctx)
+			attrs = append(attrs, customAttrs...)
+		}
+
+		span.SetAttributes(attrs...)
+
+		// Capture response status using a custom response writer
+		rw := &tracingResponseWriter{
+			ResponseWriter: ctx.Writer,
+			statusCode:     http.StatusOK, // Default to 200
+		}
+
+		// Save original writer
+		originalWriter := ctx.Writer
+
+		// Call the next handler
+		ctx.Next()
+
+		// Get status code from context if it was set
+		statusCode := rw.statusCode
+
+		// Try to get actual status from response
+		// This is framework-specific, but we'll do our best
+		if w, ok := originalWriter.(interface{ Status() int }); ok {
+			if status := w.Status(); status != 0 {
+				statusCode = status
 			}
+		}
 
-			// Extract trace context from request headers
-			requestCtx := req.Context()
-			requestCtx = propagator.Extract(requestCtx, propagation.HeaderCarrier(req.Header))
+		// Add response attributes
+		span.SetAttributes(semconv.HTTPStatusCode(statusCode))
 
-			// Start span
-			spanName := options.SpanNameFormatter(ctx)
-			spanCtx, span := tracing.StartSpanWithKind(
-				requestCtx,
-				options.TracerName,
-				spanName,
-				trace.SpanKindServer,
-			)
-			defer span.End()
+		// Set span status based on HTTP status code
+		if statusCode >= 400 {
+			span.SetStatus(codes.Error, http.StatusText(statusCode))
+		} else {
+			span.SetStatus(codes.Ok, "")
+		}
 
-			// Update request context
-			ctx.SetRequest(spanCtx)
-
-			// Add standard HTTP attributes
-			attrs := []attribute.KeyValue{
-				semconv.HTTPMethod(req.Method),
-				semconv.HTTPURL(req.URL.String()),
-				semconv.HTTPTarget(req.URL.Path),
-				semconv.HTTPScheme(req.URL.Scheme),
-				semconv.ServerAddress(req.Host),
-			}
-
-			if userAgent := req.UserAgent(); userAgent != "" {
-				attrs = append(attrs, semconv.UserAgentOriginal(userAgent))
-			}
-
-			if clientIP := req.RemoteAddr; clientIP != "" {
-				attrs = append(attrs, attribute.String(tracing.HTTPClientIP, clientIP))
-			}
-
-			// Add request ID if present
-			if requestID := ctx.Header(requestutil.HeaderXRequestID); requestID != "" {
-				attrs = append(attrs, attribute.String(tracing.HTTPRequestID, requestID))
-			}
-
-			// Add custom attributes if extractor is provided
-			if options.AttributeExtractor != nil {
-				customAttrs := options.AttributeExtractor(ctx)
-				attrs = append(attrs, customAttrs...)
-			}
-
-			span.SetAttributes(attrs...)
-
-			// Capture response status using a custom response writer
-			rw := &tracingResponseWriter{
-				ResponseWriter: ctx.ResponseWriter(),
-				statusCode:     http.StatusOK, // Default to 200
-			}
-
-			// Create a custom context that wraps the original
-			originalWriter := ctx.ResponseWriter()
-
-			// Call the next handler
-			next(ctx)
-
-			// Restore original response writer
-			// Note: We can't actually replace the ResponseWriter in the context,
-			// so we use the status captured during the handler execution
-
-			// Get status code from context if it was set
-			statusCode := rw.statusCode
-
-			// Try to get actual status from response
-			// This is framework-specific, but we'll do our best
-			if w, ok := originalWriter.(interface{ Status() int }); ok {
-				if status := w.Status(); status != 0 {
-					statusCode = status
-				}
-			}
-
-			// Add response attributes
-			span.SetAttributes(semconv.HTTPStatusCode(statusCode))
-
-			// Set span status based on HTTP status code
-			if statusCode >= 400 {
-				span.SetStatus(codes.Error, http.StatusText(statusCode))
-			} else {
-				span.SetStatus(codes.Ok, "")
-			}
-
-			// Record error if present
-			if statusCode >= 500 {
-				span.RecordError(fmt.Errorf("HTTP %d: %s", statusCode, http.StatusText(statusCode)))
-			}
+		// Record error if present
+		if statusCode >= 500 {
+			span.RecordError(fmt.Errorf("HTTP %d: %s", statusCode, http.StatusText(statusCode)))
 		}
 	}
 }
@@ -288,7 +282,7 @@ func (w *tracingResponseWriter) Write(b []byte) (int, error) {
 
 // defaultSpanNameFormatter creates a span name from the HTTP method and route.
 func defaultSpanNameFormatter(ctx *gin.Context) string {
-	req := ctx.HTTPRequest()
+	req := ctx.Request
 	// Try to get route pattern if available
 	// This is framework-specific, so we fall back to the path
 	route := req.URL.Path
@@ -298,10 +292,10 @@ func defaultSpanNameFormatter(ctx *gin.Context) string {
 // ExtractTraceID extracts the trace ID from the context.
 // This can be used to add trace ID to logs or responses.
 func ExtractTraceID(ctx *gin.Context) string {
-	return tracing.TraceIDFromContext(ctx.Request())
+	return tracing.TraceIDFromContext(ctx.Request.Context())
 }
 
 // ExtractSpanID extracts the span ID from the context.
 func ExtractSpanID(ctx *gin.Context) string {
-	return tracing.SpanIDFromContext(ctx.Request())
+	return tracing.SpanIDFromContext(ctx.Request.Context())
 }

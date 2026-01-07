@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 )
 
@@ -78,10 +79,17 @@ func RegisterPprofRoutesWithOptions(router transport.Router, opts mwopts.PprofOp
 	}
 }
 
-// wrapPprofHandler wraps a http.HandlerFunc to gin.HandlerFunc.
-func wrapPprofHandler(h http.HandlerFunc) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		h(c.Writer, c.Request)
+// wrapPprofHandler wraps a http.HandlerFunc to transport.HandlerFunc.
+func wrapPprofHandler(h http.HandlerFunc) transport.HandlerFunc {
+	return func(c transport.Context) {
+		// Get the raw Gin context
+		if ginCtx, ok := c.GetRawContext().(*gin.Context); ok {
+			h(ginCtx.Writer, ginCtx.Request)
+		} else {
+			// Fallback: use the transport.Context interface
+			req := c.HTTPRequest()
+			h(c.ResponseWriter(), req)
+		}
 	}
 }
 

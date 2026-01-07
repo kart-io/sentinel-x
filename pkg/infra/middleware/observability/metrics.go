@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 	"github.com/kart-io/sentinel-x/pkg/observability/metrics"
 	options "github.com/kart-io/sentinel-x/pkg/options/middleware"
 )
@@ -227,8 +228,8 @@ func RegisterMetricsRoutesWithOptions(router transport.Router, opts options.Metr
 	// Ensure collector is initialized
 	GetMetricsCollector(opts.Namespace, opts.Subsystem)
 
-	router.Handle(http.MethodGet, opts.Path, func(c *gin.Context) {
-		c.Header("Content-Type", "text/plain; charset=utf-8")
+	router.Handle(http.MethodGet, opts.Path, func(c transport.Context) {
+		c.SetHeader("Content-Type", "text/plain; charset=utf-8")
 		c.String(http.StatusOK, metrics.Export())
 	})
 }

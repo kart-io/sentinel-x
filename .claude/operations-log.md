@@ -1,110 +1,102 @@
-# 中间件兼容性代码清理操作日志
+# 中间件编译错误修复操作日志
 
 ## 任务开始时间
-2026-01-06 14:35:00
+2026-01-07 15:30:00
+
+## 任务目标
+修复 pkg/infra/middleware 中的编译错误，主要涉及：
+1. metrics.go 的 transport 引用问题
+2. tracing.go 的 Gin Context 方法调用错误
+3. 其他中间件文件的类型适配问题
 
 ## 编码前检查
 
 ### ✅ 已完成上下文检索
-- 检查了 7 个待清理的中间件文件
-- 分析了现有 Options 结构（CORS, Health, Pprof, Metrics 已存在）
-- 需要新建：SecurityHeaders, RateLimit Options
+- 检查了 auth.go, request_id.go, body_limit.go 等正确的实现
+- 理解了 Gin Context 的正确使用方式（c.Request, c.GetHeader(), c.Writer）
+- 理解了 transport.Router 和 transport.Context 的抽象层
 
 ### ✅ 将使用以下可复用组件
-- `pkg/options/middleware/cors.go`: CORS Options（已存在）
-- `pkg/options/middleware/health.go`: Health Options（已存在）
-- `pkg/options/middleware/pprof.go`: Pprof Options（已存在）
-- `pkg/options/middleware/metrics.go`: Metrics Options（已存在）
+- `gin.Context` API: Request, GetHeader(), Writer, Next()
+- `transport.Context` API: HTTPRequest(), ResponseWriter(), GetRawContext()
 
 ### ✅ 将遵循命名约定
-- 中间件函数：`XxxWithOptions(opts mwopts.XxxOptions) HandlerFunc`
-- 路由注册：`RegisterXxxRoutesWithOptions(router Router, opts mwopts.XxxOptions)`
-- Options 定义：`pkg/options/middleware/xxx.go`
-
-### ✅ 将遵循代码风格
-- 删除所有 Config 结构体和 DefaultConfig 函数
-- 删除所有 WithConfig 函数
-- 保留简单工厂函数（如 CORS(), SecurityHeaders()）用于默认配置
+- 保持现有函数签名不变
+- 修复方法调用以符合 Gin 框架 API
 
 ### ✅ 确认不重复造轮子
-- 检查了 pkg/options/middleware/ 目录
-- CORS, Health, Pprof, Metrics Options 已存在，直接使用
-- SecurityHeaders, RateLimit Options 需要新建
+- 使用现有的 transport 抽象层
+- 适配现有的 Gin 中间件模式
 
-## 清理计划
+## 修复计划
 
-### 阶段 1: 创建缺失的 Options
-1. 创建 pkg/options/middleware/security_headers.go
-2. 创建 pkg/options/middleware/rate_limit.go
+### 阶段 1: 修复 metrics.go
+- 添加 transport 包导入
 
-### 阶段 2: 清理中间件实现
-1. Metrics（已部分完成，需删除 MetricsConfig）
-2. Health（已部分完成，需删除 HealthConfig）
-3. Pprof（已部分完成，需删除 PprofConfig）
-4. CORS（需删除 CORSConfig, DefaultCORSConfig, CORSWithConfig）
-5. SecurityHeaders（需全面改造）
-6. RateLimit（需查找文件位置）
+### 阶段 2: 修复 tracing.go
+- 修复所有 Gin Context 方法调用
+- 移除错误的嵌套中间件结构
 
-### 阶段 3: 更新调用代码
-- 检查 server.go 的调用
-- 更新测试文件
+### 阶段 3: 修复其他文件
+- health.go: 添加 transport 导入，修复 Handler 签名
+- pprof.go: 添加 transport 导入，修复 wrapPprofHandler
+- version.go: 添加 transport 导入，修复 Handler 签名
+- exports.go: 修复返回类型从 transport.MiddlewareFunc 到 gin.HandlerFunc
 
 ### 阶段 4: 验证
-- 编译检查
-- 运行测试
+- 编译检查通过
 
 ## 执行记录
 
+### 阶段 1 完成：修复 metrics.go
+- ✅ 添加 `"github.com/kart-io/sentinel-x/pkg/infra/server/transport"` 导入
+- ✅ 修复 RegisterMetricsRoutesWithOptions 使用 transport.Context
 
-### 阶段 1 完成：创建 Options 文件
-- ✅ 创建 pkg/options/middleware/security_headers.go
-- ✅ 创建 pkg/options/middleware/rate_limit.go
-- ✅ 更新 pkg/options/middleware/options.go (添加常量、字段、方法)
+### 阶段 2 完成：修复 tracing.go
+- ✅ 修复第156行：移除嵌套的 `func(next gin.HandlerFunc) gin.HandlerFunc` 结构
+- ✅ 修复第158行：`ctx.HTTPRequest()` → `ctx.Request`
+- ✅ 修复第190行：`ctx.SetRequest()` → `ctx.Request = ctx.Request.WithContext()`
+- ✅ 修复第210行：`ctx.Header()` → `ctx.GetHeader()`
+- ✅ 修复第224/229行：`ctx.ResponseWriter()` → `ctx.Writer`
+- ✅ 修复第291行：`ctx.HTTPRequest()` → `ctx.Request`
+- ✅ 修复第301行：`ctx.Request()` → `ctx.Request.Context()`
 
-### 阶段 2 完成：清理中间件实现
-- ✅ 删除 Metrics 中的 MetricsConfig
-- ✅ 删除 Health 中的 HealthConfig
-- ✅ 删除 Pprof 中的 PprofConfig
-- ✅ 删除 CORS 中的 CORSConfig, DefaultCORSConfig, CORSWithConfig
-- ✅ 完全重写 SecurityHeaders 使用 WithOptions
-- ✅ 重构 RateLimit 使用 WithOptions（保留功能性依赖注入）
+### 阶段 3 完成：修复其他文件
+- ✅ health.go: 添加 transport 导入，修复 3 处 Handler 函数签名
+- ✅ pprof.go: 添加 transport 导入，修复 wrapPprofHandler 以适配 transport.HandlerFunc
+- ✅ version.go: 添加 transport 导入，修复 Handler 函数签名
+- ✅ exports.go: 修复 Tracing, MetricsMiddlewareWithOptions, Timeout 返回类型
+- ✅ 移除未使用的 gin 导入（health.go, version.go）
 
-### 阶段 3 完成：更新 exports.go
-- ✅ 删除 RateLimitConfig 类型别名
-- ✅ 删除 RateLimitWithConfig 导出
-- ✅ 删除 CORSConfig, SecurityHeadersConfig 类型别名
-- ✅ 删除 CORSWithConfig, DefaultCORSConfig 导出
-- ✅ 删除 SecurityHeadersWithConfig, DefaultSecurityHeadersConfig 导出
-- ✅ 添加 SecurityHeadersWithOptions 导出
+### 阶段 4 完成：编译验证
+- ✅ `go build ./pkg/infra/middleware/...` 编译通过
 
-### 阶段 4：编译验证
-- ✅ 所有 Go 代码编译通过
-- ⚠️ 测试文件需要更新（待处理）
+## 修复效果统计
 
-## 待更新的测试文件清单
+### 修改的文件
+1. pkg/infra/middleware/observability/metrics.go: 添加 transport 导入
+2. pkg/infra/middleware/observability/tracing.go: 修复 7 处 Gin Context 调用
+3. pkg/infra/middleware/health.go: 添加 transport 导入，修复 3 处 Handler
+4. pkg/infra/middleware/pprof.go: 添加 transport 导入，修复 wrapPprofHandler
+5. pkg/infra/middleware/version.go: 添加 transport 导入，修复 Handler
+6. pkg/infra/middleware/exports.go: 修复 3 处返回类型
 
-1. pkg/infra/middleware/security/cors_test.go (使用 CORSConfig)
-2. pkg/infra/middleware/resilience/ratelimit_test.go (使用 RateLimitConfig)
-3. pkg/infra/middleware/benchmark_test.go (可能使用旧 API)
+### 修复的错误数量
+- 初始错误：11+ 个编译错误
+- 最终状态：0 个编译错误
 
-## 清理效果统计
+### 关键技术点
+1. Gin Context API 使用规范：
+   - `c.Request` 而不是 `c.HTTPRequest()`
+   - `c.GetHeader(key)` 而不是 `c.Header(key)`
+   - `c.Writer` 而不是 `c.ResponseWriter()`
+   - `c.Request = c.Request.WithContext(ctx)` 而不是 `c.SetRequest(ctx)`
 
-### 删除的代码
-- MetricsConfig 结构体（7 行）
-- HealthConfig 结构体（9 行）
-- PprofConfig 结构体（13 行）
-- CORSConfig 结构体及相关（约 75 行）
-- SecurityHeaders 旧实现（约 150 行）
-- RateLimitConfig 结构体及相关（约 50 行）
-- **总计删除：约 304 行兼容性代码**
+2. 类型适配策略：
+   - 直接使用 `gin.HandlerFunc` 而不是强制转换为 `transport.MiddlewareFunc`
+   - 使用 `transport.Context` 接口适配不同框架
+   - 通过 `GetRawContext()` 获取底层框架的具体上下文
 
-### 新增的代码
-- SecurityHeadersOptions 结构体（约 110 行）
-- RateLimitOptions 结构体（约 100 行）
-- **总计新增：约 210 行标准化配置**
-
-### 净效果
-- **减少代码约 94 行**
-- **统一了 API 接口**
-- **消除了配置重复**
-
+## 下一步
+- 运行测试验证功能正确性
+- 提交修复到 Git

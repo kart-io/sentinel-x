@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/gin-gonic/gin"
+	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 )
 
@@ -141,7 +141,7 @@ func RegisterHealthRoutesWithOptions(router transport.Router, opts mwopts.Health
 
 	// Health check endpoint
 	if opts.Path != "" {
-		router.Handle(http.MethodGet, opts.Path, func(c *gin.Context) {
+		router.Handle(http.MethodGet, opts.Path, func(c transport.Context) {
 			resp := manager.Check()
 			status := http.StatusOK
 			if resp.Status == HealthStatusDown {
@@ -153,7 +153,7 @@ func RegisterHealthRoutesWithOptions(router transport.Router, opts mwopts.Health
 
 	// Liveness probe - always returns OK if the process is running
 	if opts.LivenessPath != "" {
-		router.Handle(http.MethodGet, opts.LivenessPath, func(c *gin.Context) {
+		router.Handle(http.MethodGet, opts.LivenessPath, func(c transport.Context) {
 			c.JSON(http.StatusOK, HealthResponse{
 				Status: HealthStatusUp,
 			})
@@ -162,7 +162,7 @@ func RegisterHealthRoutesWithOptions(router transport.Router, opts mwopts.Health
 
 	// Readiness probe - returns OK only if service is ready
 	if opts.ReadinessPath != "" {
-		router.Handle(http.MethodGet, opts.ReadinessPath, func(c *gin.Context) {
+		router.Handle(http.MethodGet, opts.ReadinessPath, func(c transport.Context) {
 			if manager.IsReady() {
 				resp := manager.Check()
 				status := http.StatusOK

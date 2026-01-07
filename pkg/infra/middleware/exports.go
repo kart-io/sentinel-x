@@ -11,6 +11,7 @@ package middleware
 import (
 	"time"
 
+	"github.com/gin-gonic/gin"
 	mwauth "github.com/kart-io/sentinel-x/pkg/infra/middleware/auth"
 	"github.com/kart-io/sentinel-x/pkg/infra/middleware/observability"
 	"github.com/kart-io/sentinel-x/pkg/infra/middleware/resilience"
@@ -107,7 +108,7 @@ var (
 )
 
 // Tracing re-exports observability.Tracing.
-func Tracing(opts ...TracingOption) transport.MiddlewareFunc {
+func Tracing(opts ...TracingOption) gin.HandlerFunc {
 	return observability.Tracing(opts...)
 }
 
@@ -127,7 +128,7 @@ var (
 
 // MetricsMiddlewareWithOptions creates a middleware that collects metrics.
 // This is a wrapper to convert MetricsOptions to observability.MetricsOptions.
-func MetricsMiddlewareWithOptions(opts MetricsOptions) transport.MiddlewareFunc {
+func MetricsMiddlewareWithOptions(opts MetricsOptions) gin.HandlerFunc {
 	return observability.MetricsMiddleware(opts)
 }
 
@@ -174,7 +175,7 @@ var (
 )
 
 // Timeout re-exports resilience.Timeout.
-func Timeout(timeout time.Duration) transport.MiddlewareFunc {
+func Timeout(timeout time.Duration) gin.HandlerFunc {
 	return resilience.Timeout(timeout)
 }
 
