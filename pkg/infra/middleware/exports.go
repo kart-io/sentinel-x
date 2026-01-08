@@ -16,7 +16,6 @@ import (
 	"github.com/kart-io/sentinel-x/pkg/infra/middleware/observability"
 	"github.com/kart-io/sentinel-x/pkg/infra/middleware/resilience"
 	"github.com/kart-io/sentinel-x/pkg/infra/middleware/security"
-	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 	loggeropts "github.com/kart-io/sentinel-x/pkg/options/logger"
 	options "github.com/kart-io/sentinel-x/pkg/options/middleware"
 )
@@ -134,8 +133,8 @@ func MetricsMiddlewareWithOptions(opts MetricsOptions) gin.HandlerFunc {
 
 // RegisterMetricsRoutesWithOptions registers metrics endpoint.
 // This is a wrapper to convert MetricsOptions to observability.MetricsOptions.
-func RegisterMetricsRoutesWithOptions(router transport.Router, opts MetricsOptions) {
-	observability.RegisterMetricsRoutesWithOptions(router, opts)
+func RegisterMetricsRoutesWithOptions(engine *gin.Engine, opts MetricsOptions) {
+	observability.RegisterMetricsRoutesWithOptions(engine, opts)
 }
 
 // Metrics functions re-exports.
