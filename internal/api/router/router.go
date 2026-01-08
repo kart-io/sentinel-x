@@ -18,22 +18,22 @@ func Register(mgr *server.Manager, _ *jwt.JWT, _ *datasource.Manager) error {
 
 	// HTTP Server
 	if httpServer := mgr.HTTPServer(); httpServer != nil {
-		router := httpServer.Router()
+		engine := httpServer.Engine()
 
 		// Serve static files for OpenAPI specs (proto generated)
-		router.Static("/openapi", "api/openapi")
+		engine.Static("/openapi", "api/openapi")
 
 		// API v1 路由组
-		v1 := router.Group("/api/v1")
+		v1 := engine.Group("/api/v1")
 		{
 			// 公开路由（无需认证）
 			// 这些路径已在配置文件中添加到 skip-paths
-			v1.Handle("GET", "/hello", demoHandler.Hello)
+			v1.GET("/hello", demoHandler.Hello)
 
 			// 受保护路由（需要 JWT 认证）
 			// JWT 验证由全局 Auth 中间件处理
-			v1.Handle("GET", "/protected", demoHandler.Protected)
-			v1.Handle("GET", "/profile", demoHandler.Profile)
+			v1.GET("/protected", demoHandler.Protected)
+			v1.GET("/profile", demoHandler.Profile)
 		}
 
 		logger.Info("API HTTP routes registered")

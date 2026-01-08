@@ -20,13 +20,35 @@ type EmbeddingProvider interface {
 	Name() string
 }
 
+// TokenUsage 表示 LLM 调用的 token 使用情况。
+type TokenUsage struct {
+	// PromptTokens 输入提示消耗的 token 数量。
+	PromptTokens int `json:"prompt_tokens"`
+
+	// CompletionTokens 生成完成消耗的 token 数量。
+	CompletionTokens int `json:"completion_tokens"`
+
+	// TotalTokens 总共消耗的 token 数量（通常等于 PromptTokens + CompletionTokens）。
+	TotalTokens int `json:"total_tokens"`
+}
+
+// GenerateResponse 表示 LLM 生成的响应，包含内容和 token 使用情况。
+type GenerateResponse struct {
+	// Content 生成的文本内容。
+	Content string
+
+	// TokenUsage token 使用情况。
+	// 如果 LLM 提供商不支持 token 统计，该字段为 nil。
+	TokenUsage *TokenUsage
+}
+
 // ChatProvider 定义 Chat 供应商接口。
 type ChatProvider interface {
 	// Chat 进行多轮对话。
 	Chat(ctx context.Context, messages []Message) (string, error)
 
 	// Generate 根据提示生成文本（单轮）。
-	Generate(ctx context.Context, prompt string, systemPrompt string) (string, error)
+	Generate(ctx context.Context, prompt string, systemPrompt string) (*GenerateResponse, error)
 
 	// Name 返回供应商名称。
 	Name() string

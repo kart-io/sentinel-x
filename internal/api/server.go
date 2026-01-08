@@ -77,20 +77,20 @@ func (cfg *Config) NewServer(_ context.Context) (*Server, error) {
 
 	// 5. 注册路由
 	if httpServer := serverManager.HTTPServer(); httpServer != nil {
-		router := httpServer.Router()
+		engine := httpServer.Engine()
 
 		// Serve static files for OpenAPI specs
-		router.Static("/openapi", "api/openapi")
+		engine.Static("/openapi", "api/openapi")
 
 		// API v1 路由组
-		v1 := router.Group("/api/v1")
+		v1 := engine.Group("/api/v1")
 		{
 			// 公开路由（无需认证）
-			v1.Handle("GET", "/hello", demoHandler.Hello)
+			v1.GET("/hello", demoHandler.Hello)
 
 			// 受保护路由（需要 JWT 认证）
-			v1.Handle("GET", "/protected", demoHandler.Protected)
-			v1.Handle("GET", "/profile", demoHandler.Profile)
+			v1.GET("/protected", demoHandler.Protected)
+			v1.GET("/profile", demoHandler.Profile)
 		}
 
 		logger.Info("HTTP routes registered")

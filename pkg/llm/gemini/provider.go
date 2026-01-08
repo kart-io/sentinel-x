@@ -288,7 +288,7 @@ func (p *Provider) Chat(ctx context.Context, messages []llm.Message) (string, er
 }
 
 // Generate 根据提示生成文本。
-func (p *Provider) Generate(ctx context.Context, prompt string, systemPrompt string) (string, error) {
+func (p *Provider) Generate(ctx context.Context, prompt string, systemPrompt string) (*llm.GenerateResponse, error) {
 	messages := []llm.Message{}
 	if systemPrompt != "" {
 		messages = append(messages, llm.Message{
@@ -301,5 +301,72 @@ func (p *Provider) Generate(ctx context.Context, prompt string, systemPrompt str
 		Content: prompt,
 	})
 
-	return p.Chat(ctx, messages)
+	var contents []chatContent
+	var systemInstruction *chatContent
+
+	for _, msg := range messages {
+		switch msg.Role {
+		case llm.RoleSystem:
+			systemInstruction = &chatContent{
+				Parts: []chatPart{{Text: msg.Content}},
+			}
+		case llm.RoleUser:
+			contents = append(contents, chatContent{
+				Role:  "user",
+				Parts: []chatPart{{Text: msg.Content}},
+			})
+		case llm.RoleAssistant:
+			contents = append(contents, chatContent{
+				Role:  "model",
+				Parts: []chatPart{{Text: msg.Content}},
+			})
+		}
+	}
+
+	reqBody := chatRequest{
+		Contents:          contents,
+		SystemInstruction: systemInstruction,
+		GenerationConfig: &generationConfig{
+			Temperature:     0.7,
+			TopP:            0.95,
+			TopK:            40,
+			MaxOutputTokens: 2048,
+		},
+	}
+
+	body, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("序列化请求失败: %w", err)
+	}
+
+	url := fmt.Sprintf("%s/models/%s:generateContent?key=%s",
+		p.config.BaseURL, p.config.ChatModel, p.config.APIKey)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
+	if err != nil {
+		return nil, fmt.Errorf("创建请求失败: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	var chatResp chatResponse
+	if err := p.client.DoJSON(req, &chatResp); err != nil {
+		return nil, err
+	}
+
+	if len(chatResp.Candidates) == 0 || len(chatResp.Candidates[0].Content.Parts) == 0 {
+		return nil, fmt.Errorf("未返回响应内容")
+	}
+
+	// 构建响应，包含 token 使用情况
+	// Gemini 使用不同的字段名称，需要转换
+	response := &llm.GenerateResponse{
+		Content: chatResp.Candidates[0].Content.Parts[0].Text,
+		TokenUsage: &llm.TokenUsage{
+			PromptTokens:     chatResp.UsageMetadata.PromptTokenCount,
+			CompletionTokens: chatResp.UsageMetadata.CandidatesTokenCount,
+			TotalTokens:      chatResp.UsageMetadata.TotalTokenCount,
+		},
+	}
+
+	return response, nil
 }

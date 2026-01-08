@@ -89,7 +89,6 @@ func (s *RAGService) Query(ctx context.Context, question string) (*model.QueryRe
 	}()
 
 	// 1. 尝试从缓存获取
-	cacheHit := false
 	if s.cache != nil {
 		cachedResult, err := s.cache.Get(ctx, question)
 		if err == nil && cachedResult != nil {
@@ -150,7 +149,7 @@ func (s *RAGService) Query(ctx context.Context, question string) (*model.QueryRe
 	}
 
 	// 记录缓存未命中的成功查询
-	s.metrics.RecordQuery(cacheHit, nil)
+	s.metrics.RecordQuery(false, nil)
 
 	return queryResult, nil
 }

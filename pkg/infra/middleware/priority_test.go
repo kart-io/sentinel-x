@@ -2,30 +2,11 @@ package middleware
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
-	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	"github.com/gin-gonic/gin"
 )
-
-// mockRouter 实现 transport.Router 接口用于测试。
-type mockRouter struct {
-	middlewares []transport.MiddlewareFunc
-}
-
-func newMockRouter() *mockRouter {
-	return &mockRouter{
-		middlewares: make([]transport.MiddlewareFunc, 0),
-	}
-}
-
-func (m *mockRouter) Handle(method, path string, handler transport.HandlerFunc) {}
-func (m *mockRouter) Group(prefix string) transport.Router                      { return m }
-func (m *mockRouter) Static(prefix, root string)                                {}
-func (m *mockRouter) Mount(prefix string, handler http.Handler)                 {}
-
-func (m *mockRouter) Use(middleware ...transport.MiddlewareFunc) {
-	m.middlewares = append(m.middlewares, middleware...)
-}
 
 // TestNewRegistrar 测试创建注册器。
 func TestNewRegistrar(t *testing.T) {
@@ -43,13 +24,8 @@ func TestRegister(t *testing.T) {
 	r := NewRegistrar()
 
 	// 创建测试中间件
-	middleware1 := func(next transport.HandlerFunc) transport.HandlerFunc {
-		return func(c transport.Context) { next(c) }
-	}
-
-	middleware2 := func(next transport.HandlerFunc) transport.HandlerFunc {
-		return func(c transport.Context) { next(c) }
-	}
+	middleware1 := func(c *gin.Context) { c.Next() }
+	middleware2 := func(c *gin.Context) { c.Next() }
 
 	// 注册中间件
 	r.Register("test1", PriorityCustom, middleware1)
@@ -77,9 +53,7 @@ func TestRegisterNilHandler(t *testing.T) {
 func TestRegisterIf(t *testing.T) {
 	r := NewRegistrar()
 
-	middleware := func(next transport.HandlerFunc) transport.HandlerFunc {
-		return func(c transport.Context) { next(c) }
-	}
+	middleware := func(c *gin.Context) { c.Next() }
 
 	// 条件为 true，应该注册
 	r.RegisterIf(true, "test1", PriorityCustom, middleware)
@@ -97,18 +71,18 @@ func TestRegisterIf(t *testing.T) {
 // TestApplyPriority 测试按优先级应用中间件。
 func TestApplyPriority(t *testing.T) {
 	r := NewRegistrar()
-	router := newMockRouter()
+	// Use a real gin engine to capture execution order
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
 
 	// 记录中间件执行顺序
 	var executionOrder []string
 
 	// 创建带标记的中间件
-	createMiddleware := func(name string) transport.MiddlewareFunc {
-		return func(next transport.HandlerFunc) transport.HandlerFunc {
-			return func(c transport.Context) {
-				executionOrder = append(executionOrder, name)
-				next(c)
-			}
+	createMiddleware := func(name string) gin.HandlerFunc {
+		return func(c *gin.Context) {
+			executionOrder = append(executionOrder, name)
+			c.Next()
 		}
 	}
 
@@ -121,23 +95,13 @@ func TestApplyPriority(t *testing.T) {
 	// 应用中间件
 	r.Apply(router)
 
-	// 验证注册了4个中间件
-	if len(router.middlewares) != 4 {
-		t.Errorf("Apply() registered %d middlewares, want 4", len(router.middlewares))
-	}
+	// Add a final handler
+	router.GET("/", func(c *gin.Context) {})
 
-	// 执行中间件链验证顺序
-	req := &http.Request{}
-	ctx := newMockContext(req, nil)
-	handler := func(c transport.Context) {}
-
-	// 从后向前构建中间件链（符合 Chain 的逻辑）
-	for i := len(router.middlewares) - 1; i >= 0; i-- {
-		handler = router.middlewares[i](handler)
-	}
-
-	// 执行
-	handler(ctx)
+	// 执行请求
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
 
 	// 验证执行顺序（应该按优先级从高到低）
 	expected := []string{"recovery", "logger", "auth", "custom"}
@@ -155,16 +119,15 @@ func TestApplyPriority(t *testing.T) {
 // TestApplySamePriority 测试同优先级按注册顺序执行。
 func TestApplySamePriority(t *testing.T) {
 	r := NewRegistrar()
-	router := newMockRouter()
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
 
 	var executionOrder []string
 
-	createMiddleware := func(name string) transport.MiddlewareFunc {
-		return func(next transport.HandlerFunc) transport.HandlerFunc {
-			return func(c transport.Context) {
-				executionOrder = append(executionOrder, name)
-				next(c)
-			}
+	createMiddleware := func(name string) gin.HandlerFunc {
+		return func(c *gin.Context) {
+			executionOrder = append(executionOrder, name)
+			c.Next()
 		}
 	}
 
@@ -175,15 +138,13 @@ func TestApplySamePriority(t *testing.T) {
 
 	r.Apply(router)
 
-	// 执行中间件链
-	req := &http.Request{}
-	ctx := newMockContext(req, nil)
-	handler := func(c transport.Context) {}
+	// Add handler
+	router.GET("/", func(c *gin.Context) {})
 
-	for i := len(router.middlewares) - 1; i >= 0; i-- {
-		handler = router.middlewares[i](handler)
-	}
-	handler(ctx)
+	// 执行
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
 
 	// 验证按注册顺序执行
 	expected := []string{"custom1", "custom2", "custom3"}
@@ -202,9 +163,7 @@ func TestApplySamePriority(t *testing.T) {
 func TestList(t *testing.T) {
 	r := NewRegistrar()
 
-	middleware := func(next transport.HandlerFunc) transport.HandlerFunc {
-		return func(c transport.Context) { next(c) }
-	}
+	middleware := func(c *gin.Context) { c.Next() }
 
 	r.Register("recovery", PriorityRecovery, middleware)
 	r.Register("auth", PriorityAuth, middleware)
@@ -228,9 +187,7 @@ func TestList(t *testing.T) {
 func TestClear(t *testing.T) {
 	r := NewRegistrar()
 
-	middleware := func(next transport.HandlerFunc) transport.HandlerFunc {
-		return func(c transport.Context) { next(c) }
-	}
+	middleware := func(c *gin.Context) { c.Next() }
 
 	r.Register("test", PriorityCustom, middleware)
 	if r.Count() != 1 {
@@ -246,16 +203,15 @@ func TestClear(t *testing.T) {
 // TestComplexPriorityOrder 测试复杂优先级排序场景。
 func TestComplexPriorityOrder(t *testing.T) {
 	r := NewRegistrar()
-	router := newMockRouter()
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
 
 	var executionOrder []string
 
-	createMiddleware := func(name string) transport.MiddlewareFunc {
-		return func(next transport.HandlerFunc) transport.HandlerFunc {
-			return func(c transport.Context) {
-				executionOrder = append(executionOrder, name)
-				next(c)
-			}
+	createMiddleware := func(name string) gin.HandlerFunc {
+		return func(c *gin.Context) {
+			executionOrder = append(executionOrder, name)
+			c.Next()
 		}
 	}
 
@@ -269,15 +225,12 @@ func TestComplexPriorityOrder(t *testing.T) {
 
 	r.Apply(router)
 
-	// 执行中间件链
-	req := &http.Request{}
-	ctx := newMockContext(req, nil)
-	handler := func(c transport.Context) {}
+	router.GET("/", func(c *gin.Context) {})
 
-	for i := len(router.middlewares) - 1; i >= 0; i-- {
-		handler = router.middlewares[i](handler)
-	}
-	handler(ctx)
+	// 执行
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
 
 	// 预期顺序：
 	// 1. recovery (1000)
@@ -302,20 +255,16 @@ func TestComplexPriorityOrder(t *testing.T) {
 // TestEmptyRegistrar 测试空注册器应用。
 func TestEmptyRegistrar(t *testing.T) {
 	r := NewRegistrar()
-	router := newMockRouter()
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
 
 	r.Apply(router)
-
-	if len(router.middlewares) != 0 {
-		t.Errorf("Apply() on empty registrar registered %d middlewares, want 0", len(router.middlewares))
-	}
+	// We can't easily check internal state of gin, but we can verify it doesn't panic
 }
 
 // BenchmarkRegister 性能测试：注册中间件。
 func BenchmarkRegister(b *testing.B) {
-	middleware := func(next transport.HandlerFunc) transport.HandlerFunc {
-		return func(c transport.Context) { next(c) }
-	}
+	middleware := func(c *gin.Context) { c.Next() }
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -326,16 +275,15 @@ func BenchmarkRegister(b *testing.B) {
 
 // BenchmarkApply 性能测试：应用中间件。
 func BenchmarkApply(b *testing.B) {
-	middleware := func(next transport.HandlerFunc) transport.HandlerFunc {
-		return func(c transport.Context) { next(c) }
-	}
+	middleware := func(c *gin.Context) { c.Next() }
 
 	r := NewRegistrar()
 	for i := 0; i < 10; i++ {
 		r.Register("test", Priority(i*100), middleware)
 	}
 
-	router := newMockRouter()
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

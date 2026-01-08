@@ -19,10 +19,6 @@ func TestNewRegistry(t *testing.T) {
 		t.Error("services map is nil")
 	}
 
-	if registry.httpHandlers == nil {
-		t.Error("httpHandlers map is nil")
-	}
-
 	if registry.grpcDescs == nil {
 		t.Error("grpcDescs slice is nil")
 	}
@@ -31,13 +27,12 @@ func TestNewRegistry(t *testing.T) {
 func TestRegistryRegisterService(t *testing.T) {
 	registry := NewRegistry()
 	svc := &mockService{name: "test-service"}
-	handler := &mockHTTPHandler{}
 	desc := &transport.GRPCServiceDesc{
 		ServiceDesc: "test-desc",
 		ServiceImpl: "test-impl",
 	}
 
-	err := registry.RegisterService(svc, handler, desc)
+	err := registry.RegisterService(svc, desc)
 	if err != nil {
 		t.Fatalf("RegisterService() error = %v", err)
 	}
@@ -51,11 +46,6 @@ func TestRegistryRegisterService(t *testing.T) {
 		t.Error("Registered service does not match")
 	}
 
-	// Verify HTTP handler was registered
-	if _, ok := registry.httpHandlers["test-service"]; !ok {
-		t.Error("HTTP handler was not registered")
-	}
-
 	// Verify gRPC desc was registered
 	if len(registry.grpcDescs) != 1 {
 		t.Errorf("Expected 1 gRPC desc, got %d", len(registry.grpcDescs))
@@ -66,7 +56,7 @@ func TestRegistryRegisterServiceNilHandler(t *testing.T) {
 	registry := NewRegistry()
 	svc := &mockService{name: "test-service"}
 
-	err := registry.RegisterService(svc, nil, nil)
+	err := registry.RegisterService(svc, nil)
 	if err != nil {
 		t.Fatalf("RegisterService() error = %v", err)
 	}
@@ -77,39 +67,9 @@ func TestRegistryRegisterServiceNilHandler(t *testing.T) {
 		t.Error("Service was not registered")
 	}
 
-	// Verify no HTTP handler was registered
-	if _, ok := registry.httpHandlers["test-service"]; ok {
-		t.Error("HTTP handler should not be registered")
-	}
-
 	// Verify no gRPC desc was registered
 	if len(registry.grpcDescs) != 0 {
 		t.Errorf("Expected 0 gRPC desc, got %d", len(registry.grpcDescs))
-	}
-}
-
-func TestRegistryRegisterHTTP(t *testing.T) {
-	registry := NewRegistry()
-	svc := &mockService{name: "http-service"}
-	handler := &mockHTTPHandler{}
-
-	err := registry.RegisterHTTP(svc, handler)
-	if err != nil {
-		t.Fatalf("RegisterHTTP() error = %v", err)
-	}
-
-	// Verify service was registered
-	registeredSvc, ok := registry.GetService("http-service")
-	if !ok {
-		t.Error("HTTP service was not registered")
-	}
-	if registeredSvc != svc {
-		t.Error("Registered HTTP service does not match")
-	}
-
-	// Verify HTTP handler was registered
-	if _, ok := registry.httpHandlers["http-service"]; !ok {
-		t.Error("HTTP handler was not registered")
 	}
 }
 
@@ -152,7 +112,7 @@ func TestRegistryGetService(t *testing.T) {
 	}
 
 	// Register service
-	err := registry.RegisterService(svc, nil, nil)
+	err := registry.RegisterService(svc, nil)
 	if err != nil {
 		t.Fatalf("RegisterService() error = %v", err)
 	}
@@ -181,9 +141,9 @@ func TestRegistryGetAllServices(t *testing.T) {
 	svc2 := &mockService{name: "service-2"}
 	svc3 := &mockService{name: "service-3"}
 
-	_ = registry.RegisterService(svc1, nil, nil)
-	_ = registry.RegisterService(svc2, nil, nil)
-	_ = registry.RegisterService(svc3, nil, nil)
+	_ = registry.RegisterService(svc1, nil)
+	_ = registry.RegisterService(svc2, nil)
+	_ = registry.RegisterService(svc3, nil)
 
 	// Test getting all services
 	services = registry.GetAllServices()
@@ -214,13 +174,13 @@ func TestRegistryDuplicateRegister(t *testing.T) {
 	svc2 := &mockService{name: "duplicate-service"}
 
 	// Register first service
-	err := registry.RegisterService(svc1, nil, nil)
+	err := registry.RegisterService(svc1, nil)
 	if err != nil {
 		t.Fatalf("RegisterService() error = %v", err)
 	}
 
 	// Register second service with same name (should overwrite)
-	err = registry.RegisterService(svc2, nil, nil)
+	err = registry.RegisterService(svc2, nil)
 	if err != nil {
 		t.Fatalf("RegisterService() error = %v", err)
 	}
@@ -245,8 +205,7 @@ func TestRegistryConcurrentRegister(t *testing.T) {
 		go func(_ int) {
 			defer wg.Done()
 			svc := &mockService{name: "service"}
-			handler := &mockHTTPHandler{}
-			_ = registry.RegisterService(svc, handler, nil)
+			_ = registry.RegisterService(svc, nil)
 		}(i)
 	}
 
@@ -265,7 +224,7 @@ func TestRegistryConcurrentRead(_ *testing.T) {
 	// Pre-register some services
 	for i := 0; i < 10; i++ {
 		svc := &mockService{name: "service"}
-		_ = registry.RegisterService(svc, nil, nil)
+		_ = registry.RegisterService(svc, nil)
 	}
 
 	var wg sync.WaitGroup
@@ -295,7 +254,7 @@ func TestRegistryConcurrentReadWrite(_ *testing.T) {
 		go func(_ int) {
 			defer wg.Done()
 			svc := &mockService{name: "service"}
-			_ = registry.RegisterService(svc, nil, nil)
+			_ = registry.RegisterService(svc, nil)
 		}(i)
 
 		// Reader
@@ -329,22 +288,6 @@ func TestRegistryMultipleGRPCDescs(t *testing.T) {
 
 	if len(registry.grpcDescs) != 2 {
 		t.Errorf("Expected 2 gRPC descs, got %d", len(registry.grpcDescs))
-	}
-}
-
-func TestRegistryApplyToHTTP(t *testing.T) {
-	// This test validates the basic flow
-	// Actual application requires a real HTTP server
-	registry := NewRegistry()
-	svc := &mockService{name: "http-service"}
-	handler := &mockHTTPHandler{}
-
-	_ = registry.RegisterHTTP(svc, handler)
-
-	// Cannot test actual application without HTTP server implementation
-	// This validates the registration succeeds
-	if len(registry.httpHandlers) != 1 {
-		t.Errorf("Expected 1 HTTP handler, got %d", len(registry.httpHandlers))
 	}
 }
 

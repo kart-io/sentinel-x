@@ -4,7 +4,6 @@ package middleware
 import (
 	"time"
 
-	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 	"github.com/spf13/pflag"
 )
 
@@ -434,13 +433,12 @@ func (o *Options) AddFlags(fs *pflag.FlagSet, prefixes ...string) {
 
 // WithRecovery configures and enables recovery middleware.
 // 注意：onPanic 参数已废弃，应通过 middleware.RecoveryWithOptions() 传入。
-func WithRecovery(enableStackTrace bool, onPanic func(ctx transport.Context, err interface{}, stack []byte)) Option {
+func WithRecovery(enableStackTrace bool) Option {
 	return func(o *Options) {
 		if o.Recovery == nil {
 			o.Recovery = NewRecoveryOptions()
 		}
 		o.Recovery.EnableStackTrace = enableStackTrace
-		// onPanic 不再存储在选项中，调用方应使用 RecoveryWithOptions 传入
 	}
 }
 

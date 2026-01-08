@@ -40,7 +40,7 @@ type options struct {
 //	    *opts,
 //	    myAuthenticator,
 //	    nil,  // 使用默认错误处理
-//	    func(ctx transport.Context, claims *auth.Claims) {
+//	    func(ctx *gin.Context, claims *auth.Claims) {
 //	        // 自定义成功处理
 //	    },
 //	)

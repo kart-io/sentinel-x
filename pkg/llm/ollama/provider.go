@@ -304,9 +304,9 @@ type generateResponse struct {
 //
 // 返回:
 //
-//	string: 生成的文本内容。
+//	*llm.GenerateResponse: 生成的响应，包含文本内容和 token 使用情况。
 //	error: 如果操作失败，则返回错误。
-func (p *Provider) Generate(ctx context.Context, prompt string, systemPrompt string) (string, error) {
+func (p *Provider) Generate(ctx context.Context, prompt string, systemPrompt string) (*llm.GenerateResponse, error) {
 	reqBody := generateRequest{
 		Model:  p.config.ChatModel,
 		Prompt: prompt,
@@ -316,21 +316,28 @@ func (p *Provider) Generate(ctx context.Context, prompt string, systemPrompt str
 
 	body, err := json.Marshal(reqBody)
 	if err != nil {
-		return "", fmt.Errorf("序列化请求失败: %w", err)
+		return nil, fmt.Errorf("序列化请求失败: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, p.config.BaseURL+"/api/generate", bytes.NewReader(body))
 	if err != nil {
-		return "", fmt.Errorf("创建请求失败: %w", err)
+		return nil, fmt.Errorf("创建请求失败: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 
 	var genResp generateResponse
 	if err := p.client.DoJSON(req, &genResp); err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return genResp.Response, nil
+	// Ollama 本地模型通常不返回 token 统计信息
+	// 返回 nil TokenUsage 表示不支持
+	response := &llm.GenerateResponse{
+		Content:    genResp.Response,
+		TokenUsage: nil,
+	}
+
+	return response, nil
 }
 
 // Ping 检查 Ollama 服务是否可用。

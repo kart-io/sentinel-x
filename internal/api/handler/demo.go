@@ -4,7 +4,7 @@ package handler
 import (
 	"net/http"
 
-	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	"github.com/gin-gonic/gin"
 	"github.com/kart-io/sentinel-x/pkg/security/auth"
 	"github.com/kart-io/sentinel-x/pkg/utils/response"
 )
@@ -50,7 +50,7 @@ type ProfileResponse struct {
 //	@Produce		json
 //	@Success		200	{object}	response.Response{data=HelloResponse}	"成功响应"
 //	@Router			/hello [get]
-func (h *DemoHandler) Hello(c transport.Context) {
+func (h *DemoHandler) Hello(c *gin.Context) {
 	resp := response.Success(map[string]string{
 		"message": "Hello from Sentinel-X API!",
 		"version": "v1",
@@ -70,8 +70,8 @@ func (h *DemoHandler) Hello(c transport.Context) {
 //	@Success		200	{object}	response.Response{data=ProtectedResponse}	"成功响应"
 //	@Failure		401	{object}	response.Response							"未授权"
 //	@Router			/protected [get]
-func (h *DemoHandler) Protected(c transport.Context) {
-	claims := auth.ClaimsFromContext(c.Request())
+func (h *DemoHandler) Protected(c *gin.Context) {
+	claims := auth.ClaimsFromContext(c.Request.Context())
 	if claims == nil {
 		resp := response.ErrorWithCode(401, "unauthorized")
 		defer response.Release(resp)
@@ -100,8 +100,8 @@ func (h *DemoHandler) Protected(c transport.Context) {
 //	@Success		200	{object}	response.Response{data=ProfileResponse}	"成功响应"
 //	@Failure		401	{object}	response.Response						"未授权"
 //	@Router			/profile [get]
-func (h *DemoHandler) Profile(c transport.Context) {
-	claims := auth.ClaimsFromContext(c.Request())
+func (h *DemoHandler) Profile(c *gin.Context) {
+	claims := auth.ClaimsFromContext(c.Request.Context())
 	if claims == nil {
 		resp := response.ErrorWithCode(401, "unauthorized")
 		defer response.Release(resp)

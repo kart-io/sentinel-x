@@ -17,33 +17,33 @@ func Register(mgr *server.Manager, ragHandler *handler.RAGHandler, ragGRPCHandle
 
 	// HTTP Server
 	if httpServer := mgr.HTTPServer(); httpServer != nil {
-		router := httpServer.Router()
+		engine := httpServer.Engine()
 
 		// RAG API Routes
-		v1 := router.Group("/v1")
+		v1 := engine.Group("/v1")
 		{
 			rag := v1.Group("/rag")
 			{
 				// Index endpoints
-				rag.Handle("POST", "/index", ragHandler.Index)
-				rag.Handle("POST", "/index/directory", ragHandler.IndexDirectory)
-				rag.Handle("POST", "/index/url", ragHandler.IndexFromURL)
+				rag.POST("/index", ragHandler.Index)
+				rag.POST("/index/directory", ragHandler.IndexDirectory)
+				rag.POST("/index/url", ragHandler.IndexFromURL)
 
 				// Query endpoint
-				rag.Handle("POST", "/query", ragHandler.Query)
+				rag.POST("/query", ragHandler.Query)
 
 				// Stats endpoint
-				rag.Handle("GET", "/stats", ragHandler.Stats)
+				rag.GET("/stats", ragHandler.Stats)
 
 				// Collections endpoint
-				rag.Handle("GET", "/collections", ragHandler.ListCollections)
+				rag.GET("/collections", ragHandler.ListCollections)
 
 				// Evaluation endpoints (Ragas metrics)
-				rag.Handle("POST", "/evaluate", ragHandler.Evaluate)
-				rag.Handle("POST", "/query-evaluate", ragHandler.QueryAndEvaluate)
+				rag.POST("/evaluate", ragHandler.Evaluate)
+				rag.POST("/query-evaluate", ragHandler.QueryAndEvaluate)
 
 				// Prometheus metrics endpoint
-				rag.Handle("GET", "/metrics", ragHandler.Metrics)
+				rag.GET("/metrics", ragHandler.Metrics)
 			}
 		}
 

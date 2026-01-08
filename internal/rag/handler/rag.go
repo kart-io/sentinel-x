@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/kart-io/sentinel-x/internal/pkg/rag/evaluator"
 	"github.com/kart-io/sentinel-x/internal/rag/biz"
-	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 	observability "github.com/kart-io/sentinel-x/pkg/observability/metrics"
 )
 
@@ -55,14 +55,14 @@ type IndexRequest struct {
 // @Failure 400 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
 // @Router /v1/rag/index [post]
-func (h *RAGHandler) Index(c transport.Context) {
+func (h *RAGHandler) Index(c *gin.Context) {
 	var req IndexRequest
-	if err := c.Bind(&req); err != nil {
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, ErrorResponse{Code: 400, Message: err.Error()})
 		return
 	}
 
-	if err := h.service.IndexFromURL(c.Request(), req.SourceURL); err != nil {
+	if err := h.service.IndexFromURL(c.Request.Context(), req.SourceURL); err != nil {
 		c.JSON(http.StatusInternalServerError, ErrorResponse{Code: 500, Message: err.Error()})
 		return
 	}
@@ -86,14 +86,14 @@ type IndexFromURLRequest struct {
 // @Failure 400 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
 // @Router /v1/rag/index/url [post]
-func (h *RAGHandler) IndexFromURL(c transport.Context) {
+func (h *RAGHandler) IndexFromURL(c *gin.Context) {
 	var req IndexFromURLRequest
-	if err := c.Bind(&req); err != nil {
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, ErrorResponse{Code: 400, Message: err.Error()})
 		return
 	}
 
-	if err := h.service.IndexFromURL(c.Request(), req.URL); err != nil {
+	if err := h.service.IndexFromURL(c.Request.Context(), req.URL); err != nil {
 		c.JSON(http.StatusInternalServerError, ErrorResponse{Code: 500, Message: err.Error()})
 		return
 	}
@@ -117,14 +117,14 @@ type IndexDirectoryRequest struct {
 // @Failure 400 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
 // @Router /v1/rag/index/directory [post]
-func (h *RAGHandler) IndexDirectory(c transport.Context) {
+func (h *RAGHandler) IndexDirectory(c *gin.Context) {
 	var req IndexDirectoryRequest
-	if err := c.Bind(&req); err != nil {
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, ErrorResponse{Code: 400, Message: err.Error()})
 		return
 	}
 
-	if err := h.service.IndexDirectory(c.Request(), req.Directory); err != nil {
+	if err := h.service.IndexDirectory(c.Request.Context(), req.Directory); err != nil {
 		c.JSON(http.StatusInternalServerError, ErrorResponse{Code: 500, Message: err.Error()})
 		return
 	}
@@ -149,15 +149,15 @@ type QueryRequest struct {
 // @Failure 408 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
 // @Router /v1/rag/query [post]
-func (h *RAGHandler) Query(c transport.Context) {
+func (h *RAGHandler) Query(c *gin.Context) {
 	var req QueryRequest
-	if err := c.Bind(&req); err != nil {
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, ErrorResponse{Code: 400, Message: err.Error()})
 		return
 	}
 
 	// 添加 60 秒超时控制
-	ctx, cancel := context.WithTimeout(c.Request(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 60*time.Second)
 	defer cancel()
 
 	result, err := h.service.Query(ctx, req.Question)
@@ -185,8 +185,8 @@ func (h *RAGHandler) Query(c transport.Context) {
 // @Success 200 {object} SuccessResponse
 // @Failure 500 {object} ErrorResponse
 // @Router /v1/rag/stats [get]
-func (h *RAGHandler) Stats(c transport.Context) {
-	stats, err := h.service.GetStats(c.Request())
+func (h *RAGHandler) Stats(c *gin.Context) {
+	stats, err := h.service.GetStats(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, ErrorResponse{Code: 500, Message: err.Error()})
 		return
@@ -210,9 +210,9 @@ type CollectionInfo struct {
 // @Success 200 {object} SuccessResponse{data=[]CollectionInfo}
 // @Failure 500 {object} ErrorResponse
 // @Router /v1/rag/collections [get]
-func (h *RAGHandler) ListCollections(c transport.Context) {
+func (h *RAGHandler) ListCollections(c *gin.Context) {
 	// 获取统计信息
-	stats, err := h.service.GetStats(c.Request())
+	stats, err := h.service.GetStats(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, ErrorResponse{Code: 500, Message: err.Error()})
 		return
@@ -253,9 +253,9 @@ type EvaluateRequest struct {
 // @Failure 400 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
 // @Router /v1/rag/evaluate [post]
-func (h *RAGHandler) Evaluate(c transport.Context) {
+func (h *RAGHandler) Evaluate(c *gin.Context) {
 	var req EvaluateRequest
-	if err := c.Bind(&req); err != nil {
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, ErrorResponse{Code: 400, Message: err.Error()})
 		return
 	}
@@ -272,7 +272,7 @@ func (h *RAGHandler) Evaluate(c transport.Context) {
 		GroundTruth: req.GroundTruth,
 	}
 
-	result, err := h.evaluator.Evaluate(c.Request(), input)
+	result, err := h.evaluator.Evaluate(c.Request.Context(), input)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, ErrorResponse{Code: 500, Message: err.Error()})
 		return
@@ -305,14 +305,14 @@ type QueryAndEvaluateResponse struct {
 // @Failure 400 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
 // @Router /v1/rag/query-evaluate [post]
-func (h *RAGHandler) QueryAndEvaluate(c transport.Context) {
+func (h *RAGHandler) QueryAndEvaluate(c *gin.Context) {
 	var req QueryAndEvaluateRequest
-	if err := c.Bind(&req); err != nil {
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, ErrorResponse{Code: 400, Message: err.Error()})
 		return
 	}
 
-	result, err := h.service.Query(c.Request(), req.Question)
+	result, err := h.service.Query(c.Request.Context(), req.Question)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, ErrorResponse{Code: 500, Message: "Query failed: " + err.Error()})
 		return
@@ -331,7 +331,7 @@ func (h *RAGHandler) QueryAndEvaluate(c transport.Context) {
 			Contexts:    contexts,
 			GroundTruth: req.GroundTruth,
 		}
-		evaluation, _ = h.evaluator.Evaluate(c.Request(), input)
+		evaluation, _ = h.evaluator.Evaluate(c.Request.Context(), input)
 	}
 
 	response := QueryAndEvaluateResponse{
@@ -350,7 +350,7 @@ func (h *RAGHandler) QueryAndEvaluate(c transport.Context) {
 // @Produce plain
 // @Success 200 {string} string "metrics data"
 // @Router /v1/rag/metrics [get]
-func (h *RAGHandler) Metrics(c transport.Context) {
+func (h *RAGHandler) Metrics(c *gin.Context) {
 	metricsData := observability.Export()
 	c.String(http.StatusOK, metricsData)
 }

@@ -102,14 +102,9 @@ func (m *Manager) GRPCServer() *grpc.Server {
 	return m.grpcServer
 }
 
-// RegisterService registers a service with unified HTTP and gRPC support.
-func (m *Manager) RegisterService(svc service.Service, httpHandler transport.HTTPHandler, grpcDesc *transport.GRPCServiceDesc) error {
-	return m.registry.RegisterService(svc, httpHandler, grpcDesc)
-}
-
-// RegisterHTTP registers an HTTP-only handler.
-func (m *Manager) RegisterHTTP(svc service.Service, handler transport.HTTPHandler) error {
-	return m.registry.RegisterHTTP(svc, handler)
+// RegisterService registers a service with gRPC support.
+func (m *Manager) RegisterService(svc service.Service, grpcDesc *transport.GRPCServiceDesc) error {
+	return m.registry.RegisterService(svc, grpcDesc)
 }
 
 // RegisterGRPC registers a gRPC-only service.
@@ -135,12 +130,6 @@ func (m *Manager) Start(ctx context.Context) error {
 	m.mu.Unlock()
 
 	// Apply registry to servers
-	if m.httpServer != nil {
-		if err := m.registry.ApplyToHTTP(m.httpServer); err != nil {
-			return fmt.Errorf("failed to apply HTTP handlers: %w", err)
-		}
-	}
-
 	if m.grpcServer != nil {
 		if err := m.registry.ApplyToGRPC(m.grpcServer); err != nil {
 			return fmt.Errorf("failed to apply gRPC services: %w", err)

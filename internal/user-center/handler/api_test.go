@@ -128,6 +128,7 @@ func TestUserAPI_ListUser_Pagination(t *testing.T) {
 
 			var listReq v1.ListUsersRequest
 			_ = c.ShouldBindQuery(&listReq)
+
 			if listReq.Page == 0 || listReq.PageSize == 0 {
 				// Protobuf验证可能允许0值，手动验证
 			}

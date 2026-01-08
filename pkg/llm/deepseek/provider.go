@@ -290,7 +290,7 @@ func (p *Provider) Chat(ctx context.Context, messages []llm.Message) (string, er
 }
 
 // Generate 根据提示生成文本。
-func (p *Provider) Generate(ctx context.Context, prompt string, systemPrompt string) (string, error) {
+func (p *Provider) Generate(ctx context.Context, prompt string, systemPrompt string) (*llm.GenerateResponse, error) {
 	messages := []llm.Message{}
 	if systemPrompt != "" {
 		messages = append(messages, llm.Message{
@@ -303,7 +303,71 @@ func (p *Provider) Generate(ctx context.Context, prompt string, systemPrompt str
 		Content: prompt,
 	})
 
-	return p.Chat(ctx, messages)
+	chatMessages := make([]chatMessage, len(messages))
+	for i, msg := range messages {
+		chatMessages[i] = chatMessage{
+			Role:    string(msg.Role),
+			Content: msg.Content,
+		}
+	}
+
+	reqBody := chatRequest{
+		Model:    p.config.ChatModel,
+		Messages: chatMessages,
+		Stream:   false,
+	}
+
+	// 应用配置的生成参数（仅在非零值时设置）
+	if p.config.Temperature > 0 {
+		reqBody.Temperature = p.config.Temperature
+	}
+	if p.config.TopP > 0 {
+		reqBody.TopP = p.config.TopP
+	}
+	if p.config.MaxTokens > 0 {
+		reqBody.MaxTokens = p.config.MaxTokens
+	}
+	if p.config.FrequencyPenalty != 0 {
+		reqBody.FrequencyPenalty = p.config.FrequencyPenalty
+	}
+	if p.config.PresencePenalty != 0 {
+		reqBody.PresencePenalty = p.config.PresencePenalty
+	}
+	if len(p.config.Stop) > 0 {
+		reqBody.Stop = p.config.Stop
+	}
+
+	body, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("序列化请求失败: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, p.config.BaseURL+"/chat/completions", bytes.NewReader(body))
+	if err != nil {
+		return nil, fmt.Errorf("创建请求失败: %w", err)
+	}
+	p.setHeaders(req)
+
+	var chatResp chatResponse
+	if err := p.client.DoJSON(req, &chatResp); err != nil {
+		return nil, err
+	}
+
+	if len(chatResp.Choices) == 0 {
+		return nil, fmt.Errorf("未返回响应内容")
+	}
+
+	// 构建响应，包含 token 使用情况
+	response := &llm.GenerateResponse{
+		Content: chatResp.Choices[0].Message.Content,
+		TokenUsage: &llm.TokenUsage{
+			PromptTokens:     chatResp.Usage.PromptTokens,
+			CompletionTokens: chatResp.Usage.CompletionTokens,
+			TotalTokens:      chatResp.Usage.TotalTokens,
+		},
+	}
+
+	return response, nil
 }
 
 // setHeaders 设置请求头。

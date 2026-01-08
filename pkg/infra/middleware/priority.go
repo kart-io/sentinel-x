@@ -5,7 +5,7 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	"github.com/gin-gonic/gin"
 )
 
 // Priority 定义中间件优先级类型。
@@ -64,7 +64,7 @@ type PrioritizedMiddleware struct {
 	Priority Priority
 
 	// Handler 中间件处理函数。
-	Handler transport.MiddlewareFunc
+	Handler gin.HandlerFunc
 
 	// order 注册顺序，用于同优先级时的排序。
 	order int
@@ -96,7 +96,7 @@ func NewRegistrar() *Registrar {
 //
 //	registrar.Register("recovery", PriorityRecovery, recoveryMiddleware)
 //	registrar.Register("auth", PriorityAuth, authMiddleware)
-func (r *Registrar) Register(name string, priority Priority, handler transport.MiddlewareFunc) {
+func (r *Registrar) Register(name string, priority Priority, handler gin.HandlerFunc) {
 	if handler == nil {
 		panic(fmt.Sprintf("middleware handler cannot be nil for %q", name))
 	}
@@ -124,7 +124,7 @@ func (r *Registrar) Register(name string, priority Priority, handler transport.M
 // 示例：
 //
 //	registrar.RegisterIf(enableAuth, "auth", PriorityAuth, authMiddleware)
-func (r *Registrar) RegisterIf(condition bool, name string, priority Priority, handler transport.MiddlewareFunc) {
+func (r *Registrar) RegisterIf(condition bool, name string, priority Priority, handler gin.HandlerFunc) {
 	if condition {
 		r.Register(name, priority, handler)
 	}
@@ -134,12 +134,12 @@ func (r *Registrar) RegisterIf(condition bool, name string, priority Priority, h
 // 优先级高的中间件先执行，同优先级按注册顺序执行。
 //
 // 参数：
-//   - router: 要应用中间件的路由器
+//   - router: 要应用中间件的路由器 (gin.IRouter)
 //
 // 注意：
 //   - 此方法会按优先级排序，仅在应用时执行一次
 //   - 排序后的顺序：Recovery -> RequestID -> Logger -> ... -> Custom
-func (r *Registrar) Apply(router transport.Router) {
+func (r *Registrar) Apply(router gin.IRouter) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 

@@ -105,13 +105,42 @@ func New() *Validator {
 	return v
 }
 
+// ValidatorInterface defines the interface for types that can validate themselves.
+// This is compatible with protoc-gen-validate generated code.
+type ValidatorInterface interface {
+	Validate() error
+}
+
 // Validate validates a struct and returns validation errors.
 func (v *Validator) Validate(s interface{}) error {
+	// Check if the struct implements ValidatorInterface (e.g. protoc-gen-validate)
+	if validator, ok := s.(ValidatorInterface); ok {
+		if err := validator.Validate(); err != nil {
+			return err
+		}
+	}
+	// Fallback to struct tag validation
 	return v.validate.Struct(s)
 }
 
 // ValidateWithLang validates a struct and returns translated validation errors.
 func (v *Validator) ValidateWithLang(s interface{}, lang string) *ValidationErrors {
+	// Check if the struct implements ValidatorInterface
+	if validator, ok := s.(ValidatorInterface); ok {
+		if err := validator.Validate(); err != nil {
+			// Convert generic error to ValidationErrors
+			return &ValidationErrors{
+				Errors: []FieldError{
+					{
+						Field:   "global",
+						Tag:     "custom",
+						Message: err.Error(),
+					},
+				},
+			}
+		}
+	}
+
 	err := v.validate.Struct(s)
 	if err == nil {
 		return nil

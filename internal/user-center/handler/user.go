@@ -235,9 +235,15 @@ func (h *UserHandler) Get(c *gin.Context) {
 func (h *UserHandler) List(c *gin.Context) {
 	var req v1.ListUsersRequest
 
-	// Ignore bind error for optional params
-	_ = c.ShouldBindQuery(&req)
-	_ = validator.Global().Validate(&req)
+	if err := c.ShouldBindQuery(&req); err != nil {
+		httputils.WriteResponse(c, errors.ErrBadRequest.WithMessage(err.Error()), nil)
+		return
+	}
+
+	if err := validator.Global().Validate(&req); err != nil {
+		httputils.WriteResponse(c, errors.ErrValidationFailed.WithMessage(err.Error()), nil)
+		return
+	}
 
 	// Set defaults if zero
 	page := int(req.Page)

@@ -55,15 +55,6 @@ func (s *mockService) WasCloseCalled() bool {
 	return s.closeCalled
 }
 
-// mockHTTPHandler implements transport.HTTPHandler for testing.
-type mockHTTPHandler struct{}
-
-func (h *mockHTTPHandler) RegisterRoutes(router transport.Router) {
-	router.Handle("GET", "/test", func(ctx transport.Context) {
-		ctx.String(200, "test")
-	})
-}
-
 // mockRunnable implements Runnable for testing.
 type mockRunnable struct {
 	name        string
@@ -255,9 +246,8 @@ func TestManagerGRPCServer(t *testing.T) {
 func TestManagerRegisterService(t *testing.T) {
 	mgr := NewManager()
 	svc := &mockService{name: "test-service"}
-	handler := &mockHTTPHandler{}
 
-	err := mgr.RegisterService(svc, handler, nil)
+	err := mgr.RegisterService(svc, nil)
 	if err != nil {
 		t.Fatalf("RegisterService() error = %v", err)
 	}
@@ -269,26 +259,6 @@ func TestManagerRegisterService(t *testing.T) {
 	}
 	if registeredSvc != svc {
 		t.Error("Registered service does not match")
-	}
-}
-
-func TestManagerRegisterHTTP(t *testing.T) {
-	mgr := NewManager()
-	svc := &mockService{name: "http-service"}
-	handler := &mockHTTPHandler{}
-
-	err := mgr.RegisterHTTP(svc, handler)
-	if err != nil {
-		t.Fatalf("RegisterHTTP() error = %v", err)
-	}
-
-	// Verify service was registered
-	registeredSvc, ok := mgr.registry.GetService("http-service")
-	if !ok {
-		t.Error("HTTP service was not registered")
-	}
-	if registeredSvc != svc {
-		t.Error("Registered HTTP service does not match")
 	}
 }
 
@@ -366,10 +336,9 @@ func TestManagerStartStop(t *testing.T) {
 	)
 
 	svc := &mockService{name: "test-service"}
-	handler := &mockHTTPHandler{}
-	err := mgr.RegisterHTTP(svc, handler)
+	err := mgr.RegisterService(svc, nil)
 	if err != nil {
-		t.Fatalf("RegisterHTTP() error = %v", err)
+		t.Fatalf("RegisterService() error = %v", err)
 	}
 
 	ctx := context.Background()
@@ -398,11 +367,10 @@ func TestManagerServiceLifecycle(t *testing.T) {
 	mgr := NewManager(WithMode(ModeHTTPOnly))
 
 	svc := &mockService{name: "lifecycle-service"}
-	handler := &mockHTTPHandler{}
 
-	err := mgr.RegisterHTTP(svc, handler)
+	err := mgr.RegisterService(svc, nil)
 	if err != nil {
-		t.Fatalf("RegisterHTTP() error = %v", err)
+		t.Fatalf("RegisterService() error = %v", err)
 	}
 
 	// Simulate initialization
@@ -441,11 +409,10 @@ func TestManagerServiceInitError(t *testing.T) {
 		name:    "error-service",
 		initErr: errors.New("init failed"),
 	}
-	handler := &mockHTTPHandler{}
 
-	err := mgr.RegisterHTTP(svc, handler)
+	err := mgr.RegisterService(svc, nil)
 	if err != nil {
-		t.Fatalf("RegisterHTTP() error = %v", err)
+		t.Fatalf("RegisterService() error = %v", err)
 	}
 
 	ctx := context.Background()

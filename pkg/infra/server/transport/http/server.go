@@ -10,11 +10,16 @@ import (
 	"github.com/kart-io/sentinel-x/pkg/infra/middleware"
 	"github.com/kart-io/sentinel-x/pkg/infra/middleware/observability"
 	"github.com/kart-io/sentinel-x/pkg/infra/middleware/resilience"
-	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 	options "github.com/kart-io/sentinel-x/pkg/options/server/http"
 	apierrors "github.com/kart-io/sentinel-x/pkg/utils/errors"
 )
+
+// Validator is the interface for request validation.
+type Validator interface {
+	// Validate validates the given struct.
+	Validate(i interface{}) error
+}
 
 // Re-export types from options package for convenience
 type (
@@ -50,9 +55,9 @@ type Server struct {
 	server *http.Server
 }
 
-// ginValidator wraps transport.Validator for gin binding.
+// ginValidator wraps Validator for gin binding.
 type ginValidator struct {
-	validator transport.Validator
+	validator Validator
 }
 
 func (v *ginValidator) ValidateStruct(obj interface{}) error {
@@ -101,16 +106,8 @@ func (s *Server) Engine() *gin.Engine {
 	return s.engine
 }
 
-// Router returns the HTTP router (deprecated, use Engine instead).
-// Deprecated: Use Engine() to get *gin.Engine directly.
-func (s *Server) Router() transport.Router {
-	// 返回 nil 或者可以考虑返回一个兼容层
-	// 为了保持向后兼容，这里暂时保留方法但返回 nil
-	return nil
-}
-
 // SetValidator sets the global validator for the server.
-func (s *Server) SetValidator(v transport.Validator) {
+func (s *Server) SetValidator(v Validator) {
 	binding.Validator = &ginValidator{validator: v}
 }
 
@@ -228,8 +225,3 @@ func (s *Server) Stop(ctx context.Context) error {
 	}
 	return s.server.Shutdown(ctx)
 }
-
-// Ensure Server implements the required interfaces.
-var (
-	_ transport.Transport = (*Server)(nil)
-)

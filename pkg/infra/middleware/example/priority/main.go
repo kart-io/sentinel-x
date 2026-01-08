@@ -3,15 +3,17 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"net/http/httptest"
 
+	"github.com/gin-gonic/gin"
 	"github.com/kart-io/sentinel-x/pkg/infra/middleware"
-	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 )
 
 // 演示中间件优先级机制的使用
 func main() {
-	// 创建一个模拟的路由器（实际使用中由框架提供）
-	router := newMockRouter()
+	// 创建一个路由器
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
 
 	// 创建中间件注册器
 	registrar := middleware.NewRegistrar()
@@ -40,45 +42,20 @@ func main() {
 
 	// 执行中间件链验证顺序
 	fmt.Println("\n中间件执行顺序:")
-	handler := func(c transport.Context) {
+	router.GET("/", func(c *gin.Context) {
 		fmt.Println("  → 业务逻辑")
-	}
+	})
 
-	// 从后向前构建中间件链
-	for i := len(router.middlewares) - 1; i >= 0; i-- {
-		handler = router.middlewares[i](handler)
-	}
-
-	// 执行
-	handler(nil)
+	// 模拟请求
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
 }
 
 // createMiddleware 创建一个带标记的中间件用于演示
-func createMiddleware(name string) transport.MiddlewareFunc {
-	return func(next transport.HandlerFunc) transport.HandlerFunc {
-		return func(c transport.Context) {
-			fmt.Printf("  → %s\n", name)
-			next(c)
-		}
+func createMiddleware(name string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		fmt.Printf("  → %s\n", name)
+		c.Next()
 	}
-}
-
-// mockRouter 实现 transport.Router 接口用于演示
-type mockRouter struct {
-	middlewares []transport.MiddlewareFunc
-}
-
-func newMockRouter() *mockRouter {
-	return &mockRouter{
-		middlewares: make([]transport.MiddlewareFunc, 0),
-	}
-}
-
-func (m *mockRouter) Handle(method, path string, handler transport.HandlerFunc) {}
-func (m *mockRouter) Group(prefix string) transport.Router                      { return m }
-func (m *mockRouter) Static(prefix, root string)                                {}
-func (m *mockRouter) Mount(prefix string, handler http.Handler)                 {}
-
-func (m *mockRouter) Use(middleware ...transport.MiddlewareFunc) {
-	m.middlewares = append(m.middlewares, middleware...)
 }

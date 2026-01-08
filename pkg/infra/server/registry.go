@@ -6,55 +6,34 @@ import (
 	"github.com/kart-io/sentinel-x/pkg/infra/server/service"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport/grpc"
-	"github.com/kart-io/sentinel-x/pkg/infra/server/transport/http"
 )
 
-// Registry manages service registration for both HTTP and gRPC transports.
+// Registry manages service registration for gRPC transports.
 type Registry struct {
-	mu           sync.RWMutex
-	services     map[string]service.Service
-	httpHandlers map[string]transport.HTTPHandler
-	grpcDescs    []*transport.GRPCServiceDesc
+	mu        sync.RWMutex
+	services  map[string]service.Service
+	grpcDescs []*transport.GRPCServiceDesc
 }
 
 // NewRegistry creates a new service registry.
 func NewRegistry() *Registry {
 	return &Registry{
-		services:     make(map[string]service.Service),
-		httpHandlers: make(map[string]transport.HTTPHandler),
-		grpcDescs:    make([]*transport.GRPCServiceDesc, 0),
+		services:  make(map[string]service.Service),
+		grpcDescs: make([]*transport.GRPCServiceDesc, 0),
 	}
 }
 
-// RegisterService registers a service with both HTTP and gRPC handlers.
-// This is the unified registration method that allows a single service
-// to be exposed through both protocols.
-func (r *Registry) RegisterService(svc service.Service, httpHandler transport.HTTPHandler, grpcDesc *transport.GRPCServiceDesc) error {
+// RegisterService registers a service with gRPC handlers.
+func (r *Registry) RegisterService(svc service.Service, grpcDesc *transport.GRPCServiceDesc) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	name := svc.ServiceName()
 	r.services[name] = svc
-
-	if httpHandler != nil {
-		r.httpHandlers[name] = httpHandler
-	}
 
 	if grpcDesc != nil {
 		r.grpcDescs = append(r.grpcDescs, grpcDesc)
 	}
-
-	return nil
-}
-
-// RegisterHTTP registers only an HTTP handler for a service.
-func (r *Registry) RegisterHTTP(svc service.Service, handler transport.HTTPHandler) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	name := svc.ServiceName()
-	r.services[name] = svc
-	r.httpHandlers[name] = handler
 
 	return nil
 }
@@ -90,23 +69,6 @@ func (r *Registry) GetAllServices() []service.Service {
 		services = append(services, svc)
 	}
 	return services
-}
-
-// ApplyToHTTP applies all HTTP handlers to the given HTTP server.
-func (r *Registry) ApplyToHTTP(server *http.Server) error {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-
-	for name, handler := range r.httpHandlers {
-		svc, ok := r.services[name]
-		if !ok {
-			continue
-		}
-		if err := server.RegisterHTTPHandler(svc, handler); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 // ApplyToGRPC applies all gRPC services to the given gRPC server.

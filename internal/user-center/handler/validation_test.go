@@ -45,7 +45,7 @@ func TestAuthHandler_Login_Validation(t *testing.T) {
 				Password: "validpassword123",
 			},
 			wantStatus: http.StatusBadRequest,
-			wantCode:   errors.ErrBadRequest.Code,
+			wantCode:   errors.ErrValidationFailed.Code,
 			errMsg:     "Username", // Error message should contain field name
 		},
 		{
@@ -55,7 +55,7 @@ func TestAuthHandler_Login_Validation(t *testing.T) {
 				Password: "123", // min_len: 6
 			},
 			wantStatus: http.StatusBadRequest,
-			wantCode:   errors.ErrBadRequest.Code,
+			wantCode:   errors.ErrValidationFailed.Code,
 			errMsg:     "Password",
 		},
 	}
