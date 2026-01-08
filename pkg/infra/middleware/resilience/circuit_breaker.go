@@ -72,7 +72,23 @@ func CircuitBreakerWithOptions(opts mwopts.CircuitBreakerOptions) gin.HandlerFun
 		}
 
 		// 通过熔断器执行请求
-		err := breaker.Execute(func() error {
+		err := breaker.Execute(func() (execErr error) {
+			// 捕获 panic 并将其视为失败
+			defer func() {
+				if r := recover(); r != nil {
+					// 记录 panic 为错误，以便触发熔断
+					execErr = errors.ErrInternal
+					logger.Errorw("circuit breaker caught panic",
+						"panic", r,
+						"path", req.URL.Path,
+					)
+					// 重新抛出 panic，让 Recovery 中间件处理
+					// 注意：这里必须重新 panic，否则 Recovery 无法捕获堆栈信息
+					// 而 execErr 的赋值已经确保熔断器记录了这次失败
+					panic(r)
+				}
+			}()
+
 			// 调用下一个处理器
 			c.Next()
 

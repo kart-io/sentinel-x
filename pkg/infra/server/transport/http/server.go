@@ -10,7 +10,6 @@ import (
 	"github.com/kart-io/sentinel-x/pkg/infra/middleware"
 	"github.com/kart-io/sentinel-x/pkg/infra/middleware/observability"
 	"github.com/kart-io/sentinel-x/pkg/infra/middleware/resilience"
-	"github.com/kart-io/sentinel-x/pkg/infra/server/service"
 	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 	options "github.com/kart-io/sentinel-x/pkg/options/server/http"
@@ -45,16 +44,10 @@ var (
 
 // Server is the HTTP server implementation.
 type Server struct {
-	opts     *options.Options
-	mwOpts   *mwopts.Options
-	engine   *gin.Engine
-	server   *http.Server
-	handlers []registeredHandler
-}
-
-type registeredHandler struct {
-	svc     service.Service
-	handler transport.HTTPHandler
+	opts   *options.Options
+	mwOpts *mwopts.Options
+	engine *gin.Engine
+	server *http.Server
 }
 
 // ginValidator wraps transport.Validator for gin binding.
@@ -86,10 +79,9 @@ func NewServer(serverOpts *options.Options, middlewareOpts *mwopts.Options) *Ser
 	engine := gin.New()
 
 	s := &Server{
-		opts:     serverOpts,
-		mwOpts:   middlewareOpts,
-		engine:   engine,
-		handlers: make([]registeredHandler, 0),
+		opts:   serverOpts,
+		mwOpts: middlewareOpts,
+		engine: engine,
 	}
 
 	// 在创建 Server 时就应用中间件
@@ -102,18 +94,6 @@ func NewServer(serverOpts *options.Options, middlewareOpts *mwopts.Options) *Ser
 // Name returns the server name.
 func (s *Server) Name() string {
 	return "http[gin]"
-}
-
-// RegisterHTTPHandler registers an HTTP handler for a service.
-func (s *Server) RegisterHTTPHandler(svc service.Service, handler transport.HTTPHandler) error {
-	if handler == nil {
-		return errors.New("handler cannot be nil")
-	}
-	s.handlers = append(s.handlers, registeredHandler{
-		svc:     svc,
-		handler: handler,
-	})
-	return nil
 }
 
 // Engine returns the underlying gin.Engine.
@@ -166,17 +146,6 @@ func (s *Server) Start(ctx context.Context) error {
 	// Register version endpoint
 	if s.mwOpts.IsEnabled(mwopts.MiddlewareVersion) {
 		middleware.RegisterVersionRoutes(s.engine, *s.mwOpts.Version)
-	}
-
-	// Register all handlers
-	for _, h := range s.handlers {
-		// 注意：HTTPHandler接口需要适配为直接使用gin.Engine
-		// 这里暂时保留，后续可能需要调整HTTPHandler接口
-		if h.handler != nil {
-			// 由于移除了Router接口，这里需要跳过或者重新设计
-			// 暂时注释掉，因为handler.RegisterRoutes期望transport.Router
-			// h.handler.RegisterRoutes(???)
-		}
 	}
 
 	s.server = &http.Server{
