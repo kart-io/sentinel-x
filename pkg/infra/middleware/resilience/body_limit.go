@@ -64,6 +64,7 @@ func BodyLimitWithOptions(opts mwopts.BodyLimitOptions) gin.HandlerFunc {
 				"max_size", opts.MaxSize,
 			)
 			response.Fail(c, errors.ErrRequestTooLarge)
+			c.Abort() // 必须终止请求链
 			return
 		}
 
