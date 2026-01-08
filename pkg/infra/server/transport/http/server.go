@@ -231,6 +231,5 @@ func (s *Server) Stop(ctx context.Context) error {
 
 // Ensure Server implements the required interfaces.
 var (
-	_ transport.Transport     = (*Server)(nil)
-	_ transport.HTTPRegistrar = (*Server)(nil)
+	_ transport.Transport = (*Server)(nil)
 )
