@@ -126,8 +126,8 @@ func (r *ResilientChatProvider) Chat(ctx context.Context, messages []llm.Message
 }
 
 // Generate 根据提示生成文本（带重试和熔断）。
-func (r *ResilientChatProvider) Generate(ctx context.Context, prompt string, systemPrompt string) (string, error) {
-	var result string
+func (r *ResilientChatProvider) Generate(ctx context.Context, prompt string, systemPrompt string) (*llm.GenerateResponse, error) {
+	var result *llm.GenerateResponse
 	var err error
 
 	err = RetryWithCircuitBreaker(ctx, r.retry, r.cb, func() error {

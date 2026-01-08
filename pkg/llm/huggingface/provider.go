@@ -321,13 +321,22 @@ func (p *Provider) Chat(ctx context.Context, messages []llm.Message) (string, er
 //	}
 //	// generatedText 变量包含生成的诗歌
 //	fmt.Println("Generated Text:", generatedText)
-func (p *Provider) Generate(ctx context.Context, prompt string, systemPrompt string) (string, error) {
+func (p *Provider) Generate(ctx context.Context, prompt string, systemPrompt string) (*llm.GenerateResponse, error) {
 	fullPrompt := prompt
 	if systemPrompt != "" {
 		// Mistral 模型的指令格式
 		fullPrompt = fmt.Sprintf("[INST] %s [/INST]\n%s", systemPrompt, prompt)
 	}
-	return p.generate(ctx, fullPrompt)
+
+	content, err := p.generate(ctx, fullPrompt)
+	if err != nil {
+		return nil, err
+	}
+
+	return &llm.GenerateResponse{
+		Content:    content,
+		TokenUsage: nil, // HuggingFace API 不提供 token 使用统计
+	}, nil
 }
 
 func (p *Provider) generate(ctx context.Context, prompt string) (string, error) {

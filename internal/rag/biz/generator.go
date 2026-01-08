@@ -31,14 +31,17 @@ func NewGenerator(chatProvider llm.ChatProvider, config *GeneratorConfig) *Gener
 }
 
 // GenerateAnswer 根据检索结果生成答案。
-func (g *Generator) GenerateAnswer(ctx context.Context, question string, results []*store.SearchResult) (string, error) {
+func (g *Generator) GenerateAnswer(ctx context.Context, question string, results []*store.SearchResult) (*llm.GenerateResponse, error) {
 	if len(results) == 0 {
-		return "I couldn't find any relevant information in the knowledge base.", nil
+		return &llm.GenerateResponse{
+			Content:    "I couldn't find any relevant information in the knowledge base.",
+			TokenUsage: nil,
+		}, nil
 	}
 
 	// 检查 context 是否已取消
 	if ctx.Err() != nil {
-		return "", fmt.Errorf("context cancelled before generation: %w", ctx.Err())
+		return nil, fmt.Errorf("context cancelled before generation: %w", ctx.Err())
 	}
 
 	// 构建上下文
@@ -54,12 +57,18 @@ func (g *Generator) GenerateAnswer(ctx context.Context, question string, results
 
 	// 调用 LLM 生成答案
 	logger.Info("Calling LLM to generate answer...")
-	answer, err := g.chatProvider.Generate(ctx, prompt, "")
+	resp, err := g.chatProvider.Generate(ctx, prompt, "")
 	if err != nil {
 		logger.Errorf("LLM generation failed: %v", err)
-		return "", fmt.Errorf("failed to generate answer: %w", err)
+		return nil, fmt.Errorf("failed to generate answer: %w", err)
 	}
-	logger.Infof("LLM answer generated (length: %d)", len(answer))
 
-	return answer, nil
+	if resp.TokenUsage != nil {
+		logger.Infof("LLM answer generated (length: %d, tokens: %d)",
+			len(resp.Content), resp.TokenUsage.TotalTokens)
+	} else {
+		logger.Infof("LLM answer generated (length: %d)", len(resp.Content))
+	}
+
+	return resp, nil
 }

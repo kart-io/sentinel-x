@@ -361,10 +361,10 @@ func (e *Evaluator) extractClaims(ctx context.Context, text string) ([]string, e
 	}
 
 	// 解析 JSON 响应
-	claims, err := textutil.ParseJSONArray(response)
+	claims, err := textutil.ParseJSONArray(response.Content)
 	if err != nil {
 		// 尝试按行分割
-		claims = textutil.SplitByLines(response, 5)
+		claims = textutil.SplitByLines(response.Content, 5)
 	}
 
 	return claims, nil
@@ -386,8 +386,8 @@ func (e *Evaluator) verifyClaimAgainstContext(ctx context.Context, claim, contex
 		return false, err
 	}
 
-	response = strings.ToLower(strings.TrimSpace(response))
-	return strings.Contains(response, "是") || strings.Contains(response, "yes") || strings.Contains(response, "true"), nil
+	answer := strings.ToLower(strings.TrimSpace(response.Content))
+	return strings.Contains(answer, "是") || strings.Contains(answer, "yes") || strings.Contains(answer, "true"), nil
 }
 
 // generateQuestionsFromAnswer 从答案生成可能的问题。
@@ -407,9 +407,9 @@ func (e *Evaluator) generateQuestionsFromAnswer(ctx context.Context, answer stri
 		return nil, err
 	}
 
-	questions, err := textutil.ParseJSONArray(response)
+	questions, err := textutil.ParseJSONArray(response.Content)
 	if err != nil {
-		questions = textutil.SplitByLines(response, 5)
+		questions = textutil.SplitByLines(response.Content, 5)
 	}
 
 	return questions, nil
@@ -431,8 +431,8 @@ func (e *Evaluator) isContextRelevant(ctx context.Context, context, question str
 		return false, err
 	}
 
-	response = strings.ToLower(strings.TrimSpace(response))
-	return strings.Contains(response, "是") || strings.Contains(response, "yes") || strings.Contains(response, "true"), nil
+	answer := strings.ToLower(strings.TrimSpace(response.Content))
+	return strings.Contains(answer, "是") || strings.Contains(answer, "yes") || strings.Contains(answer, "true"), nil
 }
 
 // calculateOverallScore 计算综合评分。

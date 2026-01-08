@@ -203,7 +203,7 @@ func (e *Enhancer) rewriteQuery(ctx context.Context, query string) (string, erro
 		return query, err
 	}
 
-	rewritten := strings.TrimSpace(response)
+	rewritten := strings.TrimSpace(response.Content)
 	if rewritten == "" {
 		return query, nil
 	}
@@ -227,7 +227,7 @@ func (e *Enhancer) generateHyDEEmbedding(ctx context.Context, query string) ([]f
 		return nil, fmt.Errorf("生成假设文档失败: %w", err)
 	}
 
-	hypotheticalDoc := strings.TrimSpace(response)
+	hypotheticalDoc := strings.TrimSpace(response.Content)
 	if hypotheticalDoc == "" {
 		return nil, fmt.Errorf("生成的假设文档为空")
 	}
@@ -267,7 +267,7 @@ func (e *Enhancer) scoreRelevance(ctx context.Context, query, document string) (
 	}
 
 	// 解析分数
-	score := parseScore(response)
+	score := parseScore(response.Content)
 	return score, nil
 }
 

@@ -111,13 +111,16 @@ func (s *RAGService) Query(ctx context.Context, question string) (*model.QueryRe
 
 	// 3. 生成答案
 	llmStart := time.Now()
-	answer, err := s.generator.GenerateAnswer(ctx, question, retrievalResult.Results)
+	resp, err := s.generator.GenerateAnswer(ctx, question, retrievalResult.Results)
 	llmDuration := time.Since(llmStart)
 
-	// TODO: 从 generator 获取实际 token 数量（需要修改 Generator 接口返回 token 信息）
-	// 暂时使用估算值
-	promptTokens := 0     // 需要从 generator 传递
-	completionTokens := 0 // 需要从 generator 传递
+	// 从响应中获取 token 使用信息
+	promptTokens := 0
+	completionTokens := 0
+	if resp != nil && resp.TokenUsage != nil {
+		promptTokens = resp.TokenUsage.PromptTokens
+		completionTokens = resp.TokenUsage.CompletionTokens
+	}
 	s.metrics.RecordLLMCall(llmDuration, promptTokens, completionTokens, err)
 
 	if err != nil {
@@ -138,7 +141,7 @@ func (s *RAGService) Query(ctx context.Context, question string) (*model.QueryRe
 	}
 
 	queryResult := &model.QueryResult{
-		Answer:  answer,
+		Answer:  resp.Content,
 		Sources: sources,
 	}
 
