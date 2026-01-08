@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 )
 
@@ -15,14 +14,14 @@ import (
 // 这是推荐的 API，使用纯配置选项。
 //
 // 参数：
-//   - router: 路由器接口
+//   - engine: Gin 引擎
 //   - opts: Pprof 配置选项
 //
 // 示例：
 //
 //	opts := mwopts.NewPprofOptions()
-//	RegisterPprofRoutesWithOptions(router, *opts)
-func RegisterPprofRoutesWithOptions(router transport.Router, opts mwopts.PprofOptions) {
+//	RegisterPprofRoutesWithOptions(engine, *opts)
+func RegisterPprofRoutesWithOptions(engine *gin.Engine, opts mwopts.PprofOptions) {
 	// Set profiling rates if specified
 	if opts.BlockProfileRate > 0 {
 		runtime.SetBlockProfileRate(opts.BlockProfileRate)
@@ -40,28 +39,28 @@ func RegisterPprofRoutesWithOptions(router transport.Router, opts mwopts.PprofOp
 	prefix = strings.TrimSuffix(prefix, "/")
 
 	// Index handler - shows all available profiles
-	router.Handle(http.MethodGet, prefix+"/", wrapPprofHandler(pprof.Index))
-	router.Handle(http.MethodGet, prefix, wrapPprofHandler(pprof.Index))
+	engine.GET(prefix+"/", gin.WrapF(pprof.Index))
+	engine.GET(prefix, gin.WrapF(pprof.Index))
 
 	// Cmdline handler
 	if opts.EnableCmdline {
-		router.Handle(http.MethodGet, prefix+"/cmdline", wrapPprofHandler(pprof.Cmdline))
+		engine.GET(prefix+"/cmdline", gin.WrapF(pprof.Cmdline))
 	}
 
 	// Profile handler (CPU profiling)
 	if opts.EnableProfile {
-		router.Handle(http.MethodGet, prefix+"/profile", wrapPprofHandler(pprof.Profile))
+		engine.GET(prefix+"/profile", gin.WrapF(pprof.Profile))
 	}
 
 	// Symbol handler
 	if opts.EnableSymbol {
-		router.Handle(http.MethodGet, prefix+"/symbol", wrapPprofHandler(pprof.Symbol))
-		router.Handle(http.MethodPost, prefix+"/symbol", wrapPprofHandler(pprof.Symbol))
+		engine.GET(prefix+"/symbol", gin.WrapF(pprof.Symbol))
+		engine.POST(prefix+"/symbol", gin.WrapF(pprof.Symbol))
 	}
 
 	// Trace handler
 	if opts.EnableTrace {
-		router.Handle(http.MethodGet, prefix+"/trace", wrapPprofHandler(pprof.Trace))
+		engine.GET(prefix+"/trace", gin.WrapF(pprof.Trace))
 	}
 
 	// Standard pprof handlers for specific profiles
@@ -75,21 +74,7 @@ func RegisterPprofRoutesWithOptions(router transport.Router, opts mwopts.PprofOp
 	}
 
 	for _, profile := range profiles {
-		router.Handle(http.MethodGet, prefix+"/"+profile, wrapPprofHandler(pprof.Index))
-	}
-}
-
-// wrapPprofHandler wraps a http.HandlerFunc to transport.HandlerFunc.
-func wrapPprofHandler(h http.HandlerFunc) transport.HandlerFunc {
-	return func(c transport.Context) {
-		// Get the raw Gin context
-		if ginCtx, ok := c.GetRawContext().(*gin.Context); ok {
-			h(ginCtx.Writer, ginCtx.Request)
-		} else {
-			// Fallback: use the transport.Context interface
-			req := c.HTTPRequest()
-			h(c.ResponseWriter(), req)
-		}
+		engine.GET(prefix+"/"+profile, gin.WrapF(pprof.Index))
 	}
 }
 

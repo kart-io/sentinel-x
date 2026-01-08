@@ -148,28 +148,25 @@ func (s *Server) Start(ctx context.Context) error {
 	// 这是因为 Gin 的 RouterGroup 在创建子组时会复制当前的 handlers
 	// 如果中间件在路由注册之后才应用，则不会被子组继承
 
-	// TODO: 这些端点注册函数需要重构为直接接受 *gin.Engine 而非 transport.Router
-	// 暂时注释掉，等待中间件层重构完成后再启用
-
 	// Register health endpoints
-	// if s.mwOpts.IsEnabled(mwopts.MiddlewareHealth) {
-	// 	middleware.RegisterHealthRoutesWithGin(s.engine, *s.mwOpts.Health, nil)
-	// }
+	if s.mwOpts.IsEnabled(mwopts.MiddlewareHealth) {
+		middleware.RegisterHealthRoutesWithOptions(s.engine, *s.mwOpts.Health, nil)
+	}
 
 	// Register metrics endpoint
-	// if s.mwOpts.IsEnabled(mwopts.MiddlewareMetrics) {
-	// 	middleware.RegisterMetricsRoutesWithGin(s.engine, *s.mwOpts.Metrics)
-	// }
+	if s.mwOpts.IsEnabled(mwopts.MiddlewareMetrics) {
+		middleware.RegisterMetricsRoutesWithOptions(s.engine, *s.mwOpts.Metrics)
+	}
 
 	// Register pprof endpoints
-	// if s.mwOpts.IsEnabled(mwopts.MiddlewarePprof) {
-	// 	middleware.RegisterPprofRoutesWithGin(s.engine, *s.mwOpts.Pprof)
-	// }
+	if s.mwOpts.IsEnabled(mwopts.MiddlewarePprof) {
+		middleware.RegisterPprofRoutesWithOptions(s.engine, *s.mwOpts.Pprof)
+	}
 
 	// Register version endpoint
-	// if s.mwOpts.IsEnabled(mwopts.MiddlewareVersion) {
-	// 	middleware.RegisterVersionRoutesWithGin(s.engine, *s.mwOpts.Version)
-	// }
+	if s.mwOpts.IsEnabled(mwopts.MiddlewareVersion) {
+		middleware.RegisterVersionRoutes(s.engine, *s.mwOpts.Version)
+	}
 
 	// Register all handlers
 	for _, h := range s.handlers {

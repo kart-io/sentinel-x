@@ -77,11 +77,11 @@ func CircuitBreakerWithOptions(opts mwopts.CircuitBreakerOptions) gin.HandlerFun
 			c.Next()
 
 			// 获取响应状态码
-			statusCode := http.StatusOK
-			if w, ok := c.Writer.(interface{ Status() int }); ok {
-				if status := w.Status(); status != 0 {
-					statusCode = status
-				}
+			// gin.ResponseWriter 确保有 Status() 方法,直接调用是安全的
+			statusCode := c.Writer.Status()
+			if statusCode == 0 {
+				// 如果未写入响应,默认为 200
+				statusCode = http.StatusOK
 			}
 
 			// 根据 HTTP 状态码判断是否失败

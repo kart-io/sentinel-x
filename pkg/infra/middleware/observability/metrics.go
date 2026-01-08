@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
 	"github.com/kart-io/sentinel-x/pkg/observability/metrics"
 	options "github.com/kart-io/sentinel-x/pkg/options/middleware"
 )
@@ -217,19 +216,19 @@ func MetricsWithOptions(opts options.MetricsOptions) gin.HandlerFunc {
 // 这是推荐的 API，使用纯配置选项。
 //
 // 参数：
-//   - router: 路由器接口
+//   - engine: Gin 引擎
 //   - opts: Metrics 配置选项
 //
 // 示例：
 //
 //	opts := mwopts.NewMetricsOptions()
-//	RegisterMetricsRoutesWithOptions(router, *opts)
-func RegisterMetricsRoutesWithOptions(router transport.Router, opts options.MetricsOptions) {
+//	RegisterMetricsRoutesWithOptions(engine, *opts)
+func RegisterMetricsRoutesWithOptions(engine *gin.Engine, opts options.MetricsOptions) {
 	// Ensure collector is initialized
 	GetMetricsCollector(opts.Namespace, opts.Subsystem)
 
-	router.Handle(http.MethodGet, opts.Path, func(c transport.Context) {
-		c.SetHeader("Content-Type", "text/plain; charset=utf-8")
+	engine.GET(opts.Path, func(c *gin.Context) {
+		c.Header("Content-Type", "text/plain; charset=utf-8")
 		c.String(http.StatusOK, metrics.Export())
 	})
 }

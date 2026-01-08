@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	"github.com/gin-gonic/gin"
 	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 )
 
@@ -120,18 +120,18 @@ func (h *HealthManager) Check() HealthResponse {
 // 这是推荐的 API，使用纯配置选项和运行时依赖注入。
 //
 // 参数：
-//   - router: 路由器接口
+//   - engine: Gin 引擎
 //   - opts: Health 配置选项（纯配置，可 JSON 序列化）
 //   - checker: 可选的自定义健康检查函数（运行时依赖）
 //
 // 示例：
 //
 //	opts := mwopts.NewHealthOptions()
-//	RegisterHealthRoutesWithOptions(router, *opts, func() error {
+//	RegisterHealthRoutesWithOptions(engine, *opts, func() error {
 //	    // 自定义健康检查逻辑
 //	    return nil
 //	})
-func RegisterHealthRoutesWithOptions(router transport.Router, opts mwopts.HealthOptions, checker func() error) {
+func RegisterHealthRoutesWithOptions(engine *gin.Engine, opts mwopts.HealthOptions, checker func() error) {
 	manager := GetHealthManager()
 
 	// Register custom checker if provided
@@ -141,7 +141,7 @@ func RegisterHealthRoutesWithOptions(router transport.Router, opts mwopts.Health
 
 	// Health check endpoint
 	if opts.Path != "" {
-		router.Handle(http.MethodGet, opts.Path, func(c transport.Context) {
+		engine.GET(opts.Path, func(c *gin.Context) {
 			resp := manager.Check()
 			status := http.StatusOK
 			if resp.Status == HealthStatusDown {
@@ -153,7 +153,7 @@ func RegisterHealthRoutesWithOptions(router transport.Router, opts mwopts.Health
 
 	// Liveness probe - always returns OK if the process is running
 	if opts.LivenessPath != "" {
-		router.Handle(http.MethodGet, opts.LivenessPath, func(c transport.Context) {
+		engine.GET(opts.LivenessPath, func(c *gin.Context) {
 			c.JSON(http.StatusOK, HealthResponse{
 				Status: HealthStatusUp,
 			})
@@ -162,7 +162,7 @@ func RegisterHealthRoutesWithOptions(router transport.Router, opts mwopts.Health
 
 	// Readiness probe - returns OK only if service is ready
 	if opts.ReadinessPath != "" {
-		router.Handle(http.MethodGet, opts.ReadinessPath, func(c transport.Context) {
+		engine.GET(opts.ReadinessPath, func(c *gin.Context) {
 			if manager.IsReady() {
 				resp := manager.Check()
 				status := http.StatusOK

@@ -4,7 +4,7 @@ package middleware
 import (
 	"net/http"
 
-	"github.com/kart-io/sentinel-x/pkg/infra/server/transport"
+	"github.com/gin-gonic/gin"
 	versionopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 	"github.com/kart-io/version"
 )
@@ -23,7 +23,7 @@ type VersionResponse struct {
 }
 
 // RegisterVersionRoutes registers the version endpoint.
-func RegisterVersionRoutes(router transport.Router, opts versionopts.VersionOptions) {
+func RegisterVersionRoutes(engine *gin.Engine, opts versionopts.VersionOptions) {
 	if !opts.Enabled {
 		return
 	}
@@ -33,7 +33,7 @@ func RegisterVersionRoutes(router transport.Router, opts versionopts.VersionOpti
 		opts.Path = "/version"
 	}
 
-	router.Handle(http.MethodGet, opts.Path, func(c transport.Context) {
+	engine.GET(opts.Path, func(c *gin.Context) {
 		info := version.Get()
 
 		resp := VersionResponse{
