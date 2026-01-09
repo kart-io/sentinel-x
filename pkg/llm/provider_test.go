@@ -30,8 +30,15 @@ func (m *mockProvider) Chat(_ context.Context, _ []Message) (string, error) {
 	return "mock response", nil
 }
 
-func (m *mockProvider) Generate(_ context.Context, _ string, _ string) (string, error) {
-	return "mock generated text", nil
+func (m *mockProvider) Generate(_ context.Context, _ string, _ string) (*GenerateResponse, error) {
+	return &GenerateResponse{
+		Content: "mock generated text",
+		TokenUsage: &TokenUsage{
+			PromptTokens:     10,
+			CompletionTokens: 20,
+			TotalTokens:      30,
+		},
+	}, nil
 }
 
 func TestRegisterAndNewProvider(t *testing.T) {
@@ -187,12 +194,26 @@ func TestMockProviderChat(t *testing.T) {
 func TestMockProviderGenerate(t *testing.T) {
 	provider := &mockProvider{name: "test"}
 
-	response, err := provider.Generate(context.Background(), "prompt", "system")
+	resp, err := provider.Generate(context.Background(), "prompt", "system")
 	if err != nil {
 		t.Fatalf("Generate failed: %v", err)
 	}
 
-	if response != "mock generated text" {
-		t.Errorf("expected 'mock generated text', got '%s'", response)
+	if resp.Content != "mock generated text" {
+		t.Errorf("expected 'mock generated text', got '%s'", resp.Content)
+	}
+
+	if resp.TokenUsage == nil {
+		t.Error("expected non-nil TokenUsage")
+	} else {
+		if resp.TokenUsage.PromptTokens != 10 {
+			t.Errorf("expected PromptTokens 10, got %d", resp.TokenUsage.PromptTokens)
+		}
+		if resp.TokenUsage.CompletionTokens != 20 {
+			t.Errorf("expected CompletionTokens 20, got %d", resp.TokenUsage.CompletionTokens)
+		}
+		if resp.TokenUsage.TotalTokens != 30 {
+			t.Errorf("expected TotalTokens 30, got %d", resp.TokenUsage.TotalTokens)
+		}
 	}
 }

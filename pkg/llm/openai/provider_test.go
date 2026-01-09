@@ -302,8 +302,16 @@ func TestProviderGenerate(t *testing.T) {
 		t.Fatalf("Generate failed: %v", err)
 	}
 
-	if response != "生成的文本" {
-		t.Errorf("expected response '生成的文本', got '%s'", response)
+	if response.Content != "生成的文本" {
+		t.Errorf("expected response '生成的文本', got '%s'", response.Content)
+	}
+
+	// 验证 token 使用情况
+	if response.TokenUsage != nil {
+		t.Logf("Token usage: prompt=%d, completion=%d, total=%d",
+			response.TokenUsage.PromptTokens,
+			response.TokenUsage.CompletionTokens,
+			response.TokenUsage.TotalTokens)
 	}
 }
 

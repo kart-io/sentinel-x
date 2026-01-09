@@ -13,20 +13,29 @@ import (
 // mockChatProvider 模拟聊天供应商，实现 llm.ChatProvider 接口。
 type mockChatProvider struct{}
 
-func (m *mockChatProvider) Generate(_ context.Context, prompt, _ string) (string, error) {
+func (m *mockChatProvider) Generate(_ context.Context, prompt, _ string) (*llm.GenerateResponse, error) {
+	var content string
 	// 模拟查询重写
 	if containsSubstring(prompt, "查询优化专家") {
-		return "Milvus vector database features and capabilities", nil
+		content = "Milvus vector database features and capabilities"
+	} else if containsSubstring(prompt, "假设性的答案") {
+		// 模拟假设文档生成
+		content = "Milvus is a powerful vector database that supports similarity search..."
+	} else if containsSubstring(prompt, "评估以下文档与查询的相关性") {
+		// 模拟相关性评分
+		content = "0.85"
+	} else {
+		content = "默认回复"
 	}
-	// 模拟假设文档生成
-	if containsSubstring(prompt, "假设性的答案") {
-		return "Milvus is a powerful vector database that supports similarity search...", nil
-	}
-	// 模拟相关性评分
-	if containsSubstring(prompt, "评估以下文档与查询的相关性") {
-		return "0.85", nil
-	}
-	return "默认回复", nil
+
+	return &llm.GenerateResponse{
+		Content: content,
+		TokenUsage: &llm.TokenUsage{
+			PromptTokens:     10,
+			CompletionTokens: 20,
+			TotalTokens:      30,
+		},
+	}, nil
 }
 
 func (m *mockChatProvider) Chat(_ context.Context, _ []llm.Message) (string, error) {

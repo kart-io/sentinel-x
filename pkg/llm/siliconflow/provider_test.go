@@ -301,8 +301,8 @@ func TestProviderGenerate(t *testing.T) {
 		t.Fatalf("Generate failed: %v", err)
 	}
 
-	if response != "生成的文本" {
-		t.Errorf("expected response '生成的文本', got '%s'", response)
+	if response.Content != "生成的文本" {
+		t.Errorf("expected response '生成的文本', got '%s'", response.Content)
 	}
 }
 
