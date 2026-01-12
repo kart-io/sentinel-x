@@ -2,10 +2,24 @@
 package middleware
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/spf13/pflag"
 )
+
+// ConfigError 表示配置错误。
+type ConfigError struct {
+	Field   string
+	Message string
+}
+
+func (e *ConfigError) Error() string {
+	if e.Field != "" {
+		return fmt.Sprintf("config error in field %q: %s", e.Field, e.Message)
+	}
+	return e.Message
+}
 
 // PathMatcher contains common path matching configuration.
 type PathMatcher struct {
@@ -55,6 +69,11 @@ var AllMiddlewares = []string{
 
 // Options contains all middleware configuration.
 type Options struct {
+	// Middleware 指定中间件的应用顺序。
+	// 如果为空，则使用默认顺序。
+	// 示例: ["recovery", "request-id", "logger", "cors", "timeout"]
+	Middleware []string `json:"middleware" mapstructure:"middleware"`
+
 	// Recovery 配置。
 	Recovery *RecoveryOptions `json:"recovery" mapstructure:"recovery"`
 
@@ -129,6 +148,9 @@ func (o *Options) Validate() []error {
 	}
 
 	var errs []error
+
+	// 验证 Middleware 配置
+	errs = append(errs, o.ValidateMiddleware()...)
 
 	// 验证启用的中间件配置
 	if o.Recovery != nil {
@@ -335,6 +357,71 @@ func (o *Options) GetEnabledMiddlewares() []string {
 		}
 	}
 	return enabled
+}
+
+// DefaultMiddlewareOrder 返回默认的中间件应用顺序。
+// 这个顺序保持与原有硬编码顺序一致，确保向后兼容。
+func DefaultMiddlewareOrder() []string {
+	return []string{
+		MiddlewareRecovery,  // 最高优先级，捕获 panic
+		MiddlewareRequestID, // 为其他中间件提供 RequestID
+		MiddlewareLogger,    // 依赖 RequestID
+		MiddlewareMetrics,   // 监控指标收集
+		MiddlewareCORS,      // 跨域支持
+		MiddlewareTimeout,   // 超时控制
+		// 注意：Auth, BodyLimit, RateLimit, CircuitBreaker, SecurityHeaders, Compression 等
+		// 中间件需要根据具体业务需求手动添加到 middleware 配置中
+	}
+}
+
+// GetMiddlewareOrder 返回中间件应用顺序。
+// 如果 Middleware 字段为空，返回默认顺序。
+func (o *Options) GetMiddlewareOrder() []string {
+	if len(o.Middleware) > 0 {
+		return o.Middleware
+	}
+	return DefaultMiddlewareOrder()
+}
+
+// ValidateMiddleware 验证 Middleware 配置的有效性。
+// 检查：
+// 1. Middleware 中的中间件名称是否都是已知的中间件
+// 2. 是否有重复的中间件名称
+func (o *Options) ValidateMiddleware() []error {
+	if len(o.Middleware) == 0 {
+		return nil
+	}
+
+	var errs []error
+	seen := make(map[string]bool)
+
+	for _, name := range o.Middleware {
+		// 检查中间件名称是否有效
+		valid := false
+		for _, known := range AllMiddlewares {
+			if name == known {
+				valid = true
+				break
+			}
+		}
+		if !valid {
+			errs = append(errs, &ConfigError{
+				Field:   "middleware",
+				Message: "unknown middleware: " + name,
+			})
+		}
+
+		// 检查重复
+		if seen[name] {
+			errs = append(errs, &ConfigError{
+				Field:   "middleware",
+				Message: "duplicate middleware in list: " + name,
+			})
+		}
+		seen[name] = true
+	}
+
+	return errs
 }
 
 // GetConfig 获取指定中间件的配置（通用方法）。

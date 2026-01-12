@@ -95,6 +95,15 @@ func TestNewEmbeddingProvider(t *testing.T) {
 }
 
 func TestNewChatProvider(t *testing.T) {
+	// 确保 test-provider 已注册（用于测试回退）
+	RegisterProvider("test-provider", func(config map[string]any) (Provider, error) {
+		name := "test-provider"
+		if n, ok := config["name"].(string); ok {
+			name = n
+		}
+		return &mockProvider{name: name}, nil
+	})
+
 	// 注册专用 Chat 供应商
 	RegisterChatProvider("chat-only", func(_ map[string]any) (ChatProvider, error) {
 		return &mockProvider{name: "chat-only"}, nil
@@ -120,6 +129,15 @@ func TestNewChatProvider(t *testing.T) {
 }
 
 func TestListProviders(t *testing.T) {
+	// 确保 test-provider 已注册
+	RegisterProvider("test-provider", func(config map[string]any) (Provider, error) {
+		name := "test-provider"
+		if n, ok := config["name"].(string); ok {
+			name = n
+		}
+		return &mockProvider{name: name}, nil
+	})
+
 	providers := ListProviders()
 	if len(providers) == 0 {
 		t.Error("expected at least one registered provider")

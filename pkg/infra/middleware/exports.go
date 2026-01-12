@@ -128,7 +128,7 @@ var (
 // MetricsMiddlewareWithOptions creates a middleware that collects metrics.
 // This is a wrapper to convert MetricsOptions to observability.MetricsOptions.
 func MetricsMiddlewareWithOptions(opts MetricsOptions) gin.HandlerFunc {
-	return observability.MetricsMiddleware(opts)
+	return observability.MetricsWithOptions(opts)
 }
 
 // RegisterMetricsRoutesWithOptions registers metrics endpoint.

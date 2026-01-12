@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin/binding"
 	"github.com/kart-io/sentinel-x/pkg/infra/middleware"
 	"github.com/kart-io/sentinel-x/pkg/infra/middleware/observability"
+	"github.com/kart-io/sentinel-x/pkg/infra/middleware/performance"
 	"github.com/kart-io/sentinel-x/pkg/infra/middleware/resilience"
 	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 	options "github.com/kart-io/sentinel-x/pkg/options/server/http"
@@ -171,51 +172,76 @@ func (s *Server) Start(ctx context.Context) error {
 }
 
 // applyMiddleware applies configured middleware to the engine.
-// 使用Gin的中间件机制直接注册中间件。
+// 根据配置的 middleware 字段动态应用中间件，支持灵活的中间件顺序配置。
 func (s *Server) applyMiddleware(opts *mwopts.Options) {
 	// Ensure all sub-options are initialized with defaults
 	_ = opts.Complete()
 
-	// Recovery middleware (enabled by default, 最高优先级)
-	if opts.IsEnabled(mwopts.MiddlewareRecovery) {
-		s.engine.Use(resilience.RecoveryWithOptions(*opts.Recovery, nil))
+	// 获取中间件应用顺序（如果未配置则使用默认顺序）
+	middlewareOrder := opts.GetMiddlewareOrder()
+
+	// 中间件构造函数映射表
+	middlewareFactories := map[string]func(){
+		mwopts.MiddlewareRecovery: func() {
+			if opts.IsEnabled(mwopts.MiddlewareRecovery) {
+				s.engine.Use(resilience.RecoveryWithOptions(*opts.Recovery, nil))
+			}
+		},
+		mwopts.MiddlewareRequestID: func() {
+			if opts.IsEnabled(mwopts.MiddlewareRequestID) {
+				s.engine.Use(middleware.RequestIDWithOptions(*opts.RequestID, nil))
+			}
+		},
+		mwopts.MiddlewareLogger: func() {
+			if opts.IsEnabled(mwopts.MiddlewareLogger) {
+				s.engine.Use(observability.LoggerWithOptions(*opts.Logger, nil))
+			}
+		},
+		mwopts.MiddlewareMetrics: func() {
+			if opts.IsEnabled(mwopts.MiddlewareMetrics) {
+				s.engine.Use(middleware.MetricsMiddlewareWithOptions(*opts.Metrics))
+			}
+		},
+		mwopts.MiddlewareCORS: func() {
+			if opts.IsEnabled(mwopts.MiddlewareCORS) {
+				s.engine.Use(middleware.CORSWithOptions(*opts.CORS))
+			}
+		},
+		mwopts.MiddlewareTimeout: func() {
+			if opts.IsEnabled(mwopts.MiddlewareTimeout) {
+				s.engine.Use(middleware.TimeoutWithOptions(*opts.Timeout))
+			}
+		},
+		mwopts.MiddlewareBodyLimit: func() {
+			if opts.IsEnabled(mwopts.MiddlewareBodyLimit) {
+				s.engine.Use(resilience.BodyLimitWithOptions(*opts.BodyLimit))
+			}
+		},
+		mwopts.MiddlewareCircuitBreaker: func() {
+			if opts.IsEnabled(mwopts.MiddlewareCircuitBreaker) {
+				s.engine.Use(resilience.CircuitBreakerWithOptions(*opts.CircuitBreaker))
+			}
+		},
+		mwopts.MiddlewareSecurityHeaders: func() {
+			if opts.IsEnabled(mwopts.MiddlewareSecurityHeaders) {
+				s.engine.Use(middleware.SecurityHeadersWithOptions(*opts.SecurityHeaders))
+			}
+		},
+		mwopts.MiddlewareCompression: func() {
+			if opts.IsEnabled(mwopts.MiddlewareCompression) {
+				s.engine.Use(performance.CompressionWithOptions(*opts.Compression))
+			}
+		},
+		// 注意：Auth, Authz, RateLimit 等中间件需要运行时依赖，不能从配置文件直接加载
+		// 用户需要在业务代码中手动添加
 	}
 
-	// RequestID middleware (enabled by default, 为其他中间件提供 RequestID)
-	if opts.IsEnabled(mwopts.MiddlewareRequestID) {
-		s.engine.Use(middleware.RequestIDWithOptions(*opts.RequestID, nil))
+	// 按照配置的顺序应用中间件
+	for _, name := range middlewareOrder {
+		if factory, exists := middlewareFactories[name]; exists {
+			factory()
+		}
 	}
-
-	// Logger middleware (enabled by default, 依赖 RequestID)
-	if opts.IsEnabled(mwopts.MiddlewareLogger) {
-		s.engine.Use(observability.LoggerWithOptions(*opts.Logger, nil))
-	}
-
-	// Metrics middleware (disabled by default)
-	if opts.IsEnabled(mwopts.MiddlewareMetrics) {
-		s.engine.Use(middleware.MetricsMiddlewareWithOptions(*opts.Metrics))
-	}
-
-	// CORS middleware (disabled by default)
-	if opts.IsEnabled(mwopts.MiddlewareCORS) {
-		s.engine.Use(middleware.CORSWithOptions(*opts.CORS))
-	}
-
-	// Timeout middleware (disabled by default)
-	if opts.IsEnabled(mwopts.MiddlewareTimeout) {
-		s.engine.Use(middleware.TimeoutWithOptions(*opts.Timeout))
-	}
-
-	// Auth middleware (JWT authentication, 在业务逻辑前执行)
-	// 注意：Auth 中间件需要运行时注入 Authenticator，不能从配置文件加载
-	// 用户需要在自己的代码中手动添加 Auth 中间件
-	// 示例：
-	//   authmw.AuthWithOptions(
-	//       *opts.Auth,
-	//       myAuthenticator,  // 运行时依赖
-	//       nil,  // errorHandler
-	//       nil,  // successHandler
-	//   )
 }
 
 // Stop stops the HTTP server gracefully.

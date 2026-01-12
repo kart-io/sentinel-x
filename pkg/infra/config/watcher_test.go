@@ -493,6 +493,10 @@ server:
 		t.Fatal("Handler was not called within timeout")
 	}
 
+	// Give viper time to complete its internal update to avoid race condition
+	// This is necessary because viper's WatchConfig updates happen asynchronously
+	time.Sleep(100 * time.Millisecond)
+
 	mu.Lock()
 	calls := handlerCalls
 	mu.Unlock()

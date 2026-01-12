@@ -34,7 +34,16 @@ grpc:
   # Enable gRPC reflection
   enable-reflection: true
 
-# Middleware configuration (扁平化结构)
+middleware:
+  - recovery       # 最高优先级，捕获 panic
+  - request-id     # 为其他中间件提供 RequestID
+  - cors           # 跨域支持（提前到 logger 之前）
+  - logger         # 请求日志记录
+  - metrics        # 监控指标收集
+  - timeout        # 超时控制
+  # 其他可用中间件：body-limit, circuit-breaker, security-headers, compression
+  # 注意：auth, authz, rate-limit 需要运行时依赖，不能从配置文件加载
+
 metrics:
   path: /metrics
   namespace: sentinel

@@ -13,21 +13,29 @@ import (
 // mockChatProvider 模拟聊天供应商，实现 llm.ChatProvider 接口。
 type mockChatProvider struct{}
 
-func (m *mockChatProvider) Generate(_ context.Context, prompt, _ string) (string, error) {
+func (m *mockChatProvider) Generate(_ context.Context, prompt, _ string) (*llm.GenerateResponse, error) {
+	var content string
 	// 简单的模式匹配返回
 	if containsSubstring(prompt, "提取所有事实性声明") {
-		return `["这是声明1", "这是声明2"]`, nil
+		content = `["这是声明1", "这是声明2"]`
+	} else if containsSubstring(prompt, "是否被给定的上下文所支持") {
+		content = "是"
+	} else if containsSubstring(prompt, "生成") && containsSubstring(prompt, "问题") {
+		content = `["问题1?", "问题2?", "问题3?"]`
+	} else if containsSubstring(prompt, "是否与给定的问题相关") {
+		content = "是"
+	} else {
+		content = "默认回复"
 	}
-	if containsSubstring(prompt, "是否被给定的上下文所支持") {
-		return "是", nil
-	}
-	if containsSubstring(prompt, "生成") && containsSubstring(prompt, "问题") {
-		return `["问题1?", "问题2?", "问题3?"]`, nil
-	}
-	if containsSubstring(prompt, "是否与给定的问题相关") {
-		return "是", nil
-	}
-	return "默认回复", nil
+
+	return &llm.GenerateResponse{
+		Content: content,
+		TokenUsage: &llm.TokenUsage{
+			PromptTokens:     10,
+			CompletionTokens: 20,
+			TotalTokens:      30,
+		},
+	}, nil
 }
 
 func (m *mockChatProvider) Chat(_ context.Context, _ []llm.Message) (string, error) {

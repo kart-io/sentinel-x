@@ -17,6 +17,8 @@ func TestTimeout_NormalRequest(t *testing.T) {
 	middleware := Timeout(timeout)
 
 	handlerCalled := false
+	var handlerDone sync.WaitGroup
+	handlerDone.Add(1)
 
 	w := httptest.NewRecorder()
 	_, r := gin.CreateTestContext(w)
@@ -25,10 +27,14 @@ func TestTimeout_NormalRequest(t *testing.T) {
 		handlerCalled = true
 		// Fast request that completes before timeout
 		time.Sleep(10 * time.Millisecond)
+		handlerDone.Done()
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 	r.ServeHTTP(w, req)
+
+	// Wait for handler to complete to avoid race condition
+	handlerDone.Wait()
 
 	if !handlerCalled {
 		t.Error("Expected handler to be called for normal request")
@@ -44,7 +50,9 @@ func TestTimeout_SlowRequest(t *testing.T) {
 	middleware := Timeout(timeout)
 
 	var handlerStarted sync.WaitGroup
+	var handlerDone sync.WaitGroup
 	handlerStarted.Add(1)
+	handlerDone.Add(1)
 
 	w := httptest.NewRecorder()
 	_, r := gin.CreateTestContext(w)
@@ -53,6 +61,7 @@ func TestTimeout_SlowRequest(t *testing.T) {
 		handlerStarted.Done()
 		// Slow request that exceeds timeout
 		time.Sleep(200 * time.Millisecond)
+		handlerDone.Done()
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
@@ -65,6 +74,9 @@ func TestTimeout_SlowRequest(t *testing.T) {
 	if w.Code != http.StatusRequestTimeout {
 		t.Errorf("Expected status code %d, got %d", http.StatusRequestTimeout, w.Code)
 	}
+
+	// Wait for handler goroutine to complete to avoid race condition
+	handlerDone.Wait()
 }
 
 func TestTimeoutWithOptions_SkipPaths(t *testing.T) {
@@ -103,11 +115,15 @@ func TestTimeoutWithOptions_SkipPaths(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			var handlerDone sync.WaitGroup
+			handlerDone.Add(1)
+
 			w := httptest.NewRecorder()
 			_, r := gin.CreateTestContext(w)
 			r.Use(middleware)
 			r.GET(tt.path, func(_ *gin.Context) {
 				time.Sleep(tt.sleepTime)
+				handlerDone.Done()
 			})
 
 			req := httptest.NewRequest(http.MethodGet, tt.path, nil)
@@ -122,6 +138,9 @@ func TestTimeoutWithOptions_SkipPaths(t *testing.T) {
 					t.Error("Expected no timeout response for skipped path")
 				}
 			}
+
+			// Wait for handler goroutine to complete to avoid race condition
+			handlerDone.Wait()
 		})
 	}
 }
@@ -132,16 +151,22 @@ func TestTimeoutWithOptions_DefaultTimeout(t *testing.T) {
 	middleware := TimeoutWithOptions(opts)
 
 	handlerCalled := false
+	var handlerDone sync.WaitGroup
+	handlerDone.Add(1)
 
 	w := httptest.NewRecorder()
 	_, r := gin.CreateTestContext(w)
 	r.Use(middleware)
 	r.GET("/test", func(_ *gin.Context) {
 		handlerCalled = true
+		handlerDone.Done()
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 	r.ServeHTTP(w, req)
+
+	// Wait for handler to complete to avoid race condition
+	handlerDone.Wait()
 
 	if !handlerCalled {
 		t.Error("Expected handler to be called with default config")
@@ -154,16 +179,22 @@ func TestTimeout_ContextDeadline(t *testing.T) {
 
 	var contextDeadline time.Time
 	var hasDeadline bool
+	var handlerDone sync.WaitGroup
+	handlerDone.Add(1)
 
 	w := httptest.NewRecorder()
 	_, r := gin.CreateTestContext(w)
 	r.Use(middleware)
 	r.GET("/test", func(c *gin.Context) {
 		contextDeadline, hasDeadline = c.Request.Context().Deadline()
+		handlerDone.Done()
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 	r.ServeHTTP(w, req)
+
+	// Wait for handler to complete to avoid race condition
+	handlerDone.Wait()
 
 	if !hasDeadline {
 		t.Error("Expected context to have a deadline")
@@ -223,42 +254,58 @@ func TestTimeout_GoroutineDoesNotLeak(_ *testing.T) {
 
 	// Run multiple requests to check for goroutine leaks
 	for i := 0; i < 10; i++ {
+		var handlerDone sync.WaitGroup
+		handlerDone.Add(1)
+
 		w := httptest.NewRecorder()
 		_, r := gin.CreateTestContext(w)
 		r.Use(middleware)
 		r.GET("/test", func(_ *gin.Context) {
 			// Fast completion
 			time.Sleep(10 * time.Millisecond)
+			handlerDone.Done()
 		})
 
 		req := httptest.NewRequest(http.MethodGet, "/test", nil)
 		r.ServeHTTP(w, req)
+
+		// Wait for handler to complete to avoid race condition
+		handlerDone.Wait()
 	}
 
 	// If there are goroutine leaks, test might hang or fail
 	// This is a basic test, more sophisticated leak detection would require runtime analysis
 }
 
-func TestTimeout_PanicInHandler(_ *testing.T) {
+func TestTimeout_PanicInHandler(t *testing.T) {
 	timeout := 100 * time.Millisecond
 	middleware := Timeout(timeout)
+
+	var handlerDone sync.WaitGroup
+	handlerDone.Add(1)
 
 	w := httptest.NewRecorder()
 	_, r := gin.CreateTestContext(w)
 	r.Use(middleware)
 	r.GET("/test", func(_ *gin.Context) {
+		defer handlerDone.Done()
 		panic("test panic in timeout handler")
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 
-	// Should not panic at the middleware level
-	// The panic will be caught by the done channel mechanism
+	// The middleware will log the panic and re-panic
+	// We expect the panic to propagate (this is correct behavior)
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("Expected panic to propagate from handler")
+		}
+	}()
+
 	r.ServeHTTP(w, req)
 
-	// The goroutine should complete without leaking
-	// Wait a bit to ensure goroutine cleanup
-	time.Sleep(50 * time.Millisecond)
+	// Wait for handler goroutine to complete to avoid race condition
+	handlerDone.Wait()
 }
 
 func TestTimeout_MultipleTimeouts(t *testing.T) {
@@ -272,11 +319,15 @@ func TestTimeout_MultipleTimeouts(t *testing.T) {
 		go func() {
 			defer wg.Done()
 
+			var handlerDone sync.WaitGroup
+			handlerDone.Add(1)
+
 			w := httptest.NewRecorder()
 			_, r := gin.CreateTestContext(w)
 			r.Use(middleware)
 			r.GET("/test", func(_ *gin.Context) {
 				time.Sleep(100 * time.Millisecond)
+				handlerDone.Done()
 			})
 
 			req := httptest.NewRequest(http.MethodGet, "/test", nil)
@@ -285,6 +336,9 @@ func TestTimeout_MultipleTimeouts(t *testing.T) {
 			if w.Code != http.StatusRequestTimeout {
 				t.Errorf("Expected timeout response (code %d) but got code %d", http.StatusRequestTimeout, w.Code)
 			}
+
+			// Wait for handler goroutine to complete to avoid race condition
+			handlerDone.Wait()
 		}()
 	}
 
@@ -300,16 +354,22 @@ func TestTimeoutWithOptions_ZeroTimeout(t *testing.T) {
 	middleware := TimeoutWithOptions(opts)
 
 	handlerCalled := false
+	var handlerDone sync.WaitGroup
+	handlerDone.Add(1)
 
 	w := httptest.NewRecorder()
 	_, r := gin.CreateTestContext(w)
 	r.Use(middleware)
 	r.GET("/test", func(_ *gin.Context) {
 		handlerCalled = true
+		handlerDone.Done()
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 	r.ServeHTTP(w, req)
+
+	// Wait for handler to complete to avoid race condition
+	handlerDone.Wait()
 
 	if !handlerCalled {
 		t.Error("Expected handler to be called")
@@ -320,12 +380,16 @@ func TestTimeout_VeryShortTimeout(t *testing.T) {
 	timeout := 1 * time.Millisecond
 	middleware := Timeout(timeout)
 
+	var handlerDone sync.WaitGroup
+	handlerDone.Add(1)
+
 	w := httptest.NewRecorder()
 	_, r := gin.CreateTestContext(w)
 	r.Use(middleware)
 	r.GET("/test", func(_ *gin.Context) {
 		// Even a small sleep should trigger timeout
 		time.Sleep(10 * time.Millisecond)
+		handlerDone.Done()
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
@@ -334,4 +398,7 @@ func TestTimeout_VeryShortTimeout(t *testing.T) {
 	if w.Code != http.StatusRequestTimeout {
 		t.Errorf("Expected timeout response (code %d) for very short timeout but got code %d", http.StatusRequestTimeout, w.Code)
 	}
+
+	// Wait for handler goroutine to complete to avoid race condition
+	handlerDone.Wait()
 }
