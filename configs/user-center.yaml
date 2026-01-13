@@ -96,9 +96,10 @@ timeout:
 
 request-id:
   header: X-Request-ID
+  # ID 生成器类型: random/hex (默认,32字符) 或 ulid (推荐,26字符,时间可排序,性能更好)
+  generator_type: ulid
 
 version:
-  enabled: true
   path: /version
   hide-details: false
 
