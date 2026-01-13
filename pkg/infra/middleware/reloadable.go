@@ -8,176 +8,78 @@ import (
 
 	"github.com/kart-io/logger"
 	configpkg "github.com/kart-io/sentinel-x/pkg/infra/config"
+	options "github.com/kart-io/sentinel-x/pkg/options/middleware"
 )
 
-// ReloadableMiddleware wraps middleware options with hot reload capability.
-// It maintains thread-safe access to middleware configuration and can apply
-// configuration changes at runtime without service restart.
+// ReloadableMiddleware 封装中间件配置并提供热重载能力。
+// 维护线程安全的配置访问，支持运行时配置变更无需重启服务。
 //
-// Supported hot-reloadable configurations:
-//   - CORS settings (origins, methods, headers, credentials, max age)
-//   - Timeout duration and skip paths
-//   - Request ID header
-//   - Logger skip paths
-//   - Recovery stack trace settings
+// 支持热重载的配置：
+//   - CORS 设置（origins, methods, headers, credentials, max age）
+//   - Timeout 持续时间和跳过路径
+//   - Request ID 头部
+//   - Logger 跳过路径
+//   - Recovery 堆栈跟踪设置
 //
-// Note: Some middleware configurations cannot be hot-reloaded as they require
-// server restart or middleware chain reconstruction (e.g., enable/disable flags).
+// 注意：某些中间件配置无法热重载，需要服务重启或中间件链重建（如启用/禁用标志）。
 type ReloadableMiddleware struct {
 	opts *Options
 	mu   sync.RWMutex
-	// Callbacks for components that need notification of config changes
+	// 需要配置变更通知的组件回调
 	onTimeoutChange func(time.Duration, []string) error
 	onCORSChange    func(*CORSOptions) error
 }
 
-// NewReloadableMiddleware creates a new reloadable middleware manager.
+// NewReloadableMiddleware 创建新的可重载中间件管理器。
 func NewReloadableMiddleware(opts *Options) *ReloadableMiddleware {
 	return &ReloadableMiddleware{
 		opts: opts,
 	}
 }
 
-// OnConfigChange implements the config.Reloadable interface.
-// It validates and applies new middleware configuration atomically.
+// OnConfigChange 实现 config.Reloadable 接口。
+// 原子性地验证并应用新的中间件配置。
 func (rm *ReloadableMiddleware) OnConfigChange(newConfig interface{}) error {
 	newOpts, ok := newConfig.(*Options)
 	if !ok {
 		return fmt.Errorf("invalid config type: expected *middleware.Options, got %T", newConfig)
 	}
 
-	// Validate new configuration
+	// 验证新配置
 	if errs := newOpts.Validate(); len(errs) > 0 {
 		return fmt.Errorf("invalid middleware configuration: %w", errors.Join(errs...))
 	}
 
-	// Acquire write lock
+	// 获取写锁
 	rm.mu.Lock()
 	defer rm.mu.Unlock()
 
-	// Track what changed for logging
+	// 记录变更用于日志
 	changes := []string{}
 
-	// Update timeout configuration if changed
-	if rm.opts.IsEnabled(MiddlewareTimeout) {
-		if rm.opts.Timeout.Timeout != newOpts.Timeout.Timeout {
-			changes = append(changes, fmt.Sprintf("timeout: %v -> %v",
-				rm.opts.Timeout.Timeout, newOpts.Timeout.Timeout))
+	// 更新 Timeout 配置
+	changes = append(changes, rm.updateTimeoutConfig(newOpts)...)
 
-			// Call callback if registered
-			if rm.onTimeoutChange != nil {
-				if err := rm.onTimeoutChange(newOpts.Timeout.Timeout, newOpts.Timeout.SkipPaths); err != nil {
-					return fmt.Errorf("failed to apply timeout change: %w", err)
-				}
-			}
-		}
+	// 更新 CORS 配置
+	changes = append(changes, rm.updateCORSConfig(newOpts)...)
 
-		rm.opts.Timeout.Timeout = newOpts.Timeout.Timeout
-		rm.opts.Timeout.SkipPaths = append([]string(nil), newOpts.Timeout.SkipPaths...)
-	}
+	// 更新 RequestID 配置
+	changes = append(changes, rm.updateRequestIDConfig(newOpts)...)
 
-	// Update CORS configuration if changed
-	if rm.opts.IsEnabled(MiddlewareCORS) {
-		corsChanged := false
+	// 更新 Logger 配置
+	changes = append(changes, rm.updateLoggerConfig(newOpts)...)
 
-		if !stringSlicesEqual(rm.opts.CORS.AllowOrigins, newOpts.CORS.AllowOrigins) {
-			changes = append(changes, "cors.allow-origins")
-			corsChanged = true
-		}
-		if !stringSlicesEqual(rm.opts.CORS.AllowMethods, newOpts.CORS.AllowMethods) {
-			changes = append(changes, "cors.allow-methods")
-			corsChanged = true
-		}
-		if !stringSlicesEqual(rm.opts.CORS.AllowHeaders, newOpts.CORS.AllowHeaders) {
-			changes = append(changes, "cors.allow-headers")
-			corsChanged = true
-		}
-		if rm.opts.CORS.AllowCredentials != newOpts.CORS.AllowCredentials {
-			changes = append(changes, "cors.allow-credentials")
-			corsChanged = true
-		}
-		if rm.opts.CORS.MaxAge != newOpts.CORS.MaxAge {
-			changes = append(changes, "cors.max-age")
-			corsChanged = true
-		}
+	// 更新 Recovery 配置
+	changes = append(changes, rm.updateRecoveryConfig(newOpts)...)
 
-		if corsChanged {
-			// Call callback if registered
-			if rm.onCORSChange != nil {
-				if err := rm.onCORSChange(newOpts.CORS); err != nil {
-					return fmt.Errorf("failed to apply CORS change: %w", err)
-				}
-			}
+	// 更新 Health 配置
+	changes = append(changes, rm.updateHealthConfig(newOpts)...)
 
-			rm.opts.CORS = newOpts.CORS
-		}
-	}
+	// 更新 Metrics 配置
+	changes = append(changes, rm.updateMetricsConfig(newOpts)...)
 
-	// Update Request ID header
-	if rm.opts.RequestID.Header != newOpts.RequestID.Header {
-		changes = append(changes, fmt.Sprintf("request-id.header: %s -> %s",
-			rm.opts.RequestID.Header, newOpts.RequestID.Header))
-		rm.opts.RequestID.Header = newOpts.RequestID.Header
-	}
-
-	// Update Logger skip paths
-	if !stringSlicesEqual(rm.opts.Logger.SkipPaths, newOpts.Logger.SkipPaths) {
-		changes = append(changes, "logger.skip-paths")
-		rm.opts.Logger.SkipPaths = append([]string(nil), newOpts.Logger.SkipPaths...)
-	}
-
-	// Update Logger structured setting
-	if rm.opts.Logger.UseStructuredLogger != newOpts.Logger.UseStructuredLogger {
-		changes = append(changes, fmt.Sprintf("logger.use-structured-logger: %v -> %v",
-			rm.opts.Logger.UseStructuredLogger, newOpts.Logger.UseStructuredLogger))
-		rm.opts.Logger.UseStructuredLogger = newOpts.Logger.UseStructuredLogger
-	}
-
-	// Update Recovery stack trace setting
-	if rm.opts.Recovery.EnableStackTrace != newOpts.Recovery.EnableStackTrace {
-		changes = append(changes, fmt.Sprintf("recovery.enable-stack-trace: %v -> %v",
-			rm.opts.Recovery.EnableStackTrace, newOpts.Recovery.EnableStackTrace))
-		rm.opts.Recovery.EnableStackTrace = newOpts.Recovery.EnableStackTrace
-	}
-
-	// Update Health paths
-	if rm.opts.Health.Path != newOpts.Health.Path {
-		changes = append(changes, fmt.Sprintf("health.path: %s -> %s",
-			rm.opts.Health.Path, newOpts.Health.Path))
-		rm.opts.Health.Path = newOpts.Health.Path
-	}
-	if rm.opts.Health.LivenessPath != newOpts.Health.LivenessPath {
-		changes = append(changes, "health.liveness-path")
-		rm.opts.Health.LivenessPath = newOpts.Health.LivenessPath
-	}
-	if rm.opts.Health.ReadinessPath != newOpts.Health.ReadinessPath {
-		changes = append(changes, "health.readiness-path")
-		rm.opts.Health.ReadinessPath = newOpts.Health.ReadinessPath
-	}
-
-	// Update Metrics configuration
-	if rm.opts.Metrics.Path != newOpts.Metrics.Path {
-		changes = append(changes, "metrics.path")
-		rm.opts.Metrics.Path = newOpts.Metrics.Path
-	}
-	if rm.opts.Metrics.Namespace != newOpts.Metrics.Namespace {
-		changes = append(changes, "metrics.namespace")
-		rm.opts.Metrics.Namespace = newOpts.Metrics.Namespace
-	}
-	if rm.opts.Metrics.Subsystem != newOpts.Metrics.Subsystem {
-		changes = append(changes, "metrics.subsystem")
-		rm.opts.Metrics.Subsystem = newOpts.Metrics.Subsystem
-	}
-
-	// Update Pprof configuration
-	if rm.opts.Pprof.BlockProfileRate != newOpts.Pprof.BlockProfileRate {
-		changes = append(changes, "pprof.block-profile-rate")
-		rm.opts.Pprof.BlockProfileRate = newOpts.Pprof.BlockProfileRate
-	}
-	if rm.opts.Pprof.MutexProfileFraction != newOpts.Pprof.MutexProfileFraction {
-		changes = append(changes, "pprof.mutex-profile-fraction")
-		rm.opts.Pprof.MutexProfileFraction = newOpts.Pprof.MutexProfileFraction
-	}
+	// 更新 Pprof 配置
+	changes = append(changes, rm.updatePprofConfig(newOpts)...)
 
 	if len(changes) > 0 {
 		logger.Infof("Middleware configuration reloaded: %v", changes)
@@ -188,104 +90,282 @@ func (rm *ReloadableMiddleware) OnConfigChange(newConfig interface{}) error {
 	return nil
 }
 
-// GetOptions returns a copy of the current middleware options.
-// This is thread-safe for reading.
+// updateTimeoutConfig 更新 Timeout 配置。
+func (rm *ReloadableMiddleware) updateTimeoutConfig(newOpts *Options) []string {
+	var changes []string
+
+	if !rm.opts.IsEnabled(options.MiddlewareTimeout) {
+		return changes
+	}
+
+	oldCfg, oldOk := options.GetConfigTyped[*options.TimeoutOptions](rm.opts, options.MiddlewareTimeout)
+	newCfg, newOk := options.GetConfigTyped[*options.TimeoutOptions](newOpts, options.MiddlewareTimeout)
+
+	if !oldOk || !newOk {
+		return changes
+	}
+
+	if oldCfg.Timeout != newCfg.Timeout {
+		changes = append(changes, fmt.Sprintf("timeout: %v -> %v", oldCfg.Timeout, newCfg.Timeout))
+
+		// 调用回调（如果已注册）
+		if rm.onTimeoutChange != nil {
+			if err := rm.onTimeoutChange(newCfg.Timeout, newCfg.SkipPaths); err != nil {
+				logger.Warnw("failed to apply timeout change", "error", err.Error())
+			}
+		}
+	}
+
+	// 更新配置
+	rm.opts.SetConfig(options.MiddlewareTimeout, newCfg)
+
+	return changes
+}
+
+// updateCORSConfig 更新 CORS 配置。
+func (rm *ReloadableMiddleware) updateCORSConfig(newOpts *Options) []string {
+	var changes []string
+
+	if !rm.opts.IsEnabled(options.MiddlewareCORS) {
+		return changes
+	}
+
+	oldCfg, oldOk := options.GetConfigTyped[*options.CORSOptions](rm.opts, options.MiddlewareCORS)
+	newCfg, newOk := options.GetConfigTyped[*options.CORSOptions](newOpts, options.MiddlewareCORS)
+
+	if !oldOk || !newOk {
+		return changes
+	}
+
+	corsChanged := false
+
+	if !stringSlicesEqual(oldCfg.AllowOrigins, newCfg.AllowOrigins) {
+		changes = append(changes, "cors.allow-origins")
+		corsChanged = true
+	}
+	if !stringSlicesEqual(oldCfg.AllowMethods, newCfg.AllowMethods) {
+		changes = append(changes, "cors.allow-methods")
+		corsChanged = true
+	}
+	if !stringSlicesEqual(oldCfg.AllowHeaders, newCfg.AllowHeaders) {
+		changes = append(changes, "cors.allow-headers")
+		corsChanged = true
+	}
+	if oldCfg.AllowCredentials != newCfg.AllowCredentials {
+		changes = append(changes, "cors.allow-credentials")
+		corsChanged = true
+	}
+	if oldCfg.MaxAge != newCfg.MaxAge {
+		changes = append(changes, "cors.max-age")
+		corsChanged = true
+	}
+
+	if corsChanged {
+		// 调用回调（如果已注册）
+		if rm.onCORSChange != nil {
+			if err := rm.onCORSChange(newCfg); err != nil {
+				logger.Warnw("failed to apply CORS change", "error", err.Error())
+			}
+		}
+
+		rm.opts.SetConfig(options.MiddlewareCORS, newCfg)
+	}
+
+	return changes
+}
+
+// updateRequestIDConfig 更新 RequestID 配置。
+func (rm *ReloadableMiddleware) updateRequestIDConfig(newOpts *Options) []string {
+	var changes []string
+
+	oldCfg, oldOk := options.GetConfigTyped[*options.RequestIDOptions](rm.opts, options.MiddlewareRequestID)
+	newCfg, newOk := options.GetConfigTyped[*options.RequestIDOptions](newOpts, options.MiddlewareRequestID)
+
+	if !oldOk || !newOk {
+		return changes
+	}
+
+	if oldCfg.Header != newCfg.Header {
+		changes = append(changes, fmt.Sprintf("request-id.header: %s -> %s", oldCfg.Header, newCfg.Header))
+		rm.opts.SetConfig(options.MiddlewareRequestID, newCfg)
+	}
+
+	return changes
+}
+
+// updateLoggerConfig 更新 Logger 配置。
+func (rm *ReloadableMiddleware) updateLoggerConfig(newOpts *Options) []string {
+	var changes []string
+
+	oldCfg, oldOk := options.GetConfigTyped[*options.LoggerOptions](rm.opts, options.MiddlewareLogger)
+	newCfg, newOk := options.GetConfigTyped[*options.LoggerOptions](newOpts, options.MiddlewareLogger)
+
+	if !oldOk || !newOk {
+		return changes
+	}
+
+	if !stringSlicesEqual(oldCfg.SkipPaths, newCfg.SkipPaths) {
+		changes = append(changes, "logger.skip-paths")
+	}
+
+	if oldCfg.UseStructuredLogger != newCfg.UseStructuredLogger {
+		changes = append(changes, fmt.Sprintf("logger.use-structured-logger: %v -> %v",
+			oldCfg.UseStructuredLogger, newCfg.UseStructuredLogger))
+	}
+
+	if len(changes) > 0 {
+		rm.opts.SetConfig(options.MiddlewareLogger, newCfg)
+	}
+
+	return changes
+}
+
+// updateRecoveryConfig 更新 Recovery 配置。
+func (rm *ReloadableMiddleware) updateRecoveryConfig(newOpts *Options) []string {
+	var changes []string
+
+	oldCfg, oldOk := options.GetConfigTyped[*options.RecoveryOptions](rm.opts, options.MiddlewareRecovery)
+	newCfg, newOk := options.GetConfigTyped[*options.RecoveryOptions](newOpts, options.MiddlewareRecovery)
+
+	if !oldOk || !newOk {
+		return changes
+	}
+
+	if oldCfg.EnableStackTrace != newCfg.EnableStackTrace {
+		changes = append(changes, fmt.Sprintf("recovery.enable-stack-trace: %v -> %v",
+			oldCfg.EnableStackTrace, newCfg.EnableStackTrace))
+		rm.opts.SetConfig(options.MiddlewareRecovery, newCfg)
+	}
+
+	return changes
+}
+
+// updateHealthConfig 更新 Health 配置。
+func (rm *ReloadableMiddleware) updateHealthConfig(newOpts *Options) []string {
+	var changes []string
+
+	oldCfg, oldOk := options.GetConfigTyped[*options.HealthOptions](rm.opts, options.MiddlewareHealth)
+	newCfg, newOk := options.GetConfigTyped[*options.HealthOptions](newOpts, options.MiddlewareHealth)
+
+	if !oldOk || !newOk {
+		return changes
+	}
+
+	if oldCfg.Path != newCfg.Path {
+		changes = append(changes, fmt.Sprintf("health.path: %s -> %s", oldCfg.Path, newCfg.Path))
+	}
+	if oldCfg.LivenessPath != newCfg.LivenessPath {
+		changes = append(changes, "health.liveness-path")
+	}
+	if oldCfg.ReadinessPath != newCfg.ReadinessPath {
+		changes = append(changes, "health.readiness-path")
+	}
+
+	if len(changes) > 0 {
+		rm.opts.SetConfig(options.MiddlewareHealth, newCfg)
+	}
+
+	return changes
+}
+
+// updateMetricsConfig 更新 Metrics 配置。
+func (rm *ReloadableMiddleware) updateMetricsConfig(newOpts *Options) []string {
+	var changes []string
+
+	oldCfg, oldOk := options.GetConfigTyped[*options.MetricsOptions](rm.opts, options.MiddlewareMetrics)
+	newCfg, newOk := options.GetConfigTyped[*options.MetricsOptions](newOpts, options.MiddlewareMetrics)
+
+	if !oldOk || !newOk {
+		return changes
+	}
+
+	if oldCfg.Path != newCfg.Path {
+		changes = append(changes, "metrics.path")
+	}
+	if oldCfg.Namespace != newCfg.Namespace {
+		changes = append(changes, "metrics.namespace")
+	}
+	if oldCfg.Subsystem != newCfg.Subsystem {
+		changes = append(changes, "metrics.subsystem")
+	}
+
+	if len(changes) > 0 {
+		rm.opts.SetConfig(options.MiddlewareMetrics, newCfg)
+	}
+
+	return changes
+}
+
+// updatePprofConfig 更新 Pprof 配置。
+func (rm *ReloadableMiddleware) updatePprofConfig(newOpts *Options) []string {
+	var changes []string
+
+	oldCfg, oldOk := options.GetConfigTyped[*options.PprofOptions](rm.opts, options.MiddlewarePprof)
+	newCfg, newOk := options.GetConfigTyped[*options.PprofOptions](newOpts, options.MiddlewarePprof)
+
+	if !oldOk || !newOk {
+		return changes
+	}
+
+	if oldCfg.BlockProfileRate != newCfg.BlockProfileRate {
+		changes = append(changes, "pprof.block-profile-rate")
+	}
+	if oldCfg.MutexProfileFraction != newCfg.MutexProfileFraction {
+		changes = append(changes, "pprof.mutex-profile-fraction")
+	}
+
+	if len(changes) > 0 {
+		rm.opts.SetConfig(options.MiddlewarePprof, newCfg)
+	}
+
+	return changes
+}
+
+// GetOptions 返回当前中间件配置的副本。
+// 这是线程安全的读取操作。
 func (rm *ReloadableMiddleware) GetOptions() *Options {
 	rm.mu.RLock()
 	defer rm.mu.RUnlock()
 
-	// Return a deep copy to prevent external modifications
-	opts := &Options{}
+	// 创建新的 Options 并复制配置
+	newOpts := &Options{}
 
-	// 复制非 nil 的配置
-	if rm.opts.Recovery != nil {
-		opts.Recovery = &RecoveryOptions{
-			EnableStackTrace: rm.opts.Recovery.EnableStackTrace,
+	// 复制所有配置到新实例
+	for _, name := range rm.opts.ListConfigs() {
+		cfg := rm.opts.GetConfig(name)
+		if cfg != nil {
+			newOpts.SetConfig(name, cfg)
 		}
 	}
-	if rm.opts.RequestID != nil {
-		opts.RequestID = &RequestIDOptions{
-			Header: rm.opts.RequestID.Header,
-		}
-	}
-	if rm.opts.Logger != nil {
-		opts.Logger = &LoggerOptions{
-			SkipPaths:           append([]string(nil), rm.opts.Logger.SkipPaths...),
-			UseStructuredLogger: rm.opts.Logger.UseStructuredLogger,
-		}
-	}
-	if rm.opts.CORS != nil {
-		opts.CORS = &CORSOptions{
-			AllowOrigins:     append([]string(nil), rm.opts.CORS.AllowOrigins...),
-			AllowMethods:     append([]string(nil), rm.opts.CORS.AllowMethods...),
-			AllowHeaders:     append([]string(nil), rm.opts.CORS.AllowHeaders...),
-			ExposeHeaders:    append([]string(nil), rm.opts.CORS.ExposeHeaders...),
-			AllowCredentials: rm.opts.CORS.AllowCredentials,
-			MaxAge:           rm.opts.CORS.MaxAge,
-		}
-	}
-	if rm.opts.Timeout != nil {
-		opts.Timeout = &TimeoutOptions{
-			Timeout:   rm.opts.Timeout.Timeout,
-			SkipPaths: append([]string(nil), rm.opts.Timeout.SkipPaths...),
-		}
-	}
-	if rm.opts.Health != nil {
-		opts.Health = &HealthOptions{
-			Path:          rm.opts.Health.Path,
-			LivenessPath:  rm.opts.Health.LivenessPath,
-			ReadinessPath: rm.opts.Health.ReadinessPath,
-		}
-	}
-	if rm.opts.Metrics != nil {
-		opts.Metrics = &MetricsOptions{
-			Path:      rm.opts.Metrics.Path,
-			Namespace: rm.opts.Metrics.Namespace,
-			Subsystem: rm.opts.Metrics.Subsystem,
-		}
-	}
-	if rm.opts.Pprof != nil {
-		opts.Pprof = &PprofOptions{
-			Prefix:               rm.opts.Pprof.Prefix,
-			EnableCmdline:        rm.opts.Pprof.EnableCmdline,
-			EnableProfile:        rm.opts.Pprof.EnableProfile,
-			EnableSymbol:         rm.opts.Pprof.EnableSymbol,
-			EnableTrace:          rm.opts.Pprof.EnableTrace,
-			BlockProfileRate:     rm.opts.Pprof.BlockProfileRate,
-			MutexProfileFraction: rm.opts.Pprof.MutexProfileFraction,
-		}
-	}
-	opts.Auth = rm.opts.Auth
-	opts.Authz = rm.opts.Authz
 
-	return opts
+	return newOpts
 }
 
-// SetTimeoutChangeCallback registers a callback to be invoked when timeout configuration changes.
-// This allows the actual middleware implementation to update its behavior.
+// SetTimeoutChangeCallback 注册超时配置变更时调用的回调。
+// 允许实际的中间件实现更新其行为。
 func (rm *ReloadableMiddleware) SetTimeoutChangeCallback(fn func(time.Duration, []string) error) {
 	rm.mu.Lock()
 	defer rm.mu.Unlock()
 	rm.onTimeoutChange = fn
 }
 
-// SetCORSChangeCallback registers a callback to be invoked when CORS configuration changes.
-// This allows the actual middleware implementation to update its behavior.
+// SetCORSChangeCallback 注册 CORS 配置变更时调用的回调。
+// 允许实际的中间件实现更新其行为。
 func (rm *ReloadableMiddleware) SetCORSChangeCallback(fn func(*CORSOptions) error) {
 	rm.mu.Lock()
 	defer rm.mu.Unlock()
 	rm.onCORSChange = fn
 }
 
-// RegisterWithWatcher registers this reloadable middleware with a configuration watcher.
-// The handlerID should be unique across all registered handlers.
+// RegisterWithWatcher 将可重载中间件注册到配置监视器。
+// handlerID 应在所有已注册处理器中唯一。
 func (rm *ReloadableMiddleware) RegisterWithWatcher(watcher *configpkg.Watcher, handlerID, configKey string) {
 	target := NewOptions()
 	subscriber := configpkg.NewReloadableSubscriber(rm, configKey, target)
 	watcher.Subscribe(handlerID, subscriber.Handler())
 }
 
-// stringSlicesEqual compares two string slices for equality.
+// stringSlicesEqual 比较两个字符串切片是否相等。
 func stringSlicesEqual(a, b []string) bool {
 	if len(a) != len(b) {
 		return false

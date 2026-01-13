@@ -165,16 +165,15 @@ func TestMiddlewareOrder_ExecutionOrder(t *testing.T) {
 	var mu sync.Mutex
 
 	// 创建自定义顺序
-	mwOpts := &mwopts.Options{
-		Middleware: []string{
-			mwopts.MiddlewareRecovery,
-			mwopts.MiddlewareRequestID,
-			mwopts.MiddlewareLogger,
-		},
-		Recovery:  mwopts.NewRecoveryOptions(),
-		RequestID: mwopts.NewRequestIDOptions(),
-		Logger:    mwopts.NewLoggerOptions(),
+	mwOpts := mwopts.NewOptions()
+	mwOpts.Middleware = []string{
+		mwopts.MiddlewareRecovery,
+		mwopts.MiddlewareRequestID,
+		mwopts.MiddlewareLogger,
 	}
+	mwOpts.SetConfig(mwopts.MiddlewareRecovery, mwopts.NewRecoveryOptions())
+	mwOpts.SetConfig(mwopts.MiddlewareRequestID, mwopts.NewRequestIDOptions())
+	mwOpts.SetConfig(mwopts.MiddlewareLogger, mwopts.NewLoggerOptions())
 
 	// 创建服务器
 	serverOpts := options.NewOptions()

@@ -52,7 +52,6 @@ func ExampleCircuitBreakerWithOptions_advanced() {
 		SkipPaths:        []string{"/health", "/metrics"},
 		SkipPathPrefixes: []string{"/static/"},
 		ErrorThreshold:   500, // 5xx 错误触发熔断
-		Enabled:          true,
 	}
 
 	// 创建中间件

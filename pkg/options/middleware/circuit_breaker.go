@@ -18,6 +18,7 @@ func init() {
 var _ MiddlewareConfig = (*CircuitBreakerOptions)(nil)
 
 // CircuitBreakerOptions 定义熔断器中间件的配置选项（纯配置，可 JSON 序列化）。
+// 是否启用由 middleware 数组配置控制，而非 Enabled 字段。
 type CircuitBreakerOptions struct {
 	// MaxFailures 触发熔断的最大失败次数。
 	MaxFailures int `json:"max-failures" mapstructure:"max-failures"`
@@ -37,9 +38,6 @@ type CircuitBreakerOptions struct {
 	// ErrorThreshold HTTP 状态码阈值，>= 该值视为失败。
 	// 例如：500 表示 5xx 错误触发熔断，400 表示 4xx 和 5xx 都触发。
 	ErrorThreshold int `json:"error-threshold" mapstructure:"error-threshold"`
-
-	// Enabled 是否启用熔断器。
-	Enabled bool `json:"enabled" mapstructure:"enabled"`
 }
 
 // NewCircuitBreakerOptions 创建默认的熔断器选项。
@@ -51,7 +49,6 @@ func NewCircuitBreakerOptions() *CircuitBreakerOptions {
 		SkipPaths:        []string{"/health", "/metrics"},
 		SkipPathPrefixes: []string{},
 		ErrorThreshold:   500, // 默认 5xx 错误触发熔断
-		Enabled:          true,
 	}
 }
 
@@ -65,7 +62,6 @@ func (o *CircuitBreakerOptions) AddFlags(fs *pflag.FlagSet, prefixes ...string) 
 	fs.StringSliceVar(&o.SkipPaths, prefix+"skip-paths", o.SkipPaths, "List of paths to skip circuit breaker.")
 	fs.StringSliceVar(&o.SkipPathPrefixes, prefix+"skip-path-prefixes", o.SkipPathPrefixes, "List of path prefixes to skip circuit breaker.")
 	fs.IntVar(&o.ErrorThreshold, prefix+"error-threshold", o.ErrorThreshold, "HTTP status code threshold for errors (>= this value triggers circuit breaker).")
-	fs.BoolVar(&o.Enabled, prefix+"enabled", o.Enabled, "Enable circuit breaker middleware.")
 }
 
 // Validate 验证熔断器选项。

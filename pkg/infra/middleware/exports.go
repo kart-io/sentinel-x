@@ -68,9 +68,6 @@ const (
 	MiddlewareAuthz     = options.MiddlewareAuthz
 )
 
-// AllMiddlewares is the list of all supported middleware names.
-var AllMiddlewares = options.AllMiddlewares
-
 // NewOptions creates default middleware options.
 var NewOptions = options.NewOptions
 

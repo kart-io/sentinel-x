@@ -8,26 +8,33 @@ import (
 	"github.com/spf13/pflag"
 )
 
-// VersionOptions contains version endpoint configuration.
+func init() {
+	Register(MiddlewareVersion, func() MiddlewareConfig {
+		return NewVersionOptions()
+	})
+}
+
+// 确保 VersionOptions 实现 MiddlewareConfig 接口。
+var _ MiddlewareConfig = (*VersionOptions)(nil)
+
+// VersionOptions 包含版本端点配置。
+// 是否启用由 middleware 数组配置控制，而非 Enabled 字段。
 type VersionOptions struct {
-	// Enabled enables the version endpoint.
-	Enabled bool `json:"enabled" mapstructure:"enabled"`
-	// Path specifies the version endpoint path.
+	// Path 指定版本端点路径。
 	Path string `json:"path" mapstructure:"path"`
-	// HideDetails hides sensitive build details (commit hash, build date).
+	// HideDetails 隐藏敏感构建详情（commit hash、构建日期）。
 	HideDetails bool `json:"hide-details" mapstructure:"hide-details"`
 }
 
-// NewVersionOptions creates default version options.
+// NewVersionOptions 创建默认版本选项。
 func NewVersionOptions() *VersionOptions {
 	return &VersionOptions{
-		Enabled:     true, // 默认启用
 		Path:        "/version",
 		HideDetails: false, // 默认显示完整信息
 	}
 }
 
-// Validate validates version options.
+// Validate 验证版本选项。
 func (o *VersionOptions) Validate() []error {
 	if o == nil {
 		return nil
@@ -35,26 +42,24 @@ func (o *VersionOptions) Validate() []error {
 
 	var errs []error
 	// 路径必须以 / 开头
-	if o.Enabled && o.Path != "" && o.Path[0] != '/' {
+	if o.Path != "" && o.Path[0] != '/' {
 		errs = append(errs, errors.New("middleware.version.path must start with '/'"))
 	}
 
 	return errs
 }
 
-// AddFlags adds flags for version options to the specified FlagSet.
+// AddFlags 将版本选项的标志添加到指定的 FlagSet。
 func (o *VersionOptions) AddFlags(fs *pflag.FlagSet, prefixes ...string) {
 	prefix := options.Join(prefixes...) + "middleware.version."
 
-	fs.BoolVar(&o.Enabled, prefix+"enabled", o.Enabled,
-		"Enable version endpoint.")
 	fs.StringVar(&o.Path, prefix+"path", o.Path,
 		"Version endpoint path.")
 	fs.BoolVar(&o.HideDetails, prefix+"hide-details", o.HideDetails,
 		"Hide sensitive build details in version response.")
 }
 
-// Complete completes version options with defaults.
+// Complete 使用默认值完成版本选项。
 func (o *VersionOptions) Complete() error {
 	if o.Path == "" {
 		o.Path = "/version"

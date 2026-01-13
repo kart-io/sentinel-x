@@ -228,19 +228,39 @@ func (s *Server) Run(_ context.Context) error {
 	return s.srv.Run()
 }
 
-// GetMiddlewareOptions builds middleware options from individual configurations.
+// GetMiddlewareOptions 从各个配置构建中间件选项。
 func (cfg *Config) GetMiddlewareOptions() *middlewareopts.Options {
-	return &middlewareopts.Options{
-		Recovery:  cfg.RecoveryOptions,
-		RequestID: cfg.RequestIDOptions,
-		Logger:    cfg.LoggerOptions,
-		CORS:      cfg.CORSOptions,
-		Timeout:   cfg.TimeoutOptions,
-		Health:    cfg.HealthOptions,
-		Metrics:   cfg.MetricsOptions,
-		Pprof:     cfg.PprofOptions,
-		Version:   cfg.VersionOptions,
+	opts := middlewareopts.NewOptions()
+
+	if cfg.RecoveryOptions != nil {
+		opts.SetConfig(middlewareopts.MiddlewareRecovery, cfg.RecoveryOptions)
 	}
+	if cfg.RequestIDOptions != nil {
+		opts.SetConfig(middlewareopts.MiddlewareRequestID, cfg.RequestIDOptions)
+	}
+	if cfg.LoggerOptions != nil {
+		opts.SetConfig(middlewareopts.MiddlewareLogger, cfg.LoggerOptions)
+	}
+	if cfg.CORSOptions != nil {
+		opts.SetConfig(middlewareopts.MiddlewareCORS, cfg.CORSOptions)
+	}
+	if cfg.TimeoutOptions != nil {
+		opts.SetConfig(middlewareopts.MiddlewareTimeout, cfg.TimeoutOptions)
+	}
+	if cfg.HealthOptions != nil {
+		opts.SetConfig(middlewareopts.MiddlewareHealth, cfg.HealthOptions)
+	}
+	if cfg.MetricsOptions != nil {
+		opts.SetConfig(middlewareopts.MiddlewareMetrics, cfg.MetricsOptions)
+	}
+	if cfg.PprofOptions != nil {
+		opts.SetConfig(middlewareopts.MiddlewarePprof, cfg.PprofOptions)
+	}
+	if cfg.VersionOptions != nil {
+		opts.SetConfig(middlewareopts.MiddlewareVersion, cfg.VersionOptions)
+	}
+
+	return opts
 }
 
 func printBanner(cfg *Config) {

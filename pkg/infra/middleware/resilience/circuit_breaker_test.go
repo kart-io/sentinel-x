@@ -18,7 +18,6 @@ func TestCircuitBreakerWithOptions_Basic(t *testing.T) {
 		Timeout:          2, // 2 秒
 		HalfOpenMaxCalls: 1,
 		ErrorThreshold:   500,
-		Enabled:          true,
 	}
 
 	middleware := CircuitBreakerWithOptions(opts)
@@ -86,7 +85,6 @@ func TestCircuitBreakerWithOptions_SkipPaths(t *testing.T) {
 		HalfOpenMaxCalls: 1,
 		SkipPaths:        []string{"/health", "/metrics"},
 		ErrorThreshold:   500,
-		Enabled:          true,
 	}
 
 	middleware := CircuitBreakerWithOptions(opts)
@@ -138,7 +136,6 @@ func TestCircuitBreakerWithOptions_SkipPathPrefixes(t *testing.T) {
 		HalfOpenMaxCalls: 1,
 		SkipPathPrefixes: []string{"/static/", "/public/"},
 		ErrorThreshold:   500,
-		Enabled:          true,
 	}
 
 	middleware := CircuitBreakerWithOptions(opts)
@@ -213,7 +210,6 @@ func TestCircuitBreakerWithOptions_ErrorThreshold(t *testing.T) {
 				Timeout:          10,
 				HalfOpenMaxCalls: 1,
 				ErrorThreshold:   tt.errorThreshold,
-				Enabled:          true,
 			}
 
 			middleware := CircuitBreakerWithOptions(opts)
@@ -259,7 +255,6 @@ func TestCircuitBreakerWithOptions_HalfOpen(t *testing.T) {
 		Timeout:          1, // 1 秒超时
 		HalfOpenMaxCalls: 1,
 		ErrorThreshold:   500,
-		Enabled:          true,
 	}
 
 	middleware := CircuitBreakerWithOptions(opts)
@@ -327,7 +322,6 @@ func BenchmarkCircuitBreaker_Success(b *testing.B) {
 		Timeout:          60,
 		HalfOpenMaxCalls: 1,
 		ErrorThreshold:   500,
-		Enabled:          true,
 	}
 
 	middleware := CircuitBreakerWithOptions(opts)
@@ -360,7 +354,6 @@ func BenchmarkCircuitBreaker_Open(b *testing.B) {
 		Timeout:          60,
 		HalfOpenMaxCalls: 1,
 		ErrorThreshold:   500,
-		Enabled:          true,
 	}
 
 	middleware := CircuitBreakerWithOptions(opts)

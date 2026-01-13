@@ -23,11 +23,8 @@ type VersionResponse struct {
 }
 
 // RegisterVersionRoutes registers the version endpoint.
+// 是否启用由调用方根据配置决定，而非此函数内部检查。
 func RegisterVersionRoutes(engine *gin.Engine, opts versionopts.VersionOptions) {
-	if !opts.Enabled {
-		return
-	}
-
 	// 确保路径有效
 	if opts.Path == "" {
 		opts.Path = "/version"

@@ -31,7 +31,6 @@ func CircuitBreaker(maxFailures int, timeout, halfOpenMaxCalls int) gin.HandlerF
 		Timeout:          timeout,
 		HalfOpenMaxCalls: halfOpenMaxCalls,
 		ErrorThreshold:   500, // 默认 5xx 错误触发熔断
-		Enabled:          true,
 	})
 }
 

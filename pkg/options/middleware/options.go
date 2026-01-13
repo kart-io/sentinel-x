@@ -3,9 +3,11 @@ package middleware
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
 )
 
 // ConfigError 表示配置错误。
@@ -47,312 +49,238 @@ const (
 	MiddlewareCircuitBreaker  = "circuit-breaker"
 )
 
-// AllMiddlewares 所有支持的中间件名称。
-var AllMiddlewares = []string{
-	MiddlewareRecovery,
-	MiddlewareRequestID,
-	MiddlewareLogger,
-	MiddlewareCORS,
-	MiddlewareBodyLimit,
-	MiddlewareTimeout,
-	MiddlewareHealth,
-	MiddlewareMetrics,
-	MiddlewarePprof,
-	MiddlewareAuth,
-	MiddlewareAuthz,
-	MiddlewareVersion,
-	MiddlewareCompression,
-	MiddlewareSecurityHeaders,
-	MiddlewareRateLimit,
-	MiddlewareCircuitBreaker,
-}
-
-// Options contains all middleware configuration.
+// Options 纯动态中间件配置。
+// 所有中间件配置统一存储在 configs map 中，支持完全的插拔式扩展。
+// 是否启用中间件由 Middleware 数组配置控制，而非各配置的 Enabled 字段。
 type Options struct {
 	// Middleware 指定中间件的应用顺序。
 	// 如果为空，则使用默认顺序。
 	// 示例: ["recovery", "request-id", "logger", "cors", "timeout"]
 	Middleware []string `json:"middleware" mapstructure:"middleware"`
 
-	// Recovery 配置。
-	Recovery *RecoveryOptions `json:"recovery" mapstructure:"recovery"`
+	// mu 保护 configs map 的并发访问。
+	mu sync.RWMutex
 
-	// RequestID 配置。
-	RequestID *RequestIDOptions `json:"request-id" mapstructure:"request-id"`
-
-	// Logger 配置。
-	Logger *LoggerOptions `json:"logger" mapstructure:"logger"`
-
-	// CORS 配置。
-	CORS *CORSOptions `json:"cors" mapstructure:"cors"`
-
-	// BodyLimit 配置。
-	BodyLimit *BodyLimitOptions `json:"body-limit" mapstructure:"body-limit"`
-
-	// Timeout 配置。
-	Timeout *TimeoutOptions `json:"timeout" mapstructure:"timeout"`
-
-	// Health 配置。
-	Health *HealthOptions `json:"health" mapstructure:"health"`
-
-	// Metrics 配置。
-	Metrics *MetricsOptions `json:"metrics" mapstructure:"metrics"`
-
-	// Pprof 配置。
-	Pprof *PprofOptions `json:"pprof" mapstructure:"pprof"`
-
-	// Auth 配置（JWT 认证）。
-	Auth *AuthOptions `json:"auth" mapstructure:"auth"`
-
-	// Authz 配置（RBAC 授权）。
-	Authz *AuthzOptions `json:"authz" mapstructure:"authz"`
-
-	// Version 配置。
-	Version *VersionOptions `json:"version" mapstructure:"version"`
-
-	// Compression 配置。
-	Compression *CompressionOptions `json:"compression" mapstructure:"compression"`
-
-	// SecurityHeaders 配置。
-	SecurityHeaders *SecurityHeadersOptions `json:"security-headers" mapstructure:"security-headers"`
-
-	// RateLimit 配置。
-	RateLimit *RateLimitOptions `json:"rate-limit" mapstructure:"rate-limit"`
-
-	// CircuitBreaker 配置。
-	CircuitBreaker *CircuitBreakerOptions `json:"circuit-breaker" mapstructure:"circuit-breaker"`
+	// configs 动态存储所有中间件配置。
+	// 键为中间件名称（如 "recovery"），值为具体配置实例。
+	configs map[string]MiddlewareConfig
 }
 
 // Option is a function that configures Options.
 type Option func(*Options)
 
-// NewOptions creates default middleware options.
+// NewOptions 创建默认中间件选项。
 // 默认启用 Recovery, RequestID, Logger, Health, Metrics, Version 中间件。
-// 其他中间件（CORS, BodyLimit, Timeout, Pprof, Auth, Authz, Compression）默认禁用（nil）。
 func NewOptions() *Options {
-	return &Options{
-		Recovery:  NewRecoveryOptions(),
-		RequestID: NewRequestIDOptions(),
-		Logger:    NewLoggerOptions(),
-		Health:    NewHealthOptions(),
-		Metrics:   NewMetricsOptions(),
-		Version:   NewVersionOptions(),
-		// CORS, BodyLimit, Timeout, Pprof, Auth, Authz, Compression 默认禁用（nil）
+	o := &Options{
+		configs: make(map[string]MiddlewareConfig),
+	}
+
+	// 设置默认启用的中间件（通过注册机制创建）
+	defaultEnabled := []string{
+		MiddlewareRecovery,
+		MiddlewareRequestID,
+		MiddlewareLogger,
+		MiddlewareHealth,
+		MiddlewareMetrics,
+		MiddlewareVersion,
+	}
+
+	for _, name := range defaultEnabled {
+		if cfg, err := Create(name); err == nil {
+			o.configs[name] = cfg
+		}
+	}
+
+	return o
+}
+
+// LoadFromViper 从 viper 加载中间件配置。
+// 这是纯动态架构的核心方法，根据注册表动态解析配置。
+func (o *Options) LoadFromViper(v *viper.Viper) error {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+
+	if o.configs == nil {
+		o.configs = make(map[string]MiddlewareConfig)
+	}
+
+	// 阶段1：加载 middleware 顺序数组
+	if v.IsSet("middleware") {
+		if err := v.UnmarshalKey("middleware", &o.Middleware); err != nil {
+			return fmt.Errorf("unmarshal middleware order: %w", err)
+		}
+	}
+
+	// 阶段2：遍历所有已注册的中间件名称
+	for _, name := range ListRegistered() {
+		if !v.IsSet(name) {
+			continue // 该中间件未在配置文件中配置
+		}
+
+		// 从注册表创建配置实例（确保类型正确）
+		cfg, err := Create(name)
+		if err != nil {
+			return fmt.Errorf("create config for %s: %w", name, err)
+		}
+
+		// 使用 viper 解析该中间件的配置
+		if err := v.UnmarshalKey(name, cfg); err != nil {
+			return fmt.Errorf("unmarshal config for %s: %w", name, err)
+		}
+
+		o.configs[name] = cfg
+	}
+
+	return nil
+}
+
+// SetConfig 设置指定中间件的配置。
+// 这是插拔式扩展的入口，允许动态添加新中间件配置。
+func (o *Options) SetConfig(name string, cfg MiddlewareConfig) {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+
+	if o.configs == nil {
+		o.configs = make(map[string]MiddlewareConfig)
+	}
+	o.configs[name] = cfg
+}
+
+// GetConfig 获取指定中间件的配置。
+func (o *Options) GetConfig(name string) MiddlewareConfig {
+	o.mu.RLock()
+	defer o.mu.RUnlock()
+
+	if o.configs == nil {
+		return nil
+	}
+	return o.configs[name]
+}
+
+// GetOrCreate 获取或创建配置实例。
+// 如果配置不存在，则从注册表创建新实例。
+func (o *Options) GetOrCreate(name string) MiddlewareConfig {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+
+	if o.configs == nil {
+		o.configs = make(map[string]MiddlewareConfig)
+	}
+
+	if cfg, ok := o.configs[name]; ok {
+		return cfg
+	}
+
+	cfg, err := Create(name)
+	if err != nil {
+		return nil
+	}
+	o.configs[name] = cfg
+	return cfg
+}
+
+// DeleteConfig 删除指定中间件的配置（禁用该中间件）。
+func (o *Options) DeleteConfig(name string) {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+
+	if o.configs != nil {
+		delete(o.configs, name)
 	}
 }
 
-// Validate validates the middleware options.
+// GetConfigTyped 获取指定中间件的配置并进行类型断言（泛型）。
+// 用于需要具体类型的场景，避免调用方手动断言。
+func GetConfigTyped[T MiddlewareConfig](o *Options, name string) (T, bool) {
+	cfg := o.GetConfig(name)
+	if cfg == nil {
+		var zero T
+		return zero, false
+	}
+	typed, ok := cfg.(T)
+	return typed, ok
+}
+
+// Validate 验证所有中间件配置。
 func (o *Options) Validate() []error {
 	if o == nil {
 		return nil
 	}
 
+	o.mu.RLock()
+	defer o.mu.RUnlock()
+
 	var errs []error
 
-	// 验证 Middleware 配置
-	errs = append(errs, o.ValidateMiddleware()...)
+	// 验证 Middleware 顺序配置
+	errs = append(errs, o.validateMiddlewareLocked()...)
 
-	// 验证启用的中间件配置
-	if o.Recovery != nil {
-		errs = append(errs, o.Recovery.Validate()...)
-	}
-
-	if o.RequestID != nil {
-		errs = append(errs, o.RequestID.Validate()...)
-	}
-
-	if o.Logger != nil {
-		errs = append(errs, o.Logger.Validate()...)
-	}
-
-	if o.CORS != nil {
-		errs = append(errs, o.CORS.Validate()...)
-	}
-
-	if o.BodyLimit != nil {
-		errs = append(errs, o.BodyLimit.Validate()...)
-	}
-
-	if o.Timeout != nil {
-		errs = append(errs, o.Timeout.Validate()...)
-	}
-
-	if o.Health != nil {
-		errs = append(errs, o.Health.Validate()...)
-	}
-
-	if o.Metrics != nil {
-		errs = append(errs, o.Metrics.Validate()...)
-	}
-
-	if o.Pprof != nil {
-		errs = append(errs, o.Pprof.Validate()...)
-	}
-
-	if o.Auth != nil {
-		errs = append(errs, o.Auth.Validate()...)
-	}
-
-	if o.Authz != nil {
-		errs = append(errs, o.Authz.Validate()...)
-	}
-
-	if o.Version != nil {
-		errs = append(errs, o.Version.Validate()...)
-	}
-
-	if o.Compression != nil {
-		errs = append(errs, o.Compression.Validate()...)
-	}
-
-	if o.SecurityHeaders != nil {
-		errs = append(errs, o.SecurityHeaders.Validate()...)
-	}
-
-	if o.RateLimit != nil {
-		errs = append(errs, o.RateLimit.Validate()...)
-	}
-
-	if o.CircuitBreaker != nil {
-		errs = append(errs, o.CircuitBreaker.Validate()...)
+	// 遍历 configs 验证所有配置
+	for name, cfg := range o.configs {
+		if cfg != nil {
+			for _, err := range cfg.Validate() {
+				errs = append(errs, &ConfigError{
+					Field:   name,
+					Message: err.Error(),
+				})
+			}
+		}
 	}
 
 	return errs
 }
 
-// Complete completes the middleware options with defaults.
+// Complete 完成所有中间件配置的默认值填充。
 func (o *Options) Complete() error {
-	// 调用各子选项的 Complete 方法
-	if o.Recovery != nil {
-		if err := o.Recovery.Complete(); err != nil {
-			return err
-		}
+	o.mu.Lock()
+	defer o.mu.Unlock()
+
+	if o.configs == nil {
+		o.configs = make(map[string]MiddlewareConfig)
 	}
-	if o.RequestID != nil {
-		if err := o.RequestID.Complete(); err != nil {
-			return err
-		}
-	}
-	if o.Logger != nil {
-		if err := o.Logger.Complete(); err != nil {
-			return err
-		}
-	}
-	if o.CORS != nil {
-		if err := o.CORS.Complete(); err != nil {
-			return err
-		}
-	}
-	if o.BodyLimit != nil {
-		if err := o.BodyLimit.Complete(); err != nil {
-			return err
-		}
-	}
-	if o.Timeout != nil {
-		if err := o.Timeout.Complete(); err != nil {
-			return err
-		}
-	}
-	if o.Health != nil {
-		if err := o.Health.Complete(); err != nil {
-			return err
-		}
-	}
-	if o.Metrics != nil {
-		if err := o.Metrics.Complete(); err != nil {
-			return err
-		}
-	}
-	if o.Pprof != nil {
-		if err := o.Pprof.Complete(); err != nil {
-			return err
-		}
-	}
-	if o.Auth != nil {
-		if err := o.Auth.Complete(); err != nil {
-			return err
-		}
-	}
-	if o.Authz != nil {
-		if err := o.Authz.Complete(); err != nil {
-			return err
-		}
-	}
-	if o.Version != nil {
-		if err := o.Version.Complete(); err != nil {
-			return err
-		}
-	}
-	if o.Compression != nil {
-		if err := o.Compression.Complete(); err != nil {
-			return err
-		}
-	}
-	if o.SecurityHeaders != nil {
-		if err := o.SecurityHeaders.Complete(); err != nil {
-			return err
-		}
-	}
-	if o.RateLimit != nil {
-		if err := o.RateLimit.Complete(); err != nil {
-			return err
-		}
-	}
-	if o.CircuitBreaker != nil {
-		if err := o.CircuitBreaker.Complete(); err != nil {
-			return err
+
+	for name, cfg := range o.configs {
+		if cfg != nil {
+			if err := cfg.Complete(); err != nil {
+				return &ConfigError{
+					Field:   name,
+					Message: err.Error(),
+				}
+			}
 		}
 	}
 
 	return nil
 }
 
-// IsEnabled checks if the specified middleware is enabled.
-// 通过检查配置是否为 nil 来判断中间件是否启用。
+// IsEnabled 检查指定中间件是否启用。
+// 通过检查 configs map 中是否存在且非 nil 来判断。
+// 是否启用完全由 configs map 控制，无需检查各配置的 Enabled 字段。
 func (o *Options) IsEnabled(name string) bool {
-	switch name {
-	case MiddlewareRecovery:
-		return o.Recovery != nil
-	case MiddlewareRequestID:
-		return o.RequestID != nil
-	case MiddlewareLogger:
-		return o.Logger != nil
-	case MiddlewareCORS:
-		return o.CORS != nil
-	case MiddlewareBodyLimit:
-		return o.BodyLimit != nil
-	case MiddlewareTimeout:
-		return o.Timeout != nil
-	case MiddlewareHealth:
-		return o.Health != nil
-	case MiddlewareMetrics:
-		return o.Metrics != nil
-	case MiddlewarePprof:
-		return o.Pprof != nil
-	case MiddlewareAuth:
-		return o.Auth != nil
-	case MiddlewareAuthz:
-		return o.Authz != nil
-	case MiddlewareVersion:
-		return o.Version != nil && o.Version.Enabled
-	case MiddlewareCompression:
-		return o.Compression != nil
-	case MiddlewareSecurityHeaders:
-		return o.SecurityHeaders != nil
-	case MiddlewareRateLimit:
-		return o.RateLimit != nil
-	case MiddlewareCircuitBreaker:
-		return o.CircuitBreaker != nil && o.CircuitBreaker.Enabled
-	default:
+	o.mu.RLock()
+	defer o.mu.RUnlock()
+
+	if o.configs == nil {
 		return false
 	}
+
+	cfg, ok := o.configs[name]
+	return ok && cfg != nil
 }
 
 // GetEnabledMiddlewares 返回所有启用的中间件名称列表。
 func (o *Options) GetEnabledMiddlewares() []string {
+	o.mu.RLock()
+	defer o.mu.RUnlock()
+
+	if o.configs == nil {
+		return nil
+	}
+
 	var enabled []string
-	for _, name := range AllMiddlewares {
-		if o.IsEnabled(name) {
+	for name, cfg := range o.configs {
+		if cfg != nil {
 			enabled = append(enabled, name)
 		}
 	}
@@ -360,7 +288,6 @@ func (o *Options) GetEnabledMiddlewares() []string {
 }
 
 // DefaultMiddlewareOrder 返回默认的中间件应用顺序。
-// 这个顺序保持与原有硬编码顺序一致，确保向后兼容。
 func DefaultMiddlewareOrder() []string {
 	return []string{
 		MiddlewareRecovery,  // 最高优先级，捕获 panic
@@ -369,14 +296,15 @@ func DefaultMiddlewareOrder() []string {
 		MiddlewareMetrics,   // 监控指标收集
 		MiddlewareCORS,      // 跨域支持
 		MiddlewareTimeout,   // 超时控制
-		// 注意：Auth, BodyLimit, RateLimit, CircuitBreaker, SecurityHeaders, Compression 等
-		// 中间件需要根据具体业务需求手动添加到 middleware 配置中
 	}
 }
 
 // GetMiddlewareOrder 返回中间件应用顺序。
 // 如果 Middleware 字段为空，返回默认顺序。
 func (o *Options) GetMiddlewareOrder() []string {
+	o.mu.RLock()
+	defer o.mu.RUnlock()
+
 	if len(o.Middleware) > 0 {
 		return o.Middleware
 	}
@@ -384,10 +312,15 @@ func (o *Options) GetMiddlewareOrder() []string {
 }
 
 // ValidateMiddleware 验证 Middleware 配置的有效性。
-// 检查：
-// 1. Middleware 中的中间件名称是否都是已知的中间件
-// 2. 是否有重复的中间件名称
 func (o *Options) ValidateMiddleware() []error {
+	o.mu.RLock()
+	defer o.mu.RUnlock()
+
+	return o.validateMiddlewareLocked()
+}
+
+// validateMiddlewareLocked 内部方法，调用前需持有锁。
+func (o *Options) validateMiddlewareLocked() []error {
 	if len(o.Middleware) == 0 {
 		return nil
 	}
@@ -395,16 +328,16 @@ func (o *Options) ValidateMiddleware() []error {
 	var errs []error
 	seen := make(map[string]bool)
 
+	// 获取所有已注册的中间件名称
+	registered := ListRegistered()
+	registeredMap := make(map[string]bool, len(registered))
+	for _, name := range registered {
+		registeredMap[name] = true
+	}
+
 	for _, name := range o.Middleware {
-		// 检查中间件名称是否有效
-		valid := false
-		for _, known := range AllMiddlewares {
-			if name == known {
-				valid = true
-				break
-			}
-		}
-		if !valid {
+		// 检查中间件名称是否有效（已注册）
+		if !registeredMap[name] {
 			errs = append(errs, &ConfigError{
 				Field:   "middleware",
 				Message: "unknown middleware: " + name,
@@ -424,344 +357,268 @@ func (o *Options) ValidateMiddleware() []error {
 	return errs
 }
 
-// GetConfig 获取指定中间件的配置（通用方法）。
-// 返回 MiddlewareConfig 接口，调用者需要类型断言获取具体类型。
-func (o *Options) GetConfig(name string) MiddlewareConfig {
-	switch name {
-	case MiddlewareRecovery:
-		return o.Recovery
-	case MiddlewareRequestID:
-		return o.RequestID
-	case MiddlewareLogger:
-		return o.Logger
-	case MiddlewareCORS:
-		return o.CORS
-	case MiddlewareBodyLimit:
-		return o.BodyLimit
-	case MiddlewareTimeout:
-		return o.Timeout
-	case MiddlewareHealth:
-		return o.Health
-	case MiddlewareMetrics:
-		return o.Metrics
-	case MiddlewarePprof:
-		return o.Pprof
-	case MiddlewareAuth:
-		return o.Auth
-	case MiddlewareAuthz:
-		return o.Authz
-	case MiddlewareVersion:
-		return o.Version
-	case MiddlewareCompression:
-		return o.Compression
-	case MiddlewareSecurityHeaders:
-		return o.SecurityHeaders
-	case MiddlewareRateLimit:
-		return o.RateLimit
-	case MiddlewareCircuitBreaker:
-		return o.CircuitBreaker
-	default:
+// AddFlags 添加所有中间件配置的命令行标志。
+func (o *Options) AddFlags(fs *pflag.FlagSet, prefixes ...string) {
+	o.mu.RLock()
+	defer o.mu.RUnlock()
+
+	for _, cfg := range o.configs {
+		if cfg != nil {
+			cfg.AddFlags(fs, prefixes...)
+		}
+	}
+}
+
+// ListConfigs 返回所有已配置的中间件名称。
+func (o *Options) ListConfigs() []string {
+	o.mu.RLock()
+	defer o.mu.RUnlock()
+
+	if o.configs == nil {
 		return nil
 	}
+
+	names := make([]string, 0, len(o.configs))
+	for name := range o.configs {
+		names = append(names, name)
+	}
+	return names
 }
 
-// AddFlags adds flags for middleware options to the specified FlagSet.
-func (o *Options) AddFlags(fs *pflag.FlagSet, prefixes ...string) {
-	// 委托给各子选项的 AddFlags 方法
-	if o.Recovery != nil {
-		o.Recovery.AddFlags(fs, prefixes...)
-	}
-	if o.RequestID != nil {
-		o.RequestID.AddFlags(fs, prefixes...)
-	}
-	if o.Logger != nil {
-		o.Logger.AddFlags(fs, prefixes...)
-	}
-	if o.CORS != nil {
-		o.CORS.AddFlags(fs, prefixes...)
-	}
-	if o.BodyLimit != nil {
-		o.BodyLimit.AddFlags(fs, prefixes...)
-	}
-	if o.Timeout != nil {
-		o.Timeout.AddFlags(fs, prefixes...)
-	}
-	if o.Health != nil {
-		o.Health.AddFlags(fs, prefixes...)
-	}
-	if o.Metrics != nil {
-		o.Metrics.AddFlags(fs, prefixes...)
-	}
-	if o.Pprof != nil {
-		o.Pprof.AddFlags(fs, prefixes...)
-	}
-	if o.Auth != nil {
-		o.Auth.AddFlags(fs, prefixes...)
-	}
-	if o.Authz != nil {
-		o.Authz.AddFlags(fs, prefixes...)
-	}
-	if o.Version != nil {
-		o.Version.AddFlags(fs, prefixes...)
-	}
-	if o.Compression != nil {
-		o.Compression.AddFlags(fs, prefixes...)
-	}
-	if o.SecurityHeaders != nil {
-		o.SecurityHeaders.AddFlags(fs, prefixes...)
-	}
-	if o.RateLimit != nil {
-		o.RateLimit.AddFlags(fs, prefixes...)
-	}
-	if o.CircuitBreaker != nil {
-		o.CircuitBreaker.AddFlags(fs, prefixes...)
+// ===== 泛型配置修改器 =====
+
+// Configure 通用配置修改器（泛型）。
+// T 必须是实现 MiddlewareConfig 的指针类型。
+func Configure[T MiddlewareConfig](name string, modifier func(T)) Option {
+	return func(o *Options) {
+		cfg := o.GetOrCreate(name)
+		if cfg == nil {
+			return
+		}
+		if typed, ok := cfg.(T); ok {
+			modifier(typed)
+		}
 	}
 }
 
-// WithRecovery configures and enables recovery middleware.
-// 注意：onPanic 参数已废弃，应通过 middleware.RecoveryWithOptions() 传入。
+// Without 通用禁用函数。
+func Without(name string) Option {
+	return func(o *Options) {
+		o.DeleteConfig(name)
+	}
+}
+
+// ===== 便捷配置函数 =====
+
+// WithRecovery 配置并启用 recovery 中间件。
 func WithRecovery(enableStackTrace bool) Option {
-	return func(o *Options) {
-		if o.Recovery == nil {
-			o.Recovery = NewRecoveryOptions()
-		}
-		o.Recovery.EnableStackTrace = enableStackTrace
-	}
+	return Configure(MiddlewareRecovery, func(cfg *RecoveryOptions) {
+		cfg.EnableStackTrace = enableStackTrace
+	})
 }
 
-// WithoutRecovery disables recovery middleware.
-func WithoutRecovery() Option {
-	return func(o *Options) { o.Recovery = nil }
-}
+// WithoutRecovery 禁用 recovery 中间件。
+func WithoutRecovery() Option { return Without(MiddlewareRecovery) }
 
-// WithRequestID enables request ID middleware with custom header.
+// WithRequestID 配置并启用 request-id 中间件。
 func WithRequestID(header string) Option {
-	return func(o *Options) {
-		if o.RequestID == nil {
-			o.RequestID = NewRequestIDOptions()
-		}
+	return Configure(MiddlewareRequestID, func(cfg *RequestIDOptions) {
 		if header != "" {
-			o.RequestID.Header = header
+			cfg.Header = header
 		}
-	}
+	})
 }
 
-// WithoutRequestID disables request ID middleware.
-func WithoutRequestID() Option {
-	return func(o *Options) { o.RequestID = nil }
-}
+// WithoutRequestID 禁用 request-id 中间件。
+func WithoutRequestID() Option { return Without(MiddlewareRequestID) }
 
-// WithLogger enables logger middleware.
+// WithLogger 配置并启用 logger 中间件。
 func WithLogger(skipPaths ...string) Option {
-	return func(o *Options) {
-		if o.Logger == nil {
-			o.Logger = NewLoggerOptions()
-		}
+	return Configure(MiddlewareLogger, func(cfg *LoggerOptions) {
 		if len(skipPaths) > 0 {
-			o.Logger.SkipPaths = skipPaths
+			cfg.SkipPaths = skipPaths
 		}
-	}
+	})
 }
 
-// WithoutLogger disables logger middleware.
-func WithoutLogger() Option {
-	return func(o *Options) { o.Logger = nil }
-}
+// WithoutLogger 禁用 logger 中间件。
+func WithoutLogger() Option { return Without(MiddlewareLogger) }
 
-// WithCORS enables CORS middleware.
+// WithCORS 配置并启用 CORS 中间件。
 func WithCORS(origins ...string) Option {
-	return func(o *Options) {
-		if o.CORS == nil {
-			o.CORS = NewCORSOptions()
-		}
+	return Configure(MiddlewareCORS, func(cfg *CORSOptions) {
 		if len(origins) > 0 {
-			o.CORS.AllowOrigins = origins
+			cfg.AllowOrigins = origins
 		}
-	}
+	})
 }
 
-// WithoutCORS disables CORS middleware.
-func WithoutCORS() Option {
-	return func(o *Options) { o.CORS = nil }
-}
+// WithoutCORS 禁用 CORS 中间件。
+func WithoutCORS() Option { return Without(MiddlewareCORS) }
 
-// WithTimeout enables timeout middleware.
+// WithTimeout 配置并启用 timeout 中间件。
 func WithTimeout(timeout time.Duration, skipPaths ...string) Option {
-	return func(o *Options) {
-		if o.Timeout == nil {
-			o.Timeout = NewTimeoutOptions()
-		}
+	return Configure(MiddlewareTimeout, func(cfg *TimeoutOptions) {
 		if timeout > 0 {
-			o.Timeout.Timeout = timeout
+			cfg.Timeout = timeout
 		}
 		if len(skipPaths) > 0 {
-			o.Timeout.SkipPaths = skipPaths
+			cfg.SkipPaths = skipPaths
 		}
-	}
+	})
 }
 
-// WithoutTimeout disables timeout middleware.
-func WithoutTimeout() Option {
-	return func(o *Options) { o.Timeout = nil }
-}
+// WithoutTimeout 禁用 timeout 中间件。
+func WithoutTimeout() Option { return Without(MiddlewareTimeout) }
 
-// WithHealth enables health check endpoints.
+// WithHealth 配置并启用 health 中间件。
 func WithHealth(path, livenessPath, readinessPath string) Option {
-	return func(o *Options) {
-		if o.Health == nil {
-			o.Health = NewHealthOptions()
-		}
+	return Configure(MiddlewareHealth, func(cfg *HealthOptions) {
 		if path != "" {
-			o.Health.Path = path
+			cfg.Path = path
 		}
 		if livenessPath != "" {
-			o.Health.LivenessPath = livenessPath
+			cfg.LivenessPath = livenessPath
 		}
 		if readinessPath != "" {
-			o.Health.ReadinessPath = readinessPath
+			cfg.ReadinessPath = readinessPath
 		}
-	}
+	})
 }
 
-// WithoutHealth disables health check endpoints.
-func WithoutHealth() Option {
-	return func(o *Options) { o.Health = nil }
-}
+// WithoutHealth 禁用 health 中间件。
+func WithoutHealth() Option { return Without(MiddlewareHealth) }
 
-// WithMetrics enables metrics endpoint.
+// WithMetrics 配置并启用 metrics 中间件。
 func WithMetrics(path, namespace, subsystem string) Option {
-	return func(o *Options) {
-		if o.Metrics == nil {
-			o.Metrics = NewMetricsOptions()
-		}
+	return Configure(MiddlewareMetrics, func(cfg *MetricsOptions) {
 		if path != "" {
-			o.Metrics.Path = path
+			cfg.Path = path
 		}
 		if namespace != "" {
-			o.Metrics.Namespace = namespace
+			cfg.Namespace = namespace
 		}
 		if subsystem != "" {
-			o.Metrics.Subsystem = subsystem
+			cfg.Subsystem = subsystem
 		}
-	}
+	})
 }
 
-// WithoutMetrics disables metrics endpoint.
-func WithoutMetrics() Option {
-	return func(o *Options) { o.Metrics = nil }
-}
+// WithoutMetrics 禁用 metrics 中间件。
+func WithoutMetrics() Option { return Without(MiddlewareMetrics) }
 
-// WithPprof enables pprof endpoints.
+// WithPprof 配置并启用 pprof 中间件。
 func WithPprof(prefix string) Option {
-	return func(o *Options) {
-		if o.Pprof == nil {
-			o.Pprof = NewPprofOptions()
-		}
+	return Configure(MiddlewarePprof, func(cfg *PprofOptions) {
 		if prefix != "" {
-			o.Pprof.Prefix = prefix
+			cfg.Prefix = prefix
 		}
-	}
+	})
 }
 
-// WithoutPprof disables pprof endpoints.
-func WithoutPprof() Option {
-	return func(o *Options) { o.Pprof = nil }
-}
+// WithoutPprof 禁用 pprof 中间件。
+func WithoutPprof() Option { return Without(MiddlewarePprof) }
 
-// WithAuth enables authentication middleware.
+// WithAuth 配置并启用 auth 中间件。
 func WithAuth(tokenLookup, authScheme string, skipPaths ...string) Option {
-	return func(o *Options) {
-		if o.Auth == nil {
-			o.Auth = NewAuthOptions()
-		}
+	return Configure(MiddlewareAuth, func(cfg *AuthOptions) {
 		if tokenLookup != "" {
-			o.Auth.TokenLookup = tokenLookup
+			cfg.TokenLookup = tokenLookup
 		}
 		if authScheme != "" {
-			o.Auth.AuthScheme = authScheme
+			cfg.AuthScheme = authScheme
 		}
 		if len(skipPaths) > 0 {
-			o.Auth.SkipPaths = skipPaths
+			cfg.SkipPaths = skipPaths
 		}
-	}
+	})
 }
 
-// WithoutAuth disables authentication middleware.
-func WithoutAuth() Option {
-	return func(o *Options) { o.Auth = nil }
-}
+// WithoutAuth 禁用 auth 中间件。
+func WithoutAuth() Option { return Without(MiddlewareAuth) }
 
-// WithAuthz enables authorization middleware.
+// WithAuthz 配置并启用 authz 中间件。
 func WithAuthz() Option {
 	return func(o *Options) {
-		if o.Authz == nil {
-			o.Authz = NewAuthzOptions()
-		}
+		_ = o.GetOrCreate(MiddlewareAuthz)
 	}
 }
 
-// WithoutAuthz disables authorization middleware.
-func WithoutAuthz() Option {
-	return func(o *Options) { o.Authz = nil }
-}
+// WithoutAuthz 禁用 authz 中间件。
+func WithoutAuthz() Option { return Without(MiddlewareAuthz) }
 
-// WithVersion enables version endpoint.
+// WithVersion 配置并启用 version 中间件。
 func WithVersion(path string, hideDetails bool) Option {
-	return func(o *Options) {
-		if o.Version == nil {
-			o.Version = NewVersionOptions()
-		}
+	return Configure(MiddlewareVersion, func(cfg *VersionOptions) {
 		if path != "" {
-			o.Version.Path = path
+			cfg.Path = path
 		}
-		o.Version.HideDetails = hideDetails
-	}
+		cfg.HideDetails = hideDetails
+	})
 }
 
-// WithoutVersion disables version endpoint.
-func WithoutVersion() Option {
-	return func(o *Options) { o.Version = nil }
-}
+// WithoutVersion 禁用 version 中间件。
+func WithoutVersion() Option { return Without(MiddlewareVersion) }
 
-// WithBodyLimit enables body limit middleware.
+// WithBodyLimit 配置并启用 body-limit 中间件。
 func WithBodyLimit(maxSize int64, skipPaths ...string) Option {
-	return func(o *Options) {
-		if o.BodyLimit == nil {
-			o.BodyLimit = NewBodyLimitOptions()
-		}
+	return Configure(MiddlewareBodyLimit, func(cfg *BodyLimitOptions) {
 		if maxSize > 0 {
-			o.BodyLimit.MaxSize = maxSize
+			cfg.MaxSize = maxSize
 		}
 		if len(skipPaths) > 0 {
-			o.BodyLimit.SkipPaths = skipPaths
+			cfg.SkipPaths = skipPaths
 		}
-	}
+	})
 }
 
-// WithoutBodyLimit disables body limit middleware.
-func WithoutBodyLimit() Option {
-	return func(o *Options) { o.BodyLimit = nil }
-}
+// WithoutBodyLimit 禁用 body-limit 中间件。
+func WithoutBodyLimit() Option { return Without(MiddlewareBodyLimit) }
 
-// WithCompression enables compression middleware.
+// WithCompression 配置并启用 compression 中间件。
 func WithCompression(level int, minSize int, types ...string) Option {
-	return func(o *Options) {
-		if o.Compression == nil {
-			o.Compression = NewCompressionOptions()
-		}
+	return Configure(MiddlewareCompression, func(cfg *CompressionOptions) {
 		if level >= -1 && level <= 9 {
-			o.Compression.Level = level
+			cfg.Level = level
 		}
 		if minSize >= 0 {
-			o.Compression.MinSize = minSize
+			cfg.MinSize = minSize
 		}
 		if len(types) > 0 {
-			o.Compression.Types = types
+			cfg.Types = types
 		}
+	})
+}
+
+// WithoutCompression 禁用 compression 中间件。
+func WithoutCompression() Option { return Without(MiddlewareCompression) }
+
+// WithSecurityHeaders 配置并启用 security-headers 中间件。
+func WithSecurityHeaders() Option {
+	return func(o *Options) {
+		_ = o.GetOrCreate(MiddlewareSecurityHeaders)
 	}
 }
 
-// WithoutCompression disables compression middleware.
-func WithoutCompression() Option {
-	return func(o *Options) { o.Compression = nil }
+// WithoutSecurityHeaders 禁用 security-headers 中间件。
+func WithoutSecurityHeaders() Option { return Without(MiddlewareSecurityHeaders) }
+
+// WithRateLimit 配置并启用 rate-limit 中间件。
+func WithRateLimit() Option {
+	return func(o *Options) {
+		_ = o.GetOrCreate(MiddlewareRateLimit)
+	}
 }
+
+// WithoutRateLimit 禁用 rate-limit 中间件。
+func WithoutRateLimit() Option { return Without(MiddlewareRateLimit) }
+
+// WithCircuitBreaker 配置并启用 circuit-breaker 中间件。
+func WithCircuitBreaker() Option {
+	return func(o *Options) {
+		_ = o.GetOrCreate(MiddlewareCircuitBreaker)
+	}
+}
+
+// WithoutCircuitBreaker 禁用 circuit-breaker 中间件。
+func WithoutCircuitBreaker() Option { return Without(MiddlewareCircuitBreaker) }
