@@ -97,32 +97,38 @@ func (cfg *Config) NewServer(_ context.Context) (*Server, error) {
 	var queryCache *biz.QueryCache
 	var redisClose func()
 	if cfg.CacheOptions.Enabled {
-		redisClient = goredis.NewClient(&goredis.Options{
-			Addr:         fmt.Sprintf("%s:%d", cfg.CacheOptions.Redis.Host, cfg.CacheOptions.Redis.Port),
-			Password:     cfg.CacheOptions.Redis.Password,
-			DB:           cfg.CacheOptions.Redis.Database,
-			MaxRetries:   cfg.CacheOptions.Redis.MaxRetries,
-			PoolSize:     cfg.CacheOptions.Redis.PoolSize,
-			MinIdleConns: cfg.CacheOptions.Redis.MinIdleConns,
-		})
-
-		// 测试 Redis 连接
-		if err := redisClient.Ping(context.Background()).Err(); err != nil {
-			logger.Warnw("failed to connect to redis, cache will be disabled", "error", err.Error())
-			_ = redisClient.Close()
-			redisClient = nil
+		redisOpts := cfg.CacheOptions.Redis
+		if redisOpts == nil {
+			logger.Warn("Cache is enabled but no Redis configuration provided in CacheOptions")
 		} else {
-			queryCache = biz.NewQueryCache(redisClient, &biz.QueryCacheConfig{
-				Enabled:   true,
-				TTL:       cfg.CacheOptions.TTL,
-				KeyPrefix: cfg.CacheOptions.KeyPrefix,
+
+			redisClient = goredis.NewClient(&goredis.Options{
+				Addr:         fmt.Sprintf("%s:%d", redisOpts.Host, redisOpts.Port),
+				Password:     redisOpts.Password,
+				DB:           redisOpts.Database,
+				MaxRetries:   redisOpts.MaxRetries,
+				PoolSize:     redisOpts.PoolSize,
+				MinIdleConns: redisOpts.MinIdleConns,
 			})
-			redisClose = func() { _ = redisClient.Close() }
-			logger.Infow("Redis cache initialized",
-				"host", cfg.CacheOptions.Redis.Host,
-				"port", cfg.CacheOptions.Redis.Port,
-				"ttl", cfg.CacheOptions.TTL,
-			)
+
+			// 测试 Redis 连接
+			if err := redisClient.Ping(context.Background()).Err(); err != nil {
+				logger.Warnw("failed to connect to redis, cache will be disabled", "error", err.Error())
+				_ = redisClient.Close()
+				redisClient = nil
+			} else {
+				queryCache = biz.NewQueryCache(redisClient, &biz.QueryCacheConfig{
+					Enabled:   true,
+					TTL:       cfg.CacheOptions.TTL,
+					KeyPrefix: cfg.CacheOptions.KeyPrefix,
+				})
+				redisClose = func() { _ = redisClient.Close() }
+				logger.Infow("Redis cache initialized",
+					"host", redisOpts.Host,
+					"port", redisOpts.Port,
+					"ttl", cfg.CacheOptions.TTL,
+				)
+			}
 		}
 	} else {
 		logger.Info("Cache is disabled")

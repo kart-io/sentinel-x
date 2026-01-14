@@ -32,7 +32,7 @@ func NewOptions() *Options {
 		Enabled:   true,
 		TTL:       1 * time.Hour,
 		KeyPrefix: "cache:",
-		Redis:     redisopts.NewOptions(),
+		Redis:     nil,
 	}
 }
 
@@ -41,11 +41,6 @@ func (o *Options) AddFlags(fs *pflag.FlagSet, prefixes ...string) {
 	fs.BoolVar(&o.Enabled, options.Join(prefixes...)+"cache.enabled", o.Enabled, "Enable cache.")
 	fs.DurationVar(&o.TTL, options.Join(prefixes...)+"cache.ttl", o.TTL, "Cache TTL duration.")
 	fs.StringVar(&o.KeyPrefix, options.Join(prefixes...)+"cache.key-prefix", o.KeyPrefix, "Cache key prefix.")
-
-	if o.Redis == nil {
-		o.Redis = redisopts.NewOptions()
-	}
-	o.Redis.AddFlags(fs, prefixes...)
 }
 
 // Validate validates the cache options.
@@ -64,7 +59,7 @@ func (o *Options) Validate() []error {
 // Complete completes the cache options with defaults.
 func (o *Options) Complete() error {
 	if o.Redis == nil {
-		o.Redis = redisopts.NewOptions()
+		return nil
 	}
 	return o.Redis.Complete()
 }
