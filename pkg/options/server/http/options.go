@@ -9,16 +9,6 @@ import (
 	"github.com/spf13/pflag"
 )
 
-// AdapterType represents the HTTP framework adapter type.
-type AdapterType string
-
-const (
-	// AdapterGin uses Gin as the HTTP framework.
-	AdapterGin AdapterType = "gin"
-	// AdapterEcho uses Echo as the HTTP framework.
-	AdapterEcho AdapterType = "echo"
-)
-
 var _ options.IOptions = (*Options)(nil)
 
 // Options contains HTTP server configuration.
@@ -31,8 +21,6 @@ type Options struct {
 	WriteTimeout time.Duration `json:"write-timeout" mapstructure:"write-timeout"`
 	// IdleTimeout is the maximum amount of time to wait for the next request.
 	IdleTimeout time.Duration `json:"idle-timeout" mapstructure:"idle-timeout"`
-	// Adapter specifies which HTTP framework adapter to use.
-	Adapter AdapterType `json:"adapter" mapstructure:"adapter"`
 }
 
 // Option is a function that configures Options.
@@ -45,7 +33,6 @@ func NewOptions() *Options {
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 30 * time.Second,
 		IdleTimeout:  60 * time.Second,
-		Adapter:      AdapterGin,
 	}
 }
 
@@ -55,7 +42,6 @@ func (o *Options) AddFlags(fs *pflag.FlagSet, prefixes ...string) {
 	fs.DurationVar(&o.ReadTimeout, options.Join(prefixes...)+"http.read-timeout", o.ReadTimeout, "Timeout for reading the entire request.")
 	fs.DurationVar(&o.WriteTimeout, options.Join(prefixes...)+"http.write-timeout", o.WriteTimeout, "Timeout before timing out writes of the response.")
 	fs.DurationVar(&o.IdleTimeout, options.Join(prefixes...)+"http.idle-timeout", o.IdleTimeout, "Maximum amount of time to wait for the next request.")
-	fs.StringVar((*string)(&o.Adapter), options.Join(prefixes...)+"http.adapter", string(o.Adapter), "HTTP framework adapter (gin, echo).")
 }
 
 // Validate validates the HTTP options.
@@ -74,9 +60,6 @@ func (o *Options) Validate() []error {
 	}
 	if o.WriteTimeout <= 0 {
 		errs = append(errs, fmt.Errorf("http.write-timeout must be positive"))
-	}
-	if o.Adapter != AdapterGin && o.Adapter != AdapterEcho {
-		errs = append(errs, fmt.Errorf("http.adapter must be 'gin' or 'echo'"))
 	}
 
 	return errs
@@ -112,13 +95,6 @@ func WithWriteTimeout(d time.Duration) Option {
 func WithIdleTimeout(d time.Duration) Option {
 	return func(o *Options) {
 		o.IdleTimeout = d
-	}
-}
-
-// WithAdapter sets the HTTP framework adapter.
-func WithAdapter(adapter AdapterType) Option {
-	return func(o *Options) {
-		o.Adapter = adapter
 	}
 }
 

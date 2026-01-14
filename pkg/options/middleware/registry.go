@@ -9,17 +9,17 @@ import (
 // Registry 中间件配置注册器。
 // 管理所有中间件配置的工厂函数，支持动态注册和创建。
 type Registry struct {
-	mu              sync.RWMutex
-	factories       map[string]func() MiddlewareConfig
+	mu               sync.RWMutex
+	factories        map[string]func() MiddlewareConfig
 	handlerFactories map[string]Factory
-	routeRegistrars map[string]RouteRegistrar
+	routeRegistrars  map[string]RouteRegistrar
 }
 
 // globalRegistry 全局中间件注册器实例。
 var globalRegistry = &Registry{
-	factories:       make(map[string]func() MiddlewareConfig),
+	factories:        make(map[string]func() MiddlewareConfig),
 	handlerFactories: make(map[string]Factory),
-	routeRegistrars: make(map[string]RouteRegistrar),
+	routeRegistrars:  make(map[string]RouteRegistrar),
 }
 
 // Register 注册中间件配置工厂函数。

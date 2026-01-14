@@ -330,7 +330,6 @@ func TestManagerStartStop(t *testing.T) {
 			ReadTimeout:  10 * time.Second,
 			WriteTimeout: 10 * time.Second,
 			IdleTimeout:  10 * time.Second,
-			Adapter:      httpopts.AdapterGin,
 		}),
 		WithMiddleware(mwopts.NewOptions()), // Use default middleware options
 	)
@@ -541,7 +540,6 @@ func TestManagerWait_HTTPServerReady(t *testing.T) {
 			ReadTimeout:  10 * time.Second,
 			WriteTimeout: 10 * time.Second,
 			IdleTimeout:  10 * time.Second,
-			Adapter:      httpopts.AdapterGin,
 		}),
 		WithMiddleware(mwopts.NewOptions()),
 	)
@@ -610,7 +608,6 @@ func TestManagerWait_BothServersReady(t *testing.T) {
 			ReadTimeout:  10 * time.Second,
 			WriteTimeout: 10 * time.Second,
 			IdleTimeout:  10 * time.Second,
-			Adapter:      httpopts.AdapterGin,
 		}),
 		WithGRPCOptions(&grpcopts.Options{
 			Addr:             ":0", // Use random port
@@ -652,7 +649,6 @@ func TestManagerWait_CalledMultipleTimes(t *testing.T) {
 			ReadTimeout:  10 * time.Second,
 			WriteTimeout: 10 * time.Second,
 			IdleTimeout:  10 * time.Second,
-			Adapter:      httpopts.AdapterGin,
 		}),
 		WithMiddleware(mwopts.NewOptions()),
 	)
@@ -689,7 +685,6 @@ func BenchmarkManagerWait(b *testing.B) {
 			ReadTimeout:  10 * time.Second,
 			WriteTimeout: 10 * time.Second,
 			IdleTimeout:  10 * time.Second,
-			Adapter:      httpopts.AdapterGin,
 		}),
 		WithMiddleware(mwopts.NewOptions()),
 	)

@@ -28,14 +28,6 @@ type (
 	Options = options.Options
 	// Option is a function that configures Options.
 	Option = options.Option
-	// AdapterType represents the HTTP framework adapter type.
-	AdapterType = options.AdapterType
-)
-
-// Re-export constants
-const (
-	AdapterGin  = options.AdapterGin
-	AdapterEcho = options.AdapterEcho
 )
 
 // Re-export option functions
@@ -45,7 +37,6 @@ var (
 	WithReadTimeout  = options.WithReadTimeout
 	WithWriteTimeout = options.WithWriteTimeout
 	WithIdleTimeout  = options.WithIdleTimeout
-	WithAdapter      = options.WithAdapter
 )
 
 // Server is the HTTP server implementation.
@@ -118,13 +109,9 @@ func (s *Server) Start(ctx context.Context) error {
 	s.engine.NoRoute(func(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{
 			"code":    apierrors.ErrRouteNotFound.Code,
-			"message": apierrors.ErrRouteNotFound.Message,
+			"message": apierrors.ErrRouteNotFound.MessageEN,
 		})
 	})
-
-	// 注意：中间件已在 NewServer 时应用，这里不再重复应用
-	// 这是因为 Gin 的 RouterGroup 在创建子组时会复制当前的 handlers
-	// 如果中间件在路由注册之后才应用，则不会被子组继承
 
 	// 使用注册机制注册路由
 	s.registerRoutes()

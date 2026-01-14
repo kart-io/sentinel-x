@@ -155,7 +155,7 @@ func printBanner(cfg *Config) {
 	fmt.Printf("Version: %s\n", app.GetVersion())
 
 	if cfg.HTTPOptions != nil {
-		fmt.Printf("HTTP: %s (adapter: %s)\n", cfg.HTTPOptions.Addr, cfg.HTTPOptions.Adapter)
+		fmt.Printf("HTTP: %s\n", cfg.HTTPOptions.Addr)
 	}
 	if cfg.GRPCOptions != nil {
 		fmt.Printf("gRPC: %s\n", cfg.GRPCOptions.Addr)
