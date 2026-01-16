@@ -14,7 +14,6 @@ require (
 	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/kart-io/logger v0.2.2
 	github.com/kart-io/version v1.1.0
-	github.com/labstack/echo/v4 v4.15.0
 	github.com/milvus-io/milvus/client/v2 v2.6.2
 	github.com/oklog/ulid/v2 v2.1.1
 	github.com/panjf2000/ants/v2 v2.11.3
@@ -128,7 +127,6 @@ require (
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
-	github.com/labstack/gommon v0.4.2 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/lufia/plan9stats v0.0.0-20211012122336-39d0f177ccd0 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
@@ -175,8 +173,6 @@ require (
 	github.com/twpayne/go-geom v1.6.1 // indirect
 	github.com/uber/jaeger-client-go v2.30.0+incompatible // indirect
 	github.com/ugorji/go/codec v1.3.1 // indirect
-	github.com/valyala/bytebufferpool v1.0.0 // indirect
-	github.com/valyala/fasttemplate v1.2.2 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.2 // indirect
@@ -242,8 +238,6 @@ replace github.com/kart-io/logger/example/performance => ./staging/src/github.co
 replace rotation-example => ./staging/src/github.com/kart-io/logger/example/rotation
 
 replace github.com/kart-io/logger/example/zap => ./staging/src/github.com/kart-io/logger/example/zap
-
-replace github.com/kart-io/logger/example/echo => ./staging/src/github.com/kart-io/logger/example/echo
 
 replace github.com/kart-io/logger/example/reload => ./staging/src/github.com/kart-io/logger/example/reload
 
