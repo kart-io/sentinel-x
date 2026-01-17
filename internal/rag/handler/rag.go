@@ -10,6 +10,8 @@ import (
 	"github.com/kart-io/sentinel-x/internal/pkg/rag/evaluator"
 	"github.com/kart-io/sentinel-x/internal/rag/biz"
 	observability "github.com/kart-io/sentinel-x/pkg/observability/metrics"
+	"github.com/kart-io/sentinel-x/pkg/utils/errors"
+	"github.com/kart-io/sentinel-x/pkg/utils/response"
 )
 
 // RAGHandler handles RAG HTTP requests.
@@ -26,18 +28,8 @@ func NewRAGHandler(service biz.Service, eval *evaluator.Evaluator) *RAGHandler {
 	}
 }
 
-// SuccessResponse is a standard success response.
-type SuccessResponse struct {
-	Code    int         `json:"code" example:"0"`
-	Message string      `json:"message" example:"success"`
-	Data    interface{} `json:"data,omitempty"`
-}
-
-// ErrorResponse is a standard error response.
-type ErrorResponse struct {
-	Code    int    `json:"code" example:"400"`
-	Message string `json:"message" example:"bad request"`
-}
+// 注意：SuccessResponse 和 ErrorResponse 已移除
+// 现在统一使用 pkg/utils/response.Response
 
 // IndexRequest represents an index request.
 type IndexRequest struct {
@@ -51,23 +43,29 @@ type IndexRequest struct {
 // @Accept json
 // @Produce json
 // @Param request body IndexRequest true "索引请求"
-// @Success 200 {object} SuccessResponse
-// @Failure 400 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
+// @Success 200 {object} response.Response
+// @Failure 400 {object} response.Response
+// @Failure 500 {object} response.Response
 // @Router /v1/rag/index [post]
 func (h *RAGHandler) Index(c *gin.Context) {
 	var req IndexRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, ErrorResponse{Code: 400, Message: err.Error()})
+		resp := response.Err(errors.ErrRAGInvalidRequest)
+		defer response.Release(resp)
+		c.JSON(resp.HTTPStatus(), resp)
 		return
 	}
 
 	if err := h.service.IndexFromURL(c.Request.Context(), req.SourceURL); err != nil {
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Code: 500, Message: err.Error()})
+		resp := response.Err(errors.ErrRAGIndexFailed)
+		defer response.Release(resp)
+		c.JSON(resp.HTTPStatus(), resp)
 		return
 	}
 
-	c.JSON(http.StatusOK, SuccessResponse{Code: 0, Message: "Documents indexed successfully"})
+	resp := response.SuccessWithMessage("Documents indexed successfully", nil)
+	defer response.Release(resp)
+	c.JSON(http.StatusOK, resp)
 }
 
 // IndexFromURLRequest represents an index from URL request.
@@ -82,23 +80,29 @@ type IndexFromURLRequest struct {
 // @Accept json
 // @Produce json
 // @Param request body IndexFromURLRequest true "索引请求"
-// @Success 200 {object} SuccessResponse
-// @Failure 400 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
+// @Success 200 {object} response.Response
+// @Failure 400 {object} response.Response
+// @Failure 500 {object} response.Response
 // @Router /v1/rag/index/url [post]
 func (h *RAGHandler) IndexFromURL(c *gin.Context) {
 	var req IndexFromURLRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, ErrorResponse{Code: 400, Message: err.Error()})
+		resp := response.Err(errors.ErrRAGInvalidRequest)
+		defer response.Release(resp)
+		c.JSON(resp.HTTPStatus(), resp)
 		return
 	}
 
 	if err := h.service.IndexFromURL(c.Request.Context(), req.URL); err != nil {
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Code: 500, Message: err.Error()})
+		resp := response.Err(errors.ErrRAGIndexFailed)
+		defer response.Release(resp)
+		c.JSON(resp.HTTPStatus(), resp)
 		return
 	}
 
-	c.JSON(http.StatusOK, SuccessResponse{Code: 0, Message: "Documents indexed successfully"})
+	resp := response.SuccessWithMessage("Documents indexed successfully", nil)
+	defer response.Release(resp)
+	c.JSON(http.StatusOK, resp)
 }
 
 // IndexDirectoryRequest represents a directory index request.
@@ -113,23 +117,29 @@ type IndexDirectoryRequest struct {
 // @Accept json
 // @Produce json
 // @Param request body IndexDirectoryRequest true "目录索引请求"
-// @Success 200 {object} SuccessResponse
-// @Failure 400 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
+// @Success 200 {object} response.Response
+// @Failure 400 {object} response.Response
+// @Failure 500 {object} response.Response
 // @Router /v1/rag/index/directory [post]
 func (h *RAGHandler) IndexDirectory(c *gin.Context) {
 	var req IndexDirectoryRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, ErrorResponse{Code: 400, Message: err.Error()})
+		resp := response.Err(errors.ErrRAGInvalidRequest)
+		defer response.Release(resp)
+		c.JSON(resp.HTTPStatus(), resp)
 		return
 	}
 
 	if err := h.service.IndexDirectory(c.Request.Context(), req.Directory); err != nil {
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Code: 500, Message: err.Error()})
+		resp := response.Err(errors.ErrRAGIndexFailed)
+		defer response.Release(resp)
+		c.JSON(resp.HTTPStatus(), resp)
 		return
 	}
 
-	c.JSON(http.StatusOK, SuccessResponse{Code: 0, Message: "Directory indexed successfully"})
+	resp := response.SuccessWithMessage("Directory indexed successfully", nil)
+	defer response.Release(resp)
+	c.JSON(http.StatusOK, resp)
 }
 
 // QueryRequest represents a query request.
@@ -144,15 +154,17 @@ type QueryRequest struct {
 // @Accept json
 // @Produce json
 // @Param request body QueryRequest true "查询请求"
-// @Success 200 {object} SuccessResponse{data=biz.QueryResult}
-// @Failure 400 {object} ErrorResponse
-// @Failure 408 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
+// @Success 200 {object} response.Response{data=biz.QueryResult}
+// @Failure 400 {object} response.Response
+// @Failure 408 {object} response.Response
+// @Failure 500 {object} response.Response
 // @Router /v1/rag/query [post]
 func (h *RAGHandler) Query(c *gin.Context) {
 	var req QueryRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, ErrorResponse{Code: 400, Message: err.Error()})
+		resp := response.Err(errors.ErrRAGInvalidRequest)
+		defer response.Release(resp)
+		c.JSON(resp.HTTPStatus(), resp)
 		return
 	}
 
@@ -164,17 +176,20 @@ func (h *RAGHandler) Query(c *gin.Context) {
 	if err != nil {
 		// 检查是否超时
 		if ctx.Err() == context.DeadlineExceeded {
-			c.JSON(http.StatusRequestTimeout, ErrorResponse{
-				Code:    408,
-				Message: "Query timeout: the request took too long to process. Please try again or simplify your question.",
-			})
+			resp := response.Err(errors.ErrRAGQueryTimeout)
+			defer response.Release(resp)
+			c.JSON(resp.HTTPStatus(), resp)
 			return
 		}
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Code: 500, Message: err.Error()})
+		resp := response.Err(errors.ErrRAGQueryFailed)
+		defer response.Release(resp)
+		c.JSON(resp.HTTPStatus(), resp)
 		return
 	}
 
-	c.JSON(http.StatusOK, SuccessResponse{Code: 0, Message: "success", Data: result})
+	resp := response.Success(result)
+	defer response.Release(resp)
+	c.JSON(http.StatusOK, resp)
 }
 
 // Stats returns knowledge base statistics.
@@ -182,17 +197,21 @@ func (h *RAGHandler) Query(c *gin.Context) {
 // @Description 返回当前向量数据库的集合名称、文本片段总数等统计数据。
 // @Tags RAG
 // @Produce json
-// @Success 200 {object} SuccessResponse
-// @Failure 500 {object} ErrorResponse
+// @Success 200 {object} response.Response
+// @Failure 500 {object} response.Response
 // @Router /v1/rag/stats [get]
 func (h *RAGHandler) Stats(c *gin.Context) {
 	stats, err := h.service.GetStats(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Code: 500, Message: err.Error()})
+		resp := response.Err(errors.ErrRAGStatsUnavailable)
+		defer response.Release(resp)
+		c.JSON(resp.HTTPStatus(), resp)
 		return
 	}
 
-	c.JSON(http.StatusOK, SuccessResponse{Code: 0, Message: "success", Data: stats})
+	resp := response.Success(stats)
+	defer response.Release(resp)
+	c.JSON(http.StatusOK, resp)
 }
 
 // CollectionInfo 集合信息。
@@ -207,14 +226,16 @@ type CollectionInfo struct {
 // @Description 返回当前系统中配置的所有知识库集合及其详细信息。
 // @Tags RAG
 // @Produce json
-// @Success 200 {object} SuccessResponse{data=[]CollectionInfo}
-// @Failure 500 {object} ErrorResponse
+// @Success 200 {object} response.Response{data=[]CollectionInfo}
+// @Failure 500 {object} response.Response
 // @Router /v1/rag/collections [get]
 func (h *RAGHandler) ListCollections(c *gin.Context) {
 	// 获取统计信息
 	stats, err := h.service.GetStats(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Code: 500, Message: err.Error()})
+		resp := response.Err(errors.ErrRAGStatsUnavailable)
+		defer response.Release(resp)
+		c.JSON(resp.HTTPStatus(), resp)
 		return
 	}
 
@@ -231,7 +252,9 @@ func (h *RAGHandler) ListCollections(c *gin.Context) {
 		},
 	}
 
-	c.JSON(http.StatusOK, SuccessResponse{Code: 0, Message: "success", Data: collections})
+	resp := response.Success(collections)
+	defer response.Release(resp)
+	c.JSON(http.StatusOK, resp)
 }
 
 // EvaluateRequest 评估请求。
@@ -249,19 +272,23 @@ type EvaluateRequest struct {
 // @Accept json
 // @Produce json
 // @Param request body EvaluateRequest true "评估请求"
-// @Success 200 {object} SuccessResponse{data=evaluator.Result}
-// @Failure 400 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
+// @Success 200 {object} response.Response{data=evaluator.Result}
+// @Failure 400 {object} response.Response
+// @Failure 500 {object} response.Response
 // @Router /v1/rag/evaluate [post]
 func (h *RAGHandler) Evaluate(c *gin.Context) {
 	var req EvaluateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, ErrorResponse{Code: 400, Message: err.Error()})
+		resp := response.Err(errors.ErrRAGInvalidRequest)
+		defer response.Release(resp)
+		c.JSON(resp.HTTPStatus(), resp)
 		return
 	}
 
 	if h.evaluator == nil {
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Code: 500, Message: "Evaluator not initialized"})
+		resp := response.Err(errors.ErrRAGEvaluatorNotInit)
+		defer response.Release(resp)
+		c.JSON(resp.HTTPStatus(), resp)
 		return
 	}
 
@@ -274,11 +301,15 @@ func (h *RAGHandler) Evaluate(c *gin.Context) {
 
 	result, err := h.evaluator.Evaluate(c.Request.Context(), input)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Code: 500, Message: err.Error()})
+		resp := response.ErrorWithCode(500, err.Error())
+		defer response.Release(resp)
+		c.JSON(resp.HTTPStatus(), resp)
 		return
 	}
 
-	c.JSON(http.StatusOK, SuccessResponse{Code: 0, Message: "success", Data: result})
+	resp := response.Success(result)
+	defer response.Release(resp)
+	c.JSON(http.StatusOK, resp)
 }
 
 // QueryAndEvaluateRequest 查询并评估请求。
@@ -301,20 +332,24 @@ type QueryAndEvaluateResponse struct {
 // @Accept json
 // @Produce json
 // @Param request body QueryAndEvaluateRequest true "查询评估请求"
-// @Success 200 {object} SuccessResponse{data=QueryAndEvaluateResponse}
-// @Failure 400 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
+// @Success 200 {object} response.Response{data=QueryAndEvaluateResponse}
+// @Failure 400 {object} response.Response
+// @Failure 500 {object} response.Response
 // @Router /v1/rag/query-evaluate [post]
 func (h *RAGHandler) QueryAndEvaluate(c *gin.Context) {
 	var req QueryAndEvaluateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, ErrorResponse{Code: 400, Message: err.Error()})
+		resp := response.Err(errors.ErrRAGInvalidRequest)
+		defer response.Release(resp)
+		c.JSON(resp.HTTPStatus(), resp)
 		return
 	}
 
 	result, err := h.service.Query(c.Request.Context(), req.Question)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Code: 500, Message: "Query failed: " + err.Error()})
+		resp := response.Err(errors.ErrRAGQueryFailed)
+		defer response.Release(resp)
+		c.JSON(resp.HTTPStatus(), resp)
 		return
 	}
 
@@ -334,13 +369,15 @@ func (h *RAGHandler) QueryAndEvaluate(c *gin.Context) {
 		evaluation, _ = h.evaluator.Evaluate(c.Request.Context(), input)
 	}
 
-	response := QueryAndEvaluateResponse{
+	responseData := QueryAndEvaluateResponse{
 		Answer:     result.Answer,
 		Sources:    result.Sources,
 		Evaluation: evaluation,
 	}
 
-	c.JSON(http.StatusOK, SuccessResponse{Code: 0, Message: "success", Data: response})
+	resp := response.Success(responseData)
+	defer response.Release(resp)
+	c.JSON(http.StatusOK, resp)
 }
 
 // Metrics 导出 Prometheus 格式的业务指标。
