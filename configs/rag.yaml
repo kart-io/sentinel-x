@@ -124,6 +124,7 @@ embedding:
   # API base URL
   base-url: "http://localhost:11434"
   # API key (required for openai)
+  # 如果使用 OpenAI，必须通过环境变量设置: OPENAI_API_KEY
   api-key: ""
   # Embedding model name
   model: "nomic-embed-text"
@@ -133,14 +134,16 @@ embedding:
   max-retries: 3
 
 # Chat provider configuration
-# 支持的供应商: ollama, openai
+# 支持的供应商: ollama, openai, deepseek
 chat:
   # Provider name
   provider: "deepseek"
   # API base URL
   base-url: "https://api.deepseek.com"
-  # API key (required for openai)
-  api-key: "dummy-key"
+  # API key (required for deepseek/openai)
+  # ⚠️ 安全警告：绝对不要在此文件中硬编码密钥！
+  # 必须通过环境变量设置: DEEPSEEK_API_KEY
+  api-key: ""
   # Chat model name
   model: "deepseek-chat"
   # Request timeout (longer for LLM generation)
