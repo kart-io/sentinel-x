@@ -15,10 +15,12 @@ import (
 	"github.com/kart-io/sentinel-x/internal/rag/router"
 	"github.com/kart-io/sentinel-x/internal/rag/store"
 	"github.com/kart-io/sentinel-x/pkg/component/milvus"
+
 	// 导入适配器以注册 HTTP 框架支持
 	"github.com/kart-io/sentinel-x/pkg/infra/app"
 	"github.com/kart-io/sentinel-x/pkg/infra/server"
 	"github.com/kart-io/sentinel-x/pkg/llm"
+
 	// 导入 LLM 供应商以自动注册
 	_ "github.com/kart-io/sentinel-x/pkg/llm/deepseek"
 	_ "github.com/kart-io/sentinel-x/pkg/llm/gemini"
@@ -33,6 +35,7 @@ import (
 	ragopts "github.com/kart-io/sentinel-x/pkg/options/rag"
 	grpcopts "github.com/kart-io/sentinel-x/pkg/options/server/grpc"
 	httpopts "github.com/kart-io/sentinel-x/pkg/options/server/http"
+
 	// Register LLM providers
 	goredis "github.com/redis/go-redis/v9"
 )
@@ -143,6 +146,20 @@ func (cfg *Config) NewServer(_ context.Context) (*Server, error) {
 		"provider", cfg.EmbeddingOptions.Provider,
 		"model", cfg.EmbeddingOptions.Model,
 	)
+
+	// 5.1 用缓存包装 Embedding Provider（如果启用）
+	if cfg.CacheOptions.Enabled && redisClient != nil {
+		embCacheConfig := &llm.EmbeddingCacheConfig{
+			Enabled:   true,
+			TTL:       24 * time.Hour, // Embedding 结果相对稳定，可以缓存更长时间
+			KeyPrefix: "emb:",
+		}
+		embedProvider = llm.NewCachedEmbeddingProvider(embedProvider, redisClient, embCacheConfig)
+		logger.Infow("Embedding cache enabled",
+			"ttl", embCacheConfig.TTL,
+			"key_prefix", embCacheConfig.KeyPrefix,
+		)
+	}
 
 	chatProvider, err := llm.NewChatProvider(cfg.ChatOptions.Provider, cfg.ChatOptions.ToConfigMap())
 	if err != nil {
