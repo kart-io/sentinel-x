@@ -84,6 +84,7 @@ func (cfg *Config) NewServer(_ context.Context) (*Server, error) {
 	}
 	logger.Info("Starting RAG service...")
 
+	logger.Info("Milvus options: ", cfg.MilvusOptions)
 	// 2. 初始化 Milvus 客户端
 	milvusClient, err := milvus.New(cfg.MilvusOptions)
 	if err != nil {
