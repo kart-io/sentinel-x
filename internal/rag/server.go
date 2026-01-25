@@ -15,12 +15,10 @@ import (
 	"github.com/kart-io/sentinel-x/internal/rag/router"
 	"github.com/kart-io/sentinel-x/internal/rag/store"
 	"github.com/kart-io/sentinel-x/pkg/component/milvus"
-
 	// 导入适配器以注册 HTTP 框架支持
 	"github.com/kart-io/sentinel-x/pkg/infra/app"
 	"github.com/kart-io/sentinel-x/pkg/infra/server"
 	"github.com/kart-io/sentinel-x/pkg/llm"
-
 	// 导入 LLM 供应商以自动注册
 	_ "github.com/kart-io/sentinel-x/pkg/llm/deepseek"
 	_ "github.com/kart-io/sentinel-x/pkg/llm/gemini"
@@ -35,7 +33,6 @@ import (
 	ragopts "github.com/kart-io/sentinel-x/pkg/options/rag"
 	grpcopts "github.com/kart-io/sentinel-x/pkg/options/server/grpc"
 	httpopts "github.com/kart-io/sentinel-x/pkg/options/server/http"
-
 	// Register LLM providers
 	goredis "github.com/redis/go-redis/v9"
 )
@@ -199,6 +196,23 @@ func (cfg *Config) NewServer(_ context.Context) (*Server, error) {
 			TTL:       cfg.CacheOptions.TTL,
 			KeyPrefix: cfg.CacheOptions.KeyPrefix,
 		},
+		// 树形索引配置（Tree/RAPTOR）
+		TreeRetrieverConfig: &biz.TreeRetrieverConfig{
+			Collection:       cfg.RAGOptions.Collection,
+			TopKPath:         cfg.RAGOptions.TopK,
+			TopKLeaf:         cfg.RAGOptions.TopK,
+			ScoreWeightSim:   0.7,
+			ScoreWeightLevel: 0.3,
+			MaxLevel:         cfg.RAGOptions.Tree.MaxLevel,
+		},
+		TreeBuilderConfig: &biz.TreeBuilderConfig{
+			Collection:       cfg.RAGOptions.Collection,
+			MaxLevel:         cfg.RAGOptions.Tree.MaxLevel,
+			NumClusters:      cfg.RAGOptions.Tree.NumClusters,
+			SummaryModel:     cfg.RAGOptions.Tree.SummaryModel,
+			SummaryMaxTokens: cfg.RAGOptions.Tree.SummaryMaxTokens,
+		},
+		TreeEnabled: cfg.RAGOptions.Tree.Enabled,
 	}
 	ragService := biz.NewRAGService(vectorStore, embedProvider, chatProvider, queryCache, serviceConfig)
 	logger.Infow("RAG service initialized",
@@ -207,6 +221,7 @@ func (cfg *Config) NewServer(_ context.Context) (*Server, error) {
 		"enhancer.hyde", cfg.RAGOptions.Enhancer.EnableHyDE,
 		"enhancer.rerank", cfg.RAGOptions.Enhancer.EnableRerank,
 		"enhancer.repacking", cfg.RAGOptions.Enhancer.EnableRepacking,
+		"tree.enabled", cfg.RAGOptions.Tree.Enabled,
 	)
 
 	// 7. 初始化评估器

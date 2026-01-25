@@ -4,9 +4,11 @@ import (
 	"context"
 	"time"
 
+	"github.com/kart-io/logger"
 	"github.com/kart-io/sentinel-x/internal/model"
 	"github.com/kart-io/sentinel-x/internal/rag/metrics"
 	"github.com/kart-io/sentinel-x/internal/rag/store"
+	"github.com/kart-io/sentinel-x/pkg/infra/pool"
 	"github.com/kart-io/sentinel-x/pkg/llm"
 )
 
@@ -33,14 +35,21 @@ type RAGService struct {
 	chatProvider  llm.ChatProvider
 	collection    string
 	metrics       *metrics.RAGMetrics // 业务指标收集器
+	// 树检索组件（POC 阶段）
+	treeRetriever *TreeRetriever // 树形检索器
+	treeBuilder   *TreeBuilder   // 树构建器
+	treeEnabled   bool           // 树功能开关
 }
 
 // ServiceConfig RAG 服务配置。
 type ServiceConfig struct {
-	IndexerConfig    *IndexerConfig
-	RetrieverConfig  *RetrieverConfig
-	GeneratorConfig  *GeneratorConfig
-	QueryCacheConfig *QueryCacheConfig
+	IndexerConfig       *IndexerConfig
+	RetrieverConfig     *RetrieverConfig
+	GeneratorConfig     *GeneratorConfig
+	QueryCacheConfig    *QueryCacheConfig
+	TreeRetrieverConfig *TreeRetrieverConfig // 树检索配置
+	TreeBuilderConfig   *TreeBuilderConfig   // 树构建配置
+	TreeEnabled         bool                 // 树功能开关
 }
 
 // NewRAGService 创建 RAG 服务实例。
@@ -55,6 +64,18 @@ func NewRAGService(
 	retriever := NewRetriever(vectorStore, embedProvider, chatProvider, config.RetrieverConfig)
 	generator := NewGenerator(chatProvider, config.GeneratorConfig)
 
+	// 初始化树组件（如果启用）
+	var treeRetriever *TreeRetriever
+	var treeBuilder *TreeBuilder
+	if config.TreeEnabled {
+		if config.TreeRetrieverConfig != nil {
+			treeRetriever = NewTreeRetriever(vectorStore, embedProvider, config.TreeRetrieverConfig)
+		}
+		if config.TreeBuilderConfig != nil {
+			treeBuilder = NewTreeBuilder(vectorStore, embedProvider, chatProvider, config.TreeBuilderConfig)
+		}
+	}
+
 	return &RAGService{
 		indexer:       indexer,
 		retriever:     retriever,
@@ -65,17 +86,76 @@ func NewRAGService(
 		chatProvider:  chatProvider,
 		collection:    config.IndexerConfig.Collection,
 		metrics:       metrics.GetRAGMetrics(), // 初始化全局指标实例
+		treeRetriever: treeRetriever,
+		treeBuilder:   treeBuilder,
+		treeEnabled:   config.TreeEnabled,
 	}
 }
 
 // IndexFromURL 从 URL 下载并索引文档。
 func (s *RAGService) IndexFromURL(ctx context.Context, url string) error {
-	return s.indexer.IndexFromURL(ctx, url)
+	// 1. 索引文档
+	if err := s.indexer.IndexFromURL(ctx, url); err != nil {
+		return err
+	}
+
+	// 2. 异步构建树索引
+	s.buildTreeAsync()
+
+	return nil
 }
 
 // IndexDirectory 索引目录中的所有文档。
 func (s *RAGService) IndexDirectory(ctx context.Context, dir string) error {
-	return s.indexer.IndexDirectory(ctx, dir)
+	// 1. 索引文档
+	if err := s.indexer.IndexDirectory(ctx, dir); err != nil {
+		return err
+	}
+
+	// 2. 异步构建树索引
+	s.buildTreeAsync()
+
+	return nil
+}
+
+// buildTreeAsync 异步构建树索引（后台任务）。
+// 如果启用树功能，将在后台异步执行树构建，避免阻塞API响应。
+func (s *RAGService) buildTreeAsync() {
+	if !s.treeEnabled || s.treeBuilder == nil {
+		return
+	}
+
+	logger.Info("树形索引将在后台异步构建")
+
+	// 异步执行树构建，避免阻塞API响应
+	treeTask := func() {
+		// 延迟60秒，避免 Milvus Serverless 速率限制
+		// 让索引阶段的写入配额恢复
+		time.Sleep(60 * time.Second)
+
+		logger.Info("开始构建树形索引（后台任务）...")
+		// POC 阶段传空 documentID，表示为所有文档构建树
+		if err := s.treeBuilder.BuildTree(context.Background(), ""); err != nil {
+			logger.Warnw("树索引构建失败（后台）", "error", err.Error())
+		} else {
+			logger.Info("树形索引构建成功（后台）")
+		}
+	}
+
+	// 提交到后台池，降级处理：池不可用时直接用 goroutine
+	if err := pool.SubmitToType(pool.BackgroundPool, treeTask); err != nil {
+		logger.Warnw("后台池不可用，降级到 goroutine",
+			"error", err.Error(),
+		)
+		go func() {
+			defer func() {
+				if r := recover(); r != nil {
+					logger.Errorw("树构建任务 panic", "error", r)
+				}
+			}()
+			treeTask()
+		}()
+	}
 }
 
 // Query 执行 RAG 查询。
@@ -101,7 +181,35 @@ func (s *RAGService) Query(ctx context.Context, question string) (*model.QueryRe
 
 	// 2. 检索相关文档
 	retrievalStart := time.Now()
-	retrievalResult, err := s.retriever.Retrieve(ctx, question)
+	var retrievalResult *RetrievalResult
+	var err error
+
+	// 树检索逻辑（带降级处理）
+	if s.treeEnabled && s.treeRetriever != nil {
+		// 使用树检索
+		// 注意：POC 阶段传空 documentID，表示查询所有文档
+		retrievalResult, err = s.treeRetriever.Retrieve(ctx, question, "")
+
+		// 降级条件：错误 或 空结果
+		if err != nil || (retrievalResult != nil && len(retrievalResult.Results) == 0) {
+			if err != nil {
+				logger.Warnw("树检索失败，降级到向量检索",
+					"error", err.Error(),
+					"question", question,
+				)
+			} else {
+				logger.Warnw("树检索返回空结果，降级到向量检索",
+					"question", question,
+				)
+			}
+			// 降级到向量检索
+			retrievalResult, err = s.retriever.Retrieve(ctx, question)
+		}
+	} else {
+		// 使用向量检索（默认）
+		retrievalResult, err = s.retriever.Retrieve(ctx, question)
+	}
+
 	retrievalDuration := time.Since(retrievalStart)
 	s.metrics.RecordRetrieval(retrievalDuration, err)
 	if err != nil {

@@ -143,7 +143,7 @@ chat:
   # API key (required for deepseek/openai)
   # ⚠️ 安全警告：绝对不要在此文件中硬编码密钥！
   # 必须通过环境变量设置: DEEPSEEK_API_KEY
-  api-key: ""
+  api-key: "${DEEPSEEK_API_KEY}"
   # Chat model name
   model: "deepseek-chat"
   # Request timeout (longer for LLM generation)
@@ -189,6 +189,18 @@ rag:
     Question: {{question}}
 
     Answer:
+  # 树形索引配置（Tree-based RAG / RAPTOR）
+  tree:
+    # 是否启用树形索引（POC 功能开关）
+    enabled: true
+    # 树的最大层级（0=叶子层，建议 2-3 层）
+    max-level: 3
+    # 每层的聚类数量（KMeans 聚类参数）
+    num-clusters: 5
+    # 摘要生成使用的模型名称
+    summary-model: "deepseek-chat"
+    # 摘要的最大 token 长度
+    summary-max-tokens: 200
 
 # Cache configuration
 cache:

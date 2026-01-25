@@ -35,6 +35,27 @@ type Options struct {
 
 	// Enhancer 增强器配置。
 	Enhancer *EnhancerOptions `json:"enhancer" mapstructure:"enhancer"`
+
+	// Tree 树形索引配置（Tree/RAPTOR）。
+	Tree *TreeOptions `json:"tree" mapstructure:"tree"`
+}
+
+// TreeOptions 树形索引配置。
+type TreeOptions struct {
+	// Enabled 是否启用树形索引。
+	Enabled bool `json:"enabled" mapstructure:"enabled"`
+
+	// MaxLevel 树的最大层级（0=叶子层，建议 2-3 层）。
+	MaxLevel int `json:"max-level" mapstructure:"max-level"`
+
+	// NumClusters 每层的聚类数量（KMeans 聚类参数）。
+	NumClusters int `json:"num-clusters" mapstructure:"num-clusters"`
+
+	// SummaryModel 摘要生成使用的模型名称。
+	SummaryModel string `json:"summary-model" mapstructure:"summary-model"`
+
+	// SummaryMaxTokens 摘要的最大 token 长度。
+	SummaryMaxTokens int `json:"summary-max-tokens" mapstructure:"summary-max-tokens"`
 }
 
 // EnhancerOptions RAG 增强器配置。
@@ -78,6 +99,17 @@ func NewEnhancerOptions() *EnhancerOptions {
 	}
 }
 
+// NewTreeOptions 创建默认树配置。
+func NewTreeOptions() *TreeOptions {
+	return &TreeOptions{
+		Enabled:          false, // 默认关闭，POC 功能
+		MaxLevel:         3,
+		NumClusters:      5,
+		SummaryModel:     "deepseek-chat",
+		SummaryMaxTokens: 200,
+	}
+}
+
 // NewOptions creates new Options with defaults.
 func NewOptions() *Options {
 	return &Options{
@@ -89,6 +121,7 @@ func NewOptions() *Options {
 		DataDir:      "_output/rag-data",
 		SystemPrompt: DefaultSystemPrompt,
 		Enhancer:     NewEnhancerOptions(),
+		Tree:         NewTreeOptions(),
 	}
 }
 
@@ -110,6 +143,16 @@ func (o *Options) AddFlags(fs *pflag.FlagSet, prefixes ...string) {
 	fs.BoolVar(&o.Enhancer.EnableRerank, options.Join(prefixes...)+"rag.enhancer.enable-rerank", o.Enhancer.EnableRerank, "Enable result reranking.")
 	fs.BoolVar(&o.Enhancer.EnableRepacking, options.Join(prefixes...)+"rag.enhancer.enable-repacking", o.Enhancer.EnableRepacking, "Enable document repacking.")
 	fs.IntVar(&o.Enhancer.RerankTopK, options.Join(prefixes...)+"rag.enhancer.rerank-top-k", o.Enhancer.RerankTopK, "Number of documents to keep after reranking.")
+
+	// 树形索引配置
+	if o.Tree == nil {
+		o.Tree = NewTreeOptions()
+	}
+	fs.BoolVar(&o.Tree.Enabled, options.Join(prefixes...)+"rag.tree.enabled", o.Tree.Enabled, "Enable tree-based indexing (RAPTOR).")
+	fs.IntVar(&o.Tree.MaxLevel, options.Join(prefixes...)+"rag.tree.max-level", o.Tree.MaxLevel, "Maximum tree level (0=leaf).")
+	fs.IntVar(&o.Tree.NumClusters, options.Join(prefixes...)+"rag.tree.num-clusters", o.Tree.NumClusters, "Number of clusters per level.")
+	fs.StringVar(&o.Tree.SummaryModel, options.Join(prefixes...)+"rag.tree.summary-model", o.Tree.SummaryModel, "Model for summary generation.")
+	fs.IntVar(&o.Tree.SummaryMaxTokens, options.Join(prefixes...)+"rag.tree.summary-max-tokens", o.Tree.SummaryMaxTokens, "Max tokens for summaries.")
 }
 
 // Validate validates the RAG options.
@@ -135,6 +178,9 @@ func (o *Options) Validate() []error {
 func (o *Options) Complete() error {
 	if o.Enhancer == nil {
 		o.Enhancer = NewEnhancerOptions()
+	}
+	if o.Tree == nil {
+		o.Tree = NewTreeOptions()
 	}
 	if o.SystemPrompt == "" {
 		o.SystemPrompt = DefaultSystemPrompt
