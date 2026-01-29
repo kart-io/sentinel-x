@@ -41,7 +41,7 @@ func ExampleClient_basic() {
 		fmt.Printf("请求失败: %v\n", err)
 		return
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	fmt.Printf("请求成功，状态码: %d\n", resp.StatusCode)
 
@@ -99,7 +99,7 @@ func ExampleClient_withTracing() {
 		fmt.Printf("请求失败: %v\n", err)
 		return
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	fmt.Printf("请求成功，状态码: %d\n", resp.StatusCode)
 	fmt.Println("追踪信息已自动传播到下游服务")

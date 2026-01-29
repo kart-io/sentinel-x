@@ -51,8 +51,6 @@ func (a *Authorizer) GinMiddleware(
 	}
 }
 
-
-
 // logGinAuthzError logs Gin authorization errors for security audit.
 func logGinAuthzError(c *gin.Context, subject, resource, action string, err error) {
 	logger.Warnw("authorization error",
@@ -79,5 +77,3 @@ func logGinAuthzDenied(c *gin.Context, subject, resource, action string) {
 		"user_agent", c.Request.UserAgent(),
 	)
 }
-
-

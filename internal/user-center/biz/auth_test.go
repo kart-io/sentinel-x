@@ -31,7 +31,7 @@ func TestAuthService_LoginValidation(t *testing.T) {
 				Password: password,
 			},
 			mockUser: &model.User{
-				ID:       1,
+				ID:       "user-1",
 				Username: "testuser",
 				Password: string(hashedPassword),
 				Status:   1,
@@ -57,7 +57,7 @@ func TestAuthService_LoginValidation(t *testing.T) {
 				Password: "wrongpassword",
 			},
 			mockUser: &model.User{
-				ID:       1,
+				ID:       "user-1",
 				Username: "testuser",
 				Password: string(hashedPassword),
 				Status:   1,
@@ -73,7 +73,7 @@ func TestAuthService_LoginValidation(t *testing.T) {
 				Password: password,
 			},
 			mockUser: &model.User{
-				ID:       2,
+				ID:       "user-2",
 				Username: "disableduser",
 				Password: string(hashedPassword),
 				Status:   0, // 禁用状态

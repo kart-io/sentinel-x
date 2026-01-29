@@ -40,7 +40,7 @@ func (r *Role) BeforeUpdate(_ *gorm.DB) (err error) {
 // UserRole represents the many-to-many relationship between users and roles.
 type UserRole struct {
 	ID        uint64 `json:"id" gorm:"primaryKey;autoIncrement"`
-	UserID    uint64 `json:"user_id" gorm:"uniqueIndex:uk_user_role;index:idx_user_id;not null;comment:用户ID"`
+	UserID    string `json:"user_id" gorm:"size:32;uniqueIndex:uk_user_role;index:idx_user_id;not null;comment:用户ID"`
 	RoleID    uint64 `json:"role_id" gorm:"uniqueIndex:uk_user_role;index:idx_role_id;not null;comment:角色ID"`
 	CreatedAt int64  `json:"created_at" gorm:"autoCreateTime:milli;comment:创建时间"`
 }

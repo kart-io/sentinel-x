@@ -218,16 +218,9 @@ func ExampleCircuitBreaker_withFallback() {
 	// 执行请求
 	result, err := callDownstreamService()
 	if err != nil {
-		// 降级策略1: 返回缓存数据
-		fmt.Println("策略1: 使用缓存数据")
-		result = "cached response"
-
-		// 降级策略2: 返回默认值
-		fmt.Println("策略2: 使用默认响应")
-		result = "default response"
-
-		// 降级策略3: 返回部分功能
-		fmt.Println("策略3: 返回降级功能")
+		// 降级策略：根据实际场景选择合适的策略
+		// 这里演示策略3（返回降级功能）
+		fmt.Println("策略: 返回降级功能")
 		result = "degraded service available"
 	}
 

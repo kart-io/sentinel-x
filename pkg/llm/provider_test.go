@@ -5,6 +5,11 @@ import (
 	"testing"
 )
 
+// 测试常量
+const (
+	testProviderName = "test-provider"
+)
+
 // mockProvider 模拟供应商实现，用于测试。
 type mockProvider struct {
 	name string
@@ -44,7 +49,7 @@ func (m *mockProvider) Generate(_ context.Context, _ string, _ string) (*Generat
 func TestRegisterAndNewProvider(t *testing.T) {
 	// 注册测试供应商
 	RegisterProvider("test-provider", func(config map[string]any) (Provider, error) {
-		name := "test-provider"
+		name := testProviderName
 		if n, ok := config["name"].(string); ok {
 			name = n
 		}
@@ -97,7 +102,7 @@ func TestNewEmbeddingProvider(t *testing.T) {
 func TestNewChatProvider(t *testing.T) {
 	// 确保 test-provider 已注册（用于测试回退）
 	RegisterProvider("test-provider", func(config map[string]any) (Provider, error) {
-		name := "test-provider"
+		name := testProviderName
 		if n, ok := config["name"].(string); ok {
 			name = n
 		}
@@ -131,7 +136,7 @@ func TestNewChatProvider(t *testing.T) {
 func TestListProviders(t *testing.T) {
 	// 确保 test-provider 已注册
 	RegisterProvider("test-provider", func(config map[string]any) (Provider, error) {
-		name := "test-provider"
+		name := testProviderName
 		if n, ok := config["name"].(string); ok {
 			name = n
 		}

@@ -208,33 +208,6 @@ func (f *circuitBreakerFactory) Create(cfg mwopts.MiddlewareConfig) (gin.Handler
 
 // ===== 需要运行时依赖的中间件（标记但不自动创建） =====
 
-// authFactory 标记 auth 中间件需要运行时依赖。
-type authFactory struct{}
-
-func (f *authFactory) Name() string        { return mwopts.MiddlewareAuth }
-func (f *authFactory) NeedsRuntime() bool  { return true }
-func (f *authFactory) Create(cfg mwopts.MiddlewareConfig) (gin.HandlerFunc, error) {
-	return nil, fmt.Errorf("auth middleware requires runtime dependencies (JWT validator), use auth.AuthWithOptions() directly")
-}
-
-// authzFactory 标记 authz 中间件需要运行时依赖。
-type authzFactory struct{}
-
-func (f *authzFactory) Name() string        { return mwopts.MiddlewareAuthz }
-func (f *authzFactory) NeedsRuntime() bool  { return true }
-func (f *authzFactory) Create(cfg mwopts.MiddlewareConfig) (gin.HandlerFunc, error) {
-	return nil, fmt.Errorf("authz middleware requires runtime dependencies (Casbin enforcer), use auth.AuthzWithOptions() directly")
-}
-
-// rateLimitFactory 标记 rate-limit 中间件需要运行时依赖。
-type rateLimitFactory struct{}
-
-func (f *rateLimitFactory) Name() string        { return mwopts.MiddlewareRateLimit }
-func (f *rateLimitFactory) NeedsRuntime() bool  { return true }
-func (f *rateLimitFactory) Create(cfg mwopts.MiddlewareConfig) (gin.HandlerFunc, error) {
-	return nil, fmt.Errorf("rate-limit middleware requires runtime dependencies (Redis client), use resilience.RateLimitWithOptions() directly")
-}
-
 // ===== 路由注册器实现 =====
 
 type healthRouteRegistrar struct{}

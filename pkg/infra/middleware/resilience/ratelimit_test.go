@@ -12,6 +12,11 @@ import (
 	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 )
 
+// 测试常量
+const (
+	testRemoteAddr = "192.168.1.1:12345"
+)
+
 // ============================================================================
 // Mock Rate Limiter Implementation
 // ============================================================================
@@ -74,7 +79,7 @@ func TestExtractClientIP(t *testing.T) {
 				req := httptest.NewRequest(http.MethodGet, "/test", nil)
 				req.Header.Set("X-Forwarded-For", "203.0.113.1, 198.51.100.1")
 				req.Header.Set("X-Real-IP", "203.0.113.2")
-				req.RemoteAddr = "192.168.1.1:12345"
+				req.RemoteAddr = testRemoteAddr
 				return req
 			},
 			opts: mwopts.RateLimitOptions{
@@ -148,67 +153,47 @@ func TestGetRemoteIP(t *testing.T) {
 // Middleware Integration Tests
 // ============================================================================
 
+// testRateLimitMiddleware 是测试限流中间件的通用辅助函数
+func testRateLimitMiddleware(t *testing.T, allowed bool, expectedStatus int) {
+	t.Helper()
+
+	limiter := newMockRateLimiter()
+	limiter.allowFunc = func(_ context.Context, _ string) (bool, error) {
+		return allowed, nil
+	}
+
+	opts := mwopts.RateLimitOptions{
+		Limit:  10,
+		Window: 60,
+	}
+
+	middleware := RateLimitWithOptions(opts, limiter)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/test", nil)
+	req.RemoteAddr = testRemoteAddr
+	w := httptest.NewRecorder()
+
+	// 使用 Gin 测试上下文
+	c, r := gin.CreateTestContext(w)
+	c.Request = req
+	r.Use(middleware)
+	r.GET("/api/test", func(c *gin.Context) {
+		c.JSON(http.StatusOK, map[string]string{"status": "ok"})
+	})
+	r.ServeHTTP(w, req)
+
+	if w.Code != expectedStatus {
+		t.Errorf("Expected status %d, got %d", expectedStatus, w.Code)
+	}
+}
+
 func TestRateLimitMiddleware(t *testing.T) {
 	t.Run("request within limit", func(t *testing.T) {
-		limiter := newMockRateLimiter()
-		limiter.allowFunc = func(_ context.Context, _ string) (bool, error) {
-			return true, nil
-		}
-
-		opts := mwopts.RateLimitOptions{
-			Limit:  10,
-			Window: 60,
-		}
-
-		middleware := RateLimitWithOptions(opts, limiter)
-
-		req := httptest.NewRequest(http.MethodGet, "/api/test", nil)
-		req.RemoteAddr = "192.168.1.1:12345"
-		w := httptest.NewRecorder()
-
-		// 使用 Gin 测试上下文
-		c, r := gin.CreateTestContext(w)
-		c.Request = req
-		r.Use(middleware)
-		r.GET("/api/test", func(c *gin.Context) {
-			c.JSON(http.StatusOK, map[string]string{"status": "ok"})
-		})
-		r.ServeHTTP(w, req)
-
-		if w.Code != http.StatusOK {
-			t.Errorf("Expected status 200, got %d", w.Code)
-		}
+		testRateLimitMiddleware(t, true, http.StatusOK)
 	})
 
 	t.Run("request exceeds limit", func(t *testing.T) {
-		limiter := newMockRateLimiter()
-		limiter.allowFunc = func(_ context.Context, _ string) (bool, error) {
-			return false, nil
-		}
-
-		opts := mwopts.RateLimitOptions{
-			Limit:  10,
-			Window: 60,
-		}
-
-		middleware := RateLimitWithOptions(opts, limiter)
-
-		req := httptest.NewRequest(http.MethodGet, "/api/test", nil)
-		req.RemoteAddr = "192.168.1.1:12345"
-		w := httptest.NewRecorder()
-
-		// 使用 Gin 测试上下文
-		c, r := gin.CreateTestContext(w)
-		c.Request = req
-		r.Use(middleware)
-		r.GET("/api/test", func(c *gin.Context) {
-			c.JSON(http.StatusOK, map[string]string{"status": "ok"})
-		})
-		r.ServeHTTP(w, req)
-
-		if w.Code != http.StatusTooManyRequests {
-			t.Errorf("Expected status 429, got %d", w.Code)
-		}
+		testRateLimitMiddleware(t, false, http.StatusTooManyRequests)
 	})
 }
 

@@ -12,10 +12,14 @@ import (
 	"github.com/kart-io/sentinel-x/internal/user-center/handler"
 	"github.com/kart-io/sentinel-x/internal/user-center/router"
 	"github.com/kart-io/sentinel-x/internal/user-center/store"
+	"github.com/kart-io/sentinel-x/pkg/component/etcd"
 	"github.com/kart-io/sentinel-x/pkg/component/mysql"
+	"github.com/kart-io/sentinel-x/pkg/component/redis"
 	"github.com/kart-io/sentinel-x/pkg/infra/app"
+	discoveryetcd "github.com/kart-io/sentinel-x/pkg/infra/discovery/etcd"
 	"github.com/kart-io/sentinel-x/pkg/infra/server"
 	jwtopts "github.com/kart-io/sentinel-x/pkg/options/auth/jwt"
+	etcdopts "github.com/kart-io/sentinel-x/pkg/options/etcd"
 	logopts "github.com/kart-io/sentinel-x/pkg/options/logger"
 	middlewareopts "github.com/kart-io/sentinel-x/pkg/options/middleware"
 	mysqlopts "github.com/kart-io/sentinel-x/pkg/options/mysql"
@@ -23,6 +27,7 @@ import (
 	grpcopts "github.com/kart-io/sentinel-x/pkg/options/server/grpc"
 	httpopts "github.com/kart-io/sentinel-x/pkg/options/server/http"
 	"github.com/kart-io/sentinel-x/pkg/security/auth/jwt"
+	"github.com/kart-io/sentinel-x/pkg/security/authz/casbin"
 )
 
 // Name is the name of the application.
@@ -32,6 +37,7 @@ const Name = "sentinel-user-center"
 type Config struct {
 	HTTPOptions      *httpopts.Options
 	GRPCOptions      *grpcopts.Options
+	EtcdOptions      *etcdopts.Options
 	LogOptions       *logopts.Options
 	JWTOptions       *jwtopts.Options
 	MySQLOptions     *mysqlopts.Options
@@ -50,7 +56,8 @@ type Config struct {
 
 // Server represents the user center server.
 type Server struct {
-	srv *server.Manager
+	srv       *server.Manager
+	registrar *discoveryetcd.Registrar
 }
 
 // NewServer initializes and returns a new Server instance.
@@ -73,7 +80,7 @@ func (cfg *Config) NewServer(_ context.Context) (*Server, error) {
 	db := mysqlClient.DB()
 
 	// 数据库迁移
-	if err := db.AutoMigrate(&model.User{}, &model.Role{}, &model.UserRole{}); err != nil {
+	if err := db.AutoMigrate(&model.User{}, &model.Role{}, &model.UserRole{}, &model.LoginLog{}); err != nil {
 		return nil, fmt.Errorf("failed to migrate database: %w", err)
 	}
 	logger.Info("Database migration completed")
@@ -81,28 +88,44 @@ func (cfg *Config) NewServer(_ context.Context) (*Server, error) {
 	// 3. 初始化 Store 层
 	userStore := store.NewUserStore(db)
 	roleStore := store.NewRoleStore(db)
+	logStore := store.NewLogStore(db)
 	logger.Info("Store layer initialized")
 
-	// 4. 初始化 JWT 认证
-	jwtAuth, err := jwt.New(jwt.WithOptions(cfg.JWTOptions))
+	// 4. 初始化 Redis
+	redisClient, err := redis.New(cfg.RedisOptions)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize redis: %w", err)
+	}
+
+	// 5. 初始化 JWT 认证
+	jwtStore := jwt.NewRedisStore(redisClient, "jwt:blacklist:")
+	jwtAuth, err := jwt.New(jwt.WithOptions(cfg.JWTOptions), jwt.WithStore(jwtStore))
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize jwt: %w", err)
 	}
 	logger.Info("JWT authentication initialized")
 
-	// 5. 初始化 Biz 层
+	// 5.5. 初始化 Casbin 权限服务
+	modelPath := "configs/casbin/rbac_model.conf"
+	permissionService, err := casbin.NewServiceWithGorm(db, modelPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize casbin permission service: %w", err)
+	}
+	logger.Info("Casbin permission service initialized")
+
+	// 6. 初始化 Biz 层
 	userService := biz.NewUserService(userStore)
-	roleService := biz.NewRoleService(roleStore, userStore)
-	authService := biz.NewAuthService(jwtAuth, userStore)
+	roleService := biz.NewRoleService(roleStore, userStore, permissionService)
+	authService := biz.NewAuthService(jwtAuth, userStore, logStore, redisClient)
 	logger.Info("Business layer initialized")
 
-	// 6. 初始化 Handler 层
+	// 7. 初始化 Handler 层
 	userHandler := handler.NewUserHandler(userService, roleService, authService)
 	roleHandler := handler.NewRoleHandler(roleService)
 	authHandler := handler.NewAuthHandler(authService)
 	logger.Info("Handler layer initialized")
 
-	// 7. 初始化服务器
+	// 8. 初始化服务器
 	serverManager := server.NewManager(
 		server.WithHTTPOptions(cfg.HTTPOptions),
 		server.WithGRPCOptions(cfg.GRPCOptions),
@@ -110,17 +133,42 @@ func (cfg *Config) NewServer(_ context.Context) (*Server, error) {
 		server.WithShutdownTimeout(cfg.ShutdownTimeout),
 	)
 
-	// 8. 注册路由
+	// 9. 注册路由
 	if err := router.Register(serverManager, jwtAuth, userHandler, roleHandler, authHandler); err != nil {
 		return nil, fmt.Errorf("failed to register routes: %w", err)
 	}
 
+	// 10. 初始化 Etcd 注册中心
+	var registrar *discoveryetcd.Registrar
+	if cfg.EtcdOptions != nil && len(cfg.EtcdOptions.Endpoints) > 0 {
+		etcdClient, err := etcd.New(cfg.EtcdOptions)
+		if err != nil {
+			return nil, fmt.Errorf("failed to initialize etcd client: %w", err)
+		}
+
+		// 构造注册信息
+		// TODO: 获取真实的对外 IP，目前使用配置的地址
+		// Traefik 路由规则：PathPrefix("/v1")
+		registrar = discoveryetcd.NewRegistrar(etcdClient.Raw(), Name, cfg.HTTPOptions.Addr, "PathPrefix(`/v1`)")
+		logger.Info("Etcd registrar initialized")
+	}
+
 	logger.Info("User center service is ready")
-	return &Server{srv: serverManager}, nil
+	return &Server{
+		srv:       serverManager,
+		registrar: registrar,
+	}, nil
 }
 
 // Run starts the server and listens for termination signals.
-func (s *Server) Run(_ context.Context) error {
+func (s *Server) Run(ctx context.Context) error {
+	if s.registrar != nil {
+		if err := s.registrar.Register(ctx); err != nil {
+			return fmt.Errorf("failed to register service: %w", err)
+		}
+		defer s.registrar.Close()
+	}
+
 	return s.srv.Run()
 }
 

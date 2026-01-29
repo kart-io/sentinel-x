@@ -88,7 +88,7 @@ func (s *RoleStore) List(ctx context.Context, opts ...store.Option) (int64, []*m
 }
 
 // AssignRole assigns a role to a user.
-func (s *RoleStore) AssignRole(ctx context.Context, userID, roleID uint64) error {
+func (s *RoleStore) AssignRole(ctx context.Context, userID string, roleID uint64) error {
 	userRole := &model.UserRole{
 		UserID: userID,
 		RoleID: roleID,
@@ -103,7 +103,7 @@ func (s *RoleStore) AssignRole(ctx context.Context, userID, roleID uint64) error
 }
 
 // RevokeRole revokes a role from a user.
-func (s *RoleStore) RevokeRole(ctx context.Context, userID, roleID uint64) error {
+func (s *RoleStore) RevokeRole(ctx context.Context, userID string, roleID uint64) error {
 	result := s.db.WithContext(ctx).Where("user_id = ? AND role_id = ?", userID, roleID).Delete(&model.UserRole{})
 	if result.Error != nil {
 		return errors.ErrDatabase.WithCause(result.Error)
@@ -115,7 +115,7 @@ func (s *RoleStore) RevokeRole(ctx context.Context, userID, roleID uint64) error
 }
 
 // ListByUserID lists roles assigned to a user.
-func (s *RoleStore) ListByUserID(ctx context.Context, userID uint64) ([]*model.Role, error) {
+func (s *RoleStore) ListByUserID(ctx context.Context, userID string) ([]*model.Role, error) {
 	var roles []*model.Role
 	err := s.db.WithContext(ctx).
 		Joins("JOIN user_roles ON user_roles.role_id = roles.id").

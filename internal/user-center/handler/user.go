@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"strconv"
 	"strings"
 
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -341,10 +340,8 @@ func (h *UserHandler) UpdatePassword(c *gin.Context) {
 // GetUser implements the gRPC method to get a user by ID.
 func (h *UserHandler) GetUser(ctx context.Context, req *v1.UserRequest) (*v1.UserResponse, error) {
 	var user *model.User
-	id, err := strconv.ParseUint(req.Id, 10, 64)
-	if err == nil {
-		user, err = h.svc.GetByUserID(ctx, id)
-	} else {
+	user, err := h.svc.GetByUserID(ctx, req.Id)
+	if err != nil {
 		user, err = h.svc.Get(ctx, req.Id)
 	}
 
@@ -363,7 +360,7 @@ func (h *UserHandler) GetUser(ctx context.Context, req *v1.UserRequest) (*v1.Use
 	}
 
 	return &v1.UserResponse{
-		Id:       strconv.FormatUint(user.ID, 10),
+		Id:       user.ID,
 		Username: user.Username,
 		Role:     roleStr,
 	}, nil
@@ -388,7 +385,7 @@ func (h *UserHandler) CreateUser(ctx context.Context, req *v1.CreateUserRequest)
 	}
 
 	return &v1.UserResponse{
-		Id:       strconv.FormatUint(user.ID, 10),
+		Id:       user.ID,
 		Username: user.Username,
 		Email:    email,
 		Mobile:   user.Mobile,
@@ -419,7 +416,7 @@ func (h *UserHandler) UpdateUser(ctx context.Context, req *v1.UpdateUserRequest)
 	}
 
 	return &v1.UserResponse{
-		Id:       strconv.FormatUint(user.ID, 10),
+		Id:       user.ID,
 		Username: user.Username,
 		Email:    email,
 		Mobile:   user.Mobile,
@@ -457,7 +454,7 @@ func (h *UserHandler) ListUsers(ctx context.Context, req *v1.ListUsersRequest) (
 			email = *user.Email
 		}
 		userResponses = append(userResponses, &v1.UserResponse{
-			Id:       strconv.FormatUint(user.ID, 10),
+			Id:       user.ID,
 			Username: user.Username,
 			Email:    email,
 			Mobile:   user.Mobile,
@@ -507,7 +504,7 @@ func (h *UserHandler) Login(ctx context.Context, req *v1.LoginRequest) (*v1.Logi
 	respData, err := h.authSvc.Login(ctx, &model.LoginRequest{
 		Username: req.Username,
 		Password: req.Password,
-	})
+	}, "", "")
 	if err != nil {
 		return nil, err
 	}

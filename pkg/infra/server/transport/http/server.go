@@ -8,7 +8,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/kart-io/logger"
-
 	// 导入 middleware 包以触发 init() 注册工厂
 	_ "github.com/kart-io/sentinel-x/pkg/infra/middleware"
 	mwopts "github.com/kart-io/sentinel-x/pkg/options/middleware"

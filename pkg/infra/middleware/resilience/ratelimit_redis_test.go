@@ -21,7 +21,7 @@ func BenchmarkRedisRateLimiterAllow(b *testing.B) {
 	client := redis.NewClient(&redis.Options{
 		Addr: "localhost:6379",
 	})
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	// 验证连接
 	ctx := context.Background()
@@ -49,7 +49,7 @@ func BenchmarkRedisRateLimiterAllow_Parallel(b *testing.B) {
 	client := redis.NewClient(&redis.Options{
 		Addr: "localhost:6379",
 	})
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	ctx := context.Background()
 	if err := client.Ping(ctx).Err(); err != nil {
@@ -92,7 +92,7 @@ func BenchmarkRateLimiterComparison(b *testing.B) {
 		client := redis.NewClient(&redis.Options{
 			Addr: "localhost:6379",
 		})
-		defer client.Close()
+		defer func() { _ = client.Close() }()
 
 		if err := client.Ping(ctx).Err(); err != nil {
 			b.Skipf("Redis 不可用,跳过测试: %v", err)
@@ -120,7 +120,7 @@ func TestRedisRateLimiter_MultiInstance(t *testing.T) {
 	client := redis.NewClient(&redis.Options{
 		Addr: "localhost:6379",
 	})
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	ctx := context.Background()
 	if err := client.Ping(ctx).Err(); err != nil {
@@ -195,7 +195,7 @@ func TestRedisRateLimiter_Reset(t *testing.T) {
 	client := redis.NewClient(&redis.Options{
 		Addr: "localhost:6379",
 	})
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	ctx := context.Background()
 	if err := client.Ping(ctx).Err(); err != nil {
@@ -242,7 +242,7 @@ func TestRedisRateLimiter_SlidingWindow(t *testing.T) {
 	client := redis.NewClient(&redis.Options{
 		Addr: "localhost:6379",
 	})
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	ctx := context.Background()
 	if err := client.Ping(ctx).Err(); err != nil {

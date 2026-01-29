@@ -47,7 +47,7 @@ func (s *UserService) Get(ctx context.Context, username string) (*model.User, er
 }
 
 // GetByUserID retrieves a user by ID.
-func (s *UserService) GetByUserID(ctx context.Context, userID uint64) (*model.User, error) {
+func (s *UserService) GetByUserID(ctx context.Context, userID string) (*model.User, error) {
 	return s.userStore.GetByUserID(ctx, userID)
 }
 

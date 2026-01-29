@@ -25,12 +25,15 @@ func Register(mgr *server.Manager, jwtAuth *jwt.JWT, userHandler *handler.UserHa
 		// 使用全局验证器，确保统一的验证规则和 i18n
 		httpServer.SetValidator(validator.Global())
 
+		//nolint:staticcheck // ST1023: 需要显式类型声明，httpServer.Engine() 返回接口类型
 		var engine *gin.Engine = httpServer.Engine()
 
 		//  Auth Routes
 		auth := engine.Group("/auth")
 		{
 			auth.POST("/login", authHandler.Login)
+			auth.POST("/refresh", authHandler.RefreshToken)
+			auth.GET("/captcha", authHandler.GetCaptcha)
 			auth.POST("/logout", authHandler.Logout)
 			auth.POST("/register", authHandler.Register)
 
@@ -73,6 +76,10 @@ func Register(mgr *server.Manager, jwtAuth *jwt.JWT, userHandler *handler.UserHa
 				roles.GET("/detail", roleHandler.Get)
 				roles.PUT("", roleHandler.Update)
 				roles.DELETE("", roleHandler.Delete)
+
+				// Role Permissions
+				roles.POST("/permissions", roleHandler.AssignPermission)
+				roles.DELETE("/permissions", roleHandler.RemovePermission)
 			}
 		}
 

@@ -5,20 +5,23 @@ import (
 
 	"github.com/kart-io/sentinel-x/internal/model"
 	"github.com/kart-io/sentinel-x/internal/user-center/store"
+	"github.com/kart-io/sentinel-x/pkg/security/authz/casbin"
 	storepkg "github.com/kart-io/sentinel-x/pkg/store"
 )
 
 // RoleService handles role-related business logic.
 type RoleService struct {
-	roleStore *store.RoleStore
-	userStore *store.UserStore
+	roleStore         *store.RoleStore
+	userStore         *store.UserStore
+	permissionService *casbin.Service
 }
 
 // NewRoleService creates a new RoleService.
-func NewRoleService(roleStore *store.RoleStore, userStore *store.UserStore) *RoleService {
+func NewRoleService(roleStore *store.RoleStore, userStore *store.UserStore, permissionService *casbin.Service) *RoleService {
 	return &RoleService{
-		roleStore: roleStore,
-		userStore: userStore,
+		roleStore:         roleStore,
+		userStore:         userStore,
+		permissionService: permissionService,
 	}
 }
 
@@ -59,7 +62,13 @@ func (s *RoleService) AssignRoleToUser(ctx context.Context, username, roleCode s
 		return err
 	}
 
-	return s.roleStore.AssignRole(ctx, user.ID, role.ID)
+	if err := s.roleStore.AssignRole(ctx, user.ID, role.ID); err != nil {
+		return err
+	}
+
+	// Add grouping policy to Casbin (g, userID, roleCode)
+	_, err = s.permissionService.AddGroupingPolicy(user.ID, role.Code)
+	return err
 }
 
 // RevokeRoleFromUser revokes a role from a user.
@@ -74,7 +83,40 @@ func (s *RoleService) RevokeRoleFromUser(ctx context.Context, username, roleCode
 		return err
 	}
 
-	return s.roleStore.RevokeRole(ctx, user.ID, role.ID)
+	if err := s.roleStore.RevokeRole(ctx, user.ID, role.ID); err != nil {
+		return err
+	}
+
+	// Remove grouping policy from Casbin
+	_, err = s.permissionService.RemoveGroupingPolicy(user.ID, role.Code)
+	return err
+}
+
+// AssignPermission assigns a permission to a role.
+func (s *RoleService) AssignPermission(ctx context.Context, roleCode, resource, action string) error {
+	// Ensure role exists
+	if _, err := s.roleStore.Get(ctx, roleCode); err != nil {
+		return err
+	}
+
+	_, err := s.permissionService.AddPolicy(roleCode, resource, action)
+	return err
+}
+
+// RemovePermission removes a permission from a role.
+func (s *RoleService) RemovePermission(ctx context.Context, roleCode, resource, action string) error {
+	// Ensure role exists
+	if _, err := s.roleStore.Get(ctx, roleCode); err != nil {
+		return err
+	}
+
+	_, err := s.permissionService.RemovePolicy(roleCode, resource, action)
+	return err
+}
+
+// CheckPermission checks if a user has permission to access a resource.
+func (s *RoleService) CheckPermission(ctx context.Context, userID, resource, action string) (bool, error) {
+	return s.permissionService.Enforce(userID, resource, action)
 }
 
 // GetUserRoles retrieves all roles assigned to a user.

@@ -18,12 +18,37 @@ services:
     ports:
       - "6379:6379"
 
+  etcd:
+    image: quay.io/coreos/etcd:v3.5.0
+    container_name: sentinel-etcd
+    command: etcd --advertise-client-urls http://0.0.0.0:2379 --listen-client-urls http://0.0.0.0:2379
+    ports:
+      - "2379:2379"
+    environment:
+      - ETCD_AUTO_COMPACTION_MODE=revision
+      - ETCD_AUTO_COMPACTION_RETENTION=1000
+
+  traefik:
+    image: traefik:v2.10
+    container_name: sentinel-traefik
+    command:
+      - "--api.insecure=true"
+      - "--providers.etcd=true"
+      - "--providers.etcd.endpoints=etcd:2379"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "80:80"
+      - "8080:8080"
+    depends_on:
+      - etcd
+
   user-center:
     image: costalong/user-center-arm64:54338ca-dirty
     container_name: sentinel-user-center
     depends_on:
       - mysql
       - redis
+      - etcd
     ports:
       - "8081:8081"
       - "8101:8101"

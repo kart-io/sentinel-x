@@ -6,6 +6,8 @@ Sentinel-X 是一个分布式智能运维系统。
 
 本项目文档位于 `docs/` 目录下：
 
+*   **[快速开始 (Quick Start)](docs/quick-start.md)**: 从零开始运行系统的步骤指南。
+*   **[网关架构 (Gateway Architecture)](docs/gateway-architecture.md)**: 了解网关、服务注册与发现机制。
 *   **[系统设计 (System Design)](docs/design/architecture.md)**: 了解系统架构与设计理念。
     *   [架构决策记录 (ADR)](docs/design/adr/README.md): 重要架构决策的记录
 *   **[配置管理 (Configuration)](docs/configuration/README.md)**: 配置文件说明和环境变量管理。

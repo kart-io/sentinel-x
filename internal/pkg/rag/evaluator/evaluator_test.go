@@ -16,15 +16,16 @@ type mockChatProvider struct{}
 func (m *mockChatProvider) Generate(_ context.Context, prompt, _ string) (*llm.GenerateResponse, error) {
 	var content string
 	// 简单的模式匹配返回
-	if containsSubstring(prompt, "提取所有事实性声明") {
+	switch {
+	case containsSubstring(prompt, "提取所有事实性声明"):
 		content = `["这是声明1", "这是声明2"]`
-	} else if containsSubstring(prompt, "是否被给定的上下文所支持") {
+	case containsSubstring(prompt, "是否被给定的上下文所支持"):
 		content = "是"
-	} else if containsSubstring(prompt, "生成") && containsSubstring(prompt, "问题") {
+	case containsSubstring(prompt, "生成") && containsSubstring(prompt, "问题"):
 		content = `["问题1?", "问题2?", "问题3?"]`
-	} else if containsSubstring(prompt, "是否与给定的问题相关") {
+	case containsSubstring(prompt, "是否与给定的问题相关"):
 		content = "是"
-	} else {
+	default:
 		content = "默认回复"
 	}
 

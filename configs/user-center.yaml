@@ -183,3 +183,10 @@ redis:
   pool-size: 10
   # Minimum idle connections
   min-idle-conns: 5
+
+# Etcd configuration
+etcd:
+  endpoints:
+    - "127.0.0.1:2379"
+  username: ""
+  password: ""

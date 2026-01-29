@@ -70,7 +70,7 @@ func (s *UserStore) Get(ctx context.Context, username string) (*model.User, erro
 }
 
 // GetByUserID 根据用户 ID 检索用户
-func (s *UserStore) GetByUserID(ctx context.Context, userID uint64) (*model.User, error) {
+func (s *UserStore) GetByUserID(ctx context.Context, userID string) (*model.User, error) {
 	var user model.User
 	if err := s.db.WithContext(ctx).Where("id = ?", userID).First(&user).Error; err != nil {
 		if stderrors.Is(err, gorm.ErrRecordNotFound) {

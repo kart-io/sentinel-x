@@ -16,6 +16,13 @@ import (
 	"github.com/kart-io/sentinel-x/pkg/utils/validator"
 )
 
+// AssignPermissionRequest represents the request to assign a permission to a role.
+type AssignPermissionRequest struct {
+	RoleCode string `json:"role_code" binding:"required"`
+	Resource string `json:"resource" binding:"required"`
+	Action   string `json:"action" binding:"required"`
+}
+
 // RoleHandler handles role-related HTTP requests and gRPC requests.
 type RoleHandler struct {
 	v1.UnimplementedRoleServiceServer
@@ -274,6 +281,68 @@ func (h *RoleHandler) ListUserRoles(c *gin.Context) {
 	}
 
 	httputils.WriteResponse(c, nil, roles)
+}
+
+// AssignPermission godoc
+//
+//	@Summary		分配权限
+//	@Description	为角色分配权限
+//	@Tags			Roles
+//	@Accept			json
+//	@Produce		json
+//	@Security		Bearer
+//	@Param			request	body		AssignPermissionRequest	true	"分配权限请求"
+//	@Success		200		{object}	response.Response		"成功响应"
+//	@Failure		400		{object}	response.Response		"请求错误"
+//	@Router			/v1/roles/permissions [post]
+func (h *RoleHandler) AssignPermission(c *gin.Context) {
+	var req AssignPermissionRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httputils.WriteResponse(c, errors.ErrBadRequest.WithMessage(err.Error()), nil)
+		return
+	}
+	if err := validator.Global().Validate(&req); err != nil {
+		httputils.WriteResponse(c, errors.ErrValidationFailed.WithMessage(err.Error()), nil)
+		return
+	}
+
+	if err := h.svc.AssignPermission(c.Request.Context(), req.RoleCode, req.Resource, req.Action); err != nil {
+		httputils.WriteResponse(c, err, nil)
+		return
+	}
+
+	httputils.WriteResponse(c, nil, "permission assigned")
+}
+
+// RemovePermission godoc
+//
+//	@Summary		移除权限
+//	@Description	移除角色的权限
+//	@Tags			Roles
+//	@Accept			json
+//	@Produce		json
+//	@Security		Bearer
+//	@Param			request	body		AssignPermissionRequest	true	"移除权限请求"
+//	@Success		200		{object}	response.Response		"成功响应"
+//	@Failure		400		{object}	response.Response		"请求错误"
+//	@Router			/v1/roles/permissions [delete]
+func (h *RoleHandler) RemovePermission(c *gin.Context) {
+	var req AssignPermissionRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httputils.WriteResponse(c, errors.ErrBadRequest.WithMessage(err.Error()), nil)
+		return
+	}
+	if err := validator.Global().Validate(&req); err != nil {
+		httputils.WriteResponse(c, errors.ErrValidationFailed.WithMessage(err.Error()), nil)
+		return
+	}
+
+	if err := h.svc.RemovePermission(c.Request.Context(), req.RoleCode, req.Resource, req.Action); err != nil {
+		httputils.WriteResponse(c, err, nil)
+		return
+	}
+
+	httputils.WriteResponse(c, nil, "permission removed")
 }
 
 // ================= gRPC Methods =================

@@ -112,7 +112,7 @@ func CompressionWithOptions(opts mwopts.CompressionOptions) gin.HandlerFunc {
 		c.Next()
 
 		// 确保写入完成
-		gw.Close()
+		_ = gw.Close() // 已在响应阶段，无法处理错误
 	}
 }
 

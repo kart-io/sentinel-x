@@ -1,14 +1,16 @@
 package model
 
 import (
+	"crypto/rand"
 	"time"
 
+	"github.com/oklog/ulid/v2"
 	"gorm.io/gorm"
 )
 
 // User represents the user model in the database.
 type User struct {
-	ID        uint64         `json:"id" gorm:"primaryKey;autoIncrement;comment:用户ID"`
+	ID        string         `json:"id" gorm:"primaryKey;size:32;comment:用户ID"`
 	Username  string         `json:"username" gorm:"size:64;not null;uniqueIndex:uk_username;comment:用户名"`
 	Email     *string        `json:"email" gorm:"size:128;uniqueIndex:uk_email;comment:邮箱"`
 	Password  string         `json:"-" gorm:"size:255;not null;comment:密码Hash"`
@@ -17,8 +19,8 @@ type User struct {
 	Status    int            `json:"status" gorm:"default:1;index:idx_status;comment:状态 1启用 0禁用"`
 	CreatedAt int64          `json:"created_at" gorm:"autoCreateTime:milli;comment:创建时间(时间戳)"`
 	UpdatedAt int64          `json:"updated_at" gorm:"autoUpdateTime:milli;comment:更新时间(时间戳)"`
-	CreatedBy uint64         `json:"created_by" gorm:"default:0;comment:创建人"`
-	UpdatedBy uint64         `json:"updated_by" gorm:"default:0;comment:更新人"`
+	CreatedBy string         `json:"created_by" gorm:"size:32;default:'';comment:创建人"`
+	UpdatedBy string         `json:"updated_by" gorm:"size:32;default:'';comment:更新人"`
 	DeletedAt gorm.DeletedAt `json:"-" gorm:"index;comment:软删除时间"`
 }
 
@@ -35,6 +37,9 @@ func (u *User) TableName() string {
 
 // BeforeCreate sets the CreatedAt and UpdatedAt fields.
 func (u *User) BeforeCreate(_ *gorm.DB) (err error) {
+	if u.ID == "" {
+		u.ID = ulid.MustNew(ulid.Now(), rand.Reader).String()
+	}
 	now := time.Now().Unix()
 	u.CreatedAt = now
 	u.UpdatedAt = now

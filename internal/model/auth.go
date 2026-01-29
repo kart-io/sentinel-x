@@ -3,15 +3,18 @@ package model
 
 // LoginRequest represents the login request body.
 type LoginRequest struct {
-	Username string `json:"username" form:"username" validate:"required"`
-	Password string `json:"password" form:"password" validate:"required"`
+	Username    string `json:"username" form:"username" validate:"required"`
+	Password    string `json:"password" form:"password" validate:"required"`
+	CaptchaID   string `json:"captcha_id" form:"captcha_id"`
+	CaptchaCode string `json:"captcha_code" form:"captcha_code"`
 }
 
 // LoginResponse represents the login response body.
 type LoginResponse struct {
-	Token     string `json:"token"`
-	ExpiresIn int64  `json:"expires_in"`
-	UserID    uint64 `json:"user_id"`
+	Token        string `json:"token"`
+	RefreshToken string `json:"refresh_token"`
+	ExpiresIn    int64  `json:"expires_in"`
+	UserID       string `json:"user_id"`
 }
 
 // RegisterRequest represents the register request body.

@@ -36,12 +36,12 @@ type LoginResponse struct {
 //	@Tags			Auth
 //	@Accept			json
 //	@Produce		json
-//	@Param			request	body		v1.LoginRequest							true	"登录请求"
+//	@Param			request	body		model.LoginRequest							true	"登录请求"
 //	@Success		200		{object}	LoginResponse	"成功响应"
 //	@Failure		401		{object}	object			"认证失败"
 //	@Router			/auth/login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
-	var req v1.LoginRequest
+	var req model.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		httputils.WriteResponse(c, errors.ErrBadRequest.WithMessage(err.Error()), nil)
 		return
@@ -51,17 +51,79 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
+    // Verify Captcha
+    if req.CaptchaID != "" && req.CaptchaCode != "" {
+        if !h.svc.VerifyCaptcha(c.Request.Context(), req.CaptchaID, req.CaptchaCode) {
+            httputils.WriteResponse(c, errors.ErrInvalidParam.WithMessage("验证码错误"), nil)
+            return
+        }
+    }
+
 	respData, err := h.svc.Login(c.Request.Context(), &model.LoginRequest{
-		Username: req.Username,
-		Password: req.Password,
-	})
+		Username:    req.Username,
+		Password:    req.Password,
+        CaptchaID:   req.CaptchaID,
+        CaptchaCode: req.CaptchaCode,
+	}, c.Request.UserAgent(), c.ClientIP())
 	if err != nil {
 		logger.Warnf("Login failed: %v", err)
-		httputils.WriteResponse(c, errors.ErrUnauthorized.WithMessage(err.Error()), nil)
+		httputils.WriteResponse(c, err, nil)
 		return
 	}
 
 	httputils.WriteResponse(c, nil, respData)
+}
+
+// RefreshToken godoc
+//
+//	@Summary		刷新令牌
+//	@Description	使用刷新令牌获取新的访问令牌
+//	@Tags			Auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			refresh_token	body		string	true	"刷新令牌"
+//	@Success		200				{object}	LoginResponse	"成功响应"
+//	@Failure		401				{object}	object			"认证失败"
+//	@Router			/auth/refresh [post]
+func (h *AuthHandler) RefreshToken(c *gin.Context) {
+    type RefreshRequest struct {
+        RefreshToken string `json:"refresh_token" binding:"required"`
+    }
+    var req RefreshRequest
+    if err := c.ShouldBindJSON(&req); err != nil {
+        httputils.WriteResponse(c, errors.ErrBadRequest.WithMessage(err.Error()), nil)
+        return
+    }
+
+    respData, err := h.svc.RefreshToken(c.Request.Context(), req.RefreshToken)
+    if err != nil {
+        logger.Warnf("RefreshToken failed: %v", err)
+        httputils.WriteResponse(c, err, nil)
+        return
+    }
+
+    httputils.WriteResponse(c, nil, respData)
+}
+
+// GetCaptcha godoc
+//
+//	@Summary		获取验证码
+//	@Description	获取图形验证码
+//	@Tags			Auth
+//	@Accept			json
+//	@Produce		json
+//	@Success		200		{object}	object	"成功响应"
+//	@Router			/auth/captcha [get]
+func (h *AuthHandler) GetCaptcha(c *gin.Context) {
+    id, b64s, err := h.svc.GetCaptcha(c.Request.Context())
+    if err != nil {
+        httputils.WriteResponse(c, errors.ErrInternal.WithMessage("获取验证码失败"), nil)
+        return
+    }
+    httputils.WriteResponse(c, nil, gin.H{
+        "captcha_id":   id,
+        "captcha_code": b64s,
+    })
 }
 
 // Logout godoc
