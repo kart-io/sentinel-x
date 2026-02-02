@@ -1,0 +1,155 @@
+syntax = "proto3";
+
+package api.scheduler.v1;
+
+import "google/api/annotations.proto";
+import "validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/kart-io/sentinel-x/pkg/api/scheduler/v1;schedulerv1";
+
+// SchedulerService defines the interface for the distributed scheduler.
+service SchedulerService {
+  // CreateJob registers a new job.
+  rpc CreateJob(CreateJobRequest) returns (CreateJobResponse) {
+    option (google.api.http) = {
+      post: "/v1/jobs"
+      body: "*"
+    };
+  }
+
+  // GetJob retrieves a job by ID.
+  rpc GetJob(GetJobRequest) returns (GetJobResponse) {
+    option (google.api.http) = {
+      get: "/v1/jobs/{id}"
+    };
+  }
+
+  // ListJobs lists jobs with optional filtering.
+  rpc ListJobs(ListJobsRequest) returns (ListJobsResponse) {
+    option (google.api.http) = {
+      get: "/v1/jobs"
+    };
+  }
+
+  // UpdateJob updates an existing job.
+  rpc UpdateJob(UpdateJobRequest) returns (UpdateJobResponse) {
+    option (google.api.http) = {
+      put: "/v1/jobs/{id}"
+      body: "*"
+    };
+  }
+
+  // DeleteJob removes a job.
+  rpc DeleteJob(DeleteJobRequest) returns (DeleteJobResponse) {
+    option (google.api.http) = {
+      delete: "/v1/jobs/{id}"
+    };
+  }
+
+  // TriggerJob manually triggers a job immediately.
+  rpc TriggerJob(TriggerJobRequest) returns (TriggerJobResponse) {
+    option (google.api.http) = {
+      post: "/v1/jobs/{id}/trigger"
+      body: "*"
+    };
+  }
+}
+
+// JobType defines the type of the job.
+enum JobType {
+  JOB_TYPE_UNSPECIFIED = 0;
+  JOB_TYPE_HTTP = 1;  // Execute an HTTP request
+  JOB_TYPE_GRPC = 2;  // Execute a gRPC call (future support)
+}
+
+// JobStatus represents the current state of a job.
+enum JobStatus {
+  JOB_STATUS_UNSPECIFIED = 0;
+  JOB_STATUS_ENABLED = 1;
+  JOB_STATUS_DISABLED = 2;
+}
+
+message Job {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  JobType type = 4;
+  JobStatus status = 5;
+  
+  // Cron expression (e.g., "0 * * * *")
+  string cron_expression = 6;
+  
+  // Job payload (JSON string for HTTP body or gRPC data)
+  string payload = 7;
+  
+  // Target execution endpoint (e.g., "http://user-center:8081/health")
+  string target = 8;
+  
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp updated_at = 10;
+  google.protobuf.Timestamp next_run_time = 11;
+  google.protobuf.Timestamp last_run_time = 12;
+}
+
+message CreateJobRequest {
+  string name = 1 [(validate.rules).string.min_len = 1];
+  string description = 2;
+  JobType type = 3 [(validate.rules).enum = {defined_only: true, not_in: [0]}];
+  string cron_expression = 4 [(validate.rules).string.min_len = 1];
+  string payload = 5;
+  string target = 6 [(validate.rules).string.uri = true];
+}
+
+message CreateJobResponse {
+  string id = 1;
+}
+
+message GetJobRequest {
+  string id = 1 [(validate.rules).string.min_len = 1];
+}
+
+message GetJobResponse {
+  Job job = 1;
+}
+
+message ListJobsRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+}
+
+message ListJobsResponse {
+  repeated Job jobs = 1;
+  string next_page_token = 2;
+  int32 total_count = 3;
+}
+
+message UpdateJobRequest {
+  string id = 1 [(validate.rules).string.min_len = 1];
+  string name = 2;
+  string description = 3;
+  string cron_expression = 4;
+  string payload = 5;
+  string target = 6;
+  JobStatus status = 7;
+}
+
+message UpdateJobResponse {
+  string id = 1;
+}
+
+message DeleteJobRequest {
+  string id = 1 [(validate.rules).string.min_len = 1];
+}
+
+message DeleteJobResponse {
+  string id = 1;
+}
+
+message TriggerJobRequest {
+  string id = 1 [(validate.rules).string.min_len = 1];
+}
+
+message TriggerJobResponse {
+  bool success = 1;
+}

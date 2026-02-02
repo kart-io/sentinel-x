@@ -1,0 +1,43 @@
+server:
+  http:
+    addr: :8083
+    timeout: 30s
+  grpc:
+    addr: :8103
+    timeout: 30s
+
+mysql:
+  host: 127.0.0.1
+  port: 3306
+  username: root
+  password: root123
+  database: user_auth
+  max-idle-connections: 10
+  max-open-connections: 100
+  max-connection-life-time: 10s
+  log-level: 4 # Info
+
+redis:
+  host: 127.0.0.1
+  port: 6379
+  password: ""
+  database: 0
+  max-retries: 3
+  pool-size: 10
+  min-idle-conns: 5
+  pool-timeout: 30s
+  dial-timeout: 5s
+  read-timeout: 3s
+  write-timeout: 3s
+
+etcd:
+  endpoints: [127.0.0.1:2379]
+  dial-timeout: 5s
+  request-timeout: 3s
+  username: ""
+  password: ""
+
+log:
+  level: info
+  format: json
+  output-paths: [stdout]

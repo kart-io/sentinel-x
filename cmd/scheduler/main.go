@@ -1,6 +1,16 @@
-// Package main is the entry point for the scheduler service.
 package main
 
+import (
+	"math/rand"
+	"time"
+
+	_ "go.uber.org/automaxprocs/maxprocs"
+
+	"github.com/kart-io/sentinel-x/cmd/scheduler/app"
+)
+
 func main() {
-	// Entry point for the scheduler
+	rand.Seed(time.Now().UnixNano())
+
+	app.NewApp().Run()
 }
